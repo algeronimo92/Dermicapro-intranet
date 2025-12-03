@@ -24,11 +24,42 @@ export const AppointmentFormPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  // Get query parameters for pre-filling form from calendar helper
+  const scheduledDateParam = searchParams.get('scheduledDate');
+  const durationMinutesParam = searchParams.get('durationMinutes');
+
+  // Format scheduledDate for datetime-local input (YYYY-MM-DDTHH:MM)
+  const getDefaultScheduledDate = () => {
+    if (scheduledDateParam) {
+      try {
+        const date = new Date(scheduledDateParam);
+        // Format as YYYY-MM-DDTHH:MM for datetime-local input
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      } catch {
+        return '';
+      }
+    }
+    return '';
+  };
+
+  const getDefaultDuration = () => {
+    if (durationMinutesParam) {
+      const duration = parseInt(durationMinutesParam);
+      return !isNaN(duration) && duration >= 30 ? duration : 30;
+    }
+    return 30;
+  };
+
   const [formData, setFormData] = useState<CreateAppointmentDto>({
     patientId: preselectedPatientId || '',
     serviceId: '',
-    scheduledDate: '',
-    durationMinutes: 30, // Minimum duration is 30 minutes
+    scheduledDate: getDefaultScheduledDate(),
+    durationMinutes: getDefaultDuration(),
     reservationAmount: undefined,
     notes: ''
   });

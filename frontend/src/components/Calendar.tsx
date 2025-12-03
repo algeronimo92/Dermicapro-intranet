@@ -9,6 +9,7 @@ interface CalendarProps {
   onDateChange: (date: Date) => void;
   onAppointmentClick: (appointment: Appointment) => void;
   onAppointmentUpdate?: (appointmentId: string, newDate: Date, durationMinutes?: number) => void;
+  onTimeSlotClick?: (date: Date, hour: number, minute: number, durationMinutes: number) => void;
   showCancelled?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   onDateChange,
   onAppointmentClick,
   onAppointmentUpdate,
+  onTimeSlotClick,
   showCancelled = false
 }) => {
   // Filter out cancelled appointments from the calendar unless showCancelled is true
@@ -29,8 +31,12 @@ export const Calendar: React.FC<CalendarProps> = ({
   const [draggedAppointment, setDraggedAppointment] = useState<Appointment | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
   const [dragPreviewPosition, setDragPreviewPosition] = useState<number | null>(null);
-  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
+
+  // Hover states for creating new appointments
+  const [hoverDate, setHoverDate] = useState<Date | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<number | null>(null);
 
   // Resize states
   const [resizingAppointment, setResizingAppointment] = useState<Appointment | null>(null);
@@ -200,6 +206,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', apt.id);
 
+    // Capturar el offset desde donde el usuario hace clic en la caja
     if (e.currentTarget instanceof HTMLElement) {
       const rect = e.currentTarget.getBoundingClientRect();
       const offsetY = e.clientY - rect.top;
@@ -226,9 +233,10 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     const column = e.currentTarget;
     const rect = column.getBoundingClientRect();
+    // Restar el offset para que la caja se posicione desde su parte superior, no desde el cursor
     const mouseY = e.clientY - rect.top - dragOffsetY;
 
-    // Convert pixel position to minutes (1px = 1 minute)
+    // Convert pixel position to minutes, round to 15-minute intervals
     const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
 
     setDragOverDate(date);
@@ -243,6 +251,7 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     const column = e.currentTarget;
     const rect = column.getBoundingClientRect();
+    // Restar el offset para que la caja se posicione desde su parte superior, no desde el cursor
     const mouseY = e.clientY - rect.top - dragOffsetY;
 
     // Convert pixel position to minutes and round to 15-minute intervals
@@ -260,6 +269,46 @@ export const Calendar: React.FC<CalendarProps> = ({
     setDragOverDate(null);
     setDragPreviewPosition(null);
     setDragOffsetY(0);
+  };
+
+  // Hover handlers for creating new appointments
+  const handleColumnMouseMove = (e: React.MouseEvent, date: Date) => {
+    // No mostrar el helper si estamos arrastrando o redimensionando
+    if (isDragging || resizingAppointment) return;
+
+    // Verificar si el mouse está sobre un evento existente
+    const target = e.target as HTMLElement;
+    if (target.closest('.appointment-block')) {
+      // Está sobre un evento, ocultar el helper
+      setHoverDate(null);
+      setHoverPosition(null);
+      return;
+    }
+
+    const column = e.currentTarget;
+    const rect = column.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top;
+
+    // Convert pixel position to minutes, redondear hacia abajo a intervalos de 15 minutos
+    const totalMinutes = Math.max(0, Math.floor(mouseY / 15) * 15);
+
+    setHoverDate(date);
+    setHoverPosition(totalMinutes);
+  };
+
+  const handleColumnMouseLeave = () => {
+    setHoverDate(null);
+    setHoverPosition(null);
+  };
+
+  const handleTimeSlotClick = (date: Date, minutes: number) => {
+    if (!onTimeSlotClick) return;
+
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const durationMinutes = 60; // Duración del helper (1 hora)
+
+    onTimeSlotClick(date, hours, mins, durationMinutes);
   };
 
   // Resize handlers
@@ -471,6 +520,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           {weekDays.map(date => {
             const dayAppointments = getAppointmentsForDay(date);
             const showPreview = draggedAppointment && dragOverDate && isSameDay(dragOverDate, date) && dragPreviewPosition !== null;
+            const showHover = !isDragging && hoverDate && isSameDay(hoverDate, date) && hoverPosition !== null;
 
             return (
               <div
@@ -478,6 +528,8 @@ export const Calendar: React.FC<CalendarProps> = ({
                 className={`day-column ${isToday(date) ? 'today' : ''}`}
                 onDragOver={(e) => handleDragOver(e, date)}
                 onDrop={(e) => handleDrop(e, date)}
+                onMouseMove={(e) => handleColumnMouseMove(e, date)}
+                onMouseLeave={handleColumnMouseLeave}
               >
                 {hours.map(hour => (
                   <div
@@ -499,6 +551,32 @@ export const Calendar: React.FC<CalendarProps> = ({
                       {(() => {
                         const hours = Math.floor(dragPreviewPosition / 60);
                         const mins = dragPreviewPosition % 60;
+                        const date = new Date();
+                        date.setHours(hours, mins, 0, 0);
+                        return date.toLocaleTimeString('es-PE', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hover helper for creating new appointments */}
+                {showHover && (
+                  <div
+                    className="hover-helper-indicator"
+                    style={{
+                      top: `${hoverPosition}px`,
+                      height: '60px',
+                      cursor: onTimeSlotClick ? 'pointer' : 'default',
+                    }}
+                    onClick={() => onTimeSlotClick && handleTimeSlotClick(date, hoverPosition)}
+                  >
+                    <div className="helper-time-label">
+                      {(() => {
+                        const hours = Math.floor(hoverPosition / 60);
+                        const mins = hoverPosition % 60;
                         const date = new Date();
                         date.setHours(hours, mins, 0, 0);
                         return date.toLocaleTimeString('es-PE', {
@@ -570,12 +648,10 @@ export const Calendar: React.FC<CalendarProps> = ({
                       {onAppointmentUpdate && !isResizing && (
                         <div
                           className="resize-handle resize-handle-top"
-                          draggable={false}
                           onMouseDown={(e) => {
                             e.stopPropagation();
                             handleResizeStart(e, apt, 'top');
                           }}
-                          onDragStart={(e) => e.preventDefault()}
                           onClick={(e) => e.stopPropagation()}
                         />
                       )}
@@ -595,12 +671,10 @@ export const Calendar: React.FC<CalendarProps> = ({
                       {onAppointmentUpdate && !isResizing && (
                         <div
                           className="resize-handle resize-handle-bottom"
-                          draggable={false}
                           onMouseDown={(e) => {
                             e.stopPropagation();
                             handleResizeStart(e, apt, 'bottom');
                           }}
-                          onDragStart={(e) => e.preventDefault()}
                           onClick={(e) => e.stopPropagation()}
                         />
                       )}
@@ -620,6 +694,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     const dayAppointments = getAppointmentsForDay(currentDate);
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const showPreview = draggedAppointment && dragPreviewPosition !== null;
+    const showHover = !isDragging && hoverPosition !== null;
 
     return (
       <div className="calendar-day-view">
@@ -642,6 +717,8 @@ export const Calendar: React.FC<CalendarProps> = ({
             className={`events-column ${isToday(currentDate) ? 'today' : ''}`}
             onDragOver={(e) => handleDragOver(e, currentDate)}
             onDrop={(e) => handleDrop(e, currentDate)}
+            onMouseMove={(e) => handleColumnMouseMove(e, currentDate)}
+            onMouseLeave={handleColumnMouseLeave}
           >
             {hours.map(hour => (
               <div key={hour} className="hour-slot" />
@@ -660,6 +737,32 @@ export const Calendar: React.FC<CalendarProps> = ({
                   {(() => {
                     const hours = Math.floor(dragPreviewPosition / 60);
                     const mins = dragPreviewPosition % 60;
+                    const date = new Date();
+                    date.setHours(hours, mins, 0, 0);
+                    return date.toLocaleTimeString('es-PE', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Hover helper for creating new appointments */}
+            {showHover && (
+              <div
+                className="hover-helper-indicator"
+                style={{
+                  top: `${hoverPosition}px`,
+                  height: '60px',
+                  cursor: onTimeSlotClick ? 'pointer' : 'default',
+                }}
+                onClick={() => onTimeSlotClick && handleTimeSlotClick(currentDate, hoverPosition)}
+              >
+                <div className="helper-time-label">
+                  {(() => {
+                    const hours = Math.floor(hoverPosition / 60);
+                    const mins = hoverPosition % 60;
                     const date = new Date();
                     date.setHours(hours, mins, 0, 0);
                     return date.toLocaleTimeString('es-PE', {
@@ -731,12 +834,10 @@ export const Calendar: React.FC<CalendarProps> = ({
                     {onAppointmentUpdate && !isResizing && (
                       <div
                         className="resize-handle resize-handle-top"
-                        draggable={false}
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           handleResizeStart(e, apt, 'top');
                         }}
-                        onDragStart={(e) => e.preventDefault()}
                         onClick={(e) => e.stopPropagation()}
                       />
                     )}
@@ -756,12 +857,10 @@ export const Calendar: React.FC<CalendarProps> = ({
                     {onAppointmentUpdate && !isResizing && (
                       <div
                         className="resize-handle resize-handle-bottom"
-                        draggable={false}
                         onMouseDown={(e) => {
                           e.stopPropagation();
                           handleResizeStart(e, apt, 'bottom');
                         }}
-                        onDragStart={(e) => e.preventDefault()}
                         onClick={(e) => e.stopPropagation()}
                       />
                     )}

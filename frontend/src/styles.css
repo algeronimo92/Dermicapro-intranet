@@ -1407,41 +1407,19 @@ body {
   border: 2px dashed #3498db;
 }
 
+/* Basic drag cursor */
 .appointment-block[draggable="true"] {
-  cursor: move !important;
-  transition: opacity 0.2s, transform 0.2s;
-  -webkit-user-drag: element;
+  cursor: move;
 }
 
-.appointment-block[draggable="true"]:active {
-  cursor: grabbing !important;
-}
-
-/* Make ALL child elements not interfere with drag */
-.appointment-block[draggable="true"] * {
-  pointer-events: none !important;
-  user-select: none !important;
-  -webkit-user-drag: none !important;
-}
-
-/* When dragging, make ALL appointments transparent to pointer events */
-/* This allows dropping on slots even when there are other appointments there */
-/* Including the event being dragged itself */
-.calendar-container-v2.dragging .appointment-block {
-  pointer-events: none !important;
-}
-
+/* Dragging state visual feedback */
 .calendar-container-v2.dragging .appointment-block:not(.dragging-block) {
   opacity: 0.6;
 }
 
 .calendar-container-v2.dragging .appointment-block.dragging-block {
   opacity: 0.5;
-}
-
-/* Also disable pointer events on resize handles during drag */
-.calendar-container-v2.dragging .resize-handle {
-  pointer-events: none;
+  cursor: grabbing;
 }
 
 /* Drag Preview Indicator */
@@ -1481,6 +1459,39 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
   z-index: 1000;
+}
+
+/* Hover Helper Indicator for creating new appointments */
+.hover-helper-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background-color: rgba(46, 204, 113, 0.15);
+  border: 2px dashed #2ecc71;
+  border-radius: 4px;
+  pointer-events: auto;
+  z-index: 50;
+  transition: all 0.15s ease;
+}
+
+.hover-helper-indicator:hover {
+  background-color: rgba(46, 204, 113, 0.25);
+  border-color: #27ae60;
+}
+
+.helper-time-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background-color: #2ecc71;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* Resize Handles */

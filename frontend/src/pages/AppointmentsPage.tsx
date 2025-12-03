@@ -133,6 +133,16 @@ export const AppointmentsPage: React.FC = () => {
     }
   };
 
+  const handleTimeSlotClick = (date: Date, hour: number, minute: number, durationMinutes: number) => {
+    // Crear la fecha completa con la hora seleccionada
+    const selectedDateTime = new Date(date);
+    selectedDateTime.setHours(hour, minute, 0, 0);
+
+    // Navegar a la página de nueva cita con la fecha y duración preseleccionadas en el query string
+    const dateParam = selectedDateTime.toISOString();
+    navigate(`/appointments/new?scheduledDate=${encodeURIComponent(dateParam)}&durationMinutes=${durationMinutes}`);
+  };
+
   const statusLabels: Record<AppointmentStatus, string> = {
     reserved: 'Reservada',
     attended: 'Atendida',
@@ -388,6 +398,7 @@ export const AppointmentsPage: React.FC = () => {
               onDateChange={handleCalendarDateChange}
               onAppointmentClick={handleAppointmentClick}
               onAppointmentUpdate={handleAppointmentUpdate}
+              onTimeSlotClick={handleTimeSlotClick}
               showCancelled={showCancelled}
             />
           )}
