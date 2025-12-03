@@ -1,0 +1,17 @@
+.
+ backend
+  prisma
+  src
+   config
+   controllers
+   middlewares
+   models
+   routes
+   services
+   types
+   utils
+ frontend
+  src
+   contexts
+   services
+   types

@@ -8,7 +8,8 @@ interface CalendarProps {
   currentDate: Date;
   onDateChange: (date: Date) => void;
   onAppointmentClick: (appointment: Appointment) => void;
-  onAppointmentUpdate?: (appointmentId: string, newDate: Date) => void;
+  onAppointmentUpdate?: (appointmentId: string, newDate: Date, durationMinutes?: number) => void;
+  showCancelled?: boolean;
 }
 
 export const Calendar: React.FC<CalendarProps> = ({
@@ -16,13 +17,26 @@ export const Calendar: React.FC<CalendarProps> = ({
   currentDate,
   onDateChange,
   onAppointmentClick,
-  onAppointmentUpdate
+  onAppointmentUpdate,
+  showCancelled = false
 }) => {
+  // Filter out cancelled appointments from the calendar unless showCancelled is true
+  const activeAppointments = showCancelled
+    ? appointments
+    : appointments.filter(apt => apt.status !== 'cancelled');
+
   const [view, setView] = useState<CalendarView>('week');
   const [draggedAppointment, setDraggedAppointment] = useState<Appointment | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
-  const [dragOverTime, setDragOverTime] = useState<number | null>(null);
   const [dragPreviewPosition, setDragPreviewPosition] = useState<number | null>(null);
+  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  // Resize states
+  const [resizingAppointment, setResizingAppointment] = useState<Appointment | null>(null);
+  const [resizeEdge, setResizeEdge] = useState<'top' | 'bottom' | null>(null);
+  const [resizePreviewTop, setResizePreviewTop] = useState<number | null>(null);
+  const [resizePreviewHeight, setResizePreviewHeight] = useState<number | null>(null);
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -115,97 +129,232 @@ export const Calendar: React.FC<CalendarProps> = ({
   };
 
   const getAppointmentsForDay = (date: Date): Appointment[] => {
-    return appointments.filter(apt => {
+    return activeAppointments.filter(apt => {
       const aptDate = new Date(apt.scheduledDate);
       return isSameDay(aptDate, date);
     }).sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
   };
 
+  // Helper function to calculate overlapping appointments layout
+  const calculateAppointmentLayout = (appointments: Appointment[]): Map<string, { left: string; width: string; zIndex: number }> => {
+    const layout = new Map<string, { left: string; width: string; zIndex: number }>();
+
+    // Group overlapping appointments
+    const groups: Appointment[][] = [];
+
+    appointments.forEach(apt => {
+      const aptStart = new Date(apt.scheduledDate).getTime();
+      const aptEnd = aptStart + (apt.durationMinutes || 60) * 60 * 1000;
+
+      // Find ALL groups this appointment overlaps with
+      const overlappingGroups: number[] = [];
+      groups.forEach((group, index) => {
+        const overlaps = group.some(existing => {
+          const existingStart = new Date(existing.scheduledDate).getTime();
+          const existingEnd = existingStart + (existing.durationMinutes || 60) * 60 * 1000;
+          return (aptStart < existingEnd && aptEnd > existingStart);
+        });
+
+        if (overlaps) {
+          overlappingGroups.push(index);
+        }
+      });
+
+      if (overlappingGroups.length === 0) {
+        // No overlaps, create new group
+        groups.push([apt]);
+      } else if (overlappingGroups.length === 1) {
+        // Overlaps with one group, add to it
+        groups[overlappingGroups[0]].push(apt);
+      } else {
+        // Overlaps with multiple groups, merge them all
+        const mergedGroup: Appointment[] = [apt];
+        // Merge all overlapping groups (in reverse order to maintain indices)
+        overlappingGroups.reverse().forEach(groupIndex => {
+          mergedGroup.push(...groups[groupIndex]);
+          groups.splice(groupIndex, 1);
+        });
+        groups.push(mergedGroup);
+      }
+    });
+
+    // Calculate position for each group
+    groups.forEach(group => {
+      const columns = group.length;
+      group.forEach((apt, index) => {
+        const widthPercent = 100 / columns;
+        const leftPercent = (index * widthPercent);
+        layout.set(apt.id, {
+          left: `${leftPercent}%`,
+          width: `${widthPercent}%`,
+          zIndex: 5 + index
+        });
+      });
+    });
+
+    return layout;
+  };
+
   // Drag & Drop handlers
   const handleDragStart = (e: React.DragEvent, apt: Appointment) => {
-    setDraggedAppointment(apt);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.currentTarget.innerHTML);
+    e.dataTransfer.setData('text/plain', apt.id);
+
     if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '0.5';
+      const rect = e.currentTarget.getBoundingClientRect();
+      const offsetY = e.clientY - rect.top;
+      setDragOffsetY(offsetY);
     }
+
+    setDraggedAppointment(apt);
+    setIsDragging(true);
   };
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '1';
-    }
+  const handleDragEnd = () => {
     setDraggedAppointment(null);
+    setIsDragging(false);
     setDragOverDate(null);
-    setDragOverTime(null);
     setDragPreviewPosition(null);
+    setDragOffsetY(0);
   };
 
-  const handleDragOver = (e: React.DragEvent, date: Date, hour: number) => {
+  const handleDragOver = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.stopPropagation();
+
+    if (!draggedAppointment) return;
+
+    const column = e.currentTarget;
+    const rect = column.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top - dragOffsetY;
+
+    // Convert pixel position to minutes (1px = 1 minute)
+    const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
+
     setDragOverDate(date);
-    setDragOverTime(hour);
-
-    // Calculate preview position with 15-minute precision
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offsetY = e.clientY - rect.top;
-    const slotHeight = rect.height; // Should be 60px
-
-    // Calculate minutes within this hour slot (0-60)
-    const exactMinutes = (offsetY / slotHeight) * 60;
-
-    // Round to nearest 15-minute interval
-    const roundedMinutes = Math.round(exactMinutes / 15) * 15;
-
-    // Handle overflow to next hour
-    let finalHour = hour;
-    let finalMinutes = roundedMinutes;
-
-    if (roundedMinutes >= 60) {
-      finalHour = hour + 1;
-      finalMinutes = 0;
-    }
-
-    // Calculate exact pixel position for preview
-    // Each hour = 60px, each minute = 1px
-    const previewTop = finalHour * 60 + finalMinutes;
-
-    setDragPreviewPosition(previewTop);
+    setDragPreviewPosition(totalMinutes);
   };
 
-  const handleDrop = (e: React.DragEvent, date: Date, hour: number) => {
+  const handleDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (!draggedAppointment || !onAppointmentUpdate) return;
 
-    // Calculate new date/time with 15-minute precision
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offsetY = e.clientY - rect.top;
-    const slotHeight = rect.height; // Height of one hour slot (60px)
+    const column = e.currentTarget;
+    const rect = column.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top - dragOffsetY;
 
-    // Calculate exact minutes in the hour (0-60)
-    const exactMinutes = (offsetY / slotHeight) * 60;
-
-    // Round to nearest 15-minute interval
-    const minutes = Math.round(exactMinutes / 15) * 15;
-
-    // Ensure minutes stay within 0-45 (if it rounds to 60, it should go to next hour)
-    const finalMinutes = minutes >= 60 ? 0 : minutes;
-    const finalHour = minutes >= 60 ? hour + 1 : hour;
+    // Convert pixel position to minutes and round to 15-minute intervals
+    const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
 
     const newDate = new Date(date);
-    newDate.setHours(finalHour, finalMinutes, 0, 0);
+    newDate.setHours(hours, minutes, 0, 0);
 
-    // Update appointment
     onAppointmentUpdate(draggedAppointment.id, newDate);
 
-    // Reset drag state
     setDraggedAppointment(null);
+    setIsDragging(false);
     setDragOverDate(null);
-    setDragOverTime(null);
     setDragPreviewPosition(null);
+    setDragOffsetY(0);
   };
+
+  // Resize handlers
+  const handleResizeStart = (e: React.MouseEvent, apt: Appointment, edge: 'top' | 'bottom') => {
+    e.stopPropagation();
+    e.preventDefault();
+    setResizingAppointment(apt);
+    setResizeEdge(edge);
+
+    const aptDate = new Date(apt.scheduledDate);
+    const startMinutes = aptDate.getHours() * 60 + aptDate.getMinutes();
+    const duration = apt.durationMinutes || 60;
+
+    setResizePreviewTop(startMinutes);
+    setResizePreviewHeight(duration);
+  };
+
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!resizingAppointment || !resizeEdge) return;
+
+    // Find the day column element
+    const dayColumn = document.elementFromPoint(e.clientX, e.clientY)?.closest('.day-column');
+    if (!dayColumn) return;
+
+    const rect = dayColumn.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top;
+
+    // Convert mouse position to minutes from start of day
+    const mouseMinutes = Math.round(mouseY);
+
+    const aptDate = new Date(resizingAppointment.scheduledDate);
+    const startMinutes = aptDate.getHours() * 60 + aptDate.getMinutes();
+    const duration = resizingAppointment.durationMinutes || 60;
+    const endMinutes = startMinutes + duration;
+
+    const MIN_DURATION = 30; // Minimum duration in minutes
+
+    let newTop = startMinutes;
+    let newHeight = duration;
+
+    if (resizeEdge === 'top') {
+      // Resizing from top - adjust start time, keep end time fixed
+      const roundedMinutes = Math.round(mouseMinutes / 15) * 15;
+      newTop = Math.max(0, Math.min(roundedMinutes, endMinutes - MIN_DURATION));
+      newHeight = endMinutes - newTop;
+    } else {
+      // Resizing from bottom - adjust end time, keep start time fixed
+      const roundedMinutes = Math.round(mouseMinutes / 15) * 15;
+      const newEnd = Math.max(startMinutes + MIN_DURATION, roundedMinutes);
+      newHeight = newEnd - startMinutes;
+    }
+
+    setResizePreviewTop(newTop);
+    setResizePreviewHeight(newHeight);
+  };
+
+  const handleResizeEnd = (e: MouseEvent) => {
+    if (!resizingAppointment || !onAppointmentUpdate || !resizeEdge) {
+      setResizingAppointment(null);
+      setResizeEdge(null);
+      setResizePreviewTop(null);
+      setResizePreviewHeight(null);
+      return;
+    }
+
+    const aptDate = new Date(resizingAppointment.scheduledDate);
+    const newStartMinutes = resizePreviewTop!;
+    const newDuration = resizePreviewHeight!;
+
+    const newStartHour = Math.floor(newStartMinutes / 60);
+    const newStartMinute = newStartMinutes % 60;
+
+    const newDate = new Date(aptDate);
+    newDate.setHours(newStartHour, newStartMinute, 0, 0);
+
+    // Update appointment with new time and duration
+    onAppointmentUpdate(resizingAppointment.id, newDate, newDuration);
+
+    setResizingAppointment(null);
+    setResizeEdge(null);
+    setResizePreviewTop(null);
+    setResizePreviewHeight(null);
+  };
+
+  // Add global event listeners for resize
+  React.useEffect(() => {
+    if (resizingAppointment) {
+      window.addEventListener('mousemove', handleResizeMove);
+      window.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMove);
+        window.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [resizingAppointment, resizeEdge, resizePreviewTop, resizePreviewHeight]);
 
   const renderMonthView = () => {
     const year = currentDate.getFullYear();
@@ -327,18 +476,15 @@ export const Calendar: React.FC<CalendarProps> = ({
               <div
                 key={date.toISOString()}
                 className={`day-column ${isToday(date) ? 'today' : ''}`}
+                onDragOver={(e) => handleDragOver(e, date)}
+                onDrop={(e) => handleDrop(e, date)}
               >
-                {hours.map(hour => {
-                  const isDragOver = dragOverDate && isSameDay(dragOverDate, date) && dragOverTime === hour;
-                  return (
-                    <div
-                      key={hour}
-                      className={`hour-slot ${isDragOver ? 'drag-over' : ''}`}
-                      onDragOver={(e) => handleDragOver(e, date, hour)}
-                      onDrop={(e) => handleDrop(e, date, hour)}
-                    />
-                  );
-                })}
+                {hours.map(hour => (
+                  <div
+                    key={hour}
+                    className="hour-slot"
+                  />
+                ))}
 
                 {/* Drag preview indicator */}
                 {showPreview && (
@@ -364,28 +510,76 @@ export const Calendar: React.FC<CalendarProps> = ({
                   </div>
                 )}
 
-                {dayAppointments.map(apt => {
-                  const aptDate = new Date(apt.scheduledDate);
-                  const hour = aptDate.getHours();
-                  const minute = aptDate.getMinutes();
-                  const top = hour * 60 + minute; // Each hour = 60px, each minute = 1px
-                  const height = apt.durationMinutes || 60; // Height in pixels (1px per minute)
+                {/* Resize preview indicator */}
+                {resizingAppointment && isSameDay(new Date(resizingAppointment.scheduledDate), date) && resizePreviewTop !== null && resizePreviewHeight !== null && (
+                  <div
+                    className="resize-preview-indicator"
+                    style={{
+                      top: `${resizePreviewTop}px`,
+                      height: `${resizePreviewHeight}px`,
+                      backgroundColor: statusColors[resizingAppointment.status],
+                    }}
+                  >
+                    <div className="preview-time-label">
+                      {(() => {
+                        const startHours = Math.floor(resizePreviewTop / 60);
+                        const startMins = resizePreviewTop % 60;
+                        const endMinutes = resizePreviewTop + resizePreviewHeight;
+                        const endHours = Math.floor(endMinutes / 60);
+                        const endMins = endMinutes % 60;
+                        return `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')} - ${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                      })()}
+                    </div>
+                  </div>
+                )}
 
-                  return (
-                    <div
-                      key={apt.id}
-                      className="appointment-block"
-                      draggable={!!onAppointmentUpdate}
-                      onDragStart={(e) => handleDragStart(e, apt)}
-                      onDragEnd={handleDragEnd}
-                      style={{
-                        top: `${top}px`,
-                        height: `${height}px`,
-                        backgroundColor: statusColors[apt.status],
-                        cursor: onAppointmentUpdate ? 'move' : 'pointer',
-                      }}
-                      onClick={() => onAppointmentClick(apt)}
+                {(() => {
+                  const appointmentLayout = calculateAppointmentLayout(dayAppointments);
+
+                  return dayAppointments.map(apt => {
+                    const aptDate = new Date(apt.scheduledDate);
+                    const hour = aptDate.getHours();
+                    const minute = aptDate.getMinutes();
+                    const top = hour * 60 + minute; // Each hour = 60px, each minute = 1px
+                    const height = apt.durationMinutes || 60; // Height in pixels (1px per minute)
+                    const isResizing = resizingAppointment?.id === apt.id;
+                    const isDraggingThis = draggedAppointment?.id === apt.id;
+                    const layout = appointmentLayout.get(apt.id) || { left: '4px', width: 'calc(100% - 8px)', zIndex: 5 };
+
+                    return (
+                      <div
+                        key={apt.id}
+                        className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''}`}
+                        draggable={!!onAppointmentUpdate && !isResizing}
+                        onDragStart={(e) => handleDragStart(e, apt)}
+                        onDragEnd={handleDragEnd}
+                        style={{
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          left: layout.left,
+                          width: layout.width,
+                          right: 'auto',
+                          backgroundColor: statusColors[apt.status],
+                          cursor: onAppointmentUpdate && !isResizing ? 'move' : 'pointer',
+                          opacity: isResizing ? 0.3 : undefined,
+                          zIndex: layout.zIndex,
+                        }}
+                      onClick={() => !isResizing && onAppointmentClick(apt)}
                     >
+                      {/* Resize handle - top */}
+                      {onAppointmentUpdate && !isResizing && (
+                        <div
+                          className="resize-handle resize-handle-top"
+                          draggable={false}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            handleResizeStart(e, apt, 'top');
+                          }}
+                          onDragStart={(e) => e.preventDefault()}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+
                       <div className="apt-time">
                         {aptDate.toLocaleTimeString('es-PE', {
                           hour: '2-digit',
@@ -396,9 +590,24 @@ export const Calendar: React.FC<CalendarProps> = ({
                         {apt.patient?.firstName} {apt.patient?.lastName}
                       </div>
                       <div className="apt-service">{apt.service?.name}</div>
+
+                      {/* Resize handle - bottom */}
+                      {onAppointmentUpdate && !isResizing && (
+                        <div
+                          className="resize-handle resize-handle-bottom"
+                          draggable={false}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            handleResizeStart(e, apt, 'bottom');
+                          }}
+                          onDragStart={(e) => e.preventDefault()}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                     </div>
                   );
-                })}
+                  });
+                })()}
               </div>
             );
           })}
@@ -410,6 +619,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   const renderDayView = () => {
     const dayAppointments = getAppointmentsForDay(currentDate);
     const hours = Array.from({ length: 24 }, (_, i) => i);
+    const showPreview = draggedAppointment && dragPreviewPosition !== null;
 
     return (
       <div className="calendar-day-view">
@@ -428,41 +638,137 @@ export const Calendar: React.FC<CalendarProps> = ({
               </div>
             ))}
           </div>
-          <div className="events-column">
+          <div
+            className={`events-column ${isToday(currentDate) ? 'today' : ''}`}
+            onDragOver={(e) => handleDragOver(e, currentDate)}
+            onDrop={(e) => handleDrop(e, currentDate)}
+          >
             {hours.map(hour => (
               <div key={hour} className="hour-slot" />
             ))}
-            {dayAppointments.map(apt => {
-              const aptDate = new Date(apt.scheduledDate);
-              const hour = aptDate.getHours();
-              const minute = aptDate.getMinutes();
-              const top = hour * 60 + minute; // Each hour = 60px, each minute = 1px
-              const height = apt.durationMinutes || 60; // Height in pixels (1px per minute)
 
-              return (
-                <div
-                  key={apt.id}
-                  className="appointment-block"
-                  style={{
-                    top: `${top}px`,
-                    height: `${height}px`,
-                    backgroundColor: statusColors[apt.status],
-                  }}
-                  onClick={() => onAppointmentClick(apt)}
-                >
-                  <div className="apt-time">
-                    {aptDate.toLocaleTimeString('es-PE', {
+            {/* Drag preview indicator */}
+            {showPreview && (
+              <div
+                className="drag-preview-indicator"
+                style={{
+                  top: `${dragPreviewPosition}px`,
+                  height: `${draggedAppointment.durationMinutes || 60}px`,
+                }}
+              >
+                <div className="preview-time-label">
+                  {(() => {
+                    const hours = Math.floor(dragPreviewPosition / 60);
+                    const mins = dragPreviewPosition % 60;
+                    const date = new Date();
+                    date.setHours(hours, mins, 0, 0);
+                    return date.toLocaleTimeString('es-PE', {
                       hour: '2-digit',
                       minute: '2-digit'
-                    })}
-                  </div>
-                  <div className="apt-title">
-                    {apt.patient?.firstName} {apt.patient?.lastName}
-                  </div>
-                  <div className="apt-service">{apt.service?.name}</div>
+                    });
+                  })()}
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {/* Resize preview indicator */}
+            {resizingAppointment && isSameDay(new Date(resizingAppointment.scheduledDate), currentDate) && resizePreviewTop !== null && resizePreviewHeight !== null && (
+              <div
+                className="resize-preview-indicator"
+                style={{
+                  top: `${resizePreviewTop}px`,
+                  height: `${resizePreviewHeight}px`,
+                  backgroundColor: statusColors[resizingAppointment.status],
+                }}
+              >
+                <div className="preview-time-label">
+                  {(() => {
+                    const startHours = Math.floor(resizePreviewTop / 60);
+                    const startMins = resizePreviewTop % 60;
+                    const endMinutes = resizePreviewTop + resizePreviewHeight;
+                    const endHours = Math.floor(endMinutes / 60);
+                    const endMins = endMinutes % 60;
+                    return `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')} - ${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {(() => {
+              const appointmentLayout = calculateAppointmentLayout(dayAppointments);
+
+              return dayAppointments.map(apt => {
+                const aptDate = new Date(apt.scheduledDate);
+                const hour = aptDate.getHours();
+                const minute = aptDate.getMinutes();
+                const top = hour * 60 + minute; // Each hour = 60px, each minute = 1px
+                const height = apt.durationMinutes || 60; // Height in pixels (1px per minute)
+                const isResizing = resizingAppointment?.id === apt.id;
+                const isDraggingThis = draggedAppointment?.id === apt.id;
+                const layout = appointmentLayout.get(apt.id) || { left: '4px', width: 'calc(100% - 8px)', zIndex: 5 };
+
+                return (
+                  <div
+                    key={apt.id}
+                    className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''}`}
+                    draggable={!!onAppointmentUpdate && !isResizing}
+                    onDragStart={(e) => handleDragStart(e, apt)}
+                    onDragEnd={handleDragEnd}
+                    style={{
+                      top: `${top}px`,
+                      height: `${height}px`,
+                      left: layout.left,
+                      width: layout.width,
+                      right: 'auto',
+                      backgroundColor: statusColors[apt.status],
+                      cursor: onAppointmentUpdate && !isResizing ? 'move' : 'pointer',
+                      opacity: isResizing ? 0.3 : undefined,
+                      zIndex: layout.zIndex,
+                    }}
+                    onClick={() => !isResizing && onAppointmentClick(apt)}
+                  >
+                    {/* Resize handle - top */}
+                    {onAppointmentUpdate && !isResizing && (
+                      <div
+                        className="resize-handle resize-handle-top"
+                        draggable={false}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          handleResizeStart(e, apt, 'top');
+                        }}
+                        onDragStart={(e) => e.preventDefault()}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+
+                    <div className="apt-time">
+                      {aptDate.toLocaleTimeString('es-PE', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                    <div className="apt-title">
+                      {apt.patient?.firstName} {apt.patient?.lastName}
+                    </div>
+                    <div className="apt-service">{apt.service?.name}</div>
+
+                    {/* Resize handle - bottom */}
+                    {onAppointmentUpdate && !isResizing && (
+                      <div
+                        className="resize-handle resize-handle-bottom"
+                        draggable={false}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          handleResizeStart(e, apt, 'bottom');
+                        }}
+                        onDragStart={(e) => e.preventDefault()}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
@@ -470,7 +776,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="calendar-container-v2">
+    <div className={`calendar-container-v2 ${isDragging ? 'dragging' : ''}`}>
       <div className="calendar-toolbar">
         <div className="calendar-nav-controls">
           <button className="btn-today" onClick={handleToday}>

@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  nurse
+  sales
+}
+
+enum Sex {
+  M
+  F
+  Other
+}
+
+enum AppointmentStatus {
+  reserved
+  attended
+  cancelled
+  no_show
+}
+
+enum PaymentMethod {
+  cash
+  card
+  transfer
+  yape
+  plin
+}
+
+enum CommissionStatus {
+  pending
+  paid
+  cancelled
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  role         Role
+  sex          Sex?
+  dateOfBirth  DateTime? @map("date_of_birth")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  patientsCreated      Patient[]           @relation("PatientCreatedBy")
+  appointmentsCreated  Appointment[]       @relation("AppointmentCreatedBy")
+  appointmentsAttended Appointment[]       @relation("AppointmentAttendedBy")
+  patientRecords       PatientRecord[]
+  commissions          Commission[]
+
+  @@map("users")
+}
+
+model Patient {
+  id          String    @id @default(uuid())
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  dni         String    @unique
+  dateOfBirth DateTime  @map("date_of_birth")
+  sex         Sex
+  phone       String?
+  email       String?
+  address     String?
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  createdBy      User            @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  appointments   Appointment[]
+  patientRecords PatientRecord[]
+
+  @@map("patients")
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  basePrice   Decimal  @map("base_price") @db.Decimal(10, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+model Appointment {
+  id                     String            @id @default(uuid())
+  patientId              String            @map("patient_id")
+  serviceId              String            @map("service_id")
+  scheduledDate          DateTime          @map("scheduled_date")
+  durationMinutes        Int               @default(60) @map("duration_minutes")
+  status                 AppointmentStatus @default(reserved)
+  reservationAmount      Decimal?          @map("reservation_amount") @db.Decimal(10, 2)
+  reservationReceiptUrl  String?           @map("reservation_receipt_url")
+  createdById            String            @map("created_by_id")
+  attendedById           String?           @map("attended_by_id")
+  attendedAt             DateTime?         @map("attended_at")
+  notes                  String?
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  patient          Patient            @relation(fields: [patientId], references: [id])
+  service          Service            @relation(fields: [serviceId], references: [id])
+  createdBy        User               @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  attendedBy       User?              @relation("AppointmentAttendedBy", fields: [attendedById], references: [id])
+  treatmentSessions TreatmentSession[]
+  patientRecords   PatientRecord[]
+  commissions      Commission[]
+
+  @@map("appointments")
+}
+
+model TreatmentSession {
+  id             String        @id @default(uuid())
+  appointmentId  String        @map("appointment_id")
+  sessionNumber  Int           @map("session_number")
+  totalSessions  Int           @map("total_sessions")
+  amountPaid     Decimal       @map("amount_paid") @db.Decimal(10, 2)
+  paymentMethod  PaymentMethod @map("payment_method")
+  performed      Boolean       @default(false)
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@map("treatment_sessions")
+}
+
+model PatientRecord {
+  id                String   @id @default(uuid())
+  patientId         String   @map("patient_id")
+  appointmentId     String   @map("appointment_id")
+  weight            Decimal? @db.Decimal(5, 2)
+  bodyMeasurement   Json?    @map("body_measurement")
+  healthNotes       String?  @map("health_notes")
+  beforePhotoUrls   Json?    @map("before_photo_urls")
+  afterPhotoUrls    Json?    @map("after_photo_urls")
+  createdById       String   @map("created_by_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  createdBy   User        @relation(fields: [createdById], references: [id])
+
+  @@map("patient_records")
+}
+
+model Commission {
+  id               String           @id @default(uuid())
+  salesPersonId    String           @map("sales_person_id")
+  appointmentId    String           @map("appointment_id")
+  commissionRate   Decimal          @map("commission_rate") @db.Decimal(5, 4)
+  commissionAmount Decimal          @map("commission_amount") @db.Decimal(10, 2)
+  status           CommissionStatus @default(pending)
+  paidAt           DateTime?        @map("paid_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  salesPerson User        @relation(fields: [salesPersonId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@map("commissions")
+}
