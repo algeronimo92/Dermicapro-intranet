@@ -50,4 +50,9 @@ export const patientsService = {
     const response = await api.get(`/patients/${id}/history`);
     return response.data;
   },
+
+  async getPatientWithOrders(id: string): Promise<Patient> {
+    const response = await api.get<Patient>(`/patients/${id}`);
+    return response.data;
+  },
 };

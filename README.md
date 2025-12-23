@@ -59,8 +59,32 @@ dermicapro/
 
 ## Guía de Instalación
 
-### Requisitos Previos
+### Opción 1: Con Docker (Recomendado) 🐳
 
+**Requisitos:**
+- Docker y Docker Compose instalados
+- 4GB RAM y 10GB de espacio en disco
+
+```bash
+# Inicio rápido
+make init
+
+# O manualmente
+cp .env.example .env
+docker compose up -d
+docker compose exec backend npx prisma migrate deploy
+```
+
+**URLs:**
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5000
+- PostgreSQL: localhost:5432
+
+**Documentación completa:** Ver [DOCKER-README.md](DOCKER-README.md)
+
+### Opción 2: Instalación Local
+
+**Requisitos:**
 - Node.js 18+
 - PostgreSQL 14+
 - npm o yarn

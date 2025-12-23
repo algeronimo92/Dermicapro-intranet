@@ -1,10 +1,37 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="loading">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DermicaPro - Sistema de Gestión</title>
+
+    <!-- Script para aplicar tema antes de que React cargue (previene flash) -->
+    <script>
+      (function() {
+        // Leer tema guardado en localStorage
+        const savedMode = localStorage.getItem('dermicapro-theme-mode');
+
+        // Función para detectar preferencia del sistema
+        function getSystemTheme() {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        // Resolver tema actual
+        let theme = 'light';
+        if (savedMode === 'dark') {
+          theme = 'dark';
+        } else if (savedMode === 'light') {
+          theme = 'light';
+        } else {
+          // Auto o null - usar preferencia del sistema
+          theme = getSystemTheme();
+        }
+
+        // Aplicar tema al HTML inmediatamente
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

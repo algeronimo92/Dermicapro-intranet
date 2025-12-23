@@ -1,30 +1,47 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { PatientsPage } from './pages/PatientsPage';
 import { PatientFormPage } from './pages/PatientFormPage';
 import { PatientDetailPage } from './pages/PatientDetailPage';
+import { PatientHistoryPage } from './pages/PatientHistoryPage';
+import { PatientInvoicesPage } from './pages/PatientInvoicesPage';
+import CreateInvoicePage from './pages/CreateInvoicePage';
+import InvoiceDetailPage from './pages/InvoiceDetailPage';
 import { AppointmentsPage } from './pages/AppointmentsPage';
 import { AppointmentFormPage } from './pages/AppointmentFormPage';
 import { AppointmentDetailPage } from './pages/AppointmentDetailPage';
+import { EmployeesPage } from './pages/EmployeesPage';
+import { EmployeeFormPage } from './pages/EmployeeFormPage';
+import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
+import { ServicesPage } from './pages/ServicesPage';
+import { ServiceFormPage } from './pages/ServiceFormPage';
+import SettingsPage from './pages/SettingsPage';
+import './styles/design-tokens.css';
+import './styles/auth.css';
+import './styles/dashboard.css';
+import './styles/settings.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
@@ -32,7 +49,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Cargando...</div>;
+    return <div className="login-loading">Cargando...</div>;
   }
 
   if (!isAuthenticated) {
@@ -63,40 +80,53 @@ function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <h1>DermicaPro</h1>
-      <h2>Iniciar Sesión</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-header">
+          <h1 className="login-logo">DermicaPro</h1>
+          <h2 className="login-title">Iniciar Sesión</h2>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Contraseña:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
+
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="login-form-group">
+            <label className="login-form-label">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="login-form-input"
+              placeholder="usuario@dermicapro.com"
+            />
+          </div>
+
+          <div className="login-form-group">
+            <label className="login-form-label">Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="login-form-input"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {error && <div className="login-error">{error}</div>}
+
+          <button type="submit" className="login-submit-btn">
+            Ingresar
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <div className="login-demo-info">
+            <p><strong>Usuarios de prueba:</strong></p>
+            <p>Admin: admin@dermicapro.com / admin123</p>
+            <p>Enfermera: enfermera@dermicapro.com / nurse123</p>
+            <p>Ventas: ventas@dermicapro.com / sales123</p>
+          </div>
         </div>
-        {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
-        <button type="submit" style={{ width: '100%', padding: '10px' }}>
-          Ingresar
-        </button>
-      </form>
-      <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-        <p>Usuarios de prueba:</p>
-        <p>Admin: admin@dermicapro.com / admin123</p>
-        <p>Enfermera: enfermera@dermicapro.com / nurse123</p>
-        <p>Ventas: ventas@dermicapro.com / sales123</p>
       </div>
     </div>
   );
@@ -106,77 +136,158 @@ function DashboardLayout() {
   const { user, logout } = useAuth();
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <nav style={{ width: '250px', background: '#2c3e50', color: 'white', padding: '20px' }}>
-        <h2>DermicaPro</h2>
-        <div style={{ marginTop: '20px' }}>
-          <p>
+    <div className="dashboard-layout">
+      <aside className="dashboard-sidebar">
+        <div className="sidebar-header">
+          <h1 className="sidebar-logo">DermicaPro</h1>
+        </div>
+
+        <div className="sidebar-user">
+          <p className="sidebar-user-name">
             {user?.firstName} {user?.lastName}
           </p>
-          <p style={{ fontSize: '14px', opacity: 0.8 }}>{user?.role}</p>
+          <p className="sidebar-user-role">{user?.role}</p>
         </div>
-        <ul style={{ listStyle: 'none', padding: 0, marginTop: '30px' }}>
-          <li style={{ marginBottom: '10px' }}>
-            <a href="/" style={{ color: 'white', textDecoration: 'none' }}>
-              Dashboard
-            </a>
-          </li>
-          <li style={{ marginBottom: '10px' }}>
-            <a href="/patients" style={{ color: 'white', textDecoration: 'none' }}>
-              Pacientes
-            </a>
-          </li>
-          <li style={{ marginBottom: '10px' }}>
-            <a href="/appointments" style={{ color: 'white', textDecoration: 'none' }}>
-              Citas
-            </a>
-          </li>
-          {user?.role === 'admin' && (
-            <li style={{ marginBottom: '10px' }}>
-              <a href="/analytics" style={{ color: 'white', textDecoration: 'none' }}>
-                Analíticas
-              </a>
+
+        <nav className="sidebar-nav">
+          <ul className="sidebar-nav-list">
+            <li className="sidebar-nav-item">
+              <NavLink to="/" end className="sidebar-nav-link">
+                <span className="sidebar-nav-icon">🏠</span>
+                Dashboard
+              </NavLink>
             </li>
-          )}
-        </ul>
-        <button
-          onClick={logout}
-          style={{
-            marginTop: '50px',
-            padding: '10px',
-            width: '100%',
-            background: '#e74c3c',
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          Cerrar Sesión
-        </button>
-      </nav>
-      <main style={{ flex: 1, padding: '20px', overflow: 'auto' }}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/patients" element={<PatientsPage />} />
-          <Route path="/patients/new" element={<PatientFormPage />} />
-          <Route path="/patients/:id" element={<PatientDetailPage />} />
-          <Route path="/patients/:id/edit" element={<PatientFormPage />} />
-          <Route path="/appointments" element={<AppointmentsPage />} />
-          <Route path="/appointments/new" element={<AppointmentFormPage />} />
-          <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
-          <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
-          <Route path="/analytics" element={<div>Analíticas</div>} />
-        </Routes>
+            <li className="sidebar-nav-item">
+              <NavLink to="/patients" className="sidebar-nav-link">
+                <span className="sidebar-nav-icon">👥</span>
+                Pacientes
+              </NavLink>
+            </li>
+            <li className="sidebar-nav-item">
+              <NavLink to="/appointments" className="sidebar-nav-link">
+                <span className="sidebar-nav-icon">📅</span>
+                Citas
+              </NavLink>
+            </li>
+            {user?.role === 'admin' && (
+              <>
+                <li className="sidebar-nav-item">
+                  <NavLink to="/services" className="sidebar-nav-link">
+                    <span className="sidebar-nav-icon">💉</span>
+                    Servicios
+                  </NavLink>
+                </li>
+                <li className="sidebar-nav-item">
+                  <NavLink to="/employees" className="sidebar-nav-link">
+                    <span className="sidebar-nav-icon">👨‍⚕️</span>
+                    Recursos Humanos
+                  </NavLink>
+                </li>
+                <li className="sidebar-nav-item">
+                  <NavLink to="/analytics" className="sidebar-nav-link">
+                    <span className="sidebar-nav-icon">📊</span>
+                    Analíticas
+                  </NavLink>
+                </li>
+              </>
+            )}
+            <li className="sidebar-nav-item">
+              <NavLink to="/settings" className="sidebar-nav-link">
+                <span className="sidebar-nav-icon">⚙️</span>
+                Configuración
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button onClick={logout} className="sidebar-logout-btn">
+            <span>🚪</span>
+            Cerrar Sesión
+          </button>
+        </div>
+      </aside>
+
+      <main className="dashboard-main">
+        <div className="dashboard-content">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/patients" element={<PatientsPage />} />
+            <Route path="/patients/new" element={<PatientFormPage />} />
+            <Route path="/patients/:id" element={<PatientDetailPage />} />
+            <Route path="/patients/:id/edit" element={<PatientFormPage />} />
+            <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
+            <Route path="/patients/:id/invoices" element={<PatientInvoicesPage />} />
+            <Route path="/patients/:id/create-invoice" element={<CreateInvoicePage />} />
+            <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+            <Route path="/appointments" element={<AppointmentsPage />} />
+            <Route path="/appointments/new" element={<AppointmentFormPage />} />
+            <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
+            <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/services/new" element={<ServiceFormPage />} />
+            <Route path="/services/:id/edit" element={<ServiceFormPage />} />
+            <Route path="/employees" element={<EmployeesPage />} />
+            <Route path="/employees/new" element={<EmployeeFormPage />} />
+            <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+            <Route path="/employees/:id/edit" element={<EmployeeFormPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/analytics" element={<div>Analíticas</div>} />
+          </Routes>
+        </div>
       </main>
     </div>
   );
 }
 
 function Dashboard() {
+  const { user } = useAuth();
+
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Bienvenido al sistema de gestión de DermicaPro</p>
+    <div className="dashboard-home">
+      <div className="dashboard-welcome">
+        <h1 className="dashboard-welcome-title">
+          Bienvenido, {user?.firstName}
+        </h1>
+        <p className="dashboard-welcome-subtitle">
+          Sistema de gestión de DermicaPro - {new Date().toLocaleDateString('es-MX', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </p>
+      </div>
+
+      <div className="dashboard-stats">
+        <div className="dashboard-stat-card">
+          <p className="dashboard-stat-label">Citas de hoy</p>
+          <p className="dashboard-stat-value">0</p>
+        </div>
+        <div className="dashboard-stat-card">
+          <p className="dashboard-stat-label">Pacientes activos</p>
+          <p className="dashboard-stat-value">0</p>
+        </div>
+        <div className="dashboard-stat-card">
+          <p className="dashboard-stat-label">Servicios</p>
+          <p className="dashboard-stat-value">0</p>
+        </div>
+      </div>
+
+      <div className="dashboard-quick-actions">
+        <a href="/appointments/new" className="dashboard-action-btn">
+          <span>📅</span>
+          Nueva Cita
+        </a>
+        <a href="/patients/new" className="dashboard-action-btn">
+          <span>👤</span>
+          Nuevo Paciente
+        </a>
+        <a href="/appointments" className="dashboard-action-btn">
+          <span>📋</span>
+          Ver Calendario
+        </a>
+      </div>
     </div>
   );
 }

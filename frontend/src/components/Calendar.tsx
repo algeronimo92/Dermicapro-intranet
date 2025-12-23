@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Appointment, AppointmentStatus } from '../types';
+import { compareDates } from '../utils/dateUtils';
 
 type CalendarView = 'month' | 'week' | 'day';
 
@@ -11,6 +12,8 @@ interface CalendarProps {
   onAppointmentUpdate?: (appointmentId: string, newDate: Date, durationMinutes?: number) => void;
   onTimeSlotClick?: (date: Date, hour: number, minute: number, durationMinutes: number) => void;
   showCancelled?: boolean;
+  view?: CalendarView;
+  onViewChange?: (view: CalendarView) => void;
 }
 
 export const Calendar: React.FC<CalendarProps> = ({
@@ -20,14 +23,25 @@ export const Calendar: React.FC<CalendarProps> = ({
   onAppointmentClick,
   onAppointmentUpdate,
   onTimeSlotClick,
-  showCancelled = false
+  showCancelled = false,
+  view: controlledView,
+  onViewChange
 }) => {
   // Filter out cancelled appointments from the calendar unless showCancelled is true
   const activeAppointments = showCancelled
     ? appointments
     : appointments.filter(apt => apt.status !== 'cancelled');
 
-  const [view, setView] = useState<CalendarView>('week');
+  // Use controlled view if provided, otherwise use local state
+  const [internalView, setInternalView] = useState<CalendarView>('week');
+  const view = controlledView !== undefined ? controlledView : internalView;
+  const setView = (newView: CalendarView) => {
+    if (onViewChange) {
+      onViewChange(newView);
+    } else {
+      setInternalView(newView);
+    }
+  };
   const [draggedAppointment, setDraggedAppointment] = useState<Appointment | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
   const [dragPreviewPosition, setDragPreviewPosition] = useState<number | null>(null);
@@ -44,6 +58,18 @@ export const Calendar: React.FC<CalendarProps> = ({
   const [resizePreviewTop, setResizePreviewTop] = useState<number | null>(null);
   const [resizePreviewHeight, setResizePreviewHeight] = useState<number | null>(null);
 
+  // Current time indicator state
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -54,9 +80,95 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   const statusColors: Record<AppointmentStatus, string> = {
     reserved: '#3498db',
+    in_progress: '#f39c12',
     attended: '#27ae60',
     cancelled: '#e74c3c',
-    no_show: '#f39c12'
+    no_show: '#95a5a6'
+  };
+
+  // Helper function to get all services for an appointment
+  const getAppointmentServices = (apt: Appointment): string => {
+    const services: string[] = [];
+    if (apt.appointmentServices && apt.appointmentServices.length > 0) {
+      apt.appointmentServices.forEach(appSvc => {
+        services.push(appSvc.order.service?.name || 'Servicio');
+      });
+    }
+    return services.join(', ') || 'Sin servicio';
+  };
+
+  // Helper function to get total sessions count
+  const getTotalSessionsCount = (apt: Appointment): number => {
+    return apt.appointmentServices?.length || 0;
+  };
+
+  // Calculate current time indicator position in pixels
+  const getCurrentTimePosition = (): number => {
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    return hours * 60 + minutes; // 1 pixel = 1 minute
+  };
+
+  // Check if current time indicator should be shown for a date
+  const shouldShowTimeIndicator = (date: Date): boolean => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  /**
+   * Calculate the height of the blocked past time overlay
+   * Returns the minimum allowed time position in pixels (current time + 1 hour rounded)
+   */
+  const getBlockedPastHeight = (): number => {
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+
+    // Add 1 hour
+    let minHours = currentHours + 1;
+    let minMinutes = currentMinutes;
+
+    // Round up to next 30-minute interval
+    if (minMinutes > 0 && minMinutes <= 30) {
+      minMinutes = 30;
+    } else if (minMinutes > 30) {
+      minMinutes = 0;
+      minHours += 1;
+    }
+
+    // Handle overflow
+    if (minHours >= 24) {
+      return 0; // Don't show overlay if we're past 11:00 PM
+    }
+
+    return minHours * 60 + minMinutes; // Convert to pixels (1px = 1 minute)
+  };
+
+  /**
+   * Check if a date is in the past (before today)
+   */
+  const isPastDay = (date: Date): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate < today;
+  };
+
+  /**
+   * Check if a time position (in minutes) is in the past for today
+   * Returns true if the time is before current time + 1 hour (rounded to 30 min)
+   */
+  const isPastTimeToday = (date: Date, totalMinutes: number): boolean => {
+    // Only check if it's today
+    if (!shouldShowTimeIndicator(date)) return false;
+
+    const minAllowedMinutes = getBlockedPastHeight();
+    return totalMinutes < minAllowedMinutes;
   };
 
   const handlePrev = () => {
@@ -138,7 +250,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     return activeAppointments.filter(apt => {
       const aptDate = new Date(apt.scheduledDate);
       return isSameDay(aptDate, date);
-    }).sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+    }).sort((a, b) => compareDates(a.scheduledDate, b.scheduledDate));
   };
 
   // Helper function to calculate overlapping appointments layout
@@ -203,6 +315,24 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   // Drag & Drop handlers
   const handleDragStart = (e: React.DragEvent, apt: Appointment) => {
+    const appointmentDate = new Date(apt.scheduledDate);
+
+    // No permitir arrastrar eventos de días pasados
+    if (isPastDay(appointmentDate)) {
+      e.preventDefault();
+      return;
+    }
+
+    // No permitir arrastrar eventos de horas pasadas del día actual
+    const aptHours = appointmentDate.getHours();
+    const aptMinutes = appointmentDate.getMinutes();
+    const aptTotalMinutes = aptHours * 60 + aptMinutes;
+
+    if (isPastTimeToday(appointmentDate, aptTotalMinutes)) {
+      e.preventDefault();
+      return;
+    }
+
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', apt.id);
 
@@ -231,6 +361,13 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     if (!draggedAppointment) return;
 
+    // No permitir arrastrar a días pasados
+    if (isPastDay(date)) {
+      setDragOverDate(null);
+      setDragPreviewPosition(null);
+      return;
+    }
+
     const column = e.currentTarget;
     const rect = column.getBoundingClientRect();
     // Restar el offset para que la caja se posicione desde su parte superior, no desde el cursor
@@ -238,6 +375,13 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     // Convert pixel position to minutes, round to 15-minute intervals
     const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
+
+    // No permitir arrastrar a horas pasadas del día actual
+    if (isPastTimeToday(date, totalMinutes)) {
+      setDragOverDate(null);
+      setDragPreviewPosition(null);
+      return;
+    }
 
     setDragOverDate(date);
     setDragPreviewPosition(totalMinutes);
@@ -249,6 +393,16 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     if (!draggedAppointment || !onAppointmentUpdate) return;
 
+    // No permitir soltar en días pasados
+    if (isPastDay(date)) {
+      setDraggedAppointment(null);
+      setDragOverDate(null);
+      setDragPreviewPosition(null);
+      setIsDragging(false);
+      setDragOffsetY(0);
+      return;
+    }
+
     const column = e.currentTarget;
     const rect = column.getBoundingClientRect();
     // Restar el offset para que la caja se posicione desde su parte superior, no desde el cursor
@@ -256,6 +410,17 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     // Convert pixel position to minutes and round to 15-minute intervals
     const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
+
+    // No permitir soltar en horas pasadas del día actual
+    if (isPastTimeToday(date, totalMinutes)) {
+      setDraggedAppointment(null);
+      setDragOverDate(null);
+      setDragPreviewPosition(null);
+      setIsDragging(false);
+      setDragOffsetY(0);
+      return;
+    }
+
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
@@ -276,6 +441,13 @@ export const Calendar: React.FC<CalendarProps> = ({
     // No mostrar el helper si estamos arrastrando o redimensionando
     if (isDragging || resizingAppointment) return;
 
+    // No mostrar helper en días pasados
+    if (isPastDay(date)) {
+      setHoverDate(null);
+      setHoverPosition(null);
+      return;
+    }
+
     // Verificar si el mouse está sobre un evento existente
     const target = e.target as HTMLElement;
     if (target.closest('.appointment-block')) {
@@ -292,6 +464,46 @@ export const Calendar: React.FC<CalendarProps> = ({
     // Convert pixel position to minutes, redondear hacia abajo a intervalos de 15 minutos
     const totalMinutes = Math.max(0, Math.floor(mouseY / 15) * 15);
 
+    // Validar hora mínima si es el día actual
+    const today = new Date();
+    const isToday = (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+
+    if (isToday) {
+      // Calcular hora mínima: hora actual + 1 hora, redondeada a siguiente intervalo de 30 min
+      const currentHours = today.getHours();
+      const currentMinutes = today.getMinutes();
+
+      let minHours = currentHours + 1;
+      let minMinutes = currentMinutes;
+
+      // Redondear al siguiente intervalo de 30 minutos
+      if (minMinutes > 0 && minMinutes <= 30) {
+        minMinutes = 30;
+      } else if (minMinutes > 30) {
+        minMinutes = 0;
+        minHours += 1;
+      }
+
+      // Manejar overflow de 24 horas
+      if (minHours >= 24) {
+        minHours = 23;
+        minMinutes = 30;
+      }
+
+      const minTotalMinutes = minHours * 60 + minMinutes;
+
+      // No mostrar helper si la hora es menor a la mínima permitida
+      if (totalMinutes < minTotalMinutes) {
+        setHoverDate(null);
+        setHoverPosition(null);
+        return;
+      }
+    }
+
     setHoverDate(date);
     setHoverPosition(totalMinutes);
   };
@@ -304,9 +516,55 @@ export const Calendar: React.FC<CalendarProps> = ({
   const handleTimeSlotClick = (date: Date, minutes: number) => {
     if (!onTimeSlotClick) return;
 
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    // No permitir clics en días pasados
+    if (isPastDay(date)) {
+      return;
+    }
+
+    let finalMinutes = minutes;
+    let hours = Math.floor(finalMinutes / 60);
+    let mins = finalMinutes % 60;
     const durationMinutes = 60; // Duración del helper (1 hora)
+
+    // Validar hora mínima si es el día actual
+    const today = new Date();
+    const isToday = (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+
+    if (isToday) {
+      // Calcular hora mínima: hora actual + 1 hora, redondeada a siguiente intervalo de 30 min
+      const currentHours = today.getHours();
+      const currentMinutes = today.getMinutes();
+
+      let minHours = currentHours + 1;
+      let minMinutes = currentMinutes;
+
+      // Redondear al siguiente intervalo de 30 minutos
+      if (minMinutes > 0 && minMinutes <= 30) {
+        minMinutes = 30;
+      } else if (minMinutes > 30) {
+        minMinutes = 0;
+        minHours += 1;
+      }
+
+      // Manejar overflow de 24 horas
+      if (minHours >= 24) {
+        minHours = 23;
+        minMinutes = 30;
+      }
+
+      const minTotalMinutes = minHours * 60 + minMinutes;
+
+      // Si la hora seleccionada es menor a la mínima, usar la mínima
+      if (finalMinutes < minTotalMinutes) {
+        finalMinutes = minTotalMinutes;
+        hours = Math.floor(finalMinutes / 60);
+        mins = finalMinutes % 60;
+      }
+    }
 
     onTimeSlotClick(date, hours, mins, durationMinutes);
   };
@@ -525,7 +783,7 @@ export const Calendar: React.FC<CalendarProps> = ({
             return (
               <div
                 key={date.toISOString()}
-                className={`day-column ${isToday(date) ? 'today' : ''}`}
+                className={`day-column ${isToday(date) ? 'today' : ''} ${isPastDay(date) ? 'past-day' : ''}`}
                 onDragOver={(e) => handleDragOver(e, date)}
                 onDrop={(e) => handleDrop(e, date)}
                 onMouseMove={(e) => handleColumnMouseMove(e, date)}
@@ -537,6 +795,11 @@ export const Calendar: React.FC<CalendarProps> = ({
                     className="hour-slot"
                   />
                 ))}
+
+                {/* Full day blocked overlay for past days */}
+                {isPastDay(date) && (
+                  <div className="blocked-past-day-overlay" />
+                )}
 
                 {/* Drag preview indicator */}
                 {showPreview && (
@@ -624,11 +887,17 @@ export const Calendar: React.FC<CalendarProps> = ({
                     const isDraggingThis = draggedAppointment?.id === apt.id;
                     const layout = appointmentLayout.get(apt.id) || { left: '4px', width: 'calc(100% - 8px)', zIndex: 5 };
 
+                    // Check if appointment is in blocked time zone
+                    const aptTotalMinutes = hour * 60 + minute;
+                    const isInPastDay = isPastDay(aptDate);
+                    const isInPastTime = isPastTimeToday(aptDate, aptTotalMinutes);
+                    const isBlocked = isInPastDay || isInPastTime;
+
                     return (
                       <div
                         key={apt.id}
-                        className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''}`}
-                        draggable={!!onAppointmentUpdate && !isResizing}
+                        className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''} ${isBlocked ? 'blocked-appointment' : ''}`}
+                        draggable={!!onAppointmentUpdate && !isResizing && !isBlocked}
                         onDragStart={(e) => handleDragStart(e, apt)}
                         onDragEnd={handleDragEnd}
                         style={{
@@ -638,7 +907,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                           width: layout.width,
                           right: 'auto',
                           backgroundColor: statusColors[apt.status],
-                          cursor: onAppointmentUpdate && !isResizing ? 'move' : 'pointer',
+                          cursor: isBlocked ? 'pointer' : (onAppointmentUpdate && !isResizing ? 'move' : 'pointer'),
                           opacity: isResizing ? 0.3 : undefined,
                           zIndex: layout.zIndex,
                         }}
@@ -665,7 +934,14 @@ export const Calendar: React.FC<CalendarProps> = ({
                       <div className="apt-title">
                         {apt.patient?.firstName} {apt.patient?.lastName}
                       </div>
-                      <div className="apt-service">{apt.service?.name}</div>
+                      <div className="apt-service">
+                        {getTotalSessionsCount(apt) > 1 && (
+                          <span style={{ fontWeight: 'bold', marginRight: '4px' }}>
+                            ({getTotalSessionsCount(apt)} sesiones)
+                          </span>
+                        )}
+                        {getAppointmentServices(apt)}
+                      </div>
 
                       {/* Resize handle - bottom */}
                       {onAppointmentUpdate && !isResizing && (
@@ -682,6 +958,35 @@ export const Calendar: React.FC<CalendarProps> = ({
                   );
                   });
                 })()}
+
+                {/* Blocked past time overlay */}
+                {shouldShowTimeIndicator(date) && getBlockedPastHeight() > 0 && (
+                  <div
+                    className="blocked-past-overlay"
+                    style={{
+                      height: `${getBlockedPastHeight()}px`,
+                    }}
+                  />
+                )}
+
+                {/* Current time indicator */}
+                {shouldShowTimeIndicator(date) && (
+                  <div
+                    className="current-time-indicator"
+                    style={{
+                      top: `${getCurrentTimePosition()}px`,
+                    }}
+                  >
+                    <div className="time-indicator-dot"></div>
+                    <div className="time-indicator-line"></div>
+                    <div className="time-indicator-label">
+                      {currentTime.toLocaleTimeString('es-PE', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -714,7 +1019,7 @@ export const Calendar: React.FC<CalendarProps> = ({
             ))}
           </div>
           <div
-            className={`events-column ${isToday(currentDate) ? 'today' : ''}`}
+            className={`events-column ${isToday(currentDate) ? 'today' : ''} ${isPastDay(currentDate) ? 'past-day' : ''}`}
             onDragOver={(e) => handleDragOver(e, currentDate)}
             onDrop={(e) => handleDrop(e, currentDate)}
             onMouseMove={(e) => handleColumnMouseMove(e, currentDate)}
@@ -723,6 +1028,11 @@ export const Calendar: React.FC<CalendarProps> = ({
             {hours.map(hour => (
               <div key={hour} className="hour-slot" />
             ))}
+
+            {/* Full day blocked overlay for past days */}
+            {isPastDay(currentDate) && (
+              <div className="blocked-past-day-overlay" />
+            )}
 
             {/* Drag preview indicator */}
             {showPreview && (
@@ -810,11 +1120,17 @@ export const Calendar: React.FC<CalendarProps> = ({
                 const isDraggingThis = draggedAppointment?.id === apt.id;
                 const layout = appointmentLayout.get(apt.id) || { left: '4px', width: 'calc(100% - 8px)', zIndex: 5 };
 
+                // Check if appointment is in blocked time zone
+                const aptTotalMinutes = hour * 60 + minute;
+                const isInPastDay = isPastDay(aptDate);
+                const isInPastTime = isPastTimeToday(aptDate, aptTotalMinutes);
+                const isBlocked = isInPastDay || isInPastTime;
+
                 return (
                   <div
                     key={apt.id}
-                    className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''}`}
-                    draggable={!!onAppointmentUpdate && !isResizing}
+                    className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''} ${isBlocked ? 'blocked-appointment' : ''}`}
+                    draggable={!!onAppointmentUpdate && !isResizing && !isBlocked}
                     onDragStart={(e) => handleDragStart(e, apt)}
                     onDragEnd={handleDragEnd}
                     style={{
@@ -824,7 +1140,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                       width: layout.width,
                       right: 'auto',
                       backgroundColor: statusColors[apt.status],
-                      cursor: onAppointmentUpdate && !isResizing ? 'move' : 'pointer',
+                      cursor: isBlocked ? 'pointer' : (onAppointmentUpdate && !isResizing ? 'move' : 'pointer'),
                       opacity: isResizing ? 0.3 : undefined,
                       zIndex: layout.zIndex,
                     }}
@@ -851,7 +1167,14 @@ export const Calendar: React.FC<CalendarProps> = ({
                     <div className="apt-title">
                       {apt.patient?.firstName} {apt.patient?.lastName}
                     </div>
-                    <div className="apt-service">{apt.service?.name}</div>
+                    <div className="apt-service">
+                      {getTotalSessionsCount(apt) > 1 && (
+                        <span style={{ fontWeight: 'bold', marginRight: '4px' }}>
+                          ({getTotalSessionsCount(apt)} sesiones)
+                        </span>
+                      )}
+                      {getAppointmentServices(apt)}
+                    </div>
 
                     {/* Resize handle - bottom */}
                     {onAppointmentUpdate && !isResizing && (
@@ -868,6 +1191,35 @@ export const Calendar: React.FC<CalendarProps> = ({
                 );
               });
             })()}
+
+            {/* Blocked past time overlay */}
+            {shouldShowTimeIndicator(currentDate) && getBlockedPastHeight() > 0 && (
+              <div
+                className="blocked-past-overlay"
+                style={{
+                  height: `${getBlockedPastHeight()}px`,
+                }}
+              />
+            )}
+
+            {/* Current time indicator */}
+            {shouldShowTimeIndicator(currentDate) && (
+              <div
+                className="current-time-indicator"
+                style={{
+                  top: `${getCurrentTimePosition()}px`,
+                }}
+              >
+                <div className="time-indicator-dot"></div>
+                <div className="time-indicator-line"></div>
+                <div className="time-indicator-label">
+                  {currentTime.toLocaleTimeString('es-PE', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

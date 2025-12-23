@@ -25,4 +25,7 @@ router.put('/:id', servicesController.updateService);
 // DELETE /api/services/:id - Eliminar servicio (solo admin)
 router.delete('/:id', servicesController.deleteService);
 
+// POST /api/services/:id/restore - Restaurar servicio eliminado (solo admin)
+router.post('/:id/restore', servicesController.restoreService);
+
 export default router;

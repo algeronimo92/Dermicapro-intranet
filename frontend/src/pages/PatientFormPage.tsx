@@ -5,6 +5,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Loading } from '../components/Loading';
+import { utcToLocalDate } from '../utils/dateUtils';
 
 export const PatientFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export const PatientFormPage: React.FC = () => {
         firstName: patient.firstName,
         lastName: patient.lastName,
         dni: patient.dni,
-        dateOfBirth: patient.dateOfBirth.split('T')[0], // Format for input type="date"
+        dateOfBirth: utcToLocalDate(patient.dateOfBirth),
         sex: patient.sex,
         phone: patient.phone || '',
         email: patient.email || '',

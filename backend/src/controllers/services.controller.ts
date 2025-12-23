@@ -3,7 +3,10 @@ import prisma from '../config/database';
 
 export const getServices = async (req: Request, res: Response) => {
   try {
+    const includeDeleted = req.query.includeDeleted === 'true';
+
     const services = await prisma.service.findMany({
+      where: includeDeleted ? {} : { deletedAt: null },
       orderBy: { name: 'asc' }
     });
     res.json(services);
@@ -15,7 +18,10 @@ export const getServices = async (req: Request, res: Response) => {
 export const getActiveServices = async (req: Request, res: Response) => {
   try {
     const services = await prisma.service.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        deletedAt: null
+      },
       orderBy: { name: 'asc' }
     });
     res.json(services);
@@ -43,7 +49,7 @@ export const getService = async (req: Request, res: Response) => {
 
 export const createService = async (req: Request, res: Response) => {
   try {
-    const { name, description, basePrice, isActive } = req.body;
+    const { name, description, basePrice, defaultSessions, isActive } = req.body;
 
     // Validaciones
     if (!name || !basePrice) {
@@ -54,11 +60,16 @@ export const createService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El precio debe ser mayor o igual a 0' });
     }
 
+    if (defaultSessions !== undefined && defaultSessions < 1) {
+      return res.status(400).json({ message: 'El número de sesiones debe ser al menos 1' });
+    }
+
     const service = await prisma.service.create({
       data: {
         name,
         description,
         basePrice,
+        defaultSessions: defaultSessions || 1,
         isActive: isActive !== undefined ? isActive : true
       }
     });
@@ -72,7 +83,7 @@ export const createService = async (req: Request, res: Response) => {
 export const updateService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, basePrice, isActive } = req.body;
+    const { name, description, basePrice, defaultSessions, isActive } = req.body;
 
     // Verificar que el servicio existe
     const existingService = await prisma.service.findUnique({
@@ -88,12 +99,17 @@ export const updateService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El precio debe ser mayor o igual a 0' });
     }
 
+    if (defaultSessions !== undefined && defaultSessions < 1) {
+      return res.status(400).json({ message: 'El número de sesiones debe ser al menos 1' });
+    }
+
     const service = await prisma.service.update({
       where: { id },
       data: {
         name,
         description,
         basePrice,
+        defaultSessions,
         isActive
       }
     });
@@ -117,23 +133,47 @@ export const deleteService = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Servicio no encontrado' });
     }
 
-    // Verificar si hay citas asociadas
-    const appointmentsCount = await prisma.appointment.count({
-      where: { serviceId: id }
-    });
-
-    if (appointmentsCount > 0) {
-      return res.status(400).json({
-        message: 'No se puede eliminar el servicio porque tiene citas asociadas. Considere desactivarlo en su lugar.'
-      });
+    if (existingService.deletedAt) {
+      return res.status(400).json({ message: 'El servicio ya está eliminado' });
     }
 
-    await prisma.service.delete({
-      where: { id }
+    // Soft delete: solo actualizar deletedAt
+    await prisma.service.update({
+      where: { id },
+      data: { deletedAt: new Date() }
     });
 
     res.status(204).send();
   } catch (error: any) {
     res.status(500).json({ message: 'Error al eliminar servicio', error: error.message });
+  }
+};
+
+export const restoreService = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar que el servicio existe
+    const existingService = await prisma.service.findUnique({
+      where: { id }
+    });
+
+    if (!existingService) {
+      return res.status(404).json({ message: 'Servicio no encontrado' });
+    }
+
+    if (!existingService.deletedAt) {
+      return res.status(400).json({ message: 'El servicio no está eliminado' });
+    }
+
+    // Restaurar: poner deletedAt a null
+    const service = await prisma.service.update({
+      where: { id },
+      data: { deletedAt: null }
+    });
+
+    res.json(service);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error al restaurar servicio', error: error.message });
   }
 };

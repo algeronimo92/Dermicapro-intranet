@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
+import { parseStartOfDay } from '../utils/dateUtils';
 
 export const getAllPatients = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -48,8 +49,31 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
           createdAt: true,
           createdBy: {
             select: {
+              id: true,
               firstName: true,
               lastName: true,
+            },
+          },
+          appointments: {
+            where: {
+              status: 'attended',
+              attendedAt: {
+                not: null,
+              },
+            },
+            orderBy: {
+              attendedAt: 'desc',
+            },
+            take: 1,
+            select: {
+              attendedAt: true,
+              attendedBy: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
             },
           },
         },
@@ -57,8 +81,27 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
       prisma.patient.count({ where }),
     ]);
 
+    // Transformar los datos para incluir lastAttendedDate y lastAttendedBy
+    const patientsWithLastAttended = patients.map(patient => {
+      const lastAppointment = patient.appointments[0];
+      return {
+        id: patient.id,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        dni: patient.dni,
+        dateOfBirth: patient.dateOfBirth,
+        sex: patient.sex,
+        phone: patient.phone,
+        email: patient.email,
+        createdAt: patient.createdAt,
+        createdBy: patient.createdBy,
+        lastAttendedDate: lastAppointment?.attendedAt || null,
+        lastAttendedBy: lastAppointment?.attendedBy || null,
+      };
+    });
+
     res.json({
-      data: patients,
+      data: patientsWithLastAttended,
       pagination: {
         page: parseInt(page as string),
         limit: take,
@@ -80,10 +123,89 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
       include: {
         appointments: {
           include: {
-            service: true,
-            treatmentSessions: true,
+            appointmentServices: {
+              include: {
+                order: {
+                  include: {
+                    service: true,
+                  },
+                },
+              },
+            },
+            appointmentNotes: {
+              orderBy: { createdAt: 'desc' },
+              include: {
+                createdBy: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            createdBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            attendedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            patientRecords: {
+              orderBy: { createdAt: 'desc' },
+              include: {
+                createdBy: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
           },
           orderBy: { scheduledDate: 'desc' },
+        },
+        orders: {
+          include: {
+            service: true,
+            appointmentServices: {
+              include: {
+                appointment: {
+                  select: {
+                    id: true,
+                    scheduledDate: true,
+                    status: true,
+                  },
+                },
+              },
+              orderBy: { sessionNumber: 'asc' },
+            },
+            invoice: {
+              include: {
+                payments: {
+                  select: {
+                    id: true,
+                    amountPaid: true,
+                    paymentMethod: true,
+                    paymentDate: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
         },
       },
     });
@@ -123,7 +245,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
         firstName,
         lastName,
         dni,
-        dateOfBirth: new Date(dateOfBirth),
+        dateOfBirth: parseStartOfDay(dateOfBirth),
         sex,
         phone,
         email,
@@ -152,7 +274,7 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
       data: {
         firstName,
         lastName,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        dateOfBirth: dateOfBirth ? parseStartOfDay(dateOfBirth) : undefined,
         sex,
         phone,
         email,
@@ -184,26 +306,115 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
 
-    const records = await prisma.patientRecord.findMany({
-      where: { patientId: id },
-      include: {
-        appointment: {
-          include: {
-            service: true,
-          },
-        },
+    // Obtener información del paciente
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        createdAt: true,
         createdBy: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
     });
 
-    res.json(records);
+    if (!patient) {
+      res.status(404).json({ error: 'Patient not found' });
+      return;
+    }
+
+    // Obtener todas las citas del paciente
+    const appointments = await prisma.appointment.findMany({
+      where: { patientId: id },
+      include: {
+        appointmentServices: {
+          include: {
+            order: {
+              select: {
+                id: true,
+                totalSessions: true,
+                service: true,
+              },
+            },
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        attendedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        patientRecords: {
+          include: {
+            originalService: true,
+            createdBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+        appointmentNotes: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { scheduledDate: 'desc' },
+    });
+
+    // Calcular estadísticas
+    const totalAppointments = appointments.length;
+    const attendedAppointments = appointments.filter(a => a.status === 'attended').length;
+    const cancelledAppointments = appointments.filter(a => a.status === 'cancelled').length;
+    const noShowAppointments = appointments.filter(a => a.status === 'no_show').length;
+
+    const lastAttended = appointments.find(a => a.status === 'attended' && a.attendedAt);
+    const lastAppointment = appointments[0];
+
+    const history = {
+      patient,
+      statistics: {
+        totalAppointments,
+        attendedAppointments,
+        cancelledAppointments,
+        noShowAppointments,
+        registrationDate: patient.createdAt,
+        lastAttendedDate: lastAttended?.attendedAt || null,
+        lastAppointmentDate: lastAppointment?.scheduledDate || null,
+      },
+      appointments,
+    };
+
+    res.json(history);
   } catch (error) {
+    console.error('Error fetching patient history:', error);
     res.status(500).json({ error: 'Failed to fetch patient history' });
   }
 };

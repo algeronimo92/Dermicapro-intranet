@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Patient } from '../types';
 import { patientsService, CreatePatientDto } from '../services/patients.service';
 import { Button } from './Button';
@@ -41,6 +42,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({
   });
 
   const [patientErrors, setPatientErrors] = useState<Record<string, string>>({});
+  const dropdownContentRef = useRef<HTMLDivElement>(null);
 
   const selectedPatient = patients.find(p => p.id === value);
 
@@ -68,7 +70,14 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({
   useEffect(() => {
     // Cerrar dropdown al hacer clic fuera
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Verificar si el clic fue fuera del input Y fuera del dropdown
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        dropdownContentRef.current &&
+        !dropdownContentRef.current.contains(target)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -212,8 +221,18 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({
               disabled={disabled}
             />
 
-            {isDropdownOpen && (
-              <div className="patient-dropdown">
+            {isDropdownOpen && dropdownRef.current && createPortal(
+              <div
+                ref={dropdownContentRef}
+                className="patient-dropdown"
+                style={{
+                  position: 'fixed',
+                  top: `${dropdownRef.current.getBoundingClientRect().bottom + 4}px`,
+                  left: `${dropdownRef.current.getBoundingClientRect().left}px`,
+                  width: `${dropdownRef.current.getBoundingClientRect().width}px`,
+                  zIndex: 9999
+                }}
+              >
                 {isLoadingPatients ? (
                   <div className="patient-dropdown-item patient-dropdown-loading">
                     Cargando pacientes...
@@ -257,7 +276,8 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({
                 >
                   + Crear nuevo paciente
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         )}

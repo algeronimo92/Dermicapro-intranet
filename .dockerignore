@@ -1,0 +1,66 @@
+# Root .dockerignore
+# This file applies to the entire project context
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+ARQUITECTURA_*.md
+CAMBIOS_*.md
+DIAGRAMA_*.md
+ESCENARIOS_*.md
+HISTORIAL_*.md
+ICONOS_*.md
+INTEGRACION_*.md
+MATRIZ_*.md
+MEJORAS_*.md
+MEJORA_*.md
+PENDIENTE_*.md
+PLAN_*.md
+RECURSOS_*.md
+REGLAS_*.md
+RESULTADOS_*.md
+RESUMEN_*.md
+SISTEMA_*.md
+SOLUCION_*.md
+UX_*.md
+ANTES_DESPUES_*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Scripts
+scripts/

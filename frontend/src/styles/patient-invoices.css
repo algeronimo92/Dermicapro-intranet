@@ -1,0 +1,386 @@
+/**
+ * PATIENT INVOICES PAGE STYLES
+ * Estilos para la página de facturas del paciente con soporte para temas
+ */
+
+.invoices-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+}
+
+/* Header */
+.invoices-header {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.invoices-back-button {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  padding: 0;
+  transition: opacity var(--transition-base);
+}
+
+.invoices-back-button:hover {
+  opacity: 0.8;
+}
+
+.invoices-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invoices-title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.invoices-patient-info {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+/* Summary Cards */
+.invoices-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.summary-card {
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  border: 2px solid;
+}
+
+.summary-card-total {
+  background: linear-gradient(135deg, var(--color-primary-alpha-10) 0%, var(--color-primary-alpha-20) 100%);
+  border-color: var(--color-primary);
+}
+
+.summary-card-paid {
+  background: linear-gradient(135deg, var(--color-success-alpha-10) 0%, var(--color-success-alpha-20) 100%);
+  border-color: var(--color-success);
+}
+
+.summary-card-pending {
+  background: linear-gradient(135deg, var(--color-error-alpha-10) 0%, var(--color-error-alpha-20) 100%);
+  border-color: var(--color-error);
+}
+
+.summary-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-card-total .summary-label {
+  color: var(--color-primary);
+}
+
+.summary-card-paid .summary-label {
+  color: var(--color-success-dark);
+}
+
+.summary-card-pending .summary-label {
+  color: var(--color-error-dark);
+}
+
+.summary-amount {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.summary-card-total .summary-amount {
+  color: var(--color-primary);
+}
+
+.summary-card-paid .summary-amount {
+  color: var(--color-success-dark);
+}
+
+.summary-card-pending .summary-amount {
+  color: var(--color-error-dark);
+}
+
+.summary-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+/* Invoices List */
+.invoices-list-container {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-secondary);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.invoices-list-header {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.invoices-list-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Empty State */
+.invoices-empty {
+  padding: 60px var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+.invoices-empty svg {
+  margin: 0 auto var(--spacing-lg);
+  color: var(--color-text-tertiary);
+}
+
+.invoices-empty-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invoices-empty-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Invoice Item */
+.invoice-item {
+  padding: var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-secondary);
+  transition: background-color var(--transition-base);
+  cursor: pointer;
+}
+
+.invoice-item:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.invoice-item:last-child {
+  border-bottom: none;
+}
+
+.invoice-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.invoice-item-left {
+  flex: 1;
+}
+
+.invoice-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.invoice-item-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.invoice-status-badge {
+  color: white;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+}
+
+.invoice-status-paid {
+  background-color: var(--color-success);
+}
+
+.invoice-status-partial {
+  background-color: var(--color-warning);
+}
+
+.invoice-status-pending {
+  background-color: var(--color-error);
+}
+
+.invoice-status-cancelled {
+  background-color: var(--color-text-tertiary);
+}
+
+.invoice-orders {
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.invoice-orders ul {
+  margin-top: var(--spacing-xs);
+  padding-left: var(--spacing-xl);
+  margin-bottom: 0;
+}
+
+.invoice-metadata {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.invoice-item-right {
+  text-align: right;
+}
+
+.invoice-amount {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.invoice-pending {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Payment Progress */
+.payment-progress {
+  margin-top: var(--spacing-md);
+}
+
+.payment-progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.payment-progress-bar {
+  background: var(--color-border-secondary);
+  height: 6px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.payment-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.payment-progress-fill-paid {
+  background: linear-gradient(90deg, var(--color-success), var(--color-success-dark));
+}
+
+.payment-progress-fill-partial {
+  background: linear-gradient(90deg, var(--color-warning), var(--color-warning-dark));
+}
+
+/* Payment History */
+.payment-history {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.payment-history-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.payment-history-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.payment-history-item:last-child {
+  margin-bottom: 0;
+}
+
+.payment-history-amount {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-success);
+}
+
+/* Register Payment Button */
+.register-payment-button {
+  margin-top: var(--spacing-md);
+  width: 100%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  transition: all var(--transition-base);
+}
+
+.register-payment-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .invoices-container {
+    padding: var(--spacing-lg);
+  }
+
+  .invoices-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+  }
+
+  .invoices-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-item-header {
+    flex-direction: column;
+  }
+
+  .invoice-item-right {
+    text-align: left;
+    margin-top: var(--spacing-md);
+  }
+}

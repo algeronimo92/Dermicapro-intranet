@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export const Modal: React.FC<ModalProps> = ({
     large: 'max-w-4xl'
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={onClose}>
       <div
         className={`modal-content ${sizeClasses[size]}`}
@@ -41,4 +42,7 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  // Renderizar el modal usando un portal para que aparezca fuera del árbol DOM actual
+  return createPortal(modalContent, document.body);
 };

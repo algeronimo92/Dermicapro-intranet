@@ -1,0 +1,57 @@
+# ================================
+# Production Override Configuration
+# ================================
+# Use this file for production deployments
+# Command: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # ================================
+  # Database (Production)
+  # ================================
+  db:
+    # Don't expose port in production (only internal network)
+    ports: []
+    # More frequent health checks
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ================================
+  # Backend (Production)
+  # ================================
+  backend:
+    build:
+      target: production  # Use production stage
+    environment:
+      NODE_ENV: production
+    # Remove development volumes
+    volumes:
+      - backend_uploads:/app/uploads
+    # Run migrations and start production server
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+    # Production restart policy
+    restart: always
+
+  # ================================
+  # Frontend (Production)
+  # ================================
+  frontend:
+    build:
+      target: production  # Use Nginx stage
+    # Remove development volumes
+    volumes: []
+    # Production restart policy
+    restart: always
+    # Override port if needed
+    ports:
+      - "80:80"
+
+  # ================================
+  # Prisma Studio (Disabled in Production)
+  # ================================
+  prisma-studio:
+    profiles:
+      - disabled  # Don't run in production

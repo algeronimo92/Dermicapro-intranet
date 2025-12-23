@@ -8,6 +8,7 @@ import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { Loading } from '../components/Loading';
+import { formatDate } from '../utils/dateUtils';
 
 export const PatientsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -109,14 +110,37 @@ export const PatientsPage: React.FC = () => {
       render: (patient) => patient.phone || '-'
     },
     {
-      key: 'email',
-      header: 'Correo',
-      render: (patient) => patient.email || '-'
-    },
-    {
       key: 'dateOfBirth',
       header: 'Fecha de Nacimiento',
-      render: (patient) => new Date(patient.dateOfBirth).toLocaleDateString('es-PE')
+      render: (patient) => formatDate(patient.dateOfBirth)
+    },
+    {
+      key: 'lastAttendedDate',
+      header: 'Última Atención',
+      render: (patient) => patient.lastAttendedDate
+        ? formatDate(patient.lastAttendedDate)
+        : '-'
+    },
+    {
+      key: 'lastAttendedBy',
+      header: 'Atendido por',
+      render: (patient) => patient.lastAttendedBy ? (
+        <span
+          style={{
+            color: '#2ecc71',
+            cursor: 'pointer',
+            textDecoration: 'underline'
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (patient.lastAttendedBy?.id) {
+              navigate(`/employees/${patient.lastAttendedBy.id}`);
+            }
+          }}
+        >
+          {patient.lastAttendedBy.firstName} {patient.lastAttendedBy.lastName}
+        </span>
+      ) : '-'
     },
     {
       key: 'createdBy',
@@ -130,8 +154,9 @@ export const PatientsPage: React.FC = () => {
           }}
           onClick={(e) => {
             e.stopPropagation();
-            // TODO: Navigate to user profile when page exists
-            alert(`Perfil de usuario: ${patient.createdBy.firstName} ${patient.createdBy.lastName}\n(Página de perfil próximamente)`);
+            if (patient.createdBy?.id) {
+              navigate(`/employees/${patient.createdBy.id}`);
+            }
           }}
         >
           {patient.createdBy.firstName} {patient.createdBy.lastName}
@@ -141,7 +166,7 @@ export const PatientsPage: React.FC = () => {
     {
       key: 'createdAt',
       header: 'Fecha de Registro',
-      render: (patient) => new Date(patient.createdAt).toLocaleDateString('es-PE')
+      render: (patient) => formatDate(patient.createdAt)
     }
   ];
 
