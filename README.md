@@ -299,3 +299,4 @@ Para reportar bugs o solicitar funcionalidades, contacta al equipo de desarrollo
 ## Licencia
 
 Uso privado - DermicaPro © 2024
+# Dermicapro-intranet
