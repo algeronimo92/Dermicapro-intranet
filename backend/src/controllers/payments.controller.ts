@@ -309,7 +309,7 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
           );
 
           // Determinar nuevo status
-          let newStatus = 'pending';
+          let newStatus: 'pending' | 'partial' | 'paid' = 'pending';
           if (totalPaid >= parseFloat(invoice.totalAmount.toString())) {
             newStatus = 'paid';
           } else if (totalPaid > 0) {
