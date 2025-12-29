@@ -1,57 +1,96 @@
 # ================================
-# Production Override Configuration
+# Production Configuration
 # ================================
 # Use this file for production deployments
-# Command: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-version: '3.8'
+# Command: docker compose -f docker-compose.prod.yml up -d
 
 services:
   # ================================
-  # Database (Production)
+  # PostgreSQL Database (Production)
   # ================================
   db:
-    # Don't expose port in production (only internal network)
-    ports: []
-    # More frequent health checks
+    image: postgres:14-alpine
+    container_name: dermicapro-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-dermicapro}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dermicapro123}
+      POSTGRES_DB: ${DB_NAME:-dermicapro_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dermicapro} -d ${DB_NAME:-dermicapro_db}"]
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - dermicapro-network
 
   # ================================
-  # Backend (Production)
+  # Backend API (Production)
   # ================================
   backend:
     build:
-      target: production  # Use production stage
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: dermicapro-backend-prod
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       NODE_ENV: production
-    # Remove development volumes
+      PORT: 5000
+      DATABASE_URL: postgresql://${DB_USER:-dermicapro}:${DB_PASSWORD:-dermicapro123}@db:5432/${DB_NAME:-dermicapro_db}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
     volumes:
       - backend_uploads:/app/uploads
-    # Run migrations and start production server
-    command: sh -c "npx prisma migrate deploy && node dist/index.js"
-    # Production restart policy
-    restart: always
+    command: sh -c "npx prisma migrate deploy && npm run seed && node dist/index.js"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dermicapro-network
 
   # ================================
   # Frontend (Production)
   # ================================
   frontend:
     build:
-      target: production  # Use Nginx stage
-    # Remove development volumes
-    volumes: []
-    # Production restart policy
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: dermicapro-frontend-prod
     restart: always
-    # Override port if needed
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
     ports:
       - "80:80"
+    networks:
+      - dermicapro-network
 
-  # ================================
-  # Prisma Studio (Disabled in Production)
-  # ================================
-  prisma-studio:
-    profiles:
-      - disabled  # Don't run in production
+# ================================
+# Networks
+# ================================
+networks:
+  dermicapro-network:
+    driver: bridge
+
+# ================================
+# Volumes
+# ================================
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local
