@@ -118,4 +118,16 @@ export const appointmentsService = {
     const response = await api.post(`/appointments/${appointmentId}/notes`, { note });
     return response.data;
   },
+
+  async updateBodyMeasurements(
+    appointmentId: string,
+    data: {
+      weight?: number | null;
+      bodyMeasurement?: any;
+      healthNotes?: string;
+    }
+  ): Promise<Appointment> {
+    const response = await api.put<Appointment>(`/appointments/${appointmentId}/body-measurements`, data);
+    return response.data;
+  },
 };

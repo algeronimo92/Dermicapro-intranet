@@ -2,11 +2,10 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
-import { Role } from '@prisma/client';
 
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '10', search = '', role = '', isActive = '' } = req.query;
+    const { page = '1', limit = '10', search = '', roleId = '', isActive = '' } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
@@ -24,8 +23,8 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Filtro por rol
-    if (role) {
-      conditions.role = role as Role;
+    if (roleId) {
+      conditions.roleId = roleId as string;
     }
 
     // Filtro por estado activo
@@ -41,24 +40,34 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
         skip,
         take,
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          sex: true,
-          dateOfBirth: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
+        include: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              displayName: true,
+            },
+          },
         },
       }),
       prisma.user.count({ where }),
     ]);
 
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      sex: user.sex,
+      dateOfBirth: user.dateOfBirth,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }));
+
     res.json({
-      data: users,
+      data: formattedUsers,
       pagination: {
         page: parseInt(page as string),
         limit: take,
@@ -77,17 +86,16 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        sex: true,
-        dateOfBirth: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             patientsCreated: true,
@@ -104,7 +112,30 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
       throw new AppError('User not found', 404);
     }
 
-    res.json(user);
+    const formattedUser = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        permissions: user.role.permissions.map(rp => ({
+          id: rp.permission.id,
+          name: rp.permission.name,
+          displayName: rp.permission.displayName,
+        })),
+      } : null,
+      sex: user.sex,
+      dateOfBirth: user.dateOfBirth,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      counts: user._count,
+    };
+
+    res.json(formattedUser);
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -116,16 +147,24 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
 export const createUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, firstName, lastName, role, sex, dateOfBirth } = req.body;
+    const { email, password, firstName, lastName, roleId, sex, dateOfBirth } = req.body;
 
     // Validar campos requeridos
-    if (!email || !password || !firstName || !lastName || !role) {
+    if (!email || !password || !firstName || !lastName || !roleId) {
       throw new AppError('Missing required fields', 400);
     }
 
-    // Validar que el rol sea válido
-    if (!['admin', 'nurse', 'sales'].includes(role)) {
+    // Verificar que el rol existe y está activo
+    const role = await prisma.systemRole.findUnique({
+      where: { id: roleId },
+    });
+
+    if (!role) {
       throw new AppError('Invalid role', 400);
+    }
+
+    if (!role.isActive) {
+      throw new AppError('Cannot assign inactive role', 400);
     }
 
     // Verificar si el email ya existe
@@ -146,25 +185,33 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         passwordHash,
         firstName,
         lastName,
-        role: role as Role,
+        roleId,
         sex: sex || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        sex: true,
-        dateOfBirth: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          },
+        },
       },
     });
 
-    res.status(201).json(user);
+    res.status(201).json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      sex: user.sex,
+      dateOfBirth: user.dateOfBirth,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -178,27 +225,50 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 export const updateUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role, sex, dateOfBirth, isActive, password } = req.body;
+    const { email, firstName, lastName, roleId, sex, dateOfBirth, isActive, password } = req.body;
 
     // Construir objeto de actualización
-    const updateData: any = {
-      firstName,
-      lastName,
-      sex,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-    };
+    const updateData: any = {};
 
-    // Solo admin puede cambiar el rol y estado activo
-    if (req.user!.role === 'admin') {
-      if (role) {
-        if (!['admin', 'nurse', 'sales'].includes(role)) {
-          throw new AppError('Invalid role', 400);
-        }
-        updateData.role = role as Role;
+    // Verificar si se está cambiando el email
+    if (email !== undefined) {
+      // Verificar que no exista otro usuario con ese email
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser && existingUser.id !== id) {
+        throw new AppError('Ya existe otro usuario con este correo electrónico', 409);
       }
-      if (isActive !== undefined) {
-        updateData.isActive = isActive;
+
+      updateData.email = email;
+    }
+
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (sex !== undefined) updateData.sex = sex;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+
+    // Cambiar rol si se proporciona
+    if (roleId !== undefined) {
+      const role = await prisma.systemRole.findUnique({
+        where: { id: roleId },
+      });
+
+      if (!role) {
+        throw new AppError('Invalid role', 400);
       }
+
+      if (!role.isActive) {
+        throw new AppError('Cannot assign inactive role', 400);
+      }
+
+      updateData.roleId = roleId;
+    }
+
+    // Cambiar estado activo si se proporciona
+    if (isActive !== undefined) {
+      updateData.isActive = isActive;
     }
 
     // Si se proporciona nueva contraseña
@@ -209,21 +279,29 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        sex: true,
-        dateOfBirth: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          },
+        },
       },
     });
 
-    res.json(user);
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      sex: user.sex,
+      dateOfBirth: user.dateOfBirth,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -246,16 +324,27 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
     const user = await prisma.user.update({
       where: { id },
       data: { isActive: false },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        isActive: true,
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          },
+        },
       },
     });
 
-    res.json({ message: 'User deactivated successfully', user });
+    res.json({
+      message: 'User deactivated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isActive: user.isActive,
+      },
+    });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -272,16 +361,27 @@ export const activateUser = async (req: Request, res: Response): Promise<void> =
     const user = await prisma.user.update({
       where: { id },
       data: { isActive: true },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        isActive: true,
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+          },
+        },
       },
     });
 
-    res.json({ message: 'User activated successfully', user });
+    res.json({
+      message: 'User activated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isActive: user.isActive,
+      },
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to activate user' });
   }
@@ -293,10 +393,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
+      include: {
         role: true,
         _count: {
           select: {
@@ -317,7 +414,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
     // Estadísticas adicionales según el rol
     let additionalStats: any = {};
 
-    if (user.role === 'sales') {
+    if (user.role?.name === 'sales') {
       // Estadísticas de ventas
       const commissionStats = await prisma.commission.aggregate({
         where: { salesPersonId: id },
@@ -328,7 +425,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
       const paidCommissions = await prisma.commission.aggregate({
         where: {
           salesPersonId: id,
-          status: 'paid'
+          status: 'paid',
         },
         _sum: { commissionAmount: true },
       });
@@ -338,7 +435,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
         paidCommissions: paidCommissions._sum.commissionAmount || 0,
         commissionCount: commissionStats._count || 0,
       };
-    } else if (user.role === 'nurse') {
+    } else if (user.role?.name === 'nurse') {
       // Estadísticas de enfermería
       const recentAppointments = await prisma.appointment.count({
         where: {

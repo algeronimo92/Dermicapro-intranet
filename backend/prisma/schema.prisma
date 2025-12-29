@@ -10,12 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  admin
-  nurse
-  sales
-}
-
 enum Sex {
   M
   F
@@ -45,35 +39,86 @@ enum CommissionStatus {
 }
 
 enum InvoiceStatus {
-  pending   // No ha pagado nada
-  partial   // Ha pagado algo pero no todo
-  paid      // Pagado completamente
+  pending // No ha pagado nada
+  partial // Ha pagado algo pero no todo
+  paid // Pagado completamente
   cancelled // Cancelado/anulado
 }
 
 enum PaymentType {
-  invoice_payment    // Pago de factura (tiene invoiceId)
-  reservation        // Adelanto/reserva de cita (tiene appointmentId, no invoiceId)
-  service_payment    // Pago directo de servicio (tiene appointmentId)
-  account_credit     // Abono a cuenta del paciente (solo patientId)
-  penalty            // Multa o penalidad
-  other              // Otro tipo de pago
+  invoice_payment // Pago de factura (tiene invoiceId)
+  reservation // Adelanto/reserva de cita (tiene appointmentId, no invoiceId)
+  service_payment // Pago directo de servicio (tiene appointmentId)
+  account_credit // Abono a cuenta del paciente (solo patientId)
+  penalty // Multa o penalidad
+  other // Otro tipo de pago
+}
+
+// Modelo de Rol
+model SystemRole {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g., "admin", "nurse", "sales", "doctor"
+  displayName String   @map("display_name") // e.g., "Administrador", "Enfermera"
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  isSystem    Boolean  @default(false) @map("is_system") // Roles del sistema no se pueden eliminar
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("system_roles")
+}
+
+// Modelo de Permiso
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g., "patients.create", "appointments.view"
+  displayName String   @map("display_name") // e.g., "Crear Pacientes"
+  description String?
+  module      String // e.g., "patients", "appointments", "services"
+  action      String // e.g., "create", "read", "update", "delete", "manage"
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  roles RolePermission[]
+
+  @@unique([module, action])
+  @@map("permissions")
+}
+
+// Tabla intermedia: Relación muchos a muchos entre Roles y Permisos
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  role       SystemRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  firstName    String   @map("first_name")
-  lastName     String   @map("last_name")
-  role         Role
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  roleId       String?   @map("role_id") // Ahora es una relación
   sex          Sex?
   dateOfBirth  DateTime? @map("date_of_birth")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
+  role                       SystemRole?          @relation(fields: [roleId], references: [id])
   patientsCreated            Patient[]            @relation("PatientCreatedBy")
   ordersCreated              Order[]              @relation("OrderCreatedBy")
   appointmentsCreated        Appointment[]        @relation("AppointmentCreatedBy")
@@ -89,18 +134,18 @@ model User {
 }
 
 model Patient {
-  id          String    @id @default(uuid())
-  firstName   String    @map("first_name")
-  lastName    String    @map("last_name")
-  dni         String    @unique
-  dateOfBirth DateTime  @map("date_of_birth")
+  id          String   @id @default(uuid())
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  dni         String   @unique
+  dateOfBirth DateTime @map("date_of_birth")
   sex         Sex
   phone       String?
   email       String?
   address     String?
-  createdById String    @map("created_by_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   createdBy      User            @relation("PatientCreatedBy", fields: [createdById], references: [id])
@@ -119,67 +164,67 @@ model Service {
   description     String?
   basePrice       Decimal   @map("base_price") @db.Decimal(10, 2)
   defaultSessions Int       @default(1) @map("default_sessions")
-  icon            String?   // Nombre del icono para identificación visual
+  icon            String? // Nombre del icono para identificación visual
   isActive        Boolean   @default(true) @map("is_active")
   deletedAt       DateTime? @map("deleted_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  orders                    Order[]
-  originalServiceRecords    PatientRecord[] @relation("PatientRecordOriginalService")
+  orders                 Order[]
+  originalServiceRecords PatientRecord[] @relation("PatientRecordOriginalService")
 
   @@map("services")
 }
 
 model Order {
-  id              String   @id @default(uuid())
-  patientId       String   @map("patient_id")
-  serviceId       String   @map("service_id")
-  totalSessions   Int      @map("total_sessions")
-  completedSessions Int    @default(0) @map("completed_sessions")
-  originalPrice   Decimal  @map("original_price") @db.Decimal(10, 2)
-  discount        Decimal  @default(0) @map("discount") @db.Decimal(10, 2)
-  finalPrice      Decimal  @map("final_price") @db.Decimal(10, 2)
-  notes           String?
-  invoiceId       String?  @map("invoice_id")
-  createdById     String   @map("created_by_id")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid())
+  patientId         String   @map("patient_id")
+  serviceId         String   @map("service_id")
+  totalSessions     Int      @map("total_sessions")
+  completedSessions Int      @default(0) @map("completed_sessions")
+  originalPrice     Decimal  @map("original_price") @db.Decimal(10, 2)
+  discount          Decimal  @default(0) @map("discount") @db.Decimal(10, 2)
+  finalPrice        Decimal  @map("final_price") @db.Decimal(10, 2)
+  notes             String?
+  invoiceId         String?  @map("invoice_id")
+  createdById       String   @map("created_by_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
-  patient       Patient       @relation(fields: [patientId], references: [id])
-  service       Service       @relation(fields: [serviceId], references: [id])
-  createdBy     User          @relation("OrderCreatedBy", fields: [createdById], references: [id])
-  invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
+  patient             Patient              @relation(fields: [patientId], references: [id])
+  service             Service              @relation(fields: [serviceId], references: [id])
+  createdBy           User                 @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  invoice             Invoice?             @relation(fields: [invoiceId], references: [id])
   appointmentServices AppointmentService[]
 
   @@map("orders")
 }
 
 model Appointment {
-  id                     String            @id @default(uuid())
-  patientId              String            @map("patient_id")
-  scheduledDate          DateTime          @map("scheduled_date")
-  durationMinutes        Int               @default(60) @map("duration_minutes")
-  status                 AppointmentStatus @default(reserved)
-  reservationAmount      Decimal?          @map("reservation_amount") @db.Decimal(10, 2)
-  reservationReceiptUrl  String?           @map("reservation_receipt_url")
-  createdById            String            @map("created_by_id")
-  attendedById           String?           @map("attended_by_id")
-  attendedAt             DateTime?         @map("attended_at")
-  createdAt              DateTime          @default(now()) @map("created_at")
-  updatedAt              DateTime          @updatedAt @map("updated_at")
+  id                    String            @id @default(uuid())
+  patientId             String            @map("patient_id")
+  scheduledDate         DateTime          @map("scheduled_date")
+  durationMinutes       Int               @default(60) @map("duration_minutes")
+  status                AppointmentStatus @default(reserved)
+  reservationAmount     Decimal?          @map("reservation_amount") @db.Decimal(10, 2)
+  reservationReceiptUrl String?           @map("reservation_receipt_url")
+  createdById           String            @map("created_by_id")
+  attendedById          String?           @map("attended_by_id")
+  attendedAt            DateTime?         @map("attended_at")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
 
   // Relations
-  patient          Patient            @relation(fields: [patientId], references: [id])
-  createdBy        User               @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
-  attendedBy       User?              @relation("AppointmentAttendedBy", fields: [attendedById], references: [id])
-  patientRecords   PatientRecord[]
-  commissions      Commission[]
+  patient             Patient              @relation(fields: [patientId], references: [id])
+  createdBy           User                 @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  attendedBy          User?                @relation("AppointmentAttendedBy", fields: [attendedById], references: [id])
+  patientRecords      PatientRecord[]
+  commissions         Commission[]
   appointmentServices AppointmentService[]
-  payments         Payment[]
-  appointmentNotes AppointmentNote[]
+  payments            Payment[]
+  appointmentNotes    AppointmentNote[]
 
   @@map("appointments")
 }
@@ -199,17 +244,17 @@ model AppointmentNote {
 }
 
 model PatientRecord {
-  id                 String   @id @default(uuid())
-  patientId          String   @map("patient_id")
-  appointmentId      String   @map("appointment_id")
-  originalServiceId  String?  @map("original_service_id")
-  weight             Decimal? @db.Decimal(5, 2)
-  bodyMeasurement    Json?    @map("body_measurement")
-  healthNotes        String?  @map("health_notes")
-  beforePhotoUrls    Json?    @map("before_photo_urls")
-  afterPhotoUrls     Json?    @map("after_photo_urls")
-  createdById        String   @map("created_by_id")
-  createdAt          DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  patientId         String   @map("patient_id")
+  appointmentId     String   @map("appointment_id")
+  originalServiceId String?  @map("original_service_id")
+  weight            Decimal? @db.Decimal(5, 2)
+  bodyMeasurement   Json?    @map("body_measurement")
+  healthNotes       String?  @map("health_notes")
+  beforePhotoUrls   Json?    @map("before_photo_urls")
+  afterPhotoUrls    Json?    @map("after_photo_urls")
+  createdById       String   @map("created_by_id")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   // Relations
   patient         Patient     @relation(fields: [patientId], references: [id])
@@ -238,16 +283,16 @@ model Commission {
 }
 
 model AppointmentService {
-  id            String    @id @default(uuid())
-  appointmentId String    @map("appointment_id")
-  orderId       String    @map("order_id")
-  sessionNumber Int?      @map("session_number")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  appointmentId String   @map("appointment_id")
+  orderId       String   @map("order_id")
+  sessionNumber Int?     @map("session_number")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Soft Delete fields
-  deletedAt     DateTime? @map("deleted_at")
-  deletedById   String?   @map("deleted_by_id")
-  deleteReason  String?   @map("delete_reason")
+  deletedAt    DateTime? @map("deleted_at")
+  deletedById  String?   @map("deleted_by_id")
+  deleteReason String?   @map("delete_reason")
 
   // Relations
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
@@ -258,37 +303,37 @@ model AppointmentService {
 }
 
 model Invoice {
-  id              String        @id @default(uuid())
-  patientId       String        @map("patient_id")
-  totalAmount     Decimal       @map("total_amount") @db.Decimal(10, 2)
-  status          InvoiceStatus @default(pending)
-  dueDate         DateTime?     @map("due_date")
-  createdById     String        @map("created_by_id")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id          String        @id @default(uuid())
+  patientId   String        @map("patient_id")
+  totalAmount Decimal       @map("total_amount") @db.Decimal(10, 2)
+  status      InvoiceStatus @default(pending)
+  dueDate     DateTime?     @map("due_date")
+  createdById String        @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  orders   Order[]   // Una factura puede tener muchas órdenes
-  patient  Patient   @relation(fields: [patientId], references: [id])
-  createdBy User     @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
-  payments Payment[]
+  orders    Order[] // Una factura puede tener muchas órdenes
+  patient   Patient   @relation(fields: [patientId], references: [id])
+  createdBy User      @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  payments  Payment[]
 
   @@map("invoices")
 }
 
 model Payment {
-  id              String        @id @default(uuid())
-  patientId       String        @map("patient_id")
-  invoiceId       String?       @map("invoice_id")
-  appointmentId   String?       @map("appointment_id")
-  amountPaid      Decimal       @map("amount_paid") @db.Decimal(10, 2)
-  paymentMethod   PaymentMethod @map("payment_method")
-  paymentType     PaymentType   @map("payment_type")
-  paymentDate     DateTime      @default(now()) @map("payment_date")
-  receiptUrl      String?       @map("receipt_url")
-  notes           String?
-  createdById     String        @map("created_by_id")
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id            String        @id @default(uuid())
+  patientId     String        @map("patient_id")
+  invoiceId     String?       @map("invoice_id")
+  appointmentId String?       @map("appointment_id")
+  amountPaid    Decimal       @map("amount_paid") @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentType   PaymentType   @map("payment_type")
+  paymentDate   DateTime      @default(now()) @map("payment_date")
+  receiptUrl    String?       @map("receipt_url")
+  notes         String?
+  createdById   String        @map("created_by_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
 
   // Relations
   patient     Patient      @relation(fields: [patientId], references: [id])

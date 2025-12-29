@@ -9,6 +9,7 @@ import { Modal } from '../components/Modal';
 import { AttendAppointmentModal } from '../components/AttendAppointmentModal';
 import { UploadReservationModal } from '../components/UploadReservationModal';
 import { UploadPhotosModal } from '../components/UploadPhotosModal';
+import { BodyMeasurementsModal } from '../components/BodyMeasurementsModal';
 import { StateTransitionSelector } from '../components/StateTransitionSelector';
 import { PackageGroupView } from '../components/PackageGroupView';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +51,7 @@ export const AppointmentDetailPage: React.FC = () => {
   const [photoViewMode, setPhotoViewMode] = useState<'list' | 'compare'>('list');
   const [newNote, setNewNote] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [showBodyMeasurementsModal, setShowBodyMeasurementsModal] = useState(false);
 
   // System Info collapsible state - expandido por defecto en estados finales
   const [systemInfoExpanded, setSystemInfoExpanded] = useState(() => {
@@ -190,6 +192,28 @@ export const AppointmentDetailPage: React.FC = () => {
       setError(err.response?.data?.error || 'Error al agregar nota');
     } finally {
       setIsSubmittingNote(false);
+    }
+  };
+
+  const handleSaveBodyMeasurements = async (data: {
+    weight?: number | null;
+    bodyMeasurement?: any;
+    healthNotes?: string;
+  }) => {
+    if (!id) return;
+
+    try {
+      setError(null);
+      await appointmentsService.updateBodyMeasurements(id, data);
+
+      // Reload appointment to show new measurements
+      await loadAppointment(id);
+
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al guardar medidas');
+      throw err;
     }
   };
 
@@ -1296,6 +1320,320 @@ export const AppointmentDetailPage: React.FC = () => {
         return null;
       })()}
 
+      {/* Body Measurements Card */}
+      {['attended', 'reserved', 'in_progress'].includes(appointment.status) && (() => {
+        const patientRecord = appointment.patientRecords?.[0];
+        const hasData = patientRecord && (
+          patientRecord.weight ||
+          (patientRecord.bodyMeasurement && Object.keys(patientRecord.bodyMeasurement).length > 0) ||
+          patientRecord.healthNotes
+        );
+
+        return (
+          <div className="glass-card">
+            <div className="card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
+                  <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <h2>Medidas Corporales y Seguimiento</h2>
+              </div>
+            </div>
+
+            {hasData ? (
+              <div>
+                {/* Peso, Altura e IMC */}
+                {(patientRecord.weight || patientRecord.bodyMeasurement?.height) && (() => {
+                  const weight = patientRecord.weight;
+                  const height = patientRecord.bodyMeasurement?.height;
+
+                  // Calcular IMC si hay peso y altura
+                  let bmi: number | null = null;
+                  let bmiCategory: { label: string; color: string; bg: string } | null = null;
+
+                  if (weight && height) {
+                    const heightInMeters = height / 100;
+                    bmi = weight / (heightInMeters * heightInMeters);
+
+                    if (bmi < 18.5) {
+                      bmiCategory = { label: 'Bajo peso', color: '#3b82f6', bg: '#eff6ff' };
+                    } else if (bmi < 25) {
+                      bmiCategory = { label: 'Peso normal', color: '#10b981', bg: '#f0fdf4' };
+                    } else if (bmi < 30) {
+                      bmiCategory = { label: 'Sobrepeso', color: '#f59e0b', bg: '#fef3c7' };
+                    } else {
+                      bmiCategory = { label: 'Obesidad', color: '#ef4444', bg: '#fee2e2' };
+                    }
+                  }
+
+                  return (
+                    <>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: weight && height ? '1fr 1fr 1fr' : (weight || height ? '1fr' : ''),
+                        gap: '16px',
+                        marginBottom: '16px'
+                      }}>
+                        {weight && (
+                          <div style={{
+                            background: '#f0fdf4',
+                            border: '2px solid #10b981',
+                            borderRadius: '12px',
+                            padding: '16px'
+                          }}>
+                            <div style={{
+                              fontSize: '13px',
+                              fontWeight: '700',
+                              color: '#065f46',
+                              marginBottom: '8px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Peso
+                            </div>
+                            <div style={{ fontSize: '32px', fontWeight: '700', color: '#047857' }}>
+                              {weight} kg
+                            </div>
+                          </div>
+                        )}
+
+                        {height && (
+                          <div style={{
+                            background: '#fef3c7',
+                            border: '2px solid #f59e0b',
+                            borderRadius: '12px',
+                            padding: '16px'
+                          }}>
+                            <div style={{
+                              fontSize: '13px',
+                              fontWeight: '700',
+                              color: '#92400e',
+                              marginBottom: '8px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Altura
+                            </div>
+                            <div style={{ fontSize: '32px', fontWeight: '700', color: '#b45309' }}>
+                              {height} cm
+                            </div>
+                          </div>
+                        )}
+
+                        {bmi && bmiCategory && (
+                          <div style={{
+                            background: bmiCategory.bg,
+                            border: `2px solid ${bmiCategory.color}`,
+                            borderRadius: '12px',
+                            padding: '16px'
+                          }}>
+                            <div style={{
+                              fontSize: '13px',
+                              fontWeight: '700',
+                              color: bmiCategory.color,
+                              marginBottom: '8px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              IMC
+                            </div>
+                            <div style={{
+                              fontSize: '32px',
+                              fontWeight: '700',
+                              color: bmiCategory.color,
+                              marginBottom: '4px'
+                            }}>
+                              {bmi.toFixed(1)}
+                            </div>
+                            <div style={{
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              color: bmiCategory.color,
+                              opacity: 0.8
+                            }}>
+                              {bmiCategory.label}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* Medidas Corporales */}
+                {patientRecord.bodyMeasurement && Object.keys(patientRecord.bodyMeasurement).length > 0 && (
+                  <div style={{
+                    background: '#eff6ff',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#1e40af',
+                      marginBottom: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Medidas del Cuerpo
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                      gap: '12px'
+                    }}>
+                      {Object.entries(patientRecord.bodyMeasurement).map(([key, value]) => {
+                        // Excluir altura ya que se muestra arriba
+                        if (key === 'height') return null;
+
+                        const labels: Record<string, string> = {
+                          waist: 'Cintura',
+                          chest: 'Pecho',
+                          hips: 'Cadera',
+                          leftArm: 'Brazo Izq.',
+                          rightArm: 'Brazo Der.',
+                          leftThigh: 'Muslo Izq.',
+                          rightThigh: 'Muslo Der.',
+                          leftCalf: 'Pantorrilla Izq.',
+                          rightCalf: 'Pantorrilla Der.',
+                          abdomen: 'Abdomen (grosor)',
+                          triceps: 'Tríceps (grosor)',
+                          subscapular: 'Subescapular (grosor)',
+                          suprailiac: 'Suprailiaco (grosor)',
+                          thigh: 'Muslo (grosor)',
+                        };
+
+                        const isThickness = ['abdomen', 'triceps', 'subscapular', 'suprailiac', 'thigh'].includes(key);
+                        const unit = isThickness ? 'mm' : 'cm';
+
+                        return (
+                          <div key={key} style={{
+                            background: 'white',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: '1px solid #bfdbfe'
+                          }}>
+                            <div style={{
+                              fontSize: '11px',
+                              color: '#6b7280',
+                              marginBottom: '4px',
+                              fontWeight: '600'
+                            }}>
+                              {labels[key] || key}
+                            </div>
+                            <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e40af' }}>
+                              {value} {unit}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notas de Salud */}
+                {patientRecord.healthNotes && (
+                  <div style={{
+                    background: '#fef3c7',
+                    border: '2px solid #f59e0b',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#92400e',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Notas de Salud
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#78350f',
+                      lineHeight: '1.6',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {patientRecord.healthNotes}
+                    </div>
+                  </div>
+                )}
+
+                {canMarkAttended && (
+                  <button
+                    onClick={() => setShowBodyMeasurementsModal(true)}
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 20px',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Actualizar Medidas
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '40px 20px',
+                color: '#9ca3af'
+              }}>
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style={{ margin: '0 auto 16px' }}>
+                  <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
+                  <path d="M32 20v24M20 32h24" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
+                  No hay medidas registradas
+                </div>
+                <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '20px' }}>
+                  Registra el peso, medidas corporales y grosor de piel/grasa para llevar un seguimiento del tratamiento
+                </div>
+                {canMarkAttended && (
+                  <button
+                    onClick={() => setShowBodyMeasurementsModal(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Registrar Medidas
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Appointment Notes Card */}
       <div className="glass-card">
         <div className="card-header">
@@ -1508,6 +1846,48 @@ export const AppointmentDetailPage: React.FC = () => {
           appointmentId={appointment.id}
         />
       )}
+
+      {/* Body Measurements Modal */}
+      {appointment && (() => {
+        // Obtener la última medición del paciente de citas anteriores
+        const currentRecord = appointment.patientRecords?.[0];
+
+        // Buscar última medición en el historial del paciente (excluir la cita actual)
+        let lastMeasurement: { weight?: number | null; height?: number | null } | undefined;
+
+        if (patientData?.appointments) {
+          // Ordenar citas por fecha descendente, excluir la cita actual
+          const previousAppointments = patientData.appointments
+            .filter(apt => apt.id !== appointment.id && apt.patientRecords && apt.patientRecords.length > 0)
+            .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+
+          // Buscar la primera cita con datos de peso o altura
+          for (const apt of previousAppointments) {
+            const record = apt.patientRecords?.[0];
+            if (record && (record.weight || record.bodyMeasurement?.height)) {
+              lastMeasurement = {
+                weight: record.weight || null,
+                height: record.bodyMeasurement?.height || null,
+              };
+              break;
+            }
+          }
+        }
+
+        return (
+          <BodyMeasurementsModal
+            isOpen={showBodyMeasurementsModal}
+            onClose={() => setShowBodyMeasurementsModal(false)}
+            onSubmit={handleSaveBodyMeasurements}
+            initialData={{
+              weight: currentRecord?.weight || null,
+              bodyMeasurement: currentRecord?.bodyMeasurement,
+              healthNotes: currentRecord?.healthNotes,
+            }}
+            lastMeasurement={lastMeasurement}
+          />
+        );
+      })()}
     </div>
   );
 };

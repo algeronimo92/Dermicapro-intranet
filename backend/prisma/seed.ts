@@ -6,6 +6,11 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Starting seed...');
 
+  // Get system roles
+  const adminRole = await prisma.systemRole.findUnique({ where: { name: 'admin' } });
+  const nurseRole = await prisma.systemRole.findUnique({ where: { name: 'nurse' } });
+  const salesRole = await prisma.systemRole.findUnique({ where: { name: 'sales' } });
+
   // Create default admin user
   const adminPassword = await bcrypt.hash('admin123', 12);
   const admin = await prisma.user.upsert({
@@ -16,7 +21,7 @@ async function main() {
       passwordHash: adminPassword,
       firstName: 'Admin',
       lastName: 'DermicaPro',
-      role: 'admin',
+      roleId: adminRole?.id,
       sex: 'Other',
       isActive: true,
     },
@@ -33,7 +38,7 @@ async function main() {
       passwordHash: nursePassword,
       firstName: 'María',
       lastName: 'García',
-      role: 'nurse',
+      roleId: nurseRole?.id,
       sex: 'F',
       isActive: true,
     },
@@ -50,7 +55,7 @@ async function main() {
       passwordHash: salesPassword,
       firstName: 'Carlos',
       lastName: 'Rodríguez',
-      role: 'sales',
+      roleId: salesRole?.id,
       sex: 'M',
       isActive: true,
     },
@@ -62,37 +67,56 @@ async function main() {
     {
       name: 'HIFU 12D (Lifting sin Cirugía)',
       description: 'Tecnología de ultrasonido para combatir la flacidez facial',
-      basePrice: 800.00,
+      basePrice: 500.00,
+      defaultSessions: 1,
     },
     {
       name: 'Borrado de Manchas (Pico Láser)',
       description: 'Tratamiento para manchas hormonales, solares y post-acné',
       basePrice: 300.00,
+      defaultSessions: 1,
     },
     {
       name: 'Hollywood Peel',
       description: 'Luminosidad instantánea y cierre de poros',
-      basePrice: 250.00,
+      basePrice: 180.00,
+      defaultSessions: 1,
+    },
+    {
+      name: 'Hollywood Peel (Paquete x3)',
+      description: 'Paquete de 3 sesiones de Hollywood Peel con descuento',
+      basePrice: 500.00,
+      defaultSessions: 3,
     },
     {
       name: 'Enzimas Recombinantes',
       description: 'Tratamiento para grasa localizada, fibrosis y exceso de ácido hialurónico',
-      basePrice: 350.00,
+      basePrice: 800.00,
+      defaultSessions: 2,
     },
     {
       name: 'Reducción de Papada (Enzimas + HIFU)',
       description: 'Combinación de tecnologías para eliminar grasa y tensar la piel',
       basePrice: 600.00,
+      defaultSessions: 1,
     },
     {
       name: 'Borrado de Tatuajes',
       description: 'Eliminación segura de tatuajes',
       basePrice: 400.00,
+      defaultSessions: 1,
     },
     {
       name: 'Borrado de Micropigmentación',
       description: 'Eliminación de micropigmentación fallida',
-      basePrice: 350.00,
+      basePrice: 300.00,
+      defaultSessions: 1,
+    },
+    {
+      name: 'Borrado de Micropigmentación (Paquete x4)',
+      description: 'Paquete de 4 sesiones de Borrado de Micropigmentación con descuento',
+      basePrice: 999.00,
+      defaultSessions: 4,
     },
   ];
 

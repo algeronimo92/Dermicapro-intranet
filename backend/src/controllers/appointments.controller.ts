@@ -32,11 +32,11 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
       }
     }
 
-    if (req.user?.role === 'sales') {
+    if (req.user?.roleName === 'sales') {
       where.createdById = req.user.id;
     }
 
-    if (userId && req.user?.role === 'admin') {
+    if (userId && req.user?.roleName === 'admin') {
       where.createdById = userId;
     }
 
@@ -233,11 +233,11 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
         const customPrice = firstSession.customPrice;
         const finalPrice = customPrice !== undefined && customPrice !== null
           ? parseFloat(customPrice.toString())
-          : service.basePrice;
+          : Number(service.basePrice);
 
         // Calcular descuento si hay precio personalizado
         const discount = customPrice !== undefined && customPrice !== null
-          ? service.basePrice - finalPrice
+          ? Number(service.basePrice) - finalPrice
           : 0;
 
         // Crear el nuevo Order
@@ -739,6 +739,113 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
       res.status(error.statusCode).json({ error: error.message });
     } else {
       res.status(500).json({ error: 'Failed to add photos to appointment' });
+    }
+  }
+};
+
+export const updateBodyMeasurements = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { weight, bodyMeasurement, healthNotes } = req.body;
+
+    // Get the appointment
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        patientRecords: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!appointment) {
+      throw new AppError('Appointment not found', 404);
+    }
+
+    // Get or create patient record for this appointment
+    let patientRecord = appointment.patientRecords[0];
+
+    if (!patientRecord) {
+      // Create a new patient record if none exists
+      patientRecord = await prisma.patientRecord.create({
+        data: {
+          patientId: appointment.patientId,
+          appointmentId: appointment.id,
+          createdById: req.user!.id,
+          weight: weight ? parseFloat(weight) : null,
+          bodyMeasurement: bodyMeasurement || null,
+          healthNotes: healthNotes || null,
+        },
+      });
+    } else {
+      // Update existing patient record
+      patientRecord = await prisma.patientRecord.update({
+        where: { id: patientRecord.id },
+        data: {
+          weight: weight !== undefined ? (weight ? parseFloat(weight) : null) : undefined,
+          bodyMeasurement: bodyMeasurement !== undefined ? bodyMeasurement : undefined,
+          healthNotes: healthNotes !== undefined ? healthNotes : undefined,
+        },
+      });
+    }
+
+    // Return updated appointment with patient records
+    const updatedAppointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        patient: true,
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        attendedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        patientRecords: {
+          orderBy: { createdAt: 'desc' },
+        },
+        appointmentServices: {
+          include: {
+            order: {
+              include: {
+                service: true,
+              },
+            },
+          },
+        },
+        appointmentNotes: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json(updatedAppointment);
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update body measurements' });
     }
   }
 };

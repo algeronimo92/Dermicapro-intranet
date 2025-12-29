@@ -17,11 +17,15 @@ import { EmployeeFormPage } from './pages/EmployeeFormPage';
 import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { ServiceFormPage } from './pages/ServiceFormPage';
+import { RolesPage } from './pages/RolesPage';
+import { RoleFormPage } from './pages/RoleFormPage';
+import { RoleDetailPage } from './pages/RoleDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/settings.css';
+import './styles/roles.css';
 
 function App() {
   return (
@@ -135,6 +139,14 @@ function LoginPage() {
 function DashboardLayout() {
   const { user, logout } = useAuth();
 
+  // Helper para verificar el nombre del rol (soporta tanto string como objeto)
+  const hasRole = (roleName: string) => {
+    if (!user?.role) return false;
+    return typeof user.role === 'string'
+      ? user.role === roleName
+      : user.role.name === roleName;
+  };
+
   return (
     <div className="dashboard-layout">
       <aside className="dashboard-sidebar">
@@ -146,7 +158,9 @@ function DashboardLayout() {
           <p className="sidebar-user-name">
             {user?.firstName} {user?.lastName}
           </p>
-          <p className="sidebar-user-role">{user?.role}</p>
+          <p className="sidebar-user-role">
+            {typeof user?.role === 'string' ? user.role : user?.role?.displayName}
+          </p>
         </div>
 
         <nav className="sidebar-nav">
@@ -169,7 +183,7 @@ function DashboardLayout() {
                 Citas
               </NavLink>
             </li>
-            {user?.role === 'admin' && (
+            {hasRole('admin') && (
               <>
                 <li className="sidebar-nav-item">
                   <NavLink to="/services" className="sidebar-nav-link">
@@ -181,6 +195,12 @@ function DashboardLayout() {
                   <NavLink to="/employees" className="sidebar-nav-link">
                     <span className="sidebar-nav-icon">👨‍⚕️</span>
                     Recursos Humanos
+                  </NavLink>
+                </li>
+                <li className="sidebar-nav-item">
+                  <NavLink to="/roles" className="sidebar-nav-link">
+                    <span className="sidebar-nav-icon">🔐</span>
+                    Roles y Permisos
                   </NavLink>
                 </li>
                 <li className="sidebar-nav-item">
@@ -231,6 +251,10 @@ function DashboardLayout() {
             <Route path="/employees/new" element={<EmployeeFormPage />} />
             <Route path="/employees/:id" element={<EmployeeDetailPage />} />
             <Route path="/employees/:id/edit" element={<EmployeeFormPage />} />
+            <Route path="/roles" element={<RolesPage />} />
+            <Route path="/roles/new" element={<RoleFormPage />} />
+            <Route path="/roles/:id" element={<RoleDetailPage />} />
+            <Route path="/roles/:id/edit" element={<RoleFormPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/analytics" element={<div>Analíticas</div>} />
           </Routes>

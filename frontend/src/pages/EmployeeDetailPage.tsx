@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { Modal } from '../components/Modal';
 import { useAuth } from '../contexts/AuthContext';
+import { hasRole } from '../utils/roleHelpers';
 import { formatDate } from '../utils/dateUtils';
 
 export const EmployeeDetailPage: React.FC = () => {
@@ -77,7 +78,7 @@ export const EmployeeDetailPage: React.FC = () => {
     navigate('/employees');
   };
 
-  if (currentUser?.role !== 'admin') {
+  if (!hasRole(currentUser, 'admin')) {
     return (
       <div className="page-container">
         <div className="error-banner">
@@ -224,7 +225,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 <div className="stat-label">Pacientes Registrados</div>
               </div>
 
-              {employee.role === 'sales' && (
+              {(typeof employee.role === 'string' ? employee.role === 'sales' : employee.role?.name === 'sales') && (
                 <>
                   <div className="stat-card">
                     <div className="stat-value">{stats.counts.appointmentsCreated}</div>
@@ -249,7 +250,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 </>
               )}
 
-              {employee.role === 'nurse' && (
+              {(typeof employee.role === 'string' ? employee.role === 'nurse' : employee.role?.name === 'nurse') && (
                 <>
                   <div className="stat-card">
                     <div className="stat-value">{stats.counts.appointmentsAttended}</div>
@@ -266,7 +267,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 </>
               )}
 
-              {employee.role === 'admin' && (
+              {(typeof employee.role === 'string' ? employee.role === 'admin' : employee.role?.name === 'admin') && (
                 <>
                   <div className="stat-card">
                     <div className="stat-value">{stats.counts.appointmentsCreated}</div>

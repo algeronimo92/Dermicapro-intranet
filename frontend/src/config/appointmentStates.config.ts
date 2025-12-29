@@ -326,16 +326,31 @@ export const getStateConfig = (status: AppointmentStatus): AppointmentStateConfi
 };
 
 /**
+ * Helper para extraer el nombre del rol desde diferentes formatos
+ */
+const getRoleName = (role: any): Role | undefined => {
+  if (!role) return undefined;
+  if (typeof role === 'object' && role.name) {
+    return role.name as Role;
+  }
+  if (typeof role === 'string') {
+    return role as Role;
+  }
+  return undefined;
+};
+
+/**
  * Verifica si un rol tiene un permiso específico para un estado
  */
 export const hasPermission = (
   status: AppointmentStatus,
   permission: keyof StatePermissions,
-  userRole?: Role
+  userRole?: any
 ): boolean => {
-  if (!userRole) return false;
+  const roleName = getRoleName(userRole);
+  if (!roleName) return false;
   const config = getStateConfig(status);
-  return config.permissions[permission].includes(userRole);
+  return config.permissions[permission].includes(roleName);
 };
 
 /**
@@ -343,12 +358,13 @@ export const hasPermission = (
  */
 export const getCTA = (
   status: AppointmentStatus,
-  userRole?: Role
+  userRole?: any
 ): StateCTA | null => {
   const config = getStateConfig(status);
-  if (!config.cta || !userRole) return null;
+  const roleName = getRoleName(userRole);
+  if (!config.cta || !roleName) return null;
 
-  return config.cta.roles.includes(userRole) ? config.cta : null;
+  return config.cta.roles.includes(roleName) ? config.cta : null;
 };
 
 /**
@@ -370,9 +386,10 @@ export const getPaymentUrgency = (
  */
 export const getValidTransitions = (
   currentStatus: AppointmentStatus,
-  userRole?: Role
+  userRole?: any
 ): AppointmentStatus[] => {
-  if (!userRole) return [];
+  const roleName = getRoleName(userRole);
+  if (!roleName) return [];
 
   const config = getStateConfig(currentStatus);
   const canChangeStatus = hasPermission(currentStatus, 'canChangeStatus', userRole);

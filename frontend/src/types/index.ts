@@ -42,12 +42,23 @@ export enum PaymentType {
   other = 'other',
 }
 
+export interface RoleInfo {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  isActive: boolean;
+  isSystem: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: Role;
+  role: RoleInfo | Role; // Soporta ambos: objeto completo o string legacy
   sex?: Sex;
   dateOfBirth?: string;
   isActive: boolean;
@@ -69,6 +80,7 @@ export interface Patient {
   lastAttendedDate?: string | null;
   lastAttendedBy?: Partial<User> | null;
   orders?: Order[];
+  appointments?: Appointment[]; // Historial de citas del paciente
 }
 
 export interface Service {
@@ -136,12 +148,38 @@ export interface Appointment {
   appointmentNotes?: AppointmentNote[]; // Notas de atención
 }
 
+export interface BodyMeasurement {
+  // Medidas básicas en cm
+  height?: number; // Altura/Estatura
+
+  // Medidas corporales en cm
+  waist?: number; // Cintura
+  chest?: number; // Pecho
+  hips?: number; // Cadera
+  leftArm?: number; // Brazo izquierdo
+  rightArm?: number; // Brazo derecho
+  leftThigh?: number; // Muslo izquierdo
+  rightThigh?: number; // Muslo derecho
+  leftCalf?: number; // Pantorrilla izquierda
+  rightCalf?: number; // Pantorrilla derecha
+
+  // Grosor de piel/grasa en mm
+  abdomen?: number; // Abdomen
+  triceps?: number; // Tríceps
+  subscapular?: number; // Subescapular
+  suprailiac?: number; // Suprailiaco
+  thigh?: number; // Muslo
+
+  // Otras medidas
+  [key: string]: number | undefined; // Permite medidas personalizadas
+}
+
 export interface PatientRecord {
   id: string;
   patientId: string;
   appointmentId: string;
   weight?: number;
-  bodyMeasurement?: Record<string, number>;
+  bodyMeasurement?: BodyMeasurement;
   healthNotes?: string;
   beforePhotoUrls?: string[];
   afterPhotoUrls?: string[];

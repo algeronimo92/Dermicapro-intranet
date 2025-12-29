@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { servicesService } from '../services/services.service';
 import { Service } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { hasRole } from '../utils/roleHelpers';
 
 export function ServicesPage() {
   const navigate = useNavigate();
@@ -68,7 +69,7 @@ export function ServicesPage() {
     }).format(price);
   };
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = hasRole(user, 'admin');
 
   if (loading) {
     return <div className="loading-container">Cargando servicios...</div>;

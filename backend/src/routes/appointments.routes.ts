@@ -9,6 +9,7 @@ import {
   uploadReceipt,
   uploadTreatmentPhotos,
   addPhotosToAppointment,
+  updateBodyMeasurements,
   createAppointmentNote,
 } from '../controllers/appointments.controller';
 import { authenticate, authorize } from '../middlewares/auth';
@@ -27,6 +28,7 @@ router.post('/:id/attend', authorize('admin', 'nurse'), markAsAttended);
 router.post('/:id/upload-receipt', authorize('admin', 'sales'), upload.single('receipt'), uploadReceipt);
 router.post('/upload-photos', authorize('admin', 'nurse'), upload.array('photos', 10), uploadTreatmentPhotos);
 router.post('/:id/add-photos', authorize('admin', 'nurse'), addPhotosToAppointment);
+router.put('/:id/body-measurements', authorize('admin', 'nurse'), updateBodyMeasurements);
 router.post('/:id/notes', createAppointmentNote);
 
 export default router;

@@ -9,7 +9,14 @@ import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { Loading } from '../components/Loading';
 import { useAuth } from '../contexts/AuthContext';
+import { hasRole } from '../utils/roleHelpers';
 import { formatDate } from '../utils/dateUtils';
+
+interface RoleOption {
+  id: string;
+  name: string;
+  displayName: string;
+}
 
 export const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,17 +24,32 @@ export const EmployeesPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
 
   // Filtros y paginación
   const [search, setSearch] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<Role | ''>('');
+  const [roleFilter, setRoleFilter] = useState<string>(''); // Ahora guarda ID del rol
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   const limit = 10;
+
+  const loadRoles = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/roles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      const data = await response.json();
+      setAvailableRoles(data);
+    } catch (err) {
+      console.error('Error loading roles:', err);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -38,7 +60,7 @@ export const EmployeesPage: React.FC = () => {
         page: currentPage,
         limit,
         search: activeSearch || undefined,
-        role: roleFilter || undefined,
+        roleId: roleFilter || undefined,
         isActive: statusFilter || undefined,
       };
 
@@ -52,6 +74,10 @@ export const EmployeesPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadRoles();
+  }, []);
 
   useEffect(() => {
     loadUsers();
@@ -84,8 +110,8 @@ export const EmployeesPage: React.FC = () => {
     navigate(`/employees/${user.id}`);
   };
 
-  const getRoleBadgeColor = (role: Role): string => {
-    switch (role) {
+  const getRoleBadgeColor = (roleName: string): string => {
+    switch (roleName) {
       case 'admin':
         return '#e74c3c'; // rojo
       case 'nurse':
@@ -97,13 +123,25 @@ export const EmployeesPage: React.FC = () => {
     }
   };
 
-  const getRoleLabel = (role: Role): string => {
-    const roleLabels: Record<Role, string> = {
+  const getRoleLabel = (roleName: string): string => {
+    const roleLabels: Record<string, string> = {
       admin: 'Administrador',
       nurse: 'Enfermera',
       sales: 'Ventas',
     };
-    return roleLabels[role];
+    return roleLabels[roleName] || roleName;
+  };
+
+  const getUserRoleName = (user: User): string => {
+    if (!user.role) return 'Sin rol';
+    if (typeof user.role === 'string') return user.role;
+    return user.role.name;
+  };
+
+  const getUserRoleDisplay = (user: User): string => {
+    if (!user.role) return 'Sin rol';
+    if (typeof user.role === 'string') return getRoleLabel(user.role);
+    return user.role.displayName;
   };
 
   const columns: Column<User>[] = [
@@ -122,20 +160,24 @@ export const EmployeesPage: React.FC = () => {
     {
       key: 'role',
       header: 'Rol',
-      render: (user) => (
-        <span
-          style={{
-            padding: '4px 12px',
-            borderRadius: '12px',
-            backgroundColor: getRoleBadgeColor(user.role),
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold',
-          }}
-        >
-          {getRoleLabel(user.role)}
-        </span>
-      ),
+      render: (user) => {
+        const roleName = getUserRoleName(user);
+        const roleDisplay = getUserRoleDisplay(user);
+        return (
+          <span
+            style={{
+              padding: '4px 12px',
+              borderRadius: '12px',
+              backgroundColor: getRoleBadgeColor(roleName),
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 'bold',
+            }}
+          >
+            {roleDisplay}
+          </span>
+        );
+      },
     },
     {
       key: 'sex',
@@ -184,7 +226,7 @@ export const EmployeesPage: React.FC = () => {
   ];
 
   // Solo admins pueden ver esta página
-  if (currentUser?.role !== 'admin') {
+  if (!hasRole(currentUser, 'admin')) {
     return (
       <div className="page-container">
         <div className="error-banner">
@@ -216,12 +258,11 @@ export const EmployeesPage: React.FC = () => {
 
           <Select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as Role | '')}
-            options={[
-              { value: 'admin', label: 'Administrador' },
-              { value: 'nurse', label: 'Enfermera' },
-              { value: 'sales', label: 'Ventas' },
-            ]}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            options={availableRoles.map(role => ({
+              value: role.id,
+              label: role.displayName,
+            }))}
             className="filter-select"
           />
 

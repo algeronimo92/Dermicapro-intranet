@@ -14,6 +14,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { email },
+      include: {
+        role: true,
+      },
     });
 
     if (!user || !user.isActive) {
@@ -29,7 +32,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const payload = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      roleId: user.roleId,
+      roleName: user.role?.name,
     };
 
     const accessToken = generateAccessToken(payload);
@@ -43,7 +47,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        role: user.role ? {
+          id: user.role.id,
+          name: user.role.name,
+          displayName: user.role.displayName,
+        } : null,
       },
     });
   } catch (error) {
@@ -67,6 +75,9 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
+      include: {
+        role: true,
+      },
     });
 
     if (!user || !user.isActive) {
@@ -76,7 +87,8 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     const payload = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      roleId: user.roleId,
+      roleName: user.role?.name,
     };
 
     const newAccessToken = generateAccessToken(payload);
@@ -103,16 +115,8 @@ export const me = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
+      include: {
         role: true,
-        sex: true,
-        dateOfBirth: true,
-        isActive: true,
-        createdAt: true,
       },
     });
 
@@ -120,7 +124,26 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('User not found', 404);
     }
 
-    res.json(user);
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      sex: user.sex,
+      dateOfBirth: user.dateOfBirth,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        description: user.role.description,
+        isActive: user.role.isActive,
+        isSystem: user.role.isSystem,
+        createdAt: user.role.createdAt,
+        updatedAt: user.role.updatedAt,
+      } : null,
+    });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -130,6 +153,6 @@ export const me = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const logout = async (req: Request, res: Response): Promise<void> => {
+export const logout = async (_req: Request, res: Response): Promise<void> => {
   res.json({ message: 'Logged out successfully' });
 };

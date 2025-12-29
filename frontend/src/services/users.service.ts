@@ -12,6 +12,7 @@ export interface CreateUserDto {
 }
 
 export interface UpdateUserDto {
+  email?: string;
   firstName?: string;
   lastName?: string;
   role?: Role;
@@ -25,7 +26,8 @@ export interface GetUsersParams {
   page?: number;
   limit?: number;
   search?: string;
-  role?: Role;
+  role?: Role; // Legacy - mantener por compatibilidad
+  roleId?: string; // Nuevo - usa ID del rol
   isActive?: boolean | string;
 }
 

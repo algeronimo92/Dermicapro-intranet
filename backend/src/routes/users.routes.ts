@@ -8,8 +8,8 @@ import {
   activateUser,
   getUserStats,
 } from '../controllers/users.controller';
-import { authenticate, authorize } from '../middlewares/auth';
-import { Role } from '@prisma/client';
+import { authenticate } from '../middlewares/auth';
+import { requireRole } from '../middlewares/authorization';
 
 const router = Router();
 
@@ -17,7 +17,7 @@ const router = Router();
 router.use(authenticate);
 
 // GET /api/users - Listar todos los usuarios (solo admin)
-router.get('/', authorize(Role.admin), getAllUsers);
+router.get('/', requireRole('admin'), getAllUsers);
 
 // GET /api/users/:id - Obtener un usuario por ID
 router.get('/:id', getUserById);
@@ -26,15 +26,15 @@ router.get('/:id', getUserById);
 router.get('/:id/stats', getUserStats);
 
 // POST /api/users - Crear nuevo usuario (solo admin)
-router.post('/', authorize(Role.admin), createUser);
+router.post('/', requireRole('admin'), createUser);
 
 // PUT /api/users/:id - Actualizar usuario
 router.put('/:id', updateUser);
 
 // POST /api/users/:id/deactivate - Desactivar usuario (solo admin)
-router.post('/:id/deactivate', authorize(Role.admin), deactivateUser);
+router.post('/:id/deactivate', requireRole('admin'), deactivateUser);
 
 // POST /api/users/:id/activate - Activar usuario (solo admin)
-router.post('/:id/activate', authorize(Role.admin), activateUser);
+router.post('/:id/activate', requireRole('admin'), activateUser);
 
 export default router;

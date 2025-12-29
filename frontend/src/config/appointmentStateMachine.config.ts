@@ -221,19 +221,40 @@ export const STATE_TRANSITIONS: StateTransition[] = [
 // ============================================
 
 /**
+ * Extrae el nombre del rol del usuario (soporta RoleInfo y Role string)
+ */
+const getRoleName = (role: any): Role | undefined => {
+  if (!role) return undefined;
+
+  // Si es un objeto con propiedad 'name', usarla
+  if (typeof role === 'object' && role.name) {
+    return role.name as Role;
+  }
+
+  // Si es un string, usarlo directamente
+  if (typeof role === 'string') {
+    return role as Role;
+  }
+
+  return undefined;
+};
+
+/**
  * Obtiene todas las transiciones válidas desde un estado específico
  */
 export const getAvailableTransitions = (
   fromStatus: AppointmentStatus,
-  userRole?: Role,
+  userRole?: any,
   context?: TransitionContext
 ): StateTransition[] => {
+  const roleName = getRoleName(userRole);
+
   return STATE_TRANSITIONS.filter(transition => {
     // Filtrar por estado origen
     if (transition.from !== fromStatus) return false;
 
     // Filtrar por rol
-    if (!userRole || !transition.guards.allowedRoles.includes(userRole)) {
+    if (!roleName || !transition.guards.allowedRoles.includes(roleName)) {
       return false;
     }
 
@@ -252,10 +273,12 @@ export const getAvailableTransitions = (
 export const canTransition = (
   from: AppointmentStatus,
   to: AppointmentStatus,
-  userRole?: Role,
+  userRole?: any,
   context?: TransitionContext
 ): { allowed: boolean; reason?: string } => {
-  if (!userRole) {
+  const roleName = getRoleName(userRole);
+
+  if (!roleName) {
     return { allowed: false, reason: 'Usuario no autenticado' };
   }
 
@@ -269,7 +292,7 @@ export const canTransition = (
   }
 
   // Validar rol
-  if (!transition.guards.allowedRoles.includes(userRole)) {
+  if (!transition.guards.allowedRoles.includes(roleName)) {
     return {
       allowed: false,
       reason: transition.guards.errorMessage || 'No tienes permisos para esta acción'

@@ -6,8 +6,15 @@ import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Loading } from '../components/Loading';
 import { useAuth } from '../contexts/AuthContext';
+import { hasRole } from '../utils/roleHelpers';
 import { Role } from '../types';
 import { utcToLocalDate } from '../utils/dateUtils';
+
+interface RoleOption {
+  id: string;
+  name: string;
+  displayName: string;
+}
 
 export const EmployeeFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +25,7 @@ export const EmployeeFormPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -25,7 +33,7 @@ export const EmployeeFormPage: React.FC = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    role: 'nurse' as Role,
+    roleId: '', // Ahora guardamos el ID del rol
     sex: '' as '' | 'M' | 'F' | 'Other',
     dateOfBirth: '',
     isActive: true,
@@ -34,22 +42,54 @@ export const EmployeeFormPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    loadRoles();
+  }, []);
+
+  useEffect(() => {
     if (isEditMode && id) {
       loadUser(id);
     }
-  }, [id]);
+  }, [id, availableRoles]); // Agregar availableRoles como dependencia
+
+  const loadRoles = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/roles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      const data = await response.json();
+      setAvailableRoles(data);
+    } catch (err) {
+      console.error('Error loading roles:', err);
+    }
+  };
 
   const loadUser = async (userId: string) => {
     try {
       setIsLoading(true);
       const user = await usersService.getUser(userId);
+
+      // Extraer el ID del rol del usuario
+      let roleId = '';
+      if (user.role) {
+        if (typeof user.role === 'string') {
+          // Formato legacy - buscar el rol por nombre
+          const foundRole = availableRoles.find(r => r.name === user.role);
+          roleId = foundRole?.id || '';
+        } else {
+          // Nuevo formato - usar el ID directamente
+          roleId = user.role.id;
+        }
+      }
+
       setFormData({
         email: user.email,
         password: '',
         confirmPassword: '',
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        roleId: roleId,
         sex: user.sex || '',
         dateOfBirth: user.dateOfBirth ? utcToLocalDate(user.dateOfBirth) : '',
         isActive: user.isActive,
@@ -119,8 +159,8 @@ export const EmployeeFormPage: React.FC = () => {
       }
     }
 
-    if (!formData.role) {
-      newErrors.role = 'El rol es requerido';
+    if (!formData.roleId) {
+      newErrors.roleId = 'El rol es requerido';
     }
 
     setErrors(newErrors);
@@ -138,11 +178,16 @@ export const EmployeeFormPage: React.FC = () => {
       setIsSaving(true);
       setError(null);
 
+      // Encontrar el nombre del rol por su ID para compatibilidad con backend
+      const selectedRole = availableRoles.find(r => r.id === formData.roleId);
+      const roleName = selectedRole?.name as Role;
+
       if (isEditMode && id) {
         const updateData: UpdateUserDto = {
+          email: formData.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
-          role: formData.role,
+          role: roleName,
           sex: formData.sex || undefined,
           dateOfBirth: formData.dateOfBirth || undefined,
           isActive: formData.isActive,
@@ -160,7 +205,7 @@ export const EmployeeFormPage: React.FC = () => {
           password: formData.password,
           firstName: formData.firstName,
           lastName: formData.lastName,
-          role: formData.role,
+          role: roleName,
           sex: formData.sex || undefined,
           dateOfBirth: formData.dateOfBirth || undefined,
         };
@@ -183,7 +228,7 @@ export const EmployeeFormPage: React.FC = () => {
   };
 
   // Solo admins pueden acceder
-  if (currentUser?.role !== 'admin') {
+  if (!hasRole(currentUser, 'admin')) {
     return (
       <div className="page-container">
         <div className="error-banner">
@@ -236,7 +281,6 @@ export const EmployeeFormPage: React.FC = () => {
               onChange={handleChange}
               error={errors.email}
               placeholder="ejemplo@dermicapro.com"
-              disabled={isEditMode} // No permitir cambiar email en edición
             />
 
             <Select
@@ -268,15 +312,14 @@ export const EmployeeFormPage: React.FC = () => {
 
             <Select
               label="Rol *"
-              name="role"
-              value={formData.role}
+              name="roleId"
+              value={formData.roleId}
               onChange={handleChange}
-              error={errors.role}
-              options={[
-                { value: 'admin', label: 'Administrador' },
-                { value: 'nurse', label: 'Enfermera' },
-                { value: 'sales', label: 'Ventas' },
-              ]}
+              error={errors.roleId}
+              options={availableRoles.map(role => ({
+                value: role.id,
+                label: role.displayName,
+              }))}
             />
 
             <Input

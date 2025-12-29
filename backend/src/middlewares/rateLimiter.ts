@@ -25,12 +25,13 @@ export const generalLimiter = rateLimit({
 
 /**
  * Rate limiter estricto para endpoints de autenticación
- * Límite: 5 intentos por 15 minutos por IP
+ * Límite: 50 intentos por 15 minutos por IP (desarrollo)
+ * En producción debería ser más estricto (5 intentos)
  * Previene ataques de fuerza bruta
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // Límite de 5 intentos por ventana
+  max: process.env.NODE_ENV === 'production' ? 5 : 50, // Límite flexible para desarrollo
   skipSuccessfulRequests: true, // No cuenta peticiones exitosas
   message: {
     error: 'Demasiados intentos de autenticación fallidos',

@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
-import { Role } from '@prisma/client';
 
 export const authenticate = (
   req: Request,
@@ -25,14 +24,19 @@ export const authenticate = (
   }
 };
 
-export const authorize = (...roles: Role[]) => {
+/**
+ * @deprecated Use requireRole or requirePermission from authorization.ts instead
+ * Este middleware está deprecado y se mantiene por compatibilidad.
+ * Usa los nuevos middlewares de authorization.ts para control basado en permisos.
+ */
+export const authorize = (...roleNames: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!req.user.roleName || !roleNames.includes(req.user.roleName)) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
