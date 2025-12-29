@@ -3,13 +3,166 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+// Define permissions directly in seed to avoid import issues in production
+const BASE_PERMISSIONS = [
+  {
+    name: 'dashboard.access',
+    displayName: '📊 Acceso a Dashboard',
+    description: 'Permite acceder al módulo de Panel principal del sistema',
+    module: 'dashboard',
+    action: 'access',
+  },
+  {
+    name: 'patients.access',
+    displayName: '👥 Acceso a Pacientes',
+    description: 'Permite acceder al módulo de Gestión de pacientes',
+    module: 'patients',
+    action: 'access',
+  },
+  {
+    name: 'appointments.access',
+    displayName: '📅 Acceso a Citas',
+    description: 'Permite acceder al módulo de Gestión de citas',
+    module: 'appointments',
+    action: 'access',
+  },
+  {
+    name: 'services.access',
+    displayName: '💉 Acceso a Servicios',
+    description: 'Permite acceder al módulo de Gestión de servicios',
+    module: 'services',
+    action: 'access',
+  },
+  {
+    name: 'employees.access',
+    displayName: '👔 Acceso a Recursos Humanos',
+    description: 'Permite acceder al módulo de Gestión de empleados',
+    module: 'employees',
+    action: 'access',
+  },
+  {
+    name: 'roles.access',
+    displayName: '🔐 Acceso a Roles y Permisos',
+    description: 'Permite acceder al módulo de Gestión de roles y permisos',
+    module: 'roles',
+    action: 'access',
+  },
+  {
+    name: 'analytics.access',
+    displayName: '📈 Acceso a Analíticas',
+    description: 'Permite acceder al módulo de Analíticas y reportes',
+    module: 'analytics',
+    action: 'access',
+  },
+  {
+    name: 'invoices.access',
+    displayName: '💰 Acceso a Facturación',
+    description: 'Permite acceder al módulo de Facturas y pagos',
+    module: 'invoices',
+    action: 'access',
+  },
+  {
+    name: 'medical_records.access',
+    displayName: '📋 Acceso a Historiales Médicos',
+    description: 'Permite acceder al módulo de Historiales clínicos',
+    module: 'medical_records',
+    action: 'access',
+  },
+  {
+    name: 'settings.access',
+    displayName: '⚙️ Acceso a Configuración',
+    description: 'Permite acceder al módulo de Configuración del sistema',
+    module: 'settings',
+    action: 'access',
+  },
+];
+
 async function main() {
   console.log('Starting seed...');
 
-  // Get system roles
-  const adminRole = await prisma.systemRole.findUnique({ where: { name: 'admin' } });
-  const nurseRole = await prisma.systemRole.findUnique({ where: { name: 'nurse' } });
-  const salesRole = await prisma.systemRole.findUnique({ where: { name: 'sales' } });
+  // ===== STEP 1: Create/Update System Roles =====
+  console.log('Creating system roles...');
+
+  const adminRole = await prisma.systemRole.upsert({
+    where: { name: 'admin' },
+    update: {},
+    create: {
+      name: 'admin',
+      displayName: 'Administrador',
+      description: 'Acceso completo al sistema',
+      isSystem: true,
+      isActive: true,
+    },
+  });
+
+  const nurseRole = await prisma.systemRole.upsert({
+    where: { name: 'nurse' },
+    update: {},
+    create: {
+      name: 'nurse',
+      displayName: 'Enfermera',
+      description: 'Personal de enfermería',
+      isSystem: true,
+      isActive: true,
+    },
+  });
+
+  const salesRole = await prisma.systemRole.upsert({
+    where: { name: 'sales' },
+    update: {},
+    create: {
+      name: 'sales',
+      displayName: 'Ventas',
+      description: 'Personal de ventas',
+      isSystem: true,
+      isActive: true,
+    },
+  });
+
+  console.log('System roles created/updated');
+
+  // ===== STEP 2: Create/Update Permissions =====
+  console.log('Creating permissions...');
+
+  const createdPermissions = [];
+
+  for (const perm of BASE_PERMISSIONS) {
+    const permission = await prisma.permission.upsert({
+      where: { name: perm.name },
+      update: {
+        displayName: perm.displayName,
+        description: perm.description,
+      },
+      create: perm,
+    });
+    createdPermissions.push(permission);
+  }
+
+  console.log(`${createdPermissions.length} permissions created/updated`);
+
+  // ===== STEP 3: Assign ALL Permissions to Admin Role =====
+  console.log('Assigning all permissions to admin role...');
+
+  for (const permission of createdPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: adminRole.id,
+          permissionId: permission.id,
+        },
+      },
+      update: {},
+      create: {
+        roleId: adminRole.id,
+        permissionId: permission.id,
+      },
+    });
+  }
+
+  console.log(`All ${createdPermissions.length} permissions assigned to admin`);
+
+  // ===== STEP 4: Create Default Users =====
+  console.log('Creating default users...');
 
   // Create default admin user
   const adminPassword = await bcrypt.hash('admin123', 12);
@@ -21,7 +174,7 @@ async function main() {
       passwordHash: adminPassword,
       firstName: 'Admin',
       lastName: 'DermicaPro',
-      roleId: adminRole?.id,
+      roleId: adminRole.id,
       sex: 'Other',
       isActive: true,
     },
@@ -38,7 +191,7 @@ async function main() {
       passwordHash: nursePassword,
       firstName: 'María',
       lastName: 'García',
-      roleId: nurseRole?.id,
+      roleId: nurseRole.id,
       sex: 'F',
       isActive: true,
     },
@@ -55,14 +208,16 @@ async function main() {
       passwordHash: salesPassword,
       firstName: 'Carlos',
       lastName: 'Rodríguez',
-      roleId: salesRole?.id,
+      roleId: salesRole.id,
       sex: 'M',
       isActive: true,
     },
   });
   console.log('Sales user created:', sales.email);
 
-  // Create services
+  // ===== STEP 5: Create Services =====
+  console.log('Creating services...');
+
   const services = [
     {
       name: 'HIFU 12D (Lifting sin Cirugía)',
