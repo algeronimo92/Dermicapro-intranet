@@ -57,6 +57,13 @@ export const usersService = {
     return response.data;
   },
 
+  async getAllUsers(params?: GetUsersParams): Promise<User[]> {
+    const response = await api.get<PaginatedResponse<User>>('/users', {
+      params: { ...params, limit: 1000 }
+    });
+    return response.data.items;
+  },
+
   async getUser(id: string): Promise<User> {
     const response = await api.get<User>(`/users/${id}`);
     return response.data;

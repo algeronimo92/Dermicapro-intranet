@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { APP_VERSION } from './config/version';
 import { PatientsPage } from './pages/PatientsPage';
 import { PatientFormPage } from './pages/PatientFormPage';
 import { PatientDetailPage } from './pages/PatientDetailPage';
@@ -20,12 +21,14 @@ import { ServiceFormPage } from './pages/ServiceFormPage';
 import { RolesPage } from './pages/RolesPage';
 import { RoleFormPage } from './pages/RoleFormPage';
 import { RoleDetailPage } from './pages/RoleDetailPage';
+import CommissionsPage from './pages/CommissionsPage';
 import SettingsPage from './pages/SettingsPage';
 import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/settings.css';
 import './styles/roles.css';
+import './styles/commissions-page.css';
 
 function App() {
   return (
@@ -123,13 +126,8 @@ function LoginPage() {
           </button>
         </form>
 
-        <div className="login-footer">
-          <div className="login-demo-info">
-            <p><strong>Usuarios de prueba:</strong></p>
-            <p>Admin: admin@dermicapro.com / admin123</p>
-            <p>Enfermera: enfermera@dermicapro.com / nurse123</p>
-            <p>Ventas: ventas@dermicapro.com / sales123</p>
-          </div>
+        <div className="login-version">
+          <p>v{APP_VERSION}</p>
         </div>
       </div>
     </div>
@@ -204,6 +202,12 @@ function DashboardLayout() {
                   </NavLink>
                 </li>
                 <li className="sidebar-nav-item">
+                  <NavLink to="/commissions" className="sidebar-nav-link">
+                    <span className="sidebar-nav-icon">💰</span>
+                    Comisiones
+                  </NavLink>
+                </li>
+                <li className="sidebar-nav-item">
                   <NavLink to="/analytics" className="sidebar-nav-link">
                     <span className="sidebar-nav-icon">📊</span>
                     Analíticas
@@ -255,6 +259,7 @@ function DashboardLayout() {
             <Route path="/roles/new" element={<RoleFormPage />} />
             <Route path="/roles/:id" element={<RoleDetailPage />} />
             <Route path="/roles/:id/edit" element={<RoleFormPage />} />
+            <Route path="/commissions" element={<CommissionsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/analytics" element={<div>Analíticas</div>} />
           </Routes>

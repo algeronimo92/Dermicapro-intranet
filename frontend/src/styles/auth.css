@@ -123,6 +123,19 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* === LOGIN VERSION === */
+.login-version {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.login-version p {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
 /* === LOGIN FOOTER === */
 .login-footer {
   margin-top: var(--spacing-xl);

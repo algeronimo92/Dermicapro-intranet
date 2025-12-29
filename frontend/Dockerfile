@@ -15,10 +15,10 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code (including .env.production)
 COPY . .
 
-# Build production bundle
+# Build production bundle (will use .env.production)
 RUN npm run build
 
 # ----------------

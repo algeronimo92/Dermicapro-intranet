@@ -10,6 +10,9 @@ import path from 'path';
 
 const app = express();
 
+// Confiar en proxy (nginx) para headers X-Forwarded-*
+app.set('trust proxy', 1);
+
 app.use(cors({ origin: config.cors.origin, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

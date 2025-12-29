@@ -11,7 +11,7 @@ export function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
 
   useEffect(() => {
@@ -31,11 +31,12 @@ export function ServicesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deleteModal) return;
     try {
-      await servicesService.deleteService(id);
+      await servicesService.deleteService(deleteModal.id);
       await loadServices();
-      setDeleteConfirm(null);
+      setDeleteModal(null);
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Error al eliminar servicio';
       alert(errorMsg);
@@ -177,29 +178,12 @@ export function ServicesPage() {
                               >
                                 {service.isActive ? 'Desactivar' : 'Activar'}
                               </button>
-                              {deleteConfirm === service.id ? (
-                                <>
-                                  <button
-                                    onClick={() => handleDelete(service.id)}
-                                    className="btn btn-danger btn-sm"
-                                  >
-                                    Confirmar
-                                  </button>
-                                  <button
-                                    onClick={() => setDeleteConfirm(null)}
-                                    className="btn btn-secondary btn-sm"
-                                  >
-                                    Cancelar
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  onClick={() => setDeleteConfirm(service.id)}
-                                  className="btn btn-danger btn-sm"
-                                >
-                                  Eliminar
-                                </button>
-                              )}
+                              <button
+                                onClick={() => setDeleteModal({ id: service.id, name: service.name })}
+                                className="btn btn-danger btn-sm"
+                              >
+                                Eliminar
+                              </button>
                             </>
                           )}
                         </div>
@@ -212,6 +196,38 @@ export function ServicesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal de confirmación de eliminación */}
+      {deleteModal && (
+        <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirmar Eliminación</h2>
+            </div>
+            <div className="modal-body">
+              <p>¿Estás seguro de que deseas eliminar el servicio?</p>
+              <p className="modal-warning">
+                <strong>{deleteModal.name}</strong>
+              </p>
+              <p className="text-secondary">Esta acción se puede revertir más tarde.</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                onClick={() => setDeleteModal(null)}
+                className="btn btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                className="btn btn-danger"
+              >
+                Eliminar Servicio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

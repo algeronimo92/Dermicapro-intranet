@@ -8,6 +8,7 @@ import invoicesRoutes from './invoices.routes';
 import paymentsRoutes from './payments.routes';
 import rolesRoutes from './roles.routes';
 import permissionsRoutes from './permissions.routes';
+import commissionsRoutes from './commissions.routes';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/invoices', invoicesRoutes);
 router.use('/payments', paymentsRoutes);
 router.use('/roles', rolesRoutes);
 router.use('/permissions', permissionsRoutes);
+router.use('/commissions', commissionsRoutes);
 
 router.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

@@ -290,20 +290,9 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
       }
 
       // ============================================
-      // PASO 4: Crear comisión si hay reservationAmount
+      // PASO 4: Crear comisiones por cada paquete/servicio vendido
       // ============================================
-      if (reservationAmount && parseFloat(reservationAmount) > 0) {
-        const commissionRate = 0.1; // 10% commission rate
-        await tx.commission.create({
-          data: {
-            salesPersonId: req.user!.id,
-            appointmentId: createdAppointment.id,
-            commissionRate,
-            commissionAmount: parseFloat(reservationAmount) * commissionRate,
-            status: 'pending',
-          },
-        });
-      }
+      // Nota: Las comisiones se generan cuando se marca la cita como "attended"
 
       // ============================================
       // PASO 5: Retornar appointment con todas las relaciones
@@ -545,49 +534,128 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
 
-    const appointment = await prisma.appointment.update({
-      where: { id },
-      data: {
-        status: 'attended',
-        attendedById: req.user!.id,
-        attendedAt: new Date(),
-      },
-      include: {
-        patient: true,
-        createdBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        attendedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        patientRecords: {
-          orderBy: { createdAt: 'desc' },
-        },
-        appointmentServices: {
-          include: {
-            order: {
-              include: {
-                service: true,
+    // Usar transacción para marcar como attended y generar comisiones
+    const appointment = await prisma.$transaction(async (tx) => {
+      // Obtener la cita con sus servicios antes de actualizar
+      const existingAppointment = await tx.appointment.findUnique({
+        where: { id },
+        include: {
+          createdBy: true,
+          appointmentServices: {
+            include: {
+              order: {
+                include: {
+                  service: true,
+                },
               },
             },
           },
         },
-      },
+      });
+
+      if (!existingAppointment) {
+        throw new AppError('Appointment not found', 404);
+      }
+
+      // Marcar como attended
+      const updatedAppointment = await tx.appointment.update({
+        where: { id },
+        data: {
+          status: 'attended',
+          attendedById: req.user!.id,
+          attendedAt: new Date(),
+        },
+        include: {
+          patient: true,
+          createdBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          attendedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          patientRecords: {
+            orderBy: { createdAt: 'desc' },
+          },
+          appointmentServices: {
+            include: {
+              order: {
+                include: {
+                  service: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // ============================================
+      // Generar comisiones por cada orden única
+      // ============================================
+      const orderIds = [...new Set(
+        existingAppointment.appointmentServices
+          .map(as => as.orderId)
+          .filter(Boolean)
+      )];
+
+      for (const orderId of orderIds) {
+        const appointmentService = existingAppointment.appointmentServices.find(
+          as => as.orderId === orderId
+        );
+
+        if (!appointmentService?.order) continue;
+
+        const order = appointmentService.order;
+
+        // Verificar si ya existe una comisión para este appointment y order
+        const existingCommission = await tx.commission.findFirst({
+          where: {
+            appointmentId: id,
+            orderId: orderId,
+          },
+        });
+
+        // Solo crear comisión si no existe
+        if (!existingCommission) {
+          const commissionRate = order.service.commissionRate || 0.10; // 10% por defecto
+          const baseAmount = order.finalPrice;
+          const commissionAmount = Number(baseAmount) * Number(commissionRate);
+
+          await tx.commission.create({
+            data: {
+              salesPersonId: existingAppointment.createdBy.id,
+              appointmentId: id,
+              orderId: orderId,
+              serviceId: order.serviceId,
+              commissionRate,
+              baseAmount,
+              commissionAmount,
+              status: 'pending',
+              notes: `Comisión por asistencia a ${order.service.name}`,
+            },
+          });
+        }
+      }
+
+      return updatedAppointment;
     });
 
     res.json(appointment);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to mark appointment as attended' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to mark appointment as attended' });
+    }
   }
 };
 
