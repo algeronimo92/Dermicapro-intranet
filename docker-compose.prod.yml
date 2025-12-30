@@ -74,6 +74,12 @@ services:
       - backend
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      # SSL certificates from Let's Encrypt
+      - /etc/letsencrypt/live/dermicapro.app/fullchain.pem:/etc/letsencrypt/live/dermicapro.app/fullchain.pem:ro
+      - /etc/letsencrypt/live/dermicapro.app/privkey.pem:/etc/letsencrypt/live/dermicapro.app/privkey.pem:ro
+      - /etc/letsencrypt/archive/dermicapro.app:/etc/letsencrypt/archive/dermicapro.app:ro
     networks:
       - dermicapro-network
 
