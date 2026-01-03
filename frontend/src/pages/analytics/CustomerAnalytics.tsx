@@ -90,7 +90,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.demographics.byAgeRange}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="ageRange" />
+              <XAxis dataKey="range" />
               <YAxis />
               <Tooltip />
               <Bar dataKey="count" fill="#3498db" name="Pacientes" />
@@ -114,13 +114,13 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#f8f9fa', borderRadius: '4px' }}>
               <span style={{ fontWeight: '500', color: '#666' }}>Tasa de Retención:</span>
               <span style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '18px' }}>
-                {data.retention.retentionRate.toFixed(1)}%
+                {data.retention.rate.toFixed(1)}%
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666' }}>Promedio de Visitas:</span>
+              <span style={{ fontWeight: '500', color: '#666' }}>Tasa de Clientes Recurrentes:</span>
               <span style={{ fontWeight: 'bold', color: '#3498db', fontSize: '18px' }}>
-                {data.retention.averageVisits.toFixed(1)}
+                {data.retention.repeatCustomerRate.toFixed(1)}%
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#f8f9fa', borderRadius: '4px' }}>
@@ -142,10 +142,8 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
               <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
                 <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Ranking</th>
                 <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paciente</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>DNI</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Visitas</th>
+                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Citas</th>
                 <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Total Gastado</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Última Visita</th>
               </tr>
             </thead>
             <tbody>
@@ -169,17 +167,9 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
                     </span>
                   </td>
                   <td style={{ padding: '12px', fontWeight: '500' }}>{customer.patientName}</td>
-                  <td style={{ padding: '12px', color: '#666' }}>{customer.dni}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>{customer.totalVisits}</td>
+                  <td style={{ padding: '12px', textAlign: 'right' }}>{customer.appointmentsCount}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
                     ${customer.totalSpent.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td style={{ padding: '12px', color: '#666' }}>
-                    {new Date(customer.lastVisit).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
                   </td>
                 </tr>
               ))}

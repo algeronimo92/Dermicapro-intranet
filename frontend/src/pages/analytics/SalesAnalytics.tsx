@@ -119,7 +119,7 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
               </tr>
             </thead>
             <tbody>
-              {data.salesPeopleRanking.map((person, idx) => (
+              {data.salesPeople.map((person, idx) => (
                 <tr key={person.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '12px' }}>
                     <span
