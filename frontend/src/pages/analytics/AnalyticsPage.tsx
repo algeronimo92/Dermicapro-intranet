@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ExecutiveSummary } from './ExecutiveSummary';
+import { FinancialAnalytics } from './FinancialAnalytics';
 import './AnalyticsPage.css';
 
 type TabType = 'executive' | 'financial' | 'operations' | 'sales' | 'customers' | 'services';
@@ -66,11 +67,7 @@ export const AnalyticsPage: React.FC = () => {
 
       <div className="analytics-content">
         {activeTab === 'executive' && <ExecutiveSummary filters={filters} />}
-        {activeTab === 'financial' && (
-          <div className="placeholder-content">
-            <p>Finanzas - Coming soon</p>
-          </div>
-        )}
+        {activeTab === 'financial' && <FinancialAnalytics filters={filters} />}
         {activeTab === 'operations' && (
           <div className="placeholder-content">
             <p>Operaciones - Coming soon</p>
