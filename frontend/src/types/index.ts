@@ -89,6 +89,10 @@ export interface Service {
   description?: string;
   basePrice: number;
   defaultSessions: number;
+  commissionType?: 'percentage' | 'fixed';
+  commissionRate?: number;
+  commissionFixedAmount?: number;
+  commissionNotes?: string;
   isActive: boolean;
   deletedAt?: string | null;
 }

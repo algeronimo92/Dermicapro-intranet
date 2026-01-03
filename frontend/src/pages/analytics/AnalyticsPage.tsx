@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ExecutiveSummary } from './ExecutiveSummary';
 import { FinancialAnalytics } from './FinancialAnalytics';
 import { OperationsAnalytics } from './OperationsAnalytics';
+import { SalesAnalytics } from './SalesAnalytics';
 import './AnalyticsPage.css';
 
 type TabType = 'executive' | 'financial' | 'operations' | 'sales' | 'customers' | 'services';
@@ -105,11 +106,7 @@ export const AnalyticsPage: React.FC = () => {
         {activeTab === 'executive' && <ExecutiveSummary filters={filters} />}
         {activeTab === 'financial' && <FinancialAnalytics filters={filters} />}
         {activeTab === 'operations' && <OperationsAnalytics filters={filters} />}
-        {activeTab === 'sales' && (
-          <div className="placeholder-content">
-            <p>Ventas - Coming soon</p>
-          </div>
-        )}
+        {activeTab === 'sales' && <SalesAnalytics filters={filters} />}
         {activeTab === 'customers' && (
           <div className="placeholder-content">
             <p>Clientes - Coming soon</p>

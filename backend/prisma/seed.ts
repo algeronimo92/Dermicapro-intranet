@@ -224,54 +224,81 @@ async function main() {
       description: 'Tecnología de ultrasonido para combatir la flacidez facial',
       basePrice: 500.00,
       defaultSessions: 1,
+      commissionType: 'percentage',
+      commissionRate: 0.15, // 15%
+      commissionNotes: 'Comisión del 15% sobre el precio final',
     },
     {
       name: 'Borrado de Manchas (Pico Láser)',
       description: 'Tratamiento para manchas hormonales, solares y post-acné',
       basePrice: 300.00,
       defaultSessions: 1,
+      commissionType: 'percentage',
+      commissionRate: 0.12, // 12%
+      commissionNotes: 'Comisión del 12% sobre el precio final',
     },
     {
       name: 'Hollywood Peel',
       description: 'Luminosidad instantánea y cierre de poros',
       basePrice: 180.00,
       defaultSessions: 1,
+      commissionType: 'fixed',
+      commissionFixedAmount: 25.00, // S/ 25 fijo
+      commissionNotes: 'Comisión fija de S/ 25 por venta',
     },
     {
       name: 'Hollywood Peel (Paquete x3)',
       description: 'Paquete de 3 sesiones de Hollywood Peel con descuento',
       basePrice: 500.00,
       defaultSessions: 3,
+      commissionType: 'fixed',
+      commissionFixedAmount: 60.00, // S/ 60 fijo
+      commissionNotes: 'Comisión fija de S/ 60 por paquete',
     },
     {
       name: 'Enzimas Recombinantes',
       description: 'Tratamiento para grasa localizada, fibrosis y exceso de ácido hialurónico',
       basePrice: 800.00,
       defaultSessions: 2,
+      commissionType: 'percentage',
+      commissionRate: 0.18, // 18%
+      commissionNotes: 'Comisión del 18% sobre el precio final',
     },
     {
       name: 'Reducción de Papada (Enzimas + HIFU)',
       description: 'Combinación de tecnologías para eliminar grasa y tensar la piel',
       basePrice: 600.00,
       defaultSessions: 1,
+      commissionType: 'percentage',
+      commissionRate: 0.15, // 15%
+      commissionNotes: 'Comisión del 15% sobre el precio final',
     },
     {
       name: 'Borrado de Tatuajes',
       description: 'Eliminación segura de tatuajes',
       basePrice: 400.00,
       defaultSessions: 1,
+      commissionType: 'fixed',
+      commissionFixedAmount: 50.00, // S/ 50 fijo
+      commissionNotes: 'Comisión fija de S/ 50 por sesión',
     },
     {
       name: 'Borrado de Micropigmentación',
       description: 'Eliminación de micropigmentación fallida',
       basePrice: 300.00,
       defaultSessions: 1,
+      commissionType: 'percentage',
+      commissionRate: 0.10, // 10%
+      commissionNotes: 'Comisión del 10% sobre el precio final',
     },
     {
       name: 'Borrado de Micropigmentación (Paquete x4)',
       description: 'Paquete de 4 sesiones de Borrado de Micropigmentación con descuento',
       basePrice: 999.00,
       defaultSessions: 4,
+      commissionType: 'percentage',
+      commissionRate: 0.12, // 12%
+      commissionNotes: 'Comisión del 12% sobre el precio final del paquete',
     },
   ];
 

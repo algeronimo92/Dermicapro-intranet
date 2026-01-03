@@ -175,8 +175,10 @@ model Service {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Commission settings
-  commissionRate  Decimal?  @map("commission_rate") @db.Decimal(5, 4) // Porcentaje de comisión para este servicio (ej: 0.1000 = 10%)
-  commissionNotes String?   @map("commission_notes") // Notas sobre la comisión de este servicio
+  commissionType        String?   @default("percentage") @map("commission_type") // 'percentage' o 'fixed'
+  commissionRate        Decimal?  @map("commission_rate") @db.Decimal(5, 4) // Porcentaje de comisión para este servicio (ej: 0.1000 = 10%)
+  commissionFixedAmount Decimal?  @map("commission_fixed_amount") @db.Decimal(10, 2) // Monto fijo de comisión
+  commissionNotes       String?   @map("commission_notes") // Notas sobre la comisión de este servicio
 
   // Relations
   orders                 Order[]

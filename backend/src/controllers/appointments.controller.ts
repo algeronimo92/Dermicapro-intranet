@@ -626,9 +626,20 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
 
         // Solo crear comisión si no existe
         if (!existingCommission) {
-          const commissionRate = order.service.commissionRate || 0.10; // 10% por defecto
           const baseAmount = order.finalPrice;
-          const commissionAmount = Number(baseAmount) * Number(commissionRate);
+          let commissionAmount = 0;
+          let commissionRate = null;
+          let commissionType = order.service.commissionType || 'percentage';
+
+          // Calcular comisión según el tipo
+          if (commissionType === 'percentage') {
+            // Comisión por porcentaje (0.05 = 5%)
+            commissionRate = order.service.commissionRate || 0.05; // 5% por defecto
+            commissionAmount = Number(baseAmount) * Number(commissionRate);
+          } else if (commissionType === 'fixed') {
+            // Comisión por monto fijo
+            commissionAmount = Number(order.service.commissionFixedAmount || 0);
+          }
 
           await tx.commission.create({
             data: {

@@ -70,6 +70,16 @@ export function ServicesPage() {
     }).format(price);
   };
 
+  const formatCommission = (service: Service) => {
+    if (service.commissionType === 'percentage' && service.commissionRate) {
+      const percentage = parseFloat(service.commissionRate.toString()) * 100;
+      return `${percentage}%`;
+    } else if (service.commissionType === 'fixed' && service.commissionFixedAmount) {
+      return formatPrice(service.commissionFixedAmount);
+    }
+    return '-';
+  };
+
   const isAdmin = hasRole(user, 'admin');
 
   if (loading) {
@@ -109,6 +119,7 @@ export function ServicesPage() {
               <th>Nombre</th>
               <th>Descripción</th>
               <th style={{ textAlign: 'right' }}>Precio Base</th>
+              <th style={{ textAlign: 'center' }}>Comisión</th>
               <th style={{ textAlign: 'center' }}>Sesiones</th>
               <th style={{ textAlign: 'center' }}>Estado</th>
               {isAdmin && <th style={{ textAlign: 'center' }}>Acciones</th>}
@@ -117,7 +128,7 @@ export function ServicesPage() {
           <tbody>
             {services.length === 0 ? (
               <tr>
-                <td colSpan={isAdmin ? 6 : 5} className="table-empty">
+                <td colSpan={isAdmin ? 7 : 6} className="table-empty">
                   No hay servicios registrados
                 </td>
               </tr>
@@ -142,6 +153,11 @@ export function ServicesPage() {
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
                       {formatPrice(service.basePrice)}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="badge" style={{ background: '#e3f2fd', color: '#1976d2' }}>
+                        {formatCommission(service)}
+                      </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="badge badge-info">

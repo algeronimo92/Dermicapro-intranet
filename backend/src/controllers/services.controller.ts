@@ -49,7 +49,7 @@ export const getService = async (req: Request, res: Response) => {
 
 export const createService = async (req: Request, res: Response) => {
   try {
-    const { name, description, basePrice, defaultSessions, isActive, commissionRate, commissionNotes } = req.body;
+    const { name, description, basePrice, defaultSessions, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
 
     // Validaciones
     if (!name || !basePrice) {
@@ -68,6 +68,14 @@ export const createService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'La tasa de comisión debe estar entre 0 y 1 (0% - 100%)' });
     }
 
+    if (commissionFixedAmount !== undefined && commissionFixedAmount < 0) {
+      return res.status(400).json({ message: 'El monto fijo de comisión debe ser mayor o igual a 0' });
+    }
+
+    if (commissionType && !['percentage', 'fixed'].includes(commissionType)) {
+      return res.status(400).json({ message: 'El tipo de comisión debe ser "percentage" o "fixed"' });
+    }
+
     const service = await prisma.service.create({
       data: {
         name,
@@ -75,7 +83,9 @@ export const createService = async (req: Request, res: Response) => {
         basePrice,
         defaultSessions: defaultSessions || 1,
         isActive: isActive !== undefined ? isActive : true,
+        commissionType: commissionType || 'percentage',
         commissionRate: commissionRate !== undefined ? commissionRate : null,
+        commissionFixedAmount: commissionFixedAmount !== undefined ? commissionFixedAmount : null,
         commissionNotes: commissionNotes || null,
       }
     });
@@ -89,7 +99,7 @@ export const createService = async (req: Request, res: Response) => {
 export const updateService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, basePrice, defaultSessions, isActive, commissionRate, commissionNotes } = req.body;
+    const { name, description, basePrice, defaultSessions, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
 
     // Verificar que el servicio existe
     const existingService = await prisma.service.findUnique({
@@ -113,6 +123,14 @@ export const updateService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'La tasa de comisión debe estar entre 0 y 1 (0% - 100%)' });
     }
 
+    if (commissionFixedAmount !== undefined && commissionFixedAmount !== null && commissionFixedAmount < 0) {
+      return res.status(400).json({ message: 'El monto fijo de comisión debe ser mayor o igual a 0' });
+    }
+
+    if (commissionType && !['percentage', 'fixed'].includes(commissionType)) {
+      return res.status(400).json({ message: 'El tipo de comisión debe ser "percentage" o "fixed"' });
+    }
+
     const service = await prisma.service.update({
       where: { id },
       data: {
@@ -121,7 +139,9 @@ export const updateService = async (req: Request, res: Response) => {
         basePrice,
         defaultSessions,
         isActive,
+        commissionType: commissionType !== undefined ? commissionType : undefined,
         commissionRate: commissionRate !== undefined ? commissionRate : undefined,
+        commissionFixedAmount: commissionFixedAmount !== undefined ? commissionFixedAmount : undefined,
         commissionNotes: commissionNotes !== undefined ? commissionNotes : undefined,
       }
     });
