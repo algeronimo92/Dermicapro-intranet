@@ -18,9 +18,20 @@ export const getExecutiveSummary = async (req: Request, res: Response): Promise<
   }
 };
 
-// Placeholders for other controllers
 export const getFinancialAnalytics = async (req: Request, res: Response): Promise<void> => {
-  res.json({ message: 'Financial analytics - coming soon' });
+  try {
+    const filters: AnalyticsFilters = {
+      period: (req.query.period as any) || 'month',
+      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
+    };
+
+    const data = await analyticsService.getFinancialAnalytics(filters);
+    res.json(data);
+  } catch (error: any) {
+    console.error('Financial analytics error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching financial analytics' });
+  }
 };
 
 export const getOperationsAnalytics = async (req: Request, res: Response): Promise<void> => {
