@@ -12,7 +12,9 @@ export const AnalyticsPage: React.FC = () => {
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
   // Check if user is admin
-  const isAdmin = user?.roleName === 'admin';
+  const isAdmin = user?.role
+    ? (typeof user.role === 'string' ? user.role === 'admin' : user.role.name === 'admin')
+    : false;
 
   if (!isAdmin) {
     return (
