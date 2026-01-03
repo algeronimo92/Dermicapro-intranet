@@ -31,7 +31,7 @@ export const generalLimiter = rateLimit({
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'production' ? 5 : 50, // Límite flexible para desarrollo
+  max: process.env.NODE_ENV === 'production' ? 5 : 200, // Límite flexible para desarrollo
   skipSuccessfulRequests: true, // No cuenta peticiones exitosas
   message: {
     error: 'Demasiados intentos de autenticación fallidos',
