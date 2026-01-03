@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ExecutiveSummary } from './ExecutiveSummary';
 import { FinancialAnalytics } from './FinancialAnalytics';
@@ -9,13 +10,37 @@ import { ServiceAnalytics } from './ServiceAnalytics';
 import './AnalyticsPage.css';
 
 type TabType = 'executive' | 'financial' | 'operations' | 'sales' | 'customers' | 'services';
+type PeriodType = 'today' | 'week' | 'month' | 'year' | 'custom';
 
 export const AnalyticsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('executive');
-  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('month');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Leer valores iniciales de la URL
+  const tabFromUrl = (searchParams.get('tab') as TabType) || 'executive';
+  const periodFromUrl = (searchParams.get('period') as PeriodType) || 'month';
+  const startDateFromUrl = searchParams.get('startDate') || '';
+  const endDateFromUrl = searchParams.get('endDate') || '';
+
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
+  const [period, setPeriod] = useState<PeriodType>(periodFromUrl);
+  const [startDate, setStartDate] = useState<string>(startDateFromUrl);
+  const [endDate, setEndDate] = useState<string>(endDateFromUrl);
+
+  // Actualizar URL cuando cambian los estados
+  useEffect(() => {
+    const params: Record<string, string> = {
+      tab: activeTab,
+      period: period,
+    };
+
+    if (period === 'custom' && startDate && endDate) {
+      params.startDate = startDate;
+      params.endDate = endDate;
+    }
+
+    setSearchParams(params, { replace: true });
+  }, [activeTab, period, startDate, endDate, setSearchParams]);
 
   // Check if user is admin
   const isAdmin = user?.role
@@ -42,13 +67,13 @@ export const AnalyticsPage: React.FC = () => {
     { id: 'services' as TabType, label: 'Servicios' },
   ];
 
-  const filters = {
+  const filters = useMemo(() => ({
     period,
     ...(period === 'custom' && startDate && endDate && {
       startDate: new Date(startDate),
       endDate: new Date(endDate)
     })
-  };
+  }), [period, startDate, endDate]);
 
   return (
     <div className="page-container analytics-page">

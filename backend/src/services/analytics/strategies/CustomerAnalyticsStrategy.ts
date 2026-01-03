@@ -159,6 +159,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     lte: Date;
   }): Promise<CustomerAnalyticsData['lifetime']> {
     // Calcular CLV (Customer Lifetime Value) promedio
+    // Obtener todas las órdenes agrupadas por paciente
     const patientsWithOrders = await this.prisma.patient.findMany({
       include: {
         appointments: {
@@ -174,18 +175,23 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     });
 
     const clvData = patientsWithOrders.map((patient) => {
-      const totalSpent = patient.appointments.reduce((sum, apt) => {
-        const aptTotal = apt.appointmentServices.reduce(
-          (s, as) => s + (as.order?.finalPrice || 0),
-          0
-        );
-        return sum + aptTotal;
-      }, 0);
+      // Usar un Set para evitar contar la misma orden múltiples veces
+      const uniqueOrders = new Set<string>();
+      let totalSpent = 0;
+
+      patient.appointments.forEach((apt) => {
+        apt.appointmentServices.forEach((as) => {
+          if (as.order && as.orderId && !uniqueOrders.has(as.orderId)) {
+            uniqueOrders.add(as.orderId);
+            totalSpent += Number(as.order.finalPrice) || 0;
+          }
+        });
+      });
 
       return {
         patientId: patient.id,
         patientName: `${patient.firstName} ${patient.lastName}`,
-        totalSpent,
+        totalSpent: parseFloat(totalSpent.toFixed(2)),
         appointmentsCount: patient.appointments.length,
       };
     });
@@ -201,7 +207,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
       .slice(0, 10);
 
     return {
-      averageCLV: Math.round(averageCLV * 100) / 100,
+      averageCLV: parseFloat(averageCLV.toFixed(2)),
       topCustomers,
     };
   }
