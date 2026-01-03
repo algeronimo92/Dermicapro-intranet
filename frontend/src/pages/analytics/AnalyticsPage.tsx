@@ -4,6 +4,8 @@ import { ExecutiveSummary } from './ExecutiveSummary';
 import { FinancialAnalytics } from './FinancialAnalytics';
 import { OperationsAnalytics } from './OperationsAnalytics';
 import { SalesAnalytics } from './SalesAnalytics';
+import { CustomerAnalytics } from './CustomerAnalytics';
+import { ServiceAnalytics } from './ServiceAnalytics';
 import './AnalyticsPage.css';
 
 type TabType = 'executive' | 'financial' | 'operations' | 'sales' | 'customers' | 'services';
@@ -107,16 +109,8 @@ export const AnalyticsPage: React.FC = () => {
         {activeTab === 'financial' && <FinancialAnalytics filters={filters} />}
         {activeTab === 'operations' && <OperationsAnalytics filters={filters} />}
         {activeTab === 'sales' && <SalesAnalytics filters={filters} />}
-        {activeTab === 'customers' && (
-          <div className="placeholder-content">
-            <p>Clientes - Coming soon</p>
-          </div>
-        )}
-        {activeTab === 'services' && (
-          <div className="placeholder-content">
-            <p>Servicios - Coming soon</p>
-          </div>
-        )}
+        {activeTab === 'customers' && <CustomerAnalytics filters={filters} />}
+        {activeTab === 'services' && <ServiceAnalytics filters={filters} />}
       </div>
     </div>
   );

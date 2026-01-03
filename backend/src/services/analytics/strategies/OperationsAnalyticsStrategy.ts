@@ -35,16 +35,16 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
   }
 
   private async getAppointmentsStats(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<OperationsAnalyticsData['appointments']> {
     const appointmentsByStatus = await this.prisma.appointment.groupBy({
       by: ['status'],
       _count: true,
       where: {
         scheduledDate: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
     });
@@ -75,15 +75,15 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
   }
 
   private async getSchedulingData(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<OperationsAnalyticsData['scheduling']> {
     // Obtener todas las citas en el rango
     const appointments = await this.prisma.appointment.findMany({
       where: {
         scheduledDate: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
       select: {
@@ -129,14 +129,14 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
   }
 
   private async getUtilizationData(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<OperationsAnalyticsData['utilization']> {
     const appointments = await this.prisma.appointment.findMany({
       where: {
         scheduledDate: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
       select: {
@@ -153,7 +153,7 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
 
     // Calcular tasa de utilización (asumiendo 8 horas laborales por día)
     const totalDays = Math.ceil(
-      (dateRange.end.getTime() - dateRange.start.getTime()) /
+      (dateRange.lte.getTime() - dateRange.gte.getTime()) /
         (1000 * 60 * 60 * 24)
     );
     const totalAvailableSlots = totalDays * 8 * 4; // 8 horas * 4 slots por hora
