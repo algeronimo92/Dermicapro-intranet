@@ -81,3 +81,150 @@ export interface FinancialAnalyticsData {
     }[];
   };
 }
+
+// ============================================
+// OPERATIONS ANALYTICS
+// ============================================
+export interface OperationsAnalyticsData {
+  appointments: {
+    total: number;
+    completed: number;
+    cancelled: number;
+    noShows: number;
+    attendanceRate: number;
+  };
+  scheduling: {
+    byDayOfWeek: {
+      day: string;
+      count: number;
+    }[];
+    byTimeSlot: {
+      hour: number;
+      count: number;
+    }[];
+    averageWaitTime: number;
+  };
+  utilization: {
+    rate: number;
+    peakHours: string[];
+    lowHours: string[];
+  };
+  upcomingAppointments: {
+    id: string;
+    scheduledDate: Date;
+    patient: {
+      firstName: string;
+      lastName: string;
+    };
+    services: string[];
+    status: string;
+  }[];
+}
+
+// ============================================
+// SALES ANALYTICS
+// ============================================
+export interface SalesAnalyticsData {
+  overview: {
+    totalOrders: number;
+    totalRevenue: number;
+    averageOrderValue: number;
+    conversionRate: number;
+  };
+  salesPeople: {
+    id: string;
+    name: string;
+    ordersCount: number;
+    revenue: number;
+    commissionsEarned: number;
+    ranking: number;
+  }[];
+  commissions: {
+    total: number;
+    pending: number;
+    approved: number;
+    paid: number;
+    byStatus: {
+      status: string;
+      amount: number;
+      count: number;
+    }[];
+  };
+  topServices: {
+    serviceId: string;
+    serviceName: string;
+    unitsSold: number;
+    revenue: number;
+  }[];
+}
+
+// ============================================
+// CUSTOMER ANALYTICS
+// ============================================
+export interface CustomerAnalyticsData {
+  overview: {
+    totalPatients: number;
+    newPatients: number;
+    returningPatients: number;
+    churnRate: number;
+  };
+  demographics: {
+    byGender: {
+      gender: string;
+      count: number;
+      percentage: number;
+    }[];
+    byAgeRange: {
+      range: string;
+      count: number;
+      percentage: number;
+    }[];
+  };
+  lifetime: {
+    averageCLV: number;
+    topCustomers: {
+      patientId: string;
+      patientName: string;
+      totalSpent: number;
+      appointmentsCount: number;
+    }[];
+  };
+  retention: {
+    rate: number;
+    repeatCustomerRate: number;
+    averageDaysBetweenVisits: number;
+  };
+}
+
+// ============================================
+// SERVICE ANALYTICS
+// ============================================
+export interface ServiceAnalyticsData {
+  overview: {
+    totalServices: number;
+    activeServices: number;
+    totalRevenue: number;
+  };
+  performance: {
+    serviceId: string;
+    serviceName: string;
+    timesOrdered: number;
+    revenue: number;
+    averagePrice: number;
+    completionRate: number;
+  }[];
+  pricing: {
+    averageServicePrice: number;
+    priceRange: {
+      min: number;
+      max: number;
+    };
+  };
+  packages: {
+    packageId: string;
+    packageName: string;
+    serviceCount: number;
+    totalPrice: number;
+    popularity: number;
+  }[];
+}
