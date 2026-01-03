@@ -173,11 +173,11 @@ export const OperationsAnalytics: React.FC<OperationsAnalyticsProps> = ({ filter
                         borderRadius: '4px',
                         fontSize: '12px',
                         fontWeight: '500',
-                        background: apt.status === 'confirmed' ? '#d4edda' : '#fff3cd',
-                        color: apt.status === 'confirmed' ? '#155724' : '#856404',
+                        background: apt.status === 'in_progress' ? '#d4edda' : '#fff3cd',
+                        color: apt.status === 'in_progress' ? '#155724' : '#856404',
                       }}
                     >
-                      {apt.status === 'confirmed' ? 'Confirmada' : 'Programada'}
+                      {apt.status === 'in_progress' ? 'En Proceso' : 'Reservada'}
                     </span>
                   </td>
                 </tr>

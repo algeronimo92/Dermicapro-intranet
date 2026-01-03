@@ -53,8 +53,8 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
       (sum, item) => sum + item._count,
       0
     );
-    const completed =
-      appointmentsByStatus.find((item) => item.status === 'completed')?._count ||
+    const attended =
+      appointmentsByStatus.find((item) => item.status === 'attended')?._count ||
       0;
     const cancelled =
       appointmentsByStatus.find((item) => item.status === 'cancelled')?._count ||
@@ -63,11 +63,11 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
       appointmentsByStatus.find((item) => item.status === 'no_show')?._count ||
       0;
 
-    const attendanceRate = total > 0 ? (completed / total) * 100 : 0;
+    const attendanceRate = total > 0 ? (attended / total) * 100 : 0;
 
     return {
       total,
-      completed,
+      completed: attended,
       cancelled,
       noShows,
       attendanceRate: Math.round(attendanceRate * 100) / 100,
@@ -195,7 +195,7 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
           lte: nextWeek,
         },
         status: {
-          in: ['scheduled', 'confirmed'],
+          in: ['reserved', 'in_progress'],
         },
       },
       take: 10,

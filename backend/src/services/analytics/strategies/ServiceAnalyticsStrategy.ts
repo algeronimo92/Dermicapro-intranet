@@ -131,7 +131,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
                 },
               },
               appointment: {
-                status: 'completed',
+                status: 'attended',
               },
             },
           });
