@@ -14,7 +14,7 @@ interface FinancialAnalyticsProps {
 
 export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({ filters }) => {
   const { data, isLoading, error } = useAnalytics<FinancialAnalyticsData>(
-    analyticsService.getFinancialAnalytics,
+    (f) => analyticsService.getFinancialAnalytics(f),
     filters
   );
 

@@ -13,7 +13,7 @@ interface ExecutiveSummaryProps {
 
 export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) => {
   const { data, isLoading, error } = useAnalytics<ExecutiveSummaryData>(
-    analyticsService.getExecutiveSummary,
+    (f) => analyticsService.getExecutiveSummary(f),
     filters
   );
 
