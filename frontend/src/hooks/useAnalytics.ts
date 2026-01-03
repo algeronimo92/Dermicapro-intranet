@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnalyticsFilters } from '../types/analytics.types';
 
 /**
@@ -15,6 +15,10 @@ export function useAnalytics<T>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use ref to store fetcher to avoid re-running effect when function reference changes
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -23,7 +27,7 @@ export function useAnalytics<T>(
         setIsLoading(true);
         setError(null);
 
-        const result = await fetcher(filters);
+        const result = await fetcherRef.current(filters);
 
         if (isMounted) {
           setData(result);
@@ -45,7 +49,7 @@ export function useAnalytics<T>(
     return () => {
       isMounted = false;
     };
-  }, [fetcher, filters?.period, filters?.startDate, filters?.endDate, filters?.serviceId, filters?.salesPersonId]);
+  }, [filters?.period, filters?.startDate?.getTime(), filters?.endDate?.getTime(), filters?.serviceId, filters?.salesPersonId]);
 
   return { data, isLoading, error };
 }
