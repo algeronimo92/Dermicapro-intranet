@@ -2,11 +2,12 @@ import rateLimit from 'express-rate-limit';
 
 /**
  * Rate limiter general para toda la API
- * Límite: 100 peticiones por 15 minutos por IP
+ * Límite: 100 peticiones por 15 minutos por IP (producción)
+ * Límite: 1000 peticiones por 15 minutos por IP (desarrollo)
  */
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Límite de 100 peticiones por ventana
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Límite flexible para desarrollo
   message: {
     error: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
     retryAfter: '15 minutos'
