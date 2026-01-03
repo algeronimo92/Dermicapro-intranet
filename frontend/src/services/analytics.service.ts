@@ -1,70 +1,44 @@
-import axios from 'axios';
+import api from './api';
 import {
   AnalyticsFilters,
   ExecutiveSummaryData,
   FinancialAnalyticsData,
 } from '../types/analytics.types';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-// Create axios instance with auth token
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 class AnalyticsService {
   async getExecutiveSummary(filters?: AnalyticsFilters): Promise<ExecutiveSummaryData> {
     const params = this.buildQueryParams(filters);
-    const response = await axios.get(`${API_URL}/analytics/executive`, {
-      params,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.get('/analytics/executive', { params });
     return response.data;
   }
 
   async getFinancialAnalytics(filters?: AnalyticsFilters): Promise<FinancialAnalyticsData> {
     const params = this.buildQueryParams(filters);
-    const response = await axios.get(`${API_URL}/analytics/financial`, {
-      params,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.get('/analytics/financial', { params });
     return response.data;
   }
 
   async getOperationsAnalytics(filters?: AnalyticsFilters): Promise<any> {
     const params = this.buildQueryParams(filters);
-    const response = await axios.get(`${API_URL}/analytics/operations`, {
-      params,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.get('/analytics/operations', { params });
     return response.data;
   }
 
   async getSalesAnalytics(filters?: AnalyticsFilters): Promise<any> {
     const params = this.buildQueryParams(filters);
-    const response = await axios.get(`${API_URL}/analytics/sales`, {
-      params,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.get('/analytics/sales', { params });
     return response.data;
   }
 
   async getCustomerAnalytics(filters?: AnalyticsFilters): Promise<any> {
     const params = this.buildQueryParams(filters);
-    const response = await axios.get(`${API_URL}/analytics/customers`, {
-      params,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.get('/analytics/customers', { params });
     return response.data;
   }
 
   async getServiceAnalytics(filters?: AnalyticsFilters): Promise<any> {
     const params = this.buildQueryParams(filters);
-    const response = await axios.get(`${API_URL}/analytics/services`, {
-      params,
-      headers: getAuthHeaders(),
-    });
+    const response = await api.get('/analytics/services', { params });
     return response.data;
   }
 
