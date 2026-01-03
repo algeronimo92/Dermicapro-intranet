@@ -140,10 +140,14 @@ export interface SalesAnalyticsData {
     ranking: number;
   }[];
   commissions: {
-    total: number;
-    pending: number;
-    approved: number;
-    paid: number;
+    total: number; // count
+    pending: number; // count
+    approved: number; // count
+    paid: number; // count
+    totalAmount: number; // sum
+    totalPending: number; // sum
+    totalApproved: number; // sum
+    totalPaid: number; // sum
     byStatus: {
       status: string;
       amount: number;

@@ -161,21 +161,24 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       },
     });
 
-    const total =
+    const totalAmount =
       commissionsByStatus.reduce(
         (sum, item) => sum + (item._sum.commissionAmount || 0),
         0
       ) || 0;
 
-    const pending =
-      commissionsByStatus.find((item) => item.status === 'pending')?._sum
-        .commissionAmount || 0;
-    const approved =
-      commissionsByStatus.find((item) => item.status === 'approved')?._sum
-        .commissionAmount || 0;
-    const paid =
-      commissionsByStatus.find((item) => item.status === 'paid')?._sum
-        .commissionAmount || 0;
+    const pendingData = commissionsByStatus.find((item) => item.status === 'pending');
+    const approvedData = commissionsByStatus.find((item) => item.status === 'approved');
+    const paidData = commissionsByStatus.find((item) => item.status === 'paid');
+
+    const pending = pendingData?._count || 0;
+    const approved = approvedData?._count || 0;
+    const paid = paidData?._count || 0;
+    const total = pending + approved + paid;
+
+    const totalPending = pendingData?._sum.commissionAmount || 0;
+    const totalApproved = approvedData?._sum.commissionAmount || 0;
+    const totalPaid = paidData?._sum.commissionAmount || 0;
 
     const byStatus = commissionsByStatus.map((item) => ({
       status: item.status,
@@ -188,6 +191,10 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       pending,
       approved,
       paid,
+      totalAmount,
+      totalPending,
+      totalApproved,
+      totalPaid,
       byStatus,
     };
   }
