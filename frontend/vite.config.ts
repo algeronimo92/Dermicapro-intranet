@@ -11,10 +11,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true, // Listen on all network interfaces
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://backend:5000',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
