@@ -49,7 +49,13 @@ export function useAnalytics<T>(
     return () => {
       isMounted = false;
     };
-  }, [filters?.period, filters?.startDate?.getTime(), filters?.endDate?.getTime(), filters?.serviceId, filters?.salesPersonId]);
+  }, [
+    filters?.period,
+    filters?.startDate instanceof Date ? filters.startDate.getTime() : filters?.startDate,
+    filters?.endDate instanceof Date ? filters.endDate.getTime() : filters?.endDate,
+    filters?.serviceId,
+    filters?.salesPersonId
+  ]);
 
   return { data, isLoading, error };
 }
