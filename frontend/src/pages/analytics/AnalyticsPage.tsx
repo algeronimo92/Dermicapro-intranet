@@ -9,7 +9,9 @@ type TabType = 'executive' | 'financial' | 'operations' | 'sales' | 'customers' 
 export const AnalyticsPage: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('executive');
-  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('month');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   // Check if user is admin
   const isAdmin = user?.role
@@ -36,24 +38,55 @@ export const AnalyticsPage: React.FC = () => {
     { id: 'services' as TabType, label: 'Servicios' },
   ];
 
-  const filters = { period };
+  const filters = {
+    period,
+    ...(period === 'custom' && startDate && endDate && {
+      startDate: new Date(startDate),
+      endDate: new Date(endDate)
+    })
+  };
 
   return (
     <div className="page-container analytics-page">
       <div className="page-header">
         <h1>Analytics</h1>
         <div className="period-selector">
-          {['today', 'week', 'month', 'year'].map((p) => (
+          {['today', 'week', 'month', 'year', 'custom'].map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p as any)}
               className={`period-button ${period === p ? 'active' : ''}`}
             >
-              {p === 'today' ? 'Hoy' : p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : 'Año'}
+              {p === 'today' ? 'Hoy' : p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : p === 'year' ? 'Año' : 'Personalizado'}
             </button>
           ))}
         </div>
       </div>
+
+      {period === 'custom' && (
+        <div className="custom-date-range">
+          <div className="date-input-group">
+            <label htmlFor="start-date">Fecha Inicio:</label>
+            <input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="date-input"
+            />
+          </div>
+          <div className="date-input-group">
+            <label htmlFor="end-date">Fecha Fin:</label>
+            <input
+              id="end-date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="date-input"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="analytics-tabs">
         {tabs.map((tab) => (

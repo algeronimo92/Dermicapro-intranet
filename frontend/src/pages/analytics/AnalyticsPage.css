@@ -43,31 +43,37 @@
 
 .analytics-tabs {
   display: flex;
-  gap: 10px;
+  gap: 0;
   margin-bottom: 20px;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid #e0e0e0;
+  overflow-x: auto;
 }
 
 .tab-button {
-  padding: 12px 20px;
+  padding: 14px 24px;
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
   color: #666;
-  font-weight: normal;
+  font-weight: 500;
   cursor: pointer;
   font-size: 15px;
   transition: all 0.2s;
+  white-space: nowrap;
+  position: relative;
+  margin-bottom: -2px;
 }
 
 .tab-button:hover {
   color: #3498db;
+  background: rgba(52, 152, 219, 0.05);
 }
 
 .tab-button.active {
   border-bottom-color: #3498db;
   color: #3498db;
-  font-weight: bold;
+  font-weight: 600;
+  background: rgba(52, 152, 219, 0.08);
 }
 
 .analytics-content {
@@ -109,4 +115,61 @@
 .access-denied p {
   color: #666;
   font-size: 16px;
+}
+
+.custom-date-range {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date-input-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.date-input {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 180px;
+}
+
+.date-input:hover {
+  border-color: #3498db;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+@media (max-width: 768px) {
+  .custom-date-range {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .date-input {
+    min-width: 100%;
+  }
 }
