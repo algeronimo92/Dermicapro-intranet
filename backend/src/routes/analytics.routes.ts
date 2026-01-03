@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/auth';
-import { authorize } from '../middlewares/rbac';
+import { authenticate, authorize } from '../middlewares/auth';
 
 const router = Router();
 
