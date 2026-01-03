@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
 import { invoicesService } from '../services/invoices.service';
-import { Patient, Invoice, InvoiceStatus } from '../types';
+import { Patient, Invoice, InvoiceStatus, Order } from '../types';
 import { Loading } from '../components/Loading';
 import { formatDate } from '../utils/dateUtils';
 import '../styles/patient-invoices.css';
@@ -13,6 +13,7 @@ export const PatientInvoicesPage: React.FC = () => {
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [uninvoicedOrders, setUninvoicedOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,14 +28,16 @@ export const PatientInvoicesPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      // Cargar paciente e invoices en paralelo
-      const [patientData, invoicesData] = await Promise.all([
+      // Cargar paciente, invoices y órdenes sin facturar en paralelo
+      const [patientData, invoicesData, uninvoicedData] = await Promise.all([
         patientsService.getPatient(patientId),
-        invoicesService.getPatientInvoices(patientId)
+        invoicesService.getPatientInvoices(patientId),
+        invoicesService.getUninvoicedOrders(patientId)
       ]);
 
       setPatient(patientData);
       setInvoices(invoicesData);
+      setUninvoicedOrders(uninvoicedData);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar datos');
     } finally {
@@ -105,7 +108,12 @@ export const PatientInvoicesPage: React.FC = () => {
     const paid = inv.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
     return sum + paid;
   }, 0);
-  const totalPending = totalAmount - totalPaid;
+
+  // Calcular el total de órdenes sin facturar
+  const uninvoicedTotal = uninvoicedOrders.reduce((sum, order) => sum + Number(order.finalPrice || 0), 0);
+
+  // Total pendiente = (facturas - pagos) + órdenes sin facturar
+  const totalPending = (totalAmount - totalPaid) + uninvoicedTotal;
 
   const pendingInvoices = invoices.filter(inv => {
     return inv.status === 'pending' || inv.status === 'partial';
@@ -178,6 +186,55 @@ export const PatientInvoicesPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Órdenes sin facturar */}
+      {uninvoicedOrders.length > 0 && (
+        <div className="invoices-list-container" style={{ marginBottom: '30px' }}>
+          <div className="invoices-list-header">
+            <h2 className="invoices-list-title" style={{ color: '#e67e22' }}>
+              Órdenes Pendientes de Facturar ({uninvoicedOrders.length})
+            </h2>
+          </div>
+          <div>
+            {uninvoicedOrders.map((order) => (
+              <div
+                key={order.id}
+                className="invoice-item"
+                style={{ borderLeft: '4px solid #e67e22' }}
+              >
+                <div className="invoice-item-header">
+                  <div className="invoice-item-left">
+                    <div className="invoice-item-title-row">
+                      <h3 className="invoice-item-title">
+                        Orden #{order.id.slice(0, 8).toUpperCase()}
+                      </h3>
+                      <span className="invoice-status-badge invoice-status-pending">
+                        SIN FACTURAR
+                      </span>
+                    </div>
+                    <div className="invoice-orders">
+                      <span>
+                        {order.service?.name || 'Servicio'} • {order.totalSessions} {order.totalSessions === 1 ? 'sesión' : 'sesiones'}
+                      </span>
+                    </div>
+                    <div className="invoice-metadata">
+                      Creada: {formatDate(order.createdAt)}
+                    </div>
+                  </div>
+                  <div className="invoice-item-right">
+                    <div className="invoice-amount">
+                      S/. {Number(order.finalPrice).toFixed(2)}
+                    </div>
+                    <div className="invoice-pending">
+                      Pendiente de facturar
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Invoices List */}
       <div className="invoices-list-container">

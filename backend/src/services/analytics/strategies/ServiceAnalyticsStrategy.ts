@@ -147,8 +147,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
           serviceId: order.serviceId,
           serviceName: service?.name || 'Servicio Desconocido',
           timesOrdered: order._count,
-          revenue: order._sum.finalPrice || 0,
-          averagePrice: order._avg.finalPrice || 0,
+          revenue: Math.round((Number(order._sum.finalPrice) || 0) * 100) / 100,
+          averagePrice: Math.round((Number(order._avg.finalPrice) || 0) * 100) / 100,
           completionRate: Math.round(completionRate * 100) / 100,
         };
       })
@@ -160,13 +160,13 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
   private async getPricingData(): Promise<ServiceAnalyticsData['pricing']> {
     const priceData = await this.prisma.service.aggregate({
       _avg: {
-        price: true,
+        basePrice: true,
       },
       _min: {
-        price: true,
+        basePrice: true,
       },
       _max: {
-        price: true,
+        basePrice: true,
       },
       where: {
         isActive: true,
@@ -174,10 +174,10 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     });
 
     return {
-      averageServicePrice: priceData._avg.price || 0,
+      averageServicePrice: Math.round((Number(priceData._avg.basePrice) || 0) * 100) / 100,
       priceRange: {
-        min: priceData._min.price || 0,
-        max: priceData._max.price || 0,
+        min: Math.round((Number(priceData._min.basePrice) || 0) * 100) / 100,
+        max: Math.round((Number(priceData._max.basePrice) || 0) * 100) / 100,
       },
     };
   }
@@ -198,7 +198,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       select: {
         id: true,
         name: true,
-        price: true,
+        basePrice: true,
       },
     });
 
@@ -223,7 +223,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
           packageId: pkg.id,
           packageName: pkg.name,
           serviceCount: 1, // TODO: Implementar si hay relación de paquetes con múltiples servicios
-          totalPrice: pkg.price,
+          totalPrice: Math.round((Number(pkg.basePrice) || 0) * 100) / 100,
           popularity: ordersCount,
         };
       })

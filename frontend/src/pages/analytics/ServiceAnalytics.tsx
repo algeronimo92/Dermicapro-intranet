@@ -43,14 +43,14 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #9b59b6' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Ingresos Totales</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-            ${data.overview.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.overview.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #f39c12' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Precio Promedio</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-            ${data.pricing.averageServicePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.pricing.averageServicePrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
@@ -75,10 +75,10 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
                   <td style={{ padding: '12px', fontWeight: '500' }}>{service.serviceName}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>{service.timesOrdered}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                    ${service.revenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    S/ {service.revenue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
-                    ${service.averagePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    S/ {service.averagePrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
                     <span
@@ -137,21 +137,21 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Precio Mínimo</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3498db' }}>
-            ${data.pricing.priceRange.min.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.pricing.priceRange.min.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Precio Promedio</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2ecc71' }}>
-            ${data.pricing.averageServicePrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.pricing.averageServicePrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Precio Máximo</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#e74c3c' }}>
-            ${data.pricing.priceRange.max.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.pricing.priceRange.max.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
@@ -176,7 +176,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
                     <td style={{ padding: '12px', fontWeight: '500' }}>{pkg.packageName}</td>
                     <td style={{ padding: '12px', textAlign: 'right' }}>{pkg.serviceCount}</td>
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                      ${pkg.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      S/ {pkg.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'right' }}>
                       <span

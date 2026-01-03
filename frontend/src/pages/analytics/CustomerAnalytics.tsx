@@ -104,7 +104,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Valor de Vida Promedio (CLV)</h3>
           <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#2ecc71', textAlign: 'center', padding: '40px 0' }}>
-            ${data.lifetime.averageCLV.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.lifetime.averageCLV.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -169,7 +169,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
                   <td style={{ padding: '12px', fontWeight: '500' }}>{customer.patientName}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>{customer.appointmentsCount}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                    ${customer.totalSpent.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    S/ {customer.totalSpent.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}

@@ -46,14 +46,14 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #2ecc71' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Ingresos Totales</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-            ${data.overview.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.overview.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #9b59b6' }}>
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Valor Promedio Orden</div>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-            ${data.overview.averageOrderValue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.overview.averageOrderValue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -141,10 +141,10 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
                   <td style={{ padding: '12px', fontWeight: '500' }}>{person.name}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>{person.ordersCount}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                    ${person.revenue.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    S/ {person.revenue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#3498db' }}>
-                    ${person.commissionsEarned.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    S/ {person.commissionsEarned.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}
@@ -159,7 +159,7 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Comisiones Pendientes</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>{data.commissions.pending}</div>
           <div style={{ fontSize: '18px', color: '#f39c12', marginTop: '4px' }}>
-            ${data.commissions.totalPending.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.commissions.totalPending.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Comisiones Aprobadas</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>{data.commissions.approved}</div>
           <div style={{ fontSize: '18px', color: '#2ecc71', marginTop: '4px' }}>
-            ${data.commissions.totalApproved.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.commissions.totalApproved.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -175,7 +175,7 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
           <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Comisiones Pagadas</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>{data.commissions.paid}</div>
           <div style={{ fontSize: '18px', color: '#3498db', marginTop: '4px' }}>
-            ${data.commissions.totalPaid.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.commissions.totalPaid.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -185,7 +185,7 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
             {data.commissions.pending + data.commissions.approved + data.commissions.paid}
           </div>
           <div style={{ fontSize: '18px', color: '#9b59b6', marginTop: '4px' }}>
-            ${data.commissions.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+            S/ {data.commissions.totalAmount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>

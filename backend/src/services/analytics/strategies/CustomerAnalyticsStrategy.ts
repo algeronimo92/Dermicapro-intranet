@@ -158,40 +158,37 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     gte: Date;
     lte: Date;
   }): Promise<CustomerAnalyticsData['lifetime']> {
-    // Calcular CLV (Customer Lifetime Value) promedio
-    // Obtener todas las órdenes agrupadas por paciente
-    const patientsWithOrders = await this.prisma.patient.findMany({
+    // Calcular CLV (Customer Lifetime Value) basado en PAGOS REALES
+    // Obtener todos los pacientes con sus facturas y pagos
+    const patientsWithPayments = await this.prisma.patient.findMany({
       include: {
-        appointments: {
+        invoices: {
           include: {
-            appointmentServices: {
-              include: {
-                order: true,
-              },
-            },
+            payments: true,
+          },
+        },
+        appointments: {
+          select: {
+            id: true,
           },
         },
       },
     });
 
-    const clvData = patientsWithOrders.map((patient) => {
-      // Usar un Set para evitar contar la misma orden múltiples veces
-      const uniqueOrders = new Set<string>();
-      let totalSpent = 0;
+    const clvData = patientsWithPayments.map((patient) => {
+      // Sumar todos los pagos reales del paciente
+      let totalPaid = 0;
 
-      patient.appointments.forEach((apt) => {
-        apt.appointmentServices.forEach((as) => {
-          if (as.order && as.orderId && !uniqueOrders.has(as.orderId)) {
-            uniqueOrders.add(as.orderId);
-            totalSpent += Number(as.order.finalPrice) || 0;
-          }
+      patient.invoices.forEach((invoice) => {
+        invoice.payments?.forEach((payment) => {
+          totalPaid += Number(payment.amountPaid) || 0;
         });
       });
 
       return {
         patientId: patient.id,
         patientName: `${patient.firstName} ${patient.lastName}`,
-        totalSpent: parseFloat(totalSpent.toFixed(2)),
+        totalSpent: parseFloat(totalPaid.toFixed(2)),
         appointmentsCount: patient.appointments.length,
       };
     });
@@ -201,8 +198,9 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
         ? clvData.reduce((sum, p) => sum + p.totalSpent, 0) / clvData.length
         : 0;
 
-    // Top 10 customers
+    // Top 10 customers (solo mostrar los que tienen pagos > 0)
     const topCustomers = clvData
+      .filter((p) => p.totalSpent > 0)
       .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
