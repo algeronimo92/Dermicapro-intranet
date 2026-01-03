@@ -99,33 +99,42 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
         </div>
       </div>
 
-      {/* Lifetime Value Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+      {/* Lifetime Value & Debt Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Valor de Vida Promedio (CLV)</h3>
-          <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#2ecc71', textAlign: 'center', padding: '40px 0' }}>
+          <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#2ecc71', textAlign: 'center', padding: '20px 0' }}>
             S/ {data.lifetime.averageCLV.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
+          <div style={{ textAlign: 'center', color: '#666', fontSize: '13px' }}>Dinero pagado por cliente</div>
+        </div>
+
+        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Total Por Cobrar</h3>
+          <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#e67e22', textAlign: 'center', padding: '20px 0' }}>
+            S/ {data.accountsReceivable.totalDebt.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ textAlign: 'center', color: '#666', fontSize: '13px' }}>{data.accountsReceivable.debtorCount} deudor(es)</div>
         </div>
 
         <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Métricas de Retención</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666' }}>Tasa de Retención:</span>
-              <span style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '18px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
+              <span style={{ fontWeight: '500', color: '#666', fontSize: '13px' }}>Tasa de Retención:</span>
+              <span style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '16px' }}>
                 {data.retention.rate.toFixed(1)}%
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666' }}>Tasa de Clientes Recurrentes:</span>
-              <span style={{ fontWeight: 'bold', color: '#3498db', fontSize: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
+              <span style={{ fontWeight: '500', color: '#666', fontSize: '13px' }}>Clientes Recurrentes:</span>
+              <span style={{ fontWeight: 'bold', color: '#3498db', fontSize: '16px' }}>
                 {data.retention.repeatCustomerRate.toFixed(1)}%
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666' }}>Días Promedio Entre Visitas:</span>
-              <span style={{ fontWeight: 'bold', color: '#9b59b6', fontSize: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
+              <span style={{ fontWeight: '500', color: '#666', fontSize: '13px' }}>Días Entre Visitas:</span>
+              <span style={{ fontWeight: 'bold', color: '#9b59b6', fontSize: '16px' }}>
                 {data.retention.averageDaysBetweenVisits.toFixed(0)}
               </span>
             </div>
@@ -133,48 +142,119 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
         </div>
       </div>
 
-      {/* Top Customers by CLV */}
-      <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Clientes por Valor de Vida</h3>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Ranking</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paciente</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Citas</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Total Gastado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.lifetime.topCustomers.map((customer, idx) => (
-                <tr key={customer.patientId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '12px' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        background: idx === 0 ? '#f39c12' : idx === 1 ? '#95a5a6' : idx === 2 ? '#cd7f32' : '#ecf0f1',
-                        color: idx < 3 ? 'white' : '#666',
-                        textAlign: 'center',
-                        lineHeight: '30px',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {idx + 1}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px', fontWeight: '500' }}>{customer.patientName}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>{customer.appointmentsCount}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                    S/ {customer.totalSpent.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
+      {/* Tables Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+        {/* Top Customers by CLV */}
+        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Clientes por Dinero Pagado</h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>#</th>
+                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paciente</th>
+                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Citas</th>
+                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Total Pagado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.lifetime.topCustomers.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                      No hay pagos registrados aún
+                    </td>
+                  </tr>
+                ) : (
+                  data.lifetime.topCustomers.map((customer, idx) => (
+                    <tr key={customer.patientId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '12px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            background: idx === 0 ? '#f39c12' : idx === 1 ? '#95a5a6' : idx === 2 ? '#cd7f32' : '#ecf0f1',
+                            color: idx < 3 ? 'white' : '#666',
+                            textAlign: 'center',
+                            lineHeight: '30px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: '500' }}>{customer.patientName}</td>
+                      <td style={{ padding: '12px', textAlign: 'right' }}>{customer.appointmentsCount}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
+                        S/ {customer.totalSpent.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Top Debtors */}
+        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Deudores (Por Cobrar)</h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>#</th>
+                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paciente</th>
+                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Facturas</th>
+                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Sin Facturar</th>
+                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Total Deuda</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.accountsReceivable.topDebtors.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                      No hay deudas pendientes
+                    </td>
+                  </tr>
+                ) : (
+                  data.accountsReceivable.topDebtors.map((debtor, idx) => (
+                    <tr key={debtor.patientId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '12px' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            background: '#e74c3c',
+                            color: 'white',
+                            textAlign: 'center',
+                            lineHeight: '30px',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: '500' }}>{debtor.patientName}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', color: '#e74c3c', fontSize: '13px' }}>
+                        S/ {debtor.invoicesDebt.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'right', color: '#e67e22', fontSize: '13px' }}>
+                        S/ {debtor.uninvoicedOrders.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#c0392b' }}>
+                        S/ {debtor.totalDebt.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

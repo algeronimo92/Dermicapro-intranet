@@ -193,6 +193,17 @@ export interface CustomerAnalyticsData {
       appointmentsCount: number;
     }[];
   };
+  accountsReceivable: {
+    totalDebt: number;
+    debtorCount: number;
+    topDebtors: {
+      patientId: string;
+      patientName: string;
+      totalDebt: number;
+      invoicesDebt: number;
+      uninvoicedOrders: number;
+    }[];
+  };
   retention: {
     rate: number;
     repeatCustomerRate: number;

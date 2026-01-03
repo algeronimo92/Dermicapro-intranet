@@ -14,10 +14,11 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     this.validateFilters(filters);
     const dateRange = this.getDateRange(filters);
 
-    const [overview, demographics, lifetime, retention] = await Promise.all([
+    const [overview, demographics, lifetime, accountsReceivable, retention] = await Promise.all([
       this.getOverview(dateRange),
       this.getDemographics(),
       this.getLifetimeData(dateRange),
+      this.getAccountsReceivable(dateRange),
       this.getRetentionData(dateRange),
     ]);
 
@@ -25,6 +26,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
       overview,
       demographics,
       lifetime,
+      accountsReceivable,
       retention,
     };
   }
@@ -207,6 +209,88 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     return {
       averageCLV: parseFloat(averageCLV.toFixed(2)),
       topCustomers,
+    };
+  }
+
+  private async getAccountsReceivable(dateRange: {
+    gte: Date;
+    lte: Date;
+  }): Promise<CustomerAnalyticsData['accountsReceivable']> {
+    // Obtener todos los pacientes con sus facturas pendientes y órdenes sin facturar
+    const patientsWithDebts = await this.prisma.patient.findMany({
+      include: {
+        invoices: {
+          include: {
+            payments: true,
+          },
+        },
+        appointments: {
+          include: {
+            appointmentServices: {
+              include: {
+                order: {
+                  include: {
+                    invoice: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const debtorsData = patientsWithDebts.map((patient) => {
+      // 1. Calcular deuda de facturas (totalAmount - pagos)
+      let invoicesDebt = 0;
+      patient.invoices.forEach((invoice) => {
+        const totalAmount = Number(invoice.totalAmount) || 0;
+        const totalPaid = invoice.payments?.reduce((sum, p) => sum + (Number(p.amountPaid) || 0), 0) || 0;
+        const pending = totalAmount - totalPaid;
+        if (pending > 0) {
+          invoicesDebt += pending;
+        }
+      });
+
+      // 2. Calcular deuda de órdenes sin facturar
+      const uninvoicedOrders = new Set<string>();
+      let uninvoicedDebt = 0;
+
+      patient.appointments.forEach((apt) => {
+        apt.appointmentServices.forEach((as) => {
+          if (as.order && as.orderId && !as.order.invoice && !uninvoicedOrders.has(as.orderId)) {
+            uninvoicedOrders.add(as.orderId);
+            uninvoicedDebt += Number(as.order.finalPrice) || 0;
+          }
+        });
+      });
+
+      const totalDebt = invoicesDebt + uninvoicedDebt;
+
+      return {
+        patientId: patient.id,
+        patientName: `${patient.firstName} ${patient.lastName}`,
+        totalDebt: parseFloat(totalDebt.toFixed(2)),
+        invoicesDebt: parseFloat(invoicesDebt.toFixed(2)),
+        uninvoicedOrders: parseFloat(uninvoicedDebt.toFixed(2)),
+      };
+    });
+
+    // Filtrar solo deudores (deuda > 0)
+    const debtors = debtorsData.filter((d) => d.totalDebt > 0);
+
+    const totalDebt = debtors.reduce((sum, d) => sum + d.totalDebt, 0);
+    const debtorCount = debtors.length;
+
+    // Top 10 deudores
+    const topDebtors = debtors
+      .sort((a, b) => b.totalDebt - a.totalDebt)
+      .slice(0, 10);
+
+    return {
+      totalDebt: parseFloat(totalDebt.toFixed(2)),
+      debtorCount,
+      topDebtors,
     };
   }
 

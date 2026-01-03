@@ -185,12 +185,23 @@ export interface CustomerAnalyticsData {
     }[];
   };
   lifetime: {
-    averageCLV: number; // Customer Lifetime Value
+    averageCLV: number; // Customer Lifetime Value (dinero pagado)
     topCustomers: {
       patientId: string;
       patientName: string;
       totalSpent: number;
       appointmentsCount: number;
+    }[];
+  };
+  accountsReceivable: {
+    totalDebt: number; // Total por cobrar
+    debtorCount: number; // Cantidad de deudores
+    topDebtors: {
+      patientId: string;
+      patientName: string;
+      totalDebt: number; // Facturas + órdenes sin facturar
+      invoicesDebt: number; // Solo facturas pendientes
+      uninvoicedOrders: number; // Solo órdenes sin facturar
     }[];
   };
   retention: {
