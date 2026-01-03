@@ -17,8 +17,10 @@ app.use(cors({ origin: config.cors.origin, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting global
-app.use('/api', generalLimiter);
+// Rate limiting global (disabled in development)
+if (config.env === 'production') {
+  app.use('/api', generalLimiter);
+}
 
 if (!fs.existsSync(config.upload.directory)) {
   fs.mkdirSync(config.upload.directory, { recursive: true });
