@@ -5,7 +5,7 @@ import {
   FinancialAnalyticsData,
 } from '../types/analytics.types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with auth token
 const getAuthHeaders = () => {
