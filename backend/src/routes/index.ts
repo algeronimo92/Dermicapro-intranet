@@ -9,6 +9,8 @@ import paymentsRoutes from './payments.routes';
 import rolesRoutes from './roles.routes';
 import permissionsRoutes from './permissions.routes';
 import commissionsRoutes from './commissions.routes';
+import dashboardRoutes from './dashboard.routes';
+import analyticsRoutes from './analytics.routes';
 
 const router = Router();
 
@@ -22,6 +24,8 @@ router.use('/payments', paymentsRoutes);
 router.use('/roles', rolesRoutes);
 router.use('/permissions', permissionsRoutes);
 router.use('/commissions', commissionsRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/analytics', analyticsRoutes);
 
 router.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
