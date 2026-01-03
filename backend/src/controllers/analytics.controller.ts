@@ -35,17 +35,67 @@ export const getFinancialAnalytics = async (req: Request, res: Response): Promis
 };
 
 export const getOperationsAnalytics = async (req: Request, res: Response): Promise<void> => {
-  res.json({ message: 'Operations analytics - coming soon' });
+  try {
+    const filters: AnalyticsFilters = {
+      period: (req.query.period as any) || 'month',
+      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
+    };
+
+    const data = await analyticsService.getOperationsAnalytics(filters);
+    res.json(data);
+  } catch (error: any) {
+    console.error('Operations analytics error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching operations analytics' });
+  }
 };
 
 export const getSalesAnalytics = async (req: Request, res: Response): Promise<void> => {
-  res.json({ message: 'Sales analytics - coming soon' });
+  try {
+    const filters: AnalyticsFilters = {
+      period: (req.query.period as any) || 'month',
+      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+      salesPersonId: req.query.salesPersonId as string | undefined
+    };
+
+    const data = await analyticsService.getSalesAnalytics(filters);
+    res.json(data);
+  } catch (error: any) {
+    console.error('Sales analytics error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching sales analytics' });
+  }
 };
 
 export const getCustomerAnalytics = async (req: Request, res: Response): Promise<void> => {
-  res.json({ message: 'Customer analytics - coming soon' });
+  try {
+    const filters: AnalyticsFilters = {
+      period: (req.query.period as any) || 'month',
+      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
+    };
+
+    const data = await analyticsService.getCustomerAnalytics(filters);
+    res.json(data);
+  } catch (error: any) {
+    console.error('Customer analytics error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching customer analytics' });
+  }
 };
 
 export const getServiceAnalytics = async (req: Request, res: Response): Promise<void> => {
-  res.json({ message: 'Service analytics - coming soon' });
+  try {
+    const filters: AnalyticsFilters = {
+      period: (req.query.period as any) || 'month',
+      startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+      serviceId: req.query.serviceId as string | undefined
+    };
+
+    const data = await analyticsService.getServiceAnalytics(filters);
+    res.json(data);
+  } catch (error: any) {
+    console.error('Service analytics error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching service analytics' });
+  }
 };

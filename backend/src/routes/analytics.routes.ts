@@ -6,7 +6,7 @@ const router = Router();
 
 // Middleware: solo admins
 router.use(authenticate);
-router.use(authorize(['admin']));
+router.use(authorize('admin'));
 
 // Routes
 router.get('/executive', analyticsController.getExecutiveSummary);
