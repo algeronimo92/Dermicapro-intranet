@@ -30,8 +30,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
   }
 
   private async getOverview(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<ServiceAnalyticsData['overview']> {
     const totalServices = await this.prisma.service.count();
     const activeServices = await this.prisma.service.count({
@@ -46,8 +46,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       },
       where: {
         createdAt: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
     });
@@ -60,13 +60,13 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
   }
 
   private async getPerformanceData(
-    dateRange: { start: Date; end: Date },
+    dateRange: { gte: Date; lte: Date },
     filters?: AnalyticsFilters
   ): Promise<ServiceAnalyticsData['performance']> {
     const where: any = {
       createdAt: {
-        gte: dateRange.start,
-        lte: dateRange.end,
+        gte: dateRange.gte,
+        lte: dateRange.lte,
       },
     };
 
@@ -113,8 +113,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
             order: {
               serviceId: order.serviceId,
               createdAt: {
-                gte: dateRange.start,
-                lte: dateRange.end,
+                gte: dateRange.gte,
+                lte: dateRange.lte,
               },
             },
           },
@@ -126,8 +126,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
               order: {
                 serviceId: order.serviceId,
                 createdAt: {
-                  gte: dateRange.start,
-                  lte: dateRange.end,
+                  gte: dateRange.gte,
+                  lte: dateRange.lte,
                 },
               },
               appointment: {
@@ -183,8 +183,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
   }
 
   private async getPackagesData(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<ServiceAnalyticsData['packages']> {
     // Obtener paquetes (servicios con 'Paquete' en el nombre o categoría)
     const packages = await this.prisma.service.findMany({
@@ -213,8 +213,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
           where: {
             serviceId: pkg.id,
             createdAt: {
-              gte: dateRange.start,
-              lte: dateRange.end,
+              gte: dateRange.gte,
+              lte: dateRange.lte,
             },
           },
         });

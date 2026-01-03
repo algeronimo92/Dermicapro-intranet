@@ -30,16 +30,16 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
   }
 
   private async getOverview(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<CustomerAnalyticsData['overview']> {
     const totalPatients = await this.prisma.patient.count();
 
     const newPatients = await this.prisma.patient.count({
       where: {
         createdAt: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
     });
@@ -51,8 +51,8 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
           appointments: {
             some: {
               scheduledDate: {
-                gte: dateRange.start,
-                lte: dateRange.end,
+                gte: dateRange.gte,
+                lte: dateRange.lte,
               },
             },
           },
@@ -155,8 +155,8 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
   }
 
   private async getLifetimeData(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<CustomerAnalyticsData['lifetime']> {
     // Calcular CLV (Customer Lifetime Value) promedio
     const patientsWithOrders = await this.prisma.patient.findMany({
@@ -207,8 +207,8 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
   }
 
   private async getRetentionData(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<CustomerAnalyticsData['retention']> {
     // Pacientes que tuvieron citas en el período
     const patientsInPeriod = await this.prisma.patient.findMany({
@@ -216,8 +216,8 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
         appointments: {
           some: {
             scheduledDate: {
-              gte: dateRange.start,
-              lte: dateRange.end,
+              gte: dateRange.gte,
+              lte: dateRange.lte,
             },
           },
         },
@@ -250,8 +250,8 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     const appointmentDates = await this.prisma.appointment.findMany({
       where: {
         scheduledDate: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
       orderBy: {

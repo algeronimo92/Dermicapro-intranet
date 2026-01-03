@@ -30,13 +30,13 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
   }
 
   private async getOverview(
-    dateRange: { start: Date; end: Date },
+    dateRange: { gte: Date; lte: Date },
     filters?: AnalyticsFilters
   ): Promise<SalesAnalyticsData['overview']> {
     const where: any = {
       createdAt: {
-        gte: dateRange.start,
-        lte: dateRange.end,
+        gte: dateRange.gte,
+        lte: dateRange.lte,
       },
     };
 
@@ -61,8 +61,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     const appointmentsCount = await this.prisma.appointment.count({
       where: {
         scheduledDate: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
     });
@@ -79,8 +79,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
   }
 
   private async getSalesPeopleRanking(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<SalesAnalyticsData['salesPeople']> {
     // Obtener datos de ventas por vendedor
     const salesByPerson = await this.prisma.order.groupBy({
@@ -91,8 +91,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       },
       where: {
         createdAt: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
       orderBy: {
@@ -121,8 +121,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
           where: {
             salesPersonId: sale.createdById,
             createdAt: {
-              gte: dateRange.start,
-              lte: dateRange.end,
+              gte: dateRange.gte,
+              lte: dateRange.lte,
             },
           },
         });
@@ -144,8 +144,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
   }
 
   private async getCommissionsData(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<SalesAnalyticsData['commissions']> {
     const commissionsByStatus = await this.prisma.commission.groupBy({
       by: ['status'],
@@ -155,8 +155,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       },
       where: {
         createdAt: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
     });
@@ -193,8 +193,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
   }
 
   private async getTopServices(dateRange: {
-    start: Date;
-    end: Date;
+    gte: Date;
+    lte: Date;
   }): Promise<SalesAnalyticsData['topServices']> {
     const servicesSales = await this.prisma.order.groupBy({
       by: ['serviceId'],
@@ -204,8 +204,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       },
       where: {
         createdAt: {
-          gte: dateRange.start,
-          lte: dateRange.end,
+          gte: dateRange.gte,
+          lte: dateRange.lte,
         },
       },
       orderBy: {
