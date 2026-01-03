@@ -23,6 +23,8 @@ import { RoleFormPage } from './pages/RoleFormPage';
 import { RoleDetailPage } from './pages/RoleDetailPage';
 import CommissionsPage from './pages/CommissionsPage';
 import SettingsPage from './pages/SettingsPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
@@ -235,7 +237,7 @@ function DashboardLayout() {
       <main className="dashboard-main">
         <div className="dashboard-content">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/patients" element={<PatientsPage />} />
             <Route path="/patients/new" element={<PatientFormPage />} />
             <Route path="/patients/:id" element={<PatientDetailPage />} />
@@ -261,62 +263,10 @@ function DashboardLayout() {
             <Route path="/roles/:id/edit" element={<RoleFormPage />} />
             <Route path="/commissions" element={<CommissionsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/analytics" element={<div>Analíticas</div>} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
           </Routes>
         </div>
       </main>
-    </div>
-  );
-}
-
-function Dashboard() {
-  const { user } = useAuth();
-
-  return (
-    <div className="dashboard-home">
-      <div className="dashboard-welcome">
-        <h1 className="dashboard-welcome-title">
-          Bienvenido, {user?.firstName}
-        </h1>
-        <p className="dashboard-welcome-subtitle">
-          Sistema de gestión de DermicaPro - {new Date().toLocaleDateString('es-MX', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </p>
-      </div>
-
-      <div className="dashboard-stats">
-        <div className="dashboard-stat-card">
-          <p className="dashboard-stat-label">Citas de hoy</p>
-          <p className="dashboard-stat-value">0</p>
-        </div>
-        <div className="dashboard-stat-card">
-          <p className="dashboard-stat-label">Pacientes activos</p>
-          <p className="dashboard-stat-value">0</p>
-        </div>
-        <div className="dashboard-stat-card">
-          <p className="dashboard-stat-label">Servicios</p>
-          <p className="dashboard-stat-value">0</p>
-        </div>
-      </div>
-
-      <div className="dashboard-quick-actions">
-        <a href="/appointments/new" className="dashboard-action-btn">
-          <span>📅</span>
-          Nueva Cita
-        </a>
-        <a href="/patients/new" className="dashboard-action-btn">
-          <span>👤</span>
-          Nuevo Paciente
-        </a>
-        <a href="/appointments" className="dashboard-action-btn">
-          <span>📋</span>
-          Ver Calendario
-        </a>
-      </div>
     </div>
   );
 }
