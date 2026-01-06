@@ -41,9 +41,9 @@ export const getService = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Servicio no encontrado' });
     }
 
-    res.json(service);
+    return res.json(service);
   } catch (error: any) {
-    res.status(500).json({ message: 'Error al obtener servicio', error: error.message });
+    return res.status(500).json({ message: 'Error al obtener servicio', error: error.message });
   }
 };
 
@@ -90,9 +90,9 @@ export const createService = async (req: Request, res: Response) => {
       }
     });
 
-    res.status(201).json(service);
+    return res.status(201).json(service);
   } catch (error: any) {
-    res.status(500).json({ message: 'Error al crear servicio', error: error.message });
+    return res.status(500).json({ message: 'Error al crear servicio', error: error.message });
   }
 };
 
@@ -146,9 +146,9 @@ export const updateService = async (req: Request, res: Response) => {
       }
     });
 
-    res.json(service);
+    return res.json(service);
   } catch (error: any) {
-    res.status(500).json({ message: 'Error al actualizar servicio', error: error.message });
+    return res.status(500).json({ message: 'Error al actualizar servicio', error: error.message });
   }
 };
 
@@ -175,9 +175,9 @@ export const deleteService = async (req: Request, res: Response) => {
       data: { deletedAt: new Date() }
     });
 
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error: any) {
-    res.status(500).json({ message: 'Error al eliminar servicio', error: error.message });
+    return res.status(500).json({ message: 'Error al eliminar servicio', error: error.message });
   }
 };
 
@@ -204,8 +204,8 @@ export const restoreService = async (req: Request, res: Response) => {
       data: { deletedAt: null }
     });
 
-    res.json(service);
+    return res.json(service);
   } catch (error: any) {
-    res.status(500).json({ message: 'Error al restaurar servicio', error: error.message });
+    return res.status(500).json({ message: 'Error al restaurar servicio', error: error.message });
   }
 };

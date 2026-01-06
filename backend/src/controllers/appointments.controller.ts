@@ -647,7 +647,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
               appointmentId: id,
               orderId: orderId,
               serviceId: order.serviceId,
-              commissionRate,
+              commissionRate: commissionRate || 0,
               baseAmount,
               commissionAmount,
               status: 'pending',

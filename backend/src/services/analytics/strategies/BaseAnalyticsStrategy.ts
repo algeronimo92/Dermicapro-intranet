@@ -5,7 +5,7 @@ import { IAnalyticsStrategy } from './IAnalyticsStrategy';
 export abstract class BaseAnalyticsStrategy<T> implements IAnalyticsStrategy<T> {
   constructor(protected prisma: PrismaClient) {}
 
-  // Template Method
+  // Template Method (puede ser sobreescrito)
   async execute(filters?: AnalyticsFilters): Promise<T> {
     this.validateFilters(filters);
     const dateRange = this.getDateRange(filters);
@@ -13,11 +13,14 @@ export abstract class BaseAnalyticsStrategy<T> implements IAnalyticsStrategy<T> 
     return this.transformData(data);
   }
 
-  // Abstract methods (deben ser implementados)
-  protected abstract fetchData(
-    dateRange: { gte: Date; lte: Date },
-    filters?: AnalyticsFilters
-  ): Promise<any>;
+  // Hook method (puede ser sobreescrito)
+  protected async fetchData(
+    _dateRange: { gte: Date; lte: Date },
+    _filters?: AnalyticsFilters
+  ): Promise<any> {
+    // Default implementation - las clases hijas pueden sobrescribir
+    return {};
+  }
 
   // Hook method (puede ser sobreescrito)
   protected transformData(data: any): T {

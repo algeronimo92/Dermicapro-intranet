@@ -55,7 +55,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     return {
       totalServices,
       activeServices,
-      totalRevenue: revenueData._sum.finalPrice || 0,
+      totalRevenue: Number(revenueData._sum.finalPrice) || 0,
     };
   }
 

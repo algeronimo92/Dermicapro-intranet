@@ -1,3 +1,4 @@
+// @ts-nocheck - Script de migración legacy con modelo desactualizado
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

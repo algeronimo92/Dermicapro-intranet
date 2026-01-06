@@ -53,7 +53,7 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     });
 
     const totalOrders = ordersData._count || 0;
-    const totalRevenue = ordersData._sum.finalPrice || 0;
+    const totalRevenue = Number(ordersData._sum.finalPrice) || 0;
     const averageOrderValue =
       totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
@@ -133,8 +133,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
             ? `${user.firstName} ${user.lastName}`
             : 'Usuario Desconocido',
           ordersCount: sale._count,
-          revenue: sale._sum.finalPrice || 0,
-          commissionsEarned: commissionsData._sum.commissionAmount || 0,
+          revenue: Number(sale._sum.finalPrice) || 0,
+          commissionsEarned: Number(commissionsData._sum.commissionAmount) || 0,
           ranking: index + 1,
         };
       })
@@ -163,7 +163,7 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
 
     const totalAmount =
       commissionsByStatus.reduce(
-        (sum, item) => sum + (item._sum.commissionAmount || 0),
+        (sum, item) => sum + (Number(item._sum.commissionAmount) || 0),
         0
       ) || 0;
 
@@ -176,13 +176,13 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     const paid = paidData?._count || 0;
     const total = pending + approved + paid;
 
-    const totalPending = pendingData?._sum.commissionAmount || 0;
-    const totalApproved = approvedData?._sum.commissionAmount || 0;
-    const totalPaid = paidData?._sum.commissionAmount || 0;
+    const totalPending = Number(pendingData?._sum.commissionAmount) || 0;
+    const totalApproved = Number(approvedData?._sum.commissionAmount) || 0;
+    const totalPaid = Number(paidData?._sum.commissionAmount) || 0;
 
     const byStatus = commissionsByStatus.map((item) => ({
       status: item.status,
-      amount: item._sum.commissionAmount || 0,
+      amount: Number(item._sum.commissionAmount) || 0,
       count: item._count,
     }));
 
@@ -241,7 +241,7 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
         serviceId: sale.serviceId,
         serviceName: service?.name || 'Servicio Desconocido',
         unitsSold: sale._count,
-        revenue: sale._sum.finalPrice || 0,
+        revenue: Number(sale._sum.finalPrice) || 0,
       };
     });
   }
