@@ -1,0 +1,78 @@
+.subscription-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.subscription-status-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Success (Active) */
+.subscription-status-badge--success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.subscription-status-badge--success .subscription-status-badge__dot {
+  background-color: #10b981;
+}
+
+/* Warning (Past Due, Incomplete) */
+.subscription-status-badge--warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.subscription-status-badge--warning .subscription-status-badge__dot {
+  background-color: #f59e0b;
+}
+
+/* Error (Canceled, Unpaid) */
+.subscription-status-badge--error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.subscription-status-badge--error .subscription-status-badge__dot {
+  background-color: #ef4444;
+}
+
+/* Default (Paused) */
+.subscription-status-badge--default {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.subscription-status-badge--default .subscription-status-badge__dot {
+  background-color: #9ca3af;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .subscription-status-badge--success {
+    background-color: #064e3b;
+    color: #a7f3d0;
+  }
+
+  .subscription-status-badge--warning {
+    background-color: #78350f;
+    color: #fde68a;
+  }
+
+  .subscription-status-badge--error {
+    background-color: #7f1d1d;
+    color: #fecaca;
+  }
+
+  .subscription-status-badge--default {
+    background-color: #374151;
+    color: #d1d5db;
+  }
+}

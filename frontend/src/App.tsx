@@ -1,6 +1,8 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, NavLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PatientAuthProvider, usePatientAuth } from './contexts/PatientAuthContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { APP_VERSION } from './config/version';
 import { PatientsPage } from './pages/PatientsPage';
@@ -25,6 +27,9 @@ import CommissionsPage from './pages/CommissionsPage';
 import SettingsPage from './pages/SettingsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
+// Portal de Pacientes
+import { PatientLoginPage, PatientDashboardPage, PatientChangePasswordPage } from './pages/patient';
+import PatientSubscriptionPage from './pages/patient/PatientSubscriptionPage';
 import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
@@ -36,21 +41,64 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </Router>
+        <PatientAuthProvider>
+          <SubscriptionProvider>
+            <Router>
+              <Routes>
+                {/* Rutas del Portal de Pacientes */}
+                <Route path="/patient/login" element={<PatientLoginPage />} />
+                <Route
+                  path="/patient/*"
+                  element={
+                    <ProtectedPatientRoute>
+                      <PatientPortalRoutes />
+                    </ProtectedPatientRoute>
+                  }
+                />
+
+                {/* Rutas del Sistema de Staff */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </Router>
+          </SubscriptionProvider>
+        </PatientAuthProvider>
       </AuthProvider>
     </ThemeProvider>
+  );
+}
+
+// Rutas protegidas del Portal de Pacientes
+function ProtectedPatientRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = usePatientAuth();
+
+  if (isLoading) {
+    return <div className="login-loading">Cargando...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/patient/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Rutas del Portal de Pacientes
+function PatientPortalRoutes() {
+  return (
+    <Routes>
+      <Route path="dashboard" element={<PatientDashboardPage />} />
+      <Route path="subscription" element={<PatientSubscriptionPage />} />
+      <Route path="change-password" element={<PatientChangePasswordPage />} />
+      <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
+    </Routes>
   );
 }
 

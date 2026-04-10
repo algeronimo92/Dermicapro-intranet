@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken } from '../utils/jwt';
+import { verifyAccessToken, JwtPayload } from '../utils/jwt';
+import { PatientJwtPayload } from '../types/auth.types';
 
 export const authenticate = (
   req: Request,
@@ -17,7 +18,13 @@ export const authenticate = (
     const token = authHeader.substring(7);
     const decoded = verifyAccessToken(token);
 
-    req.user = decoded;
+    // Check if this is a patient token (has 'type' property set to 'patient')
+    if ('type' in decoded && (decoded as PatientJwtPayload).type === 'patient') {
+      res.status(401).json({ error: 'Patient tokens not allowed for this endpoint' });
+      return;
+    }
+
+    req.user = decoded as JwtPayload;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid or expired token' });

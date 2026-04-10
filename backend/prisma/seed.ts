@@ -314,6 +314,74 @@ async function main() {
   }
   console.log(`${services.length} services created`);
 
+  // ===== STEP 6: Create Subscription Plans =====
+  console.log('Creating subscription plans...');
+
+  // NOTA: Los IDs de Stripe deben ser configurados después de crear
+  // los productos/precios en Stripe Dashboard. Por ahora se dejan null
+  // y se actualizan manualmente o vía API de admin.
+
+  const subscriptionPlans = [
+    {
+      name: 'regular',
+      displayName: 'Plan Regular',
+      description: 'Beneficios esenciales para pacientes frecuentes',
+      tier: 'regular' as const,
+      priceAmountCents: 8000, // S/ 80.00
+      currency: 'PEN',
+      billingInterval: 'month',
+      discountPercentage: 10, // 10% de descuento
+      includedSessions: 1, // 1 sesión incluida al mes
+      priorityBooking: false,
+      features: {
+        earlyAccess: false,
+        exclusiveContent: false,
+      },
+      isActive: true,
+      sortOrder: 1,
+      // stripeProductId y stripePriceId se configuran después
+    },
+    {
+      name: 'pro',
+      displayName: 'Plan Pro',
+      description: 'Máximos beneficios y prioridad en atención',
+      tier: 'pro' as const,
+      priceAmountCents: 12000, // S/ 120.00
+      currency: 'PEN',
+      billingInterval: 'month',
+      discountPercentage: 20, // 20% de descuento
+      includedSessions: 2, // 2 sesiones incluidas al mes
+      priorityBooking: true,
+      features: {
+        earlyAccess: true,
+        exclusiveContent: true,
+        prioritySupport: true,
+      },
+      isActive: true,
+      sortOrder: 2,
+      // stripeProductId y stripePriceId se configuran después
+    },
+  ];
+
+  for (const plan of subscriptionPlans) {
+    await prisma.subscriptionPlan.upsert({
+      where: { name: plan.name },
+      update: {
+        displayName: plan.displayName,
+        description: plan.description,
+        priceAmountCents: plan.priceAmountCents,
+        discountPercentage: plan.discountPercentage,
+        includedSessions: plan.includedSessions,
+        priorityBooking: plan.priorityBooking,
+        features: plan.features,
+        isActive: plan.isActive,
+        sortOrder: plan.sortOrder,
+      },
+      create: plan,
+    });
+  }
+  console.log(`${subscriptionPlans.length} subscription plans created`);
+
   console.log('Seed completed!');
 }
 

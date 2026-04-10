@@ -1,0 +1,170 @@
+.patient-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+}
+
+.patient-login-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.patient-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.patient-login-logo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0 0 0.5rem 0;
+}
+
+.patient-login-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 0.5rem 0;
+}
+
+.patient-login-subtitle {
+  font-size: 0.875rem;
+  color: #718096;
+  margin: 0;
+}
+
+.patient-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.patient-login-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.patient-login-form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.patient-login-form-input {
+  padding: 0.875rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.patient-login-form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.patient-login-form-input::placeholder {
+  color: #a0aec0;
+}
+
+.patient-login-error {
+  background-color: #fed7d7;
+  color: #c53030;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.patient-login-submit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+}
+
+.patient-login-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.patient-login-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.patient-login-info {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.patient-login-info p {
+  font-size: 0.8125rem;
+  color: #718096;
+  margin: 0 0 0.5rem 0;
+}
+
+.patient-login-hint {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem !important;
+  margin-top: 0.75rem !important;
+}
+
+.patient-login-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.patient-login-staff-link {
+  font-size: 0.8125rem;
+  color: #667eea;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.patient-login-staff-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.patient-login-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #718096;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .patient-login-container {
+    padding: 1.5rem;
+  }
+
+  .patient-login-logo {
+    font-size: 1.75rem;
+  }
+
+  .patient-login-title {
+    font-size: 1.125rem;
+  }
+}

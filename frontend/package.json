@@ -16,6 +16,8 @@
     "test:ci": "NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage --maxWorkers=2"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.6.1",
     "axios": "^1.6.2",
     "date-fns": "^3.0.6",
     "react": "^18.2.0",

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { parseStartOfDay } from '../utils/dateUtils';
+import { hashPassword } from '../utils/password';
 
 export const getAllPatients = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -240,6 +241,9 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
       throw new AppError('Patient with this DNI already exists', 409);
     }
 
+    // Hash del DNI para usarlo como contraseña inicial
+    const passwordHash = await hashPassword(dni);
+
     const patient = await prisma.patient.create({
       data: {
         firstName,
@@ -248,9 +252,14 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
         dateOfBirth: parseStartOfDay(dateOfBirth),
         sex,
         phone,
-        email,
+        email: email || dni, // Si no hay email, usar DNI como email
         address,
         createdById: req.user!.id,
+        // Credenciales del portal: DNI como usuario y contraseña
+        passwordHash,
+        hasPortalAccess: true,
+        passwordSetByStaffId: req.user!.id,
+        passwordSetAt: new Date(),
       },
     });
 
