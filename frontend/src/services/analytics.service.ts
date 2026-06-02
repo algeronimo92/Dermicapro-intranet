@@ -56,8 +56,8 @@ class AnalyticsService {
       params.endDate = filters.endDate.toISOString();
     }
 
-    if (filters.serviceId) {
-      params.serviceId = filters.serviceId;
+    if (filters.serviceTemplateId) {
+      params.serviceTemplateId = filters.serviceTemplateId;
     }
 
     if (filters.salesPersonId) {

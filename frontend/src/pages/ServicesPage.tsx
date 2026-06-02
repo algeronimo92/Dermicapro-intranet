@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { servicesService } from '../services/services.service';
 import { Service } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import { hasRole } from '../utils/roleHelpers';
+import { Modal } from '../components/Modal';
+import { ServiceFormModal } from '../components/ServiceFormModal';
 
 export function ServicesPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
+
+  const [createModal, setCreateModal] = useState(false);
+  const [editServiceId, setEditServiceId] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadServices();
@@ -23,23 +23,30 @@ export function ServicesPage() {
       setLoading(true);
       const data = await servicesService.getServices(showDeleted);
       setServices(data);
-    } catch (err: any) {
+    } catch {
       setError('Error al cargar servicios');
-      console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaved = (saved: Service) => {
+    setServices(prev => {
+      const exists = prev.find(s => s.id === saved.id);
+      return exists
+        ? prev.map(s => (s.id === saved.id ? saved : s))
+        : [saved, ...prev];
+    });
   };
 
   const handleDelete = async () => {
     if (!deleteModal) return;
     try {
       await servicesService.deleteService(deleteModal.id);
-      await loadServices();
+      setServices(prev => prev.filter(s => s.id !== deleteModal.id));
       setDeleteModal(null);
     } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Error al eliminar servicio';
-      alert(errorMsg);
+      alert(err.response?.data?.message || 'Error al eliminar servicio');
     }
   };
 
@@ -47,43 +54,40 @@ export function ServicesPage() {
     try {
       await servicesService.restoreService(id);
       await loadServices();
-    } catch (err: any) {
+    } catch {
       alert('Error al restaurar servicio');
     }
   };
 
   const handleToggleActive = async (service: Service) => {
     try {
-      const updated = await servicesService.updateService(service.id, {
-        isActive: !service.isActive,
-      });
-      setServices(services.map((s) => (s.id === service.id ? updated : s)));
-    } catch (err: any) {
+      const updated = await servicesService.updateService(service.id, { isActive: !service.isActive });
+      setServices(prev => prev.map(s => (s.id === service.id ? updated : s)));
+    } catch {
       alert('Error al actualizar servicio');
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-    }).format(price);
-  };
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(price);
 
   const formatCommission = (service: Service) => {
     if (service.commissionType === 'percentage' && service.commissionRate) {
-      const percentage = parseFloat(service.commissionRate.toString()) * 100;
-      return `${percentage}%`;
-    } else if (service.commissionType === 'fixed' && service.commissionFixedAmount) {
+      return `${(parseFloat(service.commissionRate.toString()) * 100).toFixed(0)}%`;
+    }
+    if (service.commissionType === 'fixed' && service.commissionFixedAmount) {
       return formatPrice(service.commissionFixedAmount);
     }
     return '-';
   };
 
-  const isAdmin = hasRole(user, 'admin');
-
   if (loading) {
-    return <div className="loading-container">Cargando servicios...</div>;
+    return (
+      <div className="loading-container">
+        <div className="spinner" />
+        <p>Cargando servicios...</p>
+      </div>
+    );
   }
 
   return (
@@ -91,22 +95,20 @@ export function ServicesPage() {
       <div className="page-header">
         <h1>Servicios</h1>
         <div className="header-actions">
-          {isAdmin && (
-            <>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={showDeleted}
-                  onChange={(e) => setShowDeleted(e.target.checked)}
-                  className="checkbox-input"
-                />
-                Mostrar eliminados
-              </label>
-              <button onClick={() => navigate('/services/new')} className="btn btn-primary">
-                Nuevo Servicio
-              </button>
-            </>
-          )}
+          <label className="checkbox-modern" style={{ cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(e) => setShowDeleted(e.target.checked)}
+            />
+            <span className="checkbox-custom" />
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+              Mostrar eliminados
+            </span>
+          </label>
+          <button className="action-btn primary" onClick={() => setCreateModal(true)}>
+            + Nuevo Servicio
+          </button>
         </div>
       </div>
 
@@ -122,40 +124,33 @@ export function ServicesPage() {
               <th style={{ textAlign: 'center' }}>Comisión</th>
               <th style={{ textAlign: 'center' }}>Sesiones</th>
               <th style={{ textAlign: 'center' }}>Estado</th>
-              {isAdmin && <th style={{ textAlign: 'center' }}>Acciones</th>}
+              <th style={{ textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {services.length === 0 ? (
               <tr>
-                <td colSpan={isAdmin ? 7 : 6} className="table-empty">
-                  No hay servicios registrados
-                </td>
+                <td colSpan={7} className="table-empty">No hay servicios registrados</td>
               </tr>
             ) : (
               services.map((service) => {
                 const isDeleted = !!service.deletedAt;
                 return (
-                  <tr
-                    key={service.id}
-                    className={isDeleted ? 'row-deleted' : ''}
-                  >
+                  <tr key={service.id} className={isDeleted ? 'row-deleted' : ''}>
                     <td>
                       <strong>{service.name}</strong>
                       {isDeleted && (
-                        <span className="badge badge-error" style={{ marginLeft: '8px' }}>
+                        <span className="badge badge-error" style={{ marginLeft: 'var(--spacing-sm)' }}>
                           ELIMINADO
                         </span>
                       )}
                     </td>
-                    <td className="text-secondary">
-                      {service.description || '-'}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                    <td className="text-secondary">{service.description || '-'}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 'var(--font-weight-bold)' }}>
                       {formatPrice(service.basePrice)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <span className="badge" style={{ background: '#e3f2fd', color: '#1976d2' }}>
+                      <span className="badge" style={{ background: 'var(--color-info-alpha-10)', color: 'var(--color-info-dark)' }}>
                         {formatCommission(service)}
                       </span>
                     </td>
@@ -169,42 +164,37 @@ export function ServicesPage() {
                         {service.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    {isAdmin && (
-                      <td>
-                        <div className="table-actions">
-                          {isDeleted ? (
+                    <td>
+                      <div className="table-actions">
+                        {isDeleted ? (
+                          <button className="btn btn-success btn-sm" onClick={() => handleRestore(service.id)}>
+                            Restaurar
+                          </button>
+                        ) : (
+                          <>
                             <button
-                              onClick={() => handleRestore(service.id)}
-                              className="btn btn-success btn-sm"
+                              className="btn btn-sm"
+                              style={{ background: 'var(--color-warning)', color: 'var(--color-text-inverse)' }}
+                              onClick={() => setEditServiceId(service.id)}
                             >
-                              Restaurar
+                              Editar
                             </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => navigate(`/services/${service.id}/edit`)}
-                                className="btn btn-sm"
-                                style={{ background: 'var(--color-warning)', color: 'white' }}
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => handleToggleActive(service)}
-                                className={service.isActive ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'}
-                              >
-                                {service.isActive ? 'Desactivar' : 'Activar'}
-                              </button>
-                              <button
-                                onClick={() => setDeleteModal({ id: service.id, name: service.name })}
-                                className="btn btn-danger btn-sm"
-                              >
-                                Eliminar
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    )}
+                            <button
+                              className={service.isActive ? 'btn btn-secondary btn-sm' : 'btn btn-success btn-sm'}
+                              onClick={() => handleToggleActive(service)}
+                            >
+                              {service.isActive ? 'Desactivar' : 'Activar'}
+                            </button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => setDeleteModal({ id: service.id, name: service.name })}
+                            >
+                              Eliminar
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })
@@ -213,37 +203,50 @@ export function ServicesPage() {
         </table>
       </div>
 
-      {/* Modal de confirmación de eliminación */}
-      {deleteModal && (
-        <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirmar Eliminación</h2>
-            </div>
-            <div className="modal-body">
-              <p>¿Estás seguro de que deseas eliminar el servicio?</p>
-              <p className="modal-warning">
-                <strong>{deleteModal.name}</strong>
-              </p>
-              <p className="text-secondary">Esta acción se puede revertir más tarde.</p>
-            </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => setDeleteModal(null)}
-                className="btn btn-secondary"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                className="btn btn-danger"
-              >
-                Eliminar Servicio
-              </button>
-            </div>
-          </div>
+      {/* Modal crear */}
+      <ServiceFormModal
+        isOpen={createModal}
+        onClose={() => setCreateModal(false)}
+        onSaved={(service) => { handleSaved(service); setCreateModal(false); }}
+      />
+
+      {/* Modal editar */}
+      <ServiceFormModal
+        isOpen={!!editServiceId}
+        onClose={() => setEditServiceId(null)}
+        onSaved={(service) => { handleSaved(service); setEditServiceId(null); }}
+        serviceId={editServiceId ?? undefined}
+      />
+
+      {/* Modal eliminar */}
+      <Modal
+        isOpen={!!deleteModal}
+        onClose={() => setDeleteModal(null)}
+        title="Confirmar Eliminación"
+        size="small"
+      >
+        <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
+          ¿Estás seguro de que deseas eliminar el servicio?
+        </p>
+        <p style={{ fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', marginBottom: 'var(--spacing-sm)' }}>
+          {deleteModal?.name}
+        </p>
+        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-tertiary)' }}>
+          Esta acción se puede revertir más tarde.
+        </p>
+        <div className="modal-actions">
+          <button className="action-btn secondary" onClick={() => setDeleteModal(null)}>
+            Cancelar
+          </button>
+          <button
+            className="action-btn"
+            style={{ background: 'linear-gradient(135deg, var(--color-error) 0%, var(--color-error-dark) 100%)', color: 'var(--color-text-inverse)' }}
+            onClick={handleDelete}
+          >
+            Eliminar Servicio
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -33,14 +33,14 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     gte: Date;
     lte: Date;
   }): Promise<ServiceAnalyticsData['overview']> {
-    const totalServices = await this.prisma.service.count();
-    const activeServices = await this.prisma.service.count({
+    const totalServices = await this.prisma.serviceTemplate.count();
+    const activeServices = await this.prisma.serviceTemplate.count({
       where: {
         isActive: true,
       },
     });
 
-    const revenueData = await this.prisma.order.aggregate({
+    const revenueData = await this.prisma.serviceInstance.aggregate({
       _sum: {
         finalPrice: true,
       },
@@ -70,13 +70,13 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       },
     };
 
-    if (filters?.serviceId) {
-      where.serviceId = filters.serviceId;
+    if (filters?.serviceTemplateId) {
+      where.serviceTemplateId = filters.serviceTemplateId;
     }
 
     // Obtener datos de órdenes agrupados por servicio
-    const ordersByService = await this.prisma.order.groupBy({
-      by: ['serviceId'],
+    const ordersByService = await this.prisma.serviceInstance.groupBy({
+      by: ['serviceTemplateId'],
       _count: true,
       _sum: {
         finalPrice: true,
@@ -87,16 +87,16 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       where,
       orderBy: {
         _count: {
-          serviceId: 'desc',
+          serviceTemplateId: 'desc',
         },
       },
     });
 
     // Obtener información de los servicios
-    const services = await this.prisma.service.findMany({
+    const services = await this.prisma.serviceTemplate.findMany({
       where: {
         id: {
-          in: ordersByService.map((o) => o.serviceId),
+          in: ordersByService.map((o) => o.serviceTemplateId),
         },
       },
       select: {
@@ -108,10 +108,10 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     // Calcular completion rate (citas completadas vs total)
     const completionData = await Promise.all(
       ordersByService.map(async (order) => {
-        const totalAppointments = await this.prisma.appointmentService.count({
+        const totalAppointments = await this.prisma.session.count({
           where: {
-            order: {
-              serviceId: order.serviceId,
+            serviceInstance: {
+              serviceTemplateId: order.serviceTemplateId,
               createdAt: {
                 gte: dateRange.gte,
                 lte: dateRange.lte,
@@ -121,10 +121,10 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
         });
 
         const completedAppointments =
-          await this.prisma.appointmentService.count({
+          await this.prisma.session.count({
             where: {
-              order: {
-                serviceId: order.serviceId,
+              serviceInstance: {
+                serviceTemplateId: order.serviceTemplateId,
                 createdAt: {
                   gte: dateRange.gte,
                   lte: dateRange.lte,
@@ -141,10 +141,10 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
             ? (completedAppointments / totalAppointments) * 100
             : 0;
 
-        const service = services.find((s) => s.id === order.serviceId);
+        const service = services.find((s) => s.id === order.serviceTemplateId);
 
         return {
-          serviceId: order.serviceId,
+          serviceTemplateId: order.serviceTemplateId,
           serviceName: service?.name || 'Servicio Desconocido',
           timesOrdered: order._count,
           revenue: Math.round((Number(order._sum.finalPrice) || 0) * 100) / 100,
@@ -158,7 +158,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
   }
 
   private async getPricingData(): Promise<ServiceAnalyticsData['pricing']> {
-    const priceData = await this.prisma.service.aggregate({
+    const priceData = await this.prisma.serviceTemplate.aggregate({
       _avg: {
         basePrice: true,
       },
@@ -187,7 +187,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     lte: Date;
   }): Promise<ServiceAnalyticsData['packages']> {
     // Obtener paquetes (servicios con 'Paquete' en el nombre o categoría)
-    const packages = await this.prisma.service.findMany({
+    const packages = await this.prisma.serviceTemplate.findMany({
       where: {
         OR: [
           { name: { contains: 'Paquete', mode: 'insensitive' } },
@@ -209,9 +209,9 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     // Calcular popularidad de cada paquete
     const packagesWithStats = await Promise.all(
       packages.map(async (pkg) => {
-        const ordersCount = await this.prisma.order.count({
+        const ordersCount = await this.prisma.serviceInstance.count({
           where: {
-            serviceId: pkg.id,
+            serviceTemplateId: pkg.id,
             createdAt: {
               gte: dateRange.gte,
               lte: dateRange.lte,

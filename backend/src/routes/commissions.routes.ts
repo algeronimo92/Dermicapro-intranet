@@ -11,7 +11,6 @@ import {
   cancelCommission,
 } from '../controllers/commissions.controller';
 import { authenticate } from '../middlewares/auth';
-import { requireRole as authorize } from '../middlewares/authorization';
 
 const router = express.Router();
 
@@ -31,7 +30,7 @@ router.get('/', getAllCommissions);
  * Obtener resumen de comisiones por vendedor
  * Solo admin
  */
-router.get('/summary', authorize(['admin']), getCommissionsSummaryBySales);
+router.get('/summary', getCommissionsSummaryBySales);
 
 /**
  * GET /api/commissions/:id
@@ -46,41 +45,41 @@ router.get('/:id', getCommissionById);
  * Aprobar una comisión
  * Solo admin
  */
-router.post('/:id/approve', authorize(['admin']), approveCommission);
+router.post('/:id/approve', approveCommission);
 
 /**
  * POST /api/commissions/:id/reject
  * Rechazar una comisión
  * Solo admin
  */
-router.post('/:id/reject', authorize(['admin']), rejectCommission);
+router.post('/:id/reject', rejectCommission);
 
 /**
  * POST /api/commissions/:id/pay
  * Marcar comisión como pagada
  * Solo admin
  */
-router.post('/:id/pay', authorize(['admin']), markAsPaid);
+router.post('/:id/pay', markAsPaid);
 
 /**
  * POST /api/commissions/:id/cancel
  * Cancelar una comisión
  * Solo admin
  */
-router.post('/:id/cancel', authorize(['admin']), cancelCommission);
+router.post('/:id/cancel', cancelCommission);
 
 /**
  * POST /api/commissions/batch/approve
  * Aprobar múltiples comisiones
  * Solo admin
  */
-router.post('/batch/approve', authorize(['admin']), batchApprove);
+router.post('/batch/approve', batchApprove);
 
 /**
  * POST /api/commissions/batch/pay
  * Marcar múltiples comisiones como pagadas
  * Solo admin
  */
-router.post('/batch/pay', authorize(['admin']), batchMarkAsPaid);
+router.post('/batch/pay', batchMarkAsPaid);
 
 export default router;

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { DatePicker } from '../../components/DatePicker';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ExecutiveSummary } from './ExecutiveSummary';
@@ -95,23 +96,22 @@ export const AnalyticsPage: React.FC = () => {
       {period === 'custom' && (
         <div className="custom-date-range">
           <div className="date-input-group">
-            <label htmlFor="start-date">Fecha Inicio:</label>
-            <input
-              id="start-date"
-              type="date"
+            <label>Fecha Inicio:</label>
+            <DatePicker
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="date-input"
+              onChange={setStartDate}
+              maxDate={new Date()}
+              placeholder="Fecha inicio"
             />
           </div>
           <div className="date-input-group">
-            <label htmlFor="end-date">Fecha Fin:</label>
-            <input
-              id="end-date"
-              type="date"
+            <label>Fecha Fin:</label>
+            <DatePicker
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="date-input"
+              onChange={setEndDate}
+              maxDate={new Date()}
+              minDate={startDate ? new Date(startDate + 'T12:00:00') : undefined}
+              placeholder="Fecha fin"
             />
           </div>
         </div>

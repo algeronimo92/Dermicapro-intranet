@@ -40,15 +40,6 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
         skip,
         take,
         orderBy: { createdAt: 'desc' },
-        include: {
-          role: {
-            select: {
-              id: true,
-              name: true,
-              displayName: true,
-            },
-          },
-        },
       }),
       prisma.user.count({ where }),
     ]);
@@ -58,7 +49,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: user.roleId,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -87,15 +78,6 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
         _count: {
           select: {
             patientsCreated: true,
@@ -117,16 +99,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role ? {
-        id: user.role.id,
-        name: user.role.name,
-        displayName: user.role.displayName,
-        permissions: user.role.permissions.map(rp => ({
-          id: rp.permission.id,
-          name: rp.permission.name,
-          displayName: rp.permission.displayName,
-        })),
-      } : null,
+      role: user.roleId,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -150,21 +123,8 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     const { email, password, firstName, lastName, roleId, sex, dateOfBirth } = req.body;
 
     // Validar campos requeridos
-    if (!email || !password || !firstName || !lastName || !roleId) {
+    if (!email || !password || !firstName || !lastName) {
       throw new AppError('Missing required fields', 400);
-    }
-
-    // Verificar que el rol existe y está activo
-    const role = await prisma.systemRole.findUnique({
-      where: { id: roleId },
-    });
-
-    if (!role) {
-      throw new AppError('Invalid role', 400);
-    }
-
-    if (!role.isActive) {
-      throw new AppError('Cannot assign inactive role', 400);
     }
 
     // Verificar si el email ya existe
@@ -185,18 +145,9 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         passwordHash,
         firstName,
         lastName,
-        roleId,
+        roleId: roleId || null,
         sex: sex || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-      },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
       },
     });
 
@@ -205,7 +156,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: user.roleId,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -249,20 +200,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     if (sex !== undefined) updateData.sex = sex;
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
 
-    // Cambiar rol si se proporciona
     if (roleId !== undefined) {
-      const role = await prisma.systemRole.findUnique({
-        where: { id: roleId },
-      });
-
-      if (!role) {
-        throw new AppError('Invalid role', 400);
-      }
-
-      if (!role.isActive) {
-        throw new AppError('Cannot assign inactive role', 400);
-      }
-
       updateData.roleId = roleId;
     }
 
@@ -279,15 +217,6 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-      },
     });
 
     res.json({
@@ -295,7 +224,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: user.roleId,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -324,15 +253,6 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
     const user = await prisma.user.update({
       where: { id },
       data: { isActive: false },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-      },
     });
 
     res.json({
@@ -361,15 +281,6 @@ export const activateUser = async (req: Request, res: Response): Promise<void> =
     const user = await prisma.user.update({
       where: { id },
       data: { isActive: true },
-      include: {
-        role: {
-          select: {
-            id: true,
-            name: true,
-            displayName: true,
-          },
-        },
-      },
     });
 
     res.json({
@@ -394,7 +305,6 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        role: true,
         _count: {
           select: {
             patientsCreated: true,
@@ -411,10 +321,9 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
       throw new AppError('User not found', 404);
     }
 
-    // Estadísticas adicionales según el rol
     let additionalStats: any = {};
 
-    if (user.role?.name === 'sales') {
+    if (user.roleId === 'sales') {
       // Estadísticas de ventas
       const commissionStats = await prisma.commission.aggregate({
         where: { salesPersonId: id },
@@ -435,7 +344,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
         paidCommissions: paidCommissions._sum.commissionAmount || 0,
         commissionCount: commissionStats._count || 0,
       };
-    } else if (user.role?.name === 'nurse') {
+    } else if (user.roleId === 'nurse') {
       // Estadísticas de enfermería
       const recentAppointments = await prisma.appointment.count({
         where: {
@@ -456,7 +365,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        role: user.roleId,
       },
       counts: user._count,
       ...additionalStats,

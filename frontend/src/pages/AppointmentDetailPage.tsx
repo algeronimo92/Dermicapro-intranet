@@ -254,7 +254,7 @@ export const AppointmentDetailPage: React.FC = () => {
 
     // Identificar qué órdenes están en esta cita
     const currentAppointmentOrderIds = new Set(
-      appointment.appointmentServices?.map(svc => svc.orderId) || []
+      appointment.appointmentServices?.map(svc => svc.serviceInstanceId) || []
     );
 
     // Procesar TODAS las órdenes del paciente
@@ -264,10 +264,10 @@ export const AppointmentDetailPage: React.FC = () => {
       const amountPaid = invoice?.payments?.reduce((sum, p) => sum + Number(p.amountPaid), 0) || 0;
       const status = invoice?.status || 'pending';
       const isPending = status === 'pending' || status === 'partial';
-      const isInCurrentAppointment = currentAppointmentOrderIds.has(order.id);
+      const isInCurrentAppointment = currentAppointmentOrderIds.has(order.id); // order.id is the ServiceInstance ID
 
       return {
-        orderId: order.id,
+        serviceInstanceId: order.id,
         serviceName: order.service?.name || 'Servicio',
         finalPrice,
         amountPaid,
@@ -472,10 +472,10 @@ export const AppointmentDetailPage: React.FC = () => {
       {appointment.appointmentServices && appointment.appointmentServices.length > 0 && (() => {
         // Convertir appointmentServices al formato que espera packageSimulator
         const sessions = appointment.appointmentServices
-          .filter(appSvc => appSvc.order?.serviceId) // Filtrar inválidos
+          .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId) // Filtrar inválidos
           .map(appSvc => ({
-            serviceId: appSvc.order.serviceId!,
-            orderId: appSvc.orderId,
+            serviceId: appSvc.serviceInstance.serviceTemplateId!,
+            orderId: appSvc.serviceInstanceId,
             sessionNumber: appSvc.sessionNumber || 1,
             appointmentServiceId: appSvc.id,
             tempPackageId: undefined,
@@ -486,14 +486,14 @@ export const AppointmentDetailPage: React.FC = () => {
         const uniqueServices = Array.from(
           new Map(
             appointment.appointmentServices
-              .filter(appSvc => appSvc.order?.serviceId && appSvc.order?.service)
+              .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId && appSvc.serviceInstance?.service)
               .map(appSvc => [
-                appSvc.order.serviceId,
+                appSvc.serviceInstance.serviceTemplateId,
                 {
-                  id: appSvc.order.serviceId!,
-                  name: appSvc.order.service?.name || 'Servicio',
-                  basePrice: Number(appSvc.order.service?.basePrice || 0),
-                  defaultSessions: appSvc.order.service?.defaultSessions || 1,
+                  id: appSvc.serviceInstance.serviceTemplateId!,
+                  name: appSvc.serviceInstance.service?.name || 'Servicio',
+                  basePrice: Number(appSvc.serviceInstance.service?.basePrice || 0),
+                  defaultSessions: appSvc.serviceInstance.service?.defaultSessions || 1,
                 }
               ])
           ).values()
@@ -503,16 +503,16 @@ export const AppointmentDetailPage: React.FC = () => {
         const uniqueOrders = Array.from(
           new Map(
             appointment.appointmentServices
-              .filter(appSvc => appSvc.order?.serviceId)
+              .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId)
               .map(appSvc => [
-                appSvc.orderId,
+                appSvc.serviceInstanceId,
                 {
-                  id: appSvc.orderId,
-                  totalSessions: appSvc.order.totalSessions || 1,
-                  serviceId: appSvc.order.serviceId!,
-                  createdAt: appSvc.order.createdAt || new Date().toISOString(),
-                  appointmentServices: appSvc.order.appointmentServices || [],
-                  finalPrice: appSvc.order.finalPrice, // Precio final del paquete
+                  id: appSvc.serviceInstanceId,
+                  totalSessions: appSvc.serviceInstance.totalSessions || 1,
+                  serviceId: appSvc.serviceInstance.serviceTemplateId!,
+                  createdAt: appSvc.serviceInstance.createdAt || new Date().toISOString(),
+                  appointmentServices: appSvc.serviceInstance.appointmentServices || [],
+                  finalPrice: appSvc.serviceInstance.finalPrice, // Precio final del paquete
                 }
               ])
           ).values()
@@ -766,7 +766,7 @@ export const AppointmentDetailPage: React.FC = () => {
               </div>
 
               {paymentData.otherOrders.map((order, idx) => (
-                <div key={order.orderId} style={{
+                <div key={order.serviceInstanceId} style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',

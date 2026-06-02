@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usersService, GetUsersParams } from '../services/users.service';
-import { User, Role } from '../types';
+import { User } from '../types';
 import { Table, Column } from '../components/Table';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { Loading } from '../components/Loading';
-import { useAuth } from '../contexts/AuthContext';
-import { hasRole } from '../utils/roleHelpers';
+import { EmployeeFormModal } from '../components/EmployeeFormModal';
 import { formatDate } from '../utils/dateUtils';
 
 interface RoleOption {
@@ -20,11 +19,11 @@ interface RoleOption {
 
 export const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Filtros y paginación
   const [search, setSearch] = useState('');
@@ -102,25 +101,27 @@ export const EmployeesPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleCreateEmployee = () => {
-    navigate('/employees/new');
-  };
+  const handleCreateEmployee = () => setShowCreateModal(true);
 
   const handleRowClick = (user: User) => {
     navigate(`/employees/${user.id}`);
   };
 
-  const getRoleBadgeColor = (roleName: string): string => {
-    switch (roleName) {
-      case 'admin':
-        return '#e74c3c'; // rojo
-      case 'nurse':
-        return '#3498db'; // azul
-      case 'sales':
-        return '#2ecc71'; // verde
-      default:
-        return '#95a5a6'; // gris
-    }
+  const getRoleBadgeStyle = (roleName: string): React.CSSProperties => {
+    const map: Record<string, { bg: string; color: string }> = {
+      admin:   { bg: 'var(--color-error-alpha-10)',   color: 'var(--color-error-dark)' },
+      nurse:   { bg: 'var(--color-info-alpha-10)',    color: 'var(--color-info-dark)' },
+      sales:   { bg: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)' },
+    };
+    const s = map[roleName] ?? { bg: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' };
+    return {
+      padding: 'var(--spacing-xs) var(--spacing-sm)',
+      borderRadius: 'var(--radius-full)',
+      backgroundColor: s.bg,
+      color: s.color,
+      fontSize: 'var(--font-size-xs)',
+      fontWeight: 'var(--font-weight-semibold)',
+    };
   };
 
   const getRoleLabel = (roleName: string): string => {
@@ -160,24 +161,11 @@ export const EmployeesPage: React.FC = () => {
     {
       key: 'role',
       header: 'Rol',
-      render: (user) => {
-        const roleName = getUserRoleName(user);
-        const roleDisplay = getUserRoleDisplay(user);
-        return (
-          <span
-            style={{
-              padding: '4px 12px',
-              borderRadius: '12px',
-              backgroundColor: getRoleBadgeColor(roleName),
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 'bold',
-            }}
-          >
-            {roleDisplay}
-          </span>
-        );
-      },
+      render: (user) => (
+        <span style={getRoleBadgeStyle(getUserRoleName(user))}>
+          {getUserRoleDisplay(user)}
+        </span>
+      ),
     },
     {
       key: 'sex',
@@ -204,16 +192,7 @@ export const EmployeesPage: React.FC = () => {
       key: 'isActive',
       header: 'Estado',
       render: (user) => (
-        <span
-          style={{
-            padding: '4px 12px',
-            borderRadius: '12px',
-            backgroundColor: user.isActive ? '#2ecc71' : '#95a5a6',
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold',
-          }}
-        >
+        <span className={user.isActive ? 'badge badge-success' : 'badge badge-error'}>
           {user.isActive ? 'Activo' : 'Inactivo'}
         </span>
       ),
@@ -225,16 +204,6 @@ export const EmployeesPage: React.FC = () => {
     },
   ];
 
-  // Solo admins pueden ver esta página
-  if (!hasRole(currentUser, 'admin')) {
-    return (
-      <div className="page-container">
-        <div className="error-banner">
-          No tienes permisos para ver esta página
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="page-container">
@@ -290,8 +259,11 @@ export const EmployeesPage: React.FC = () => {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="results-info">
-        <p>Total de empleados: {total}</p>
+      <div className="results-info-modern">
+        <div className="results-count">
+          <span className="count-number">{total}</span>
+          <span className="count-label">empleados</span>
+        </div>
       </div>
 
       {isLoading ? (
@@ -312,6 +284,16 @@ export const EmployeesPage: React.FC = () => {
           />
         </>
       )}
+
+      <EmployeeFormModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSaved={(user) => {
+          setUsers(prev => [user, ...prev]);
+          setTotal(prev => prev + 1);
+          setShowCreateModal(false);
+        }}
+      />
     </div>
   );
 };

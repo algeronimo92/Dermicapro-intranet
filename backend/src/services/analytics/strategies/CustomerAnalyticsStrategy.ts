@@ -228,7 +228,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
           include: {
             appointmentServices: {
               include: {
-                order: {
+                serviceInstance: {
                   include: {
                     invoice: true,
                   },
@@ -258,9 +258,9 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
 
       patient.appointments.forEach((apt) => {
         apt.appointmentServices.forEach((as) => {
-          if (as.order && as.orderId && !as.order.invoice && !uninvoicedOrders.has(as.orderId)) {
-            uninvoicedOrders.add(as.orderId);
-            uninvoicedDebt += Number(as.order.finalPrice) || 0;
+          if (as.serviceInstance && as.serviceInstanceId && !as.serviceInstance.invoice && !uninvoicedOrders.has(as.serviceInstanceId)) {
+            uninvoicedOrders.add(as.serviceInstanceId);
+            uninvoicedDebt += Number(as.serviceInstance.finalPrice) || 0;
           }
         });
       });

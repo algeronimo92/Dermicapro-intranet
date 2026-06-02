@@ -8,8 +8,8 @@ import { Appointment, Service } from '../types';
 
 interface ConfirmedService {
   appointmentServiceId?: string;
-  orderId?: string;
-  serviceId: string;
+  serviceInstanceId?: string;
+  serviceTemplateId: string;
   serviceName: string;
   sessionNumber?: number | null;
   totalSessions?: number;
@@ -49,11 +49,11 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
     // Prellenar con los servicios ya programados para esta cita
     const initialServices: ConfirmedService[] = appointment.appointmentServices?.map(appSvc => ({
       appointmentServiceId: appSvc.id,
-      orderId: appSvc.orderId,
-      serviceId: appSvc.order.serviceId || '',
-      serviceName: appSvc.order.service?.name || 'Servicio',
+      serviceInstanceId: appSvc.serviceInstanceId,
+      serviceTemplateId: appSvc.serviceInstance.serviceTemplateId || '',
+      serviceName: appSvc.serviceInstance.service?.name || 'Servicio',
       sessionNumber: appSvc.sessionNumber,
-      totalSessions: appSvc.order.totalSessions,
+      totalSessions: appSvc.serviceInstance.totalSessions,
       confirmed: true, // Por defecto confirmados
     })) || [];
     setConfirmedServices(initialServices);

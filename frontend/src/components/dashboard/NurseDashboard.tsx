@@ -41,7 +41,7 @@ export const NurseDashboard: React.FC<NurseDashboardProps> = ({ data, isLoading 
 
   return (
     <div className="nurse-dashboard">
-      <h1 className="dashboard__title">Dashboard Enfermería</h1>
+      <h1 className="dashboard__title">Dashboard Personal Médico</h1>
 
       {/* Quick Stats */}
       <section className="dashboard__section">
@@ -85,7 +85,7 @@ export const NurseDashboard: React.FC<NurseDashboardProps> = ({ data, isLoading 
                     <div className="appointment-card__services">
                       {appointment.appointmentServices.map((appSvc: any, idx: number) => (
                         <span key={idx} className="service-tag">
-                          {appSvc.order?.service?.name || 'Servicio'}
+                          {appSvc.serviceInstance?.service?.name || 'Servicio'}
                         </span>
                       ))}
                     </div>
@@ -153,7 +153,7 @@ export const NurseDashboard: React.FC<NurseDashboardProps> = ({ data, isLoading 
           <h2 className="dashboard__section-title">Servicios Más Realizados (Último Mes)</h2>
           <div className="services-list">
             {data.services.topPerformed.map((service, index) => (
-              <div key={service.serviceId} className="service-item">
+              <div key={service.serviceTemplateId} className="service-item">
                 <div className="service-item__rank">#{index + 1}</div>
                 <div className="service-item__info">
                   <div className="service-item__name">{service.name}</div>

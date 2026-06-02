@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DatePicker } from '../components/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import commissionsService, { Commission, CommissionsFilters } from '../services/commissions.service';
 import { usersService } from '../services/users.service';
@@ -273,7 +274,7 @@ const CommissionsPage = () => {
       {summary && summary.totals && summary.totals.length > 0 && (
         <div className="summary-cards">
           {summary.totals.map((item: any) => (
-            <div key={item.status} className="summary-card">
+            <div key={item.status} className={`summary-card summary-card--${item.status}`}>
               <div className="summary-label">{getStatusText(item.status)}</div>
               <div className="summary-value">{formatCurrency(item.amount)}</div>
               <div className="summary-count">{item.count} comisiones</div>
@@ -283,79 +284,95 @@ const CommissionsPage = () => {
       )}
 
       {/* Filters */}
-      <div className="filters-section">
-        <div className="filter-group">
-          <label>Estado:</label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">Todos</option>
-            <option value="pending">Pendiente</option>
-            <option value="approved">Aprobada</option>
-            <option value="paid">Pagada</option>
-            <option value="rejected">Rechazada</option>
-            <option value="cancelled">Cancelada</option>
-          </select>
-        </div>
+      <div className="filters-container">
+        <div className="filters-row">
 
-        <div className="filter-group">
-          <label>Vendedor:</label>
-          <select value={salesPersonFilter} onChange={(e) => setSalesPersonFilter(e.target.value)}>
-            <option value="">Todos</option>
-            {salesPersons && salesPersons.map((person) => (
-              <option key={person.id} value={person.id}>
-                {person.firstName} {person.lastName}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="filter-group">
+            <label className="field-label">Estado</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input filter-select"
+            >
+              <option value="">Todos</option>
+              <option value="pending">Pendiente</option>
+              <option value="approved">Aprobada</option>
+              <option value="paid">Pagada</option>
+              <option value="rejected">Rechazada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </div>
 
-        <div className="filter-group">
-          <label>Desde:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
+          <div className="filter-group">
+            <label className="field-label">Vendedor</label>
+            <select
+              value={salesPersonFilter}
+              onChange={(e) => setSalesPersonFilter(e.target.value)}
+              className="input filter-select"
+            >
+              <option value="">Todos</option>
+              {salesPersons && salesPersons.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.firstName} {person.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="filter-group">
-          <label>Hasta:</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
+          <div className="filter-group">
+            <label className="field-label">Desde</label>
+            <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              maxDate={new Date()}
+              placeholder="Fecha inicio"
+            />
+          </div>
 
-        <button
-          className="btn-secondary"
-          onClick={() => {
-            setStatusFilter('');
-            setSalesPersonFilter('');
-            setStartDate('');
-            setEndDate('');
-          }}
-        >
-          Limpiar filtros
-        </button>
+          <div className="filter-group">
+            <label className="field-label">Hasta</label>
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              maxDate={new Date()}
+              minDate={startDate ? new Date(startDate + 'T12:00:00') : undefined}
+              placeholder="Fecha fin"
+            />
+          </div>
+
+          <button
+            className="btn btn-secondary"
+            style={{ alignSelf: 'flex-end' }}
+            onClick={() => {
+              setStatusFilter('');
+              setSalesPersonFilter('');
+              setStartDate('');
+              setEndDate('');
+            }}
+          >
+            Limpiar filtros
+          </button>
+
+        </div>
       </div>
 
       {/* Batch Actions */}
       {selectedCommissions.size > 0 && (
         <div className="batch-actions">
           <span>{selectedCommissions.size} seleccionadas</span>
-          <button className="btn-primary" onClick={handleBatchApprove}>
+          <button className="btn btn-primary btn-sm" onClick={handleBatchApprove}>
             Aprobar seleccionadas
           </button>
-          <button className="btn-success" onClick={handleBatchPay}>
+          <button className="btn btn-success btn-sm" onClick={handleBatchPay}>
             Marcar como pagadas
           </button>
-          <button className="btn-secondary" onClick={() => setSelectedCommissions(new Set())}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setSelectedCommissions(new Set())}>
             Limpiar selección
           </button>
         </div>
       )}
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {/* Commissions Table */}
       <div className="table-container">

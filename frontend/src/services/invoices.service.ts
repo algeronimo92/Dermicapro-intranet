@@ -2,7 +2,7 @@ import api from './api';
 import { Invoice, Order } from '../types';
 
 export interface CreateInvoiceDto {
-  orderIds: string[];
+  serviceInstanceIds: string[];
   patientId: string;
   dueDate?: string;
 }

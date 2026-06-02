@@ -81,7 +81,7 @@ export const DashboardPage: React.FC = () => {
             />
           )}
 
-          {roleName === 'nurse' && (
+          {(roleName === 'nurse' || roleName === 'medical_staff') && (
             <NurseDashboard
               data={data as NurseDashboardData | null}
               isLoading={isLoading}
@@ -95,7 +95,7 @@ export const DashboardPage: React.FC = () => {
             />
           )}
 
-          {!['admin', 'nurse', 'sales'].includes(roleName) && !isLoading && (
+          {!['admin', 'nurse', 'medical_staff', 'sales'].includes(roleName) && !isLoading && (
             <div className="dashboard-error">
               <p>Dashboard no disponible para el rol: {roleName}</p>
             </div>

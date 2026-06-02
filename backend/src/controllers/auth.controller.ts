@@ -12,12 +12,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('Email and password are required', 400);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        role: true,
-      },
-    });
+    const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
 
     if (!user || !user.isActive) {
       throw new AppError('Invalid credentials', 401);
@@ -47,11 +42,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role ? {
-          id: user.role.id,
-          name: user.role.name,
-          displayName: user.role.displayName,
-        } : null,
+        role: user.role ? { id: user.role.id, name: user.role.name, displayName: user.role.displayName } : null,
       },
     });
   } catch (error) {
@@ -73,12 +64,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
     const decoded = verifyRefreshToken(refreshToken);
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      include: {
-        role: true,
-      },
-    });
+    const user = await prisma.user.findUnique({ where: { id: decoded.id }, include: { role: true } });
 
     if (!user || !user.isActive) {
       throw new AppError('Invalid refresh token', 401);
@@ -113,12 +99,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('Not authenticated', 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: {
-        role: true,
-      },
-    });
+    const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { role: true } });
 
     if (!user) {
       throw new AppError('User not found', 404);
@@ -133,16 +114,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
       createdAt: user.createdAt,
-      role: user.role ? {
-        id: user.role.id,
-        name: user.role.name,
-        displayName: user.role.displayName,
-        description: user.role.description,
-        isActive: user.role.isActive,
-        isSystem: user.role.isSystem,
-        createdAt: user.role.createdAt,
-        updatedAt: user.role.updatedAt,
-      } : null,
+      role: user.role ? { id: user.role.id, name: user.role.name, displayName: user.role.displayName } : null,
     });
   } catch (error) {
     if (error instanceof AppError) {

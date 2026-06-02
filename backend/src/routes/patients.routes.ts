@@ -7,7 +7,7 @@ import {
   deletePatient,
   getPatientHistory,
 } from '../controllers/patients.controller';
-import { authenticate, authorize } from '../middlewares/auth';
+import { authenticate } from '../middlewares/auth';
 
 const router = Router();
 
@@ -17,7 +17,7 @@ router.get('/', getAllPatients);
 router.get('/:id', getPatientById);
 router.post('/', createPatient);
 router.put('/:id', updatePatient);
-router.delete('/:id', authorize('admin'), deletePatient);
-router.get('/:id/history', authorize('admin', 'nurse'), getPatientHistory);
+router.delete('/:id', deletePatient);
+router.get('/:id/history', getPatientHistory);
 
 export default router;

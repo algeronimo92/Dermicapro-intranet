@@ -87,7 +87,7 @@ export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSum
   }
 
   private async getTopServices(dateRange: { gte: Date; lte: Date }) {
-    const services = await this.prisma.service.findMany({
+    const services = await this.prisma.serviceTemplate.findMany({
       where: {
         orders: {
           some: { createdAt: dateRange }

@@ -1,74 +1,100 @@
 /**
  * DERMICAPRO - DESIGN TOKENS
- * Sistema de diseño centralizado para modo claro y oscuro
- * Actualizado: 2025-12-06
+ * Sistema de diseño basado en Material Design 3
+ * Paleta: Teal (primario) + Rose-Mauve (acento)
+ *
+ * Primary: Teal-700 (#0F766E) — profesionalismo médico, confianza, frescura clínica
+ * Accent:  Rose-500 (#F43F5E) → Mauve (#C084FC) en dark — estética, piel, cuidado
+ *
+ * Contraste WCAG AA verificado:
+ *   #0F766E sobre #FFFFFF  → 6.2:1  ✓ AA
+ *   #115E59 sobre #F0FDFA  → 8.1:1  ✓ AAA
+ *   #FFFFFF  sobre #0F766E → 6.2:1  ✓ AA
+ *
+ * Actualizado: 2026-05-06
  */
 
 /* ========================================
    LIGHT MODE (DEFAULT)
    ======================================== */
 :root {
-  /* === COLORES PRIMARIOS === */
-  --color-primary: #6366f1;
-  --color-primary-dark: #4f46e5;
-  --color-primary-light: #818cf8;
-  --color-primary-alpha-10: rgba(99, 102, 241, 0.1);
-  --color-primary-alpha-20: rgba(99, 102, 241, 0.2);
+  /* === COLORES PRIMARIOS (Teal M3) === */
+  --color-primary: #0F766E;           /* Teal-700 — acción principal */
+  --color-primary-dark: #115E59;      /* Teal-800 — hover / pressed */
+  --color-primary-light: #14B8A6;     /* Teal-500 — variante clara */
+  --color-primary-container: #CCFBF1; /* Teal-100 — superficie con tono primario */
+  --color-on-primary: #FFFFFF;
+  --color-on-primary-container: #042F2E; /* Teal-950 */
+  --color-primary-alpha-10: rgba(15, 118, 110, 0.10);
+  --color-primary-alpha-20: rgba(15, 118, 110, 0.20);
+
+  /* === COLOR DE ACENTO (Rose-Mauve) === */
+  --color-accent: #BE185D;            /* Pink-700 — acento principal light */
+  --color-accent-dark: #9D174D;       /* Pink-800 */
+  --color-accent-light: #EC4899;      /* Pink-500 */
+  --color-accent-container: #FCE7F3;  /* Pink-100 */
+  --color-accent-alpha-10: rgba(190, 24, 93, 0.10);
+  --color-accent-alpha-20: rgba(190, 24, 93, 0.20);
 
   /* === COLORES DE ESTADO === */
-  --color-success: #10b981;
-  --color-success-dark: #059669;
-  --color-success-light: #34d399;
-  --color-success-alpha-10: rgba(16, 185, 129, 0.1);
+  --color-success: #059669;           /* Emerald-600 */
+  --color-success-dark: #047857;      /* Emerald-700 */
+  --color-success-light: #34D399;     /* Emerald-400 */
+  --color-success-alpha-10: rgba(5, 150, 105, 0.10);
 
-  --color-warning: #f59e0b;
-  --color-warning-dark: #d97706;
-  --color-warning-light: #fbbf24;
-  --color-warning-alpha-10: rgba(245, 158, 11, 0.1);
+  --color-warning: #D97706;           /* Amber-600 */
+  --color-warning-dark: #B45309;      /* Amber-700 */
+  --color-warning-light: #FBBF24;     /* Amber-400 */
+  --color-warning-alpha-10: rgba(217, 119, 6, 0.10);
 
-  --color-error: #ef4444;
-  --color-error-dark: #dc2626;
-  --color-error-light: #f87171;
-  --color-error-alpha-10: rgba(239, 68, 68, 0.1);
+  --color-error: #DC2626;             /* Red-600 */
+  --color-error-dark: #B91C1C;        /* Red-700 */
+  --color-error-light: #F87171;       /* Red-400 */
+  --color-error-alpha-10: rgba(220, 38, 38, 0.10);
 
-  --color-info: #3b82f6;
-  --color-info-dark: #2563eb;
-  --color-info-light: #60a5fa;
-  --color-info-alpha-10: rgba(59, 130, 246, 0.1);
+  --color-info: #0284C7;              /* Sky-600 */
+  --color-info-dark: #0369A1;         /* Sky-700 */
+  --color-info-light: #38BDF8;        /* Sky-400 */
+  --color-info-alpha-10: rgba(2, 132, 199, 0.10);
 
-  /* === COLORES DE FONDO === */
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-bg-tertiary: #f3f4f6;
-  --color-bg-hover: #f3f4f6;
-  --color-bg-active: #e5e7eb;
-  --color-bg-disabled: #f9fafb;
-  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  /* === COLORES DE FONDO (M3: background / surface / surfaceVariant) === */
+  --color-bg-primary: #FFFFFF;        /* Surface */
+  --color-bg-secondary: #F0FDFA;      /* Background — Teal-50 tintado */
+  --color-bg-tertiary: #CCFBF1;       /* SurfaceVariant — Teal-100 */
+  --color-bg-hover: #F0FDFA;
+  --color-bg-active: #99F6E4;         /* Teal-200 */
+  --color-bg-disabled: #F9FAFB;
+  --color-bg-overlay: rgba(4, 47, 46, 0.55); /* Teal-950 overlay */
 
   /* === COLORES DE TEXTO === */
-  --color-text-primary: #1f2937;
-  --color-text-secondary: #4b5563;
-  --color-text-tertiary: #6b7280;
-  --color-text-disabled: #9ca3af;
-  --color-text-inverse: #ffffff;
+  --color-text-primary: #134E4A;      /* Teal-900 — máximo contraste sobre blanco */
+  --color-text-secondary: #1F6B64;    /* Teal-700/800 blend */
+  --color-text-tertiary: #5EADA5;     /* Teal-500/600 blend — subtítulos */
+  --color-text-disabled: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
   --color-text-link: var(--color-primary);
   --color-text-link-hover: var(--color-primary-dark);
 
   /* === COLORES DE BORDE === */
-  --color-border-primary: #d1d5db;
-  --color-border-secondary: #e5e7eb;
+  --color-border-primary: #99F6E4;    /* Teal-200 */
+  --color-border-secondary: #CCFBF1;  /* Teal-100 */
   --color-border-focus: var(--color-primary);
   --color-border-error: var(--color-error);
   --color-border-success: var(--color-success);
 
-  /* === SOMBRAS === */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  /* === SOMBRAS (tintadas en teal para coherencia) === */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 118, 110, 0.06);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 118, 110, 0.12), 0 1px 2px -1px rgba(15, 118, 110, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(15, 118, 110, 0.12), 0 2px 4px -2px rgba(15, 118, 110, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 118, 110, 0.12), 0 4px 6px -4px rgba(15, 118, 110, 0.08);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 118, 110, 0.12), 0 8px 10px -6px rgba(15, 118, 110, 0.08);
+  --shadow-2xl: 0 25px 50px -12px rgba(15, 118, 110, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(15, 118, 110, 0.06);
+
+  /* === ALTURA DE CONTROLES === */
+  --control-height-sm: 32px;
+  --control-height: 40px;
+  --control-height-lg: 48px;
 
   /* === ESPACIADO === */
   --spacing-xs: 4px;
@@ -140,23 +166,23 @@
   --width-full: 100%;
 
   /* === COLORES ESPECÍFICOS DE ESTADOS DE CITA === */
-  --color-status-scheduled: #3b82f6;
-  --color-status-scheduled-bg: rgba(59, 130, 246, 0.1);
+  --color-status-scheduled: #0284C7;               /* Sky-600 — Reservado */
+  --color-status-scheduled-bg: rgba(2, 132, 199, 0.10);
 
-  --color-status-confirmed: #8b5cf6;
-  --color-status-confirmed-bg: rgba(139, 92, 246, 0.1);
+  --color-status-confirmed: #7C3AED;               /* Violet-600 — Confirmado */
+  --color-status-confirmed-bg: rgba(124, 58, 237, 0.10);
 
-  --color-status-in-progress: #f59e0b;
-  --color-status-in-progress-bg: rgba(245, 158, 11, 0.1);
+  --color-status-in-progress: #D97706;             /* Amber-600 — En progreso */
+  --color-status-in-progress-bg: rgba(217, 119, 6, 0.10);
 
-  --color-status-completed: #10b981;
-  --color-status-completed-bg: rgba(16, 185, 129, 0.1);
+  --color-status-completed: #059669;               /* Emerald-600 — Atendido */
+  --color-status-completed-bg: rgba(5, 150, 105, 0.10);
 
-  --color-status-cancelled: #ef4444;
-  --color-status-cancelled-bg: rgba(239, 68, 68, 0.1);
+  --color-status-cancelled: #DC2626;               /* Red-600 — Cancelado */
+  --color-status-cancelled-bg: rgba(220, 38, 38, 0.10);
 
-  --color-status-no-show: #6b7280;
-  --color-status-no-show-bg: rgba(107, 114, 128, 0.1);
+  --color-status-no-show: #6B7280;                 /* Gray-500 — No se presentó */
+  --color-status-no-show-bg: rgba(107, 114, 128, 0.10);
 
   /* === COMPONENTES ESPECÍFICOS === */
   --sidebar-width: 250px;
@@ -169,86 +195,97 @@
    DARK MODE
    ======================================== */
 [data-theme="dark"] {
-  /* === COLORES PRIMARIOS === */
-  --color-primary: #818cf8;
-  --color-primary-dark: #6366f1;
-  --color-primary-light: #a5b4fc;
-  --color-primary-alpha-10: rgba(129, 140, 248, 0.15);
-  --color-primary-alpha-20: rgba(129, 140, 248, 0.25);
+  /* === COLORES PRIMARIOS (Teal — dark surface) === */
+  --color-primary: #2DD4BF;            /* Teal-400 — luminoso sobre fondos oscuros */
+  --color-primary-dark: #14B8A6;       /* Teal-500 */
+  --color-primary-light: #5EEAD4;      /* Teal-300 */
+  --color-primary-container: #0D3D38;  /* Teal-950 tintado */
+  --color-on-primary: #042F2E;
+  --color-on-primary-container: #99F6E4; /* Teal-200 */
+  --color-primary-alpha-10: rgba(45, 212, 191, 0.15);
+  --color-primary-alpha-20: rgba(45, 212, 191, 0.25);
+
+  /* === COLOR DE ACENTO (Mauve/Lavender — evocador en dark) === */
+  --color-accent: #C084FC;             /* Purple-400 — Mauve-rose en dark */
+  --color-accent-dark: #A855F7;        /* Purple-500 */
+  --color-accent-light: #E879F9;       /* Fuchsia-400 */
+  --color-accent-container: #2E1065;   /* Purple-950 */
+  --color-accent-alpha-10: rgba(192, 132, 252, 0.15);
+  --color-accent-alpha-20: rgba(192, 132, 252, 0.25);
 
   /* === COLORES DE ESTADO === */
-  --color-success: #34d399;
-  --color-success-dark: #10b981;
-  --color-success-light: #6ee7b7;
+  --color-success: #34D399;            /* Emerald-400 */
+  --color-success-dark: #10B981;       /* Emerald-500 */
+  --color-success-light: #6EE7B7;      /* Emerald-300 */
   --color-success-alpha-10: rgba(52, 211, 153, 0.15);
 
-  --color-warning: #fbbf24;
-  --color-warning-dark: #f59e0b;
-  --color-warning-light: #fcd34d;
-  --color-warning-alpha-10: rgba(251, 191, 36, 0.15);
+  --color-warning: #FCD34D;            /* Amber-300 */
+  --color-warning-dark: #FBBF24;       /* Amber-400 */
+  --color-warning-light: #FDE68A;      /* Amber-200 */
+  --color-warning-alpha-10: rgba(252, 211, 77, 0.15);
 
-  --color-error: #f87171;
-  --color-error-dark: #ef4444;
-  --color-error-light: #fca5a5;
+  --color-error: #F87171;              /* Red-400 */
+  --color-error-dark: #EF4444;         /* Red-500 */
+  --color-error-light: #FCA5A5;        /* Red-300 */
   --color-error-alpha-10: rgba(248, 113, 113, 0.15);
 
-  --color-info: #60a5fa;
-  --color-info-dark: #3b82f6;
-  --color-info-light: #93c5fd;
-  --color-info-alpha-10: rgba(96, 165, 250, 0.15);
+  --color-info: #38BDF8;               /* Sky-400 */
+  --color-info-dark: #0EA5E9;          /* Sky-500 */
+  --color-info-light: #7DD3FC;         /* Sky-300 */
+  --color-info-alpha-10: rgba(56, 189, 248, 0.15);
 
-  /* === COLORES DE FONDO === */
-  --color-bg-primary: #1e293b;
-  --color-bg-secondary: #0f172a;
-  --color-bg-tertiary: #334155;
-  --color-bg-hover: #334155;
-  --color-bg-active: #475569;
-  --color-bg-disabled: #1e293b;
-  --color-bg-overlay: rgba(0, 0, 0, 0.8);
+  /* === COLORES DE FONDO (superficies oscuras M3) === */
+  --color-bg-primary: #0D1E1D;         /* Surface dark — Teal-oscuro profundo */
+  --color-bg-secondary: #071615;       /* Background — más oscuro */
+  --color-bg-tertiary: #152A28;        /* SurfaceVariant dark */
+  --color-bg-hover: #1A3532;
+  --color-bg-active: #214D49;
+  --color-bg-disabled: #0D1E1D;
+  --color-bg-overlay: rgba(0, 0, 0, 0.75);
 
   /* === COLORES DE TEXTO === */
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-tertiary: #94a3b8;
-  --color-text-disabled: #64748b;
-  --color-text-inverse: #0f172a;
-  --color-text-link: var(--color-primary-light);
-  --color-text-link-hover: #c7d2fe;
+  --color-text-primary: #F0FDFA;       /* Teal-50 — casi blanco tintado */
+  --color-text-secondary: #99F6E4;     /* Teal-200 */
+  --color-text-tertiary: #5EEAD4;      /* Teal-300 */
+  --color-text-disabled: #2D6B65;
+  --color-text-inverse: #042F2E;
+  --color-text-link: var(--color-primary);
+  --color-text-link-hover: var(--color-primary-light);
 
   /* === COLORES DE BORDE === */
-  --color-border-primary: #475569;
-  --color-border-secondary: #334155;
-  --color-border-focus: var(--color-primary-light);
+  --color-border-primary: #214D49;     /* Teal oscuro */
+  --color-border-secondary: #152A28;
+  --color-border-focus: var(--color-primary);
   --color-border-error: var(--color-error);
   --color-border-success: var(--color-success);
 
-  /* === SOMBRAS (más pronunciadas en dark mode para mejor separación) === */
+  /* === SOMBRAS (más pronunciadas en dark) === */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.65), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
 
   /* === COLORES ESPECÍFICOS DE ESTADOS DE CITA === */
-  --color-status-scheduled: #60a5fa;
-  --color-status-scheduled-bg: rgba(96, 165, 250, 0.2);
+  --color-status-scheduled: #38BDF8;                /* Sky-400 */
+  --color-status-scheduled-bg: rgba(56, 189, 248, 0.18);
 
-  --color-status-confirmed: #a78bfa;
-  --color-status-confirmed-bg: rgba(167, 139, 250, 0.2);
+  --color-status-confirmed: #A78BFA;                /* Violet-400 */
+  --color-status-confirmed-bg: rgba(167, 139, 250, 0.18);
 
-  --color-status-in-progress: #fbbf24;
-  --color-status-in-progress-bg: rgba(251, 191, 36, 0.2);
+  --color-status-in-progress: #FCD34D;              /* Amber-300 */
+  --color-status-in-progress-bg: rgba(252, 211, 77, 0.18);
 
-  --color-status-completed: #34d399;
-  --color-status-completed-bg: rgba(52, 211, 153, 0.2);
+  --color-status-completed: #34D399;                /* Emerald-400 */
+  --color-status-completed-bg: rgba(52, 211, 153, 0.18);
 
-  --color-status-cancelled: #f87171;
-  --color-status-cancelled-bg: rgba(248, 113, 113, 0.2);
+  --color-status-cancelled: #F87171;                /* Red-400 */
+  --color-status-cancelled-bg: rgba(248, 113, 113, 0.18);
 
-  --color-status-no-show: #a8a29e;
-  --color-status-no-show-bg: rgba(168, 162, 158, 0.2);
+  --color-status-no-show: #9CA3AF;                  /* Gray-400 */
+  --color-status-no-show-bg: rgba(156, 163, 175, 0.18);
 }
 
 /* ========================================

@@ -10,7 +10,7 @@ const CreateInvoicePage: React.FC = () => {
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [uninvoicedOrders, setUninvoicedOrders] = useState<Order[]>([]);
-  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [selectedServiceInstanceIds, setSelectedServiceInstanceIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -41,37 +41,37 @@ const CreateInvoicePage: React.FC = () => {
     fetchData();
   }, [id]);
 
-  const handleToggleOrder = (orderId: string) => {
-    setSelectedOrderIds((prev) =>
-      prev.includes(orderId)
-        ? prev.filter((id) => id !== orderId)
-        : [...prev, orderId]
+  const handleToggleOrder = (serviceInstanceId: string) => {
+    setSelectedServiceInstanceIds((prev) =>
+      prev.includes(serviceInstanceId)
+        ? prev.filter((id) => id !== serviceInstanceId)
+        : [...prev, serviceInstanceId]
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedOrderIds.length === uninvoicedOrders.length) {
-      setSelectedOrderIds([]);
+    if (selectedServiceInstanceIds.length === uninvoicedOrders.length) {
+      setSelectedServiceInstanceIds([]);
     } else {
-      setSelectedOrderIds(uninvoicedOrders.map((order) => order.id));
+      setSelectedServiceInstanceIds(uninvoicedOrders.map((order) => order.id));
     }
   };
 
   const calculateTotal = () => {
     return uninvoicedOrders
-      .filter((order) => selectedOrderIds.includes(order.id))
+      .filter((order) => selectedServiceInstanceIds.includes(order.id))
       .reduce((sum, order) => sum + Number(order.finalPrice), 0);
   };
 
   const handleCreateInvoice = async () => {
-    if (!id || selectedOrderIds.length === 0) return;
+    if (!id || selectedServiceInstanceIds.length === 0) return;
 
     try {
       setCreating(true);
       setError(null);
 
       await invoicesService.createInvoice({
-        orderIds: selectedOrderIds,
+        serviceInstanceIds: selectedServiceInstanceIds,
         patientId: id,
       });
 
@@ -88,7 +88,7 @@ const CreateInvoicePage: React.FC = () => {
   if (loading) {
     return (
       <div className="container" style={{ padding: '20px', textAlign: 'center' }}>
-        <p>Cargando órdenes sin facturar...</p>
+        <p>Cargando servicios sin facturar...</p>
       </div>
     );
   }
@@ -151,7 +151,7 @@ const CreateInvoicePage: React.FC = () => {
           }}
         >
           <p style={{ color: '#6b7280', marginBottom: '16px' }}>
-            No hay órdenes sin facturar para este paciente
+            No hay servicios sin facturar para este paciente
           </p>
           <button onClick={() => navigate(`/patients/${id}/invoices`)}>
             Volver a Facturas
@@ -178,7 +178,7 @@ const CreateInvoicePage: React.FC = () => {
               }}
             >
               <h2 style={{ fontSize: '18px', fontWeight: '600' }}>
-                Órdenes sin facturar ({uninvoicedOrders.length})
+                Servicios sin facturar ({uninvoicedOrders.length})
               </h2>
               <button
                 onClick={handleSelectAll}
@@ -191,7 +191,7 @@ const CreateInvoicePage: React.FC = () => {
                   fontSize: '13px',
                 }}
               >
-                {selectedOrderIds.length === uninvoicedOrders.length
+                {selectedServiceInstanceIds.length === uninvoicedOrders.length
                   ? 'Deseleccionar todas'
                   : 'Seleccionar todas'}
               </button>
@@ -204,13 +204,13 @@ const CreateInvoicePage: React.FC = () => {
                   key={order.id}
                   onClick={() => handleToggleOrder(order.id)}
                   style={{
-                    border: selectedOrderIds.includes(order.id)
+                    border: selectedServiceInstanceIds.includes(order.id)
                       ? '2px solid #3b82f6'
                       : '1px solid #e5e7eb',
                     borderRadius: '8px',
                     padding: '16px',
                     cursor: 'pointer',
-                    background: selectedOrderIds.includes(order.id)
+                    background: selectedServiceInstanceIds.includes(order.id)
                       ? '#eff6ff'
                       : 'white',
                     transition: 'all 0.2s',
@@ -225,7 +225,7 @@ const CreateInvoicePage: React.FC = () => {
                   >
                     <input
                       type="checkbox"
-                      checked={selectedOrderIds.includes(order.id)}
+                      checked={selectedServiceInstanceIds.includes(order.id)}
                       readOnly
                       style={{ cursor: 'pointer', pointerEvents: 'none' }}
                     />
@@ -280,8 +280,8 @@ const CreateInvoicePage: React.FC = () => {
             >
               <div>
                 <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                  {selectedOrderIds.length}{' '}
-                  {selectedOrderIds.length === 1 ? 'orden seleccionada' : 'órdenes seleccionadas'}
+                  {selectedServiceInstanceIds.length}{' '}
+                  {selectedServiceInstanceIds.length === 1 ? 'servicio seleccionado' : 'servicios seleccionados'}
                 </div>
                 <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>
                   Total: S/. {calculateTotal().toFixed(2)}
@@ -289,14 +289,14 @@ const CreateInvoicePage: React.FC = () => {
               </div>
               <button
                 onClick={handleCreateInvoice}
-                disabled={selectedOrderIds.length === 0 || creating}
+                disabled={selectedServiceInstanceIds.length === 0 || creating}
                 style={{
-                  background: selectedOrderIds.length === 0 || creating ? '#d1d5db' : '#3b82f6',
+                  background: selectedServiceInstanceIds.length === 0 || creating ? '#d1d5db' : '#3b82f6',
                   color: 'white',
                   border: 'none',
                   padding: '10px 20px',
                   borderRadius: '6px',
-                  cursor: selectedOrderIds.length === 0 || creating ? 'not-allowed' : 'pointer',
+                  cursor: selectedServiceInstanceIds.length === 0 || creating ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
@@ -305,9 +305,9 @@ const CreateInvoicePage: React.FC = () => {
               </button>
             </div>
 
-            {selectedOrderIds.length === 0 && (
+            {selectedServiceInstanceIds.length === 0 && (
               <div style={{ fontSize: '13px', color: '#9ca3af' }}>
-                Selecciona al menos una orden para generar la factura
+                Selecciona al menos un servicio para generar la factura
               </div>
             )}
           </div>

@@ -8,7 +8,7 @@ async function createMissingInvoices() {
     console.log('🔍 Buscando órdenes sin factura...');
 
     // Obtener todas las órdenes que no tienen invoice
-    const ordersWithoutInvoice = await prisma.order.findMany({
+    const ordersWithoutInvoice = await prisma.serviceInstance.findMany({
       where: {
         invoice: null,
       },
@@ -31,7 +31,7 @@ async function createMissingInvoices() {
       try {
         await prisma.invoice.create({
           data: {
-            orderId: order.id,
+            serviceInstanceId: order.id,
             patientId: order.patientId,
             totalAmount: order.finalPrice,
             status: 'pending',

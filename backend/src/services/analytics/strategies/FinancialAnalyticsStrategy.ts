@@ -68,7 +68,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
       .sort((a, b) => a.month.localeCompare(b.month));
 
     // Average ticket
-    const orders = await this.prisma.order.findMany({
+    const orders = await this.prisma.serviceInstance.findMany({
       where: { createdAt: dateRange },
       select: { finalPrice: true }
     });

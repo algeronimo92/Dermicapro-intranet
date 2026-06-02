@@ -5,3 +5,4 @@ export { Modal } from './Modal';
 export { Loading } from './Loading';
 export { Table } from './Table';
 export { Pagination } from './Pagination';
+export { PageListLayout, PageFormLayout, PageDetailLayout } from './templates';

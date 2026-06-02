@@ -7,11 +7,13 @@ import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { Loading } from '../components/Loading';
 import { Input } from '../components/Input';
+import { DatePicker } from '../components/DatePicker';
 import { Calendar } from '../components/Calendar';
+import { KanbanBoard } from '../components/KanbanBoard';
 import { getLocalDateString, addDays } from '../utils/dateUtils';
 import '../styles/appointments-page.css';
 
-type ViewMode = 'list' | 'calendar';
+type ViewMode = 'list' | 'calendar' | 'kanban';
 
 export const AppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ export const AppointmentsPage: React.FC = () => {
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [kanbanAppointments, setKanbanAppointments] = useState<Appointment[]>([]);
 
   // Inicializar estados desde URL
   const [viewMode, setViewMode] = useState<ViewMode>((searchParams.get('view') as ViewMode) || 'calendar');
@@ -64,6 +68,27 @@ export const AppointmentsPage: React.FC = () => {
       setAppointments(response.data);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cargar citas');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadKanbanAppointments = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const params: GetAppointmentsParams = {
+        limit: 500,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        showCancelled: true,
+      };
+
+      const response = await appointmentsService.getAppointments(params);
+      setKanbanAppointments(response.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar citas');
     } finally {
@@ -115,6 +140,8 @@ export const AppointmentsPage: React.FC = () => {
   useEffect(() => {
     if (viewMode === 'list') {
       loadAppointments();
+    } else if (viewMode === 'kanban') {
+      loadKanbanAppointments();
     } else {
       loadCalendarAppointments(calendarDate);
     }
@@ -158,6 +185,11 @@ export const AppointmentsPage: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al actualizar cita');
     }
+  };
+
+  const handleKanbanStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {
+    await appointmentsService.updateAppointment(appointmentId, { status: newStatus });
+    loadKanbanAppointments();
   };
 
   const handleTimeSlotClick = (date: Date, hour: number, minute: number, durationMinutes: number) => {
@@ -261,6 +293,17 @@ export const AppointmentsPage: React.FC = () => {
             </svg>
             Lista
           </button>
+          <button
+            className={`view-btn ${viewMode === 'kanban' ? 'active' : ''}`}
+            onClick={() => setViewMode('kanban')}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="2" y="3" width="4" height="14" rx="1" stroke="currentColor" strokeWidth="2"/>
+              <rect x="8" y="3" width="4" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
+              <rect x="14" y="3" width="4" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            Tablero
+          </button>
         </div>
       </div>
 
@@ -329,11 +372,9 @@ export const AppointmentsPage: React.FC = () => {
                 </svg>
                 Desde
               </label>
-              <Input
-                type="date"
+              <DatePicker
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="date-input-modern"
+                onChange={setDateFrom}
               />
             </div>
 
@@ -345,11 +386,10 @@ export const AppointmentsPage: React.FC = () => {
                 </svg>
                 Hasta
               </label>
-              <Input
-                type="date"
+              <DatePicker
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="date-input-modern"
+                onChange={setDateTo}
+                minDate={dateFrom ? new Date(dateFrom + 'T12:00:00') : undefined}
               />
             </div>
           </div>
@@ -368,6 +408,52 @@ export const AppointmentsPage: React.FC = () => {
             <span className="checkbox-custom"></span>
             <span className="checkbox-label">Mostrar citas canceladas</span>
           </label>
+        </div>
+      )}
+
+      {/* Filtros para Kanban */}
+      {viewMode === 'kanban' && (
+        <div className="filters-modern">
+          <div className="filters-grid">
+            <label className="checkbox-modern">
+              <input
+                type="checkbox"
+                checked={showCancelled}
+                onChange={(e) => setShowCancelled(e.target.checked)}
+              />
+              <span className="checkbox-custom"></span>
+              <span className="checkbox-label">Mostrar columnas canceladas</span>
+            </label>
+
+            <div className="filter-item">
+              <label className="filter-label">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+                Desde
+              </label>
+              <DatePicker
+                value={dateFrom}
+                onChange={setDateFrom}
+              />
+            </div>
+
+            <div className="filter-item">
+              <label className="filter-label">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+                Hasta
+              </label>
+              <DatePicker
+                value={dateTo}
+                onChange={setDateTo}
+                minDate={dateFrom ? new Date(dateFrom + 'T12:00:00') : undefined}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -402,10 +488,10 @@ export const AppointmentsPage: React.FC = () => {
                   const config = statusConfig[appointment.status];
                   const scheduledDate = new Date(appointment.scheduledDate);
                   const patient = appointment.patient;
-                  const services = appointment.appointmentServices?.map(as => as.order.service?.name).filter(Boolean) || [];
+                  const services = appointment.appointmentServices?.map(as => as.serviceInstance?.service?.name).filter(Boolean) || [];
                   const reservationPaid = appointment.reservationAmount ? Number(appointment.reservationAmount) : 0;
                   const totalAmount = appointment.appointmentServices?.reduce((sum, svc) =>
-                    sum + Number(svc.order.service?.basePrice || 0), 0) || 0;
+                    sum + Number(svc.serviceInstance?.service?.basePrice || 0), 0) || 0;
                   const pendingAmount = totalAmount - reservationPaid;
 
                   return (
@@ -421,8 +507,8 @@ export const AppointmentsPage: React.FC = () => {
                             {getInitials(patient.firstName, patient.lastName)}
                           </div>
                         )}
-                        <div className="card-status-badge" style={{ background: config.gradient }}>
-                          <span className="status-icon">{config.icon}</span>
+                        <div className={`card-status-badge card-status-badge--${appointment.status}`}>
+                          <span className="status-dot" />
                           <span className="status-text">{config.label}</span>
                         </div>
                       </div>
@@ -569,6 +655,15 @@ export const AppointmentsPage: React.FC = () => {
             />
           )}
         </>
+      )}
+
+      {viewMode === 'kanban' && (
+        <KanbanBoard
+          appointments={kanbanAppointments}
+          onStatusChange={handleKanbanStatusChange}
+          showCancelled={showCancelled}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );

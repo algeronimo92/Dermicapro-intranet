@@ -57,73 +57,18 @@ enum PaymentType {
   service_payment // Pago directo de servicio (tiene appointmentId)
   account_credit // Abono a cuenta del paciente (solo patientId)
   penalty // Multa o penalidad
-  subscription_payment // Pago de suscripción (Stripe)
   other // Otro tipo de pago
 }
 
-enum SubscriptionStatus {
-  active // Suscripción activa, pagos al día
-  past_due // Pago fallido, en período de gracia
-  canceled // Cancelada por usuario
-  incomplete // Pago inicial pendiente
-  incomplete_expired // Pago inicial no completado
-  unpaid // Múltiples pagos fallidos
-  paused // Pausada temporalmente
-}
-
-enum SubscriptionPlanTier {
-  regular
-  pro
-}
-
-// Modelo de Rol
-model SystemRole {
+model Role {
   id          String   @id @default(uuid())
-  name        String   @unique // e.g., "admin", "nurse", "sales", "doctor"
-  displayName String   @map("display_name") // e.g., "Administrador", "Enfermera"
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  isSystem    Boolean  @default(false) @map("is_system") // Roles del sistema no se pueden eliminar
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  users       User[]
-  permissions RolePermission[]
-
-  @@map("system_roles")
-}
-
-// Modelo de Permiso
-model Permission {
-  id          String   @id @default(uuid())
-  name        String   @unique // e.g., "patients.create", "appointments.view"
-  displayName String   @map("display_name") // e.g., "Crear Pacientes"
-  description String?
-  module      String // e.g., "patients", "appointments", "services"
-  action      String // e.g., "create", "read", "update", "delete", "manage"
+  name        String   @unique
+  displayName String   @map("display_name")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  // Relations
-  roles RolePermission[]
+  users User[]
 
-  @@unique([module, action])
-  @@map("permissions")
-}
-
-// Tabla intermedia: Relación muchos a muchos entre Roles y Permisos
-model RolePermission {
-  id           String   @id @default(uuid())
-  roleId       String   @map("role_id")
-  permissionId String   @map("permission_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  // Relations
-  role       SystemRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@map("role_permissions")
+  @@map("roles")
 }
 
 model User {
@@ -132,7 +77,7 @@ model User {
   passwordHash String    @map("password_hash")
   firstName    String    @map("first_name")
   lastName     String    @map("last_name")
-  roleId       String?   @map("role_id") // Ahora es una relación
+  roleId       String?   @map("role_id")
   sex          Sex?
   dateOfBirth  DateTime? @map("date_of_birth")
   isActive     Boolean   @default(true) @map("is_active")
@@ -140,10 +85,10 @@ model User {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  role                       SystemRole?          @relation(fields: [roleId], references: [id])
+  role                       Role?                @relation(fields: [roleId], references: [id])
   patientsCreated            Patient[]            @relation("PatientCreatedBy")
   patientPasswordsSet        Patient[]            @relation("PatientPasswordSetByStaff")
-  ordersCreated              Order[]              @relation("OrderCreatedBy")
+  ordersCreated              ServiceInstance[]            @relation("OrderCreatedBy")
   appointmentsCreated        Appointment[]        @relation("AppointmentCreatedBy")
   appointmentsAttended       Appointment[]        @relation("AppointmentAttendedBy")
   patientRecords             PatientRecord[]
@@ -152,7 +97,7 @@ model User {
   commissionsPaid            Commission[]         @relation("CommissionPayments")
   invoicesCreated            Invoice[]            @relation("InvoiceCreatedBy")
   paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
-  appointmentServicesDeleted AppointmentService[] @relation("AppointmentServiceDeletedBy")
+  appointmentServicesDeleted Session[] @relation("AppointmentSessionDeletedBy")
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
 
   @@map("users")
@@ -179,30 +124,19 @@ model Patient {
   passwordSetByStaffId String?   @map("password_set_by_staff_id") // Qué staff creó/resetó la contraseña
   passwordSetAt        DateTime? @map("password_set_at") // Cuándo se creó/cambió la contraseña
 
-  // Payment Gateway - Datos para suscripciones
-  stripeCustomerId String? @unique @map("stripe_customer_id")
-
-  // Niubiz - Token de tarjeta para cobros recurrentes
-  niubizCardToken     String? @map("niubiz_card_token") // Token de tarjeta guardado
-  niubizCardBrand     String? @map("niubiz_card_brand") // VISA, MC, AMEX, etc.
-  niubizCardLastFour  String? @map("niubiz_card_last_four") // Últimos 4 dígitos
-  niubizCardExpiryMonth Int?   @map("niubiz_card_expiry_month")
-  niubizCardExpiryYear  Int?   @map("niubiz_card_expiry_year")
-
   // Relations
   createdBy          User            @relation("PatientCreatedBy", fields: [createdById], references: [id])
   passwordSetByStaff User?           @relation("PatientPasswordSetByStaff", fields: [passwordSetByStaffId], references: [id])
-  orders             Order[]
+  orders             ServiceInstance[]
   appointments       Appointment[]
   patientRecords     PatientRecord[]
   invoices           Invoice[]
   payments           Payment[]
-  subscriptions      Subscription[]
 
   @@map("patients")
 }
 
-model Service {
+model ServiceTemplate {
   id              String    @id @default(uuid())
   name            String
   description     String?
@@ -221,17 +155,16 @@ model Service {
   commissionNotes       String?   @map("commission_notes") // Notas sobre la comisión de este servicio
 
   // Relations
-  orders                 Order[]
-  originalServiceRecords PatientRecord[] @relation("PatientRecordOriginalService")
+  orders                 ServiceInstance[]
   commissions            Commission[]
 
-  @@map("services")
+  @@map("service_templates")
 }
 
-model Order {
+model ServiceInstance {
   id                String   @id @default(uuid())
   patientId         String   @map("patient_id")
-  serviceId         String   @map("service_id")
+  serviceTemplateId String   @map("service_template_id")
   totalSessions     Int      @map("total_sessions")
   completedSessions Int      @default(0) @map("completed_sessions")
   originalPrice     Decimal  @map("original_price") @db.Decimal(10, 2)
@@ -245,13 +178,13 @@ model Order {
 
   // Relations
   patient             Patient              @relation(fields: [patientId], references: [id])
-  service             Service              @relation(fields: [serviceId], references: [id])
+  service             ServiceTemplate @relation(fields: [serviceTemplateId], references: [id])
   createdBy           User                 @relation("OrderCreatedBy", fields: [createdById], references: [id])
   invoice             Invoice?             @relation(fields: [invoiceId], references: [id])
-  appointmentServices AppointmentService[]
+  appointmentServices Session[]
   commissions         Commission[]
 
-  @@map("orders")
+  @@map("service_instances")
 }
 
 model Appointment {
@@ -274,7 +207,7 @@ model Appointment {
   attendedBy          User?                @relation("AppointmentAttendedBy", fields: [attendedById], references: [id])
   patientRecords      PatientRecord[]
   commissions         Commission[]
-  appointmentServices AppointmentService[]
+  appointmentServices Session[]
   payments            Payment[]
   appointmentNotes    AppointmentNote[]
 
@@ -299,7 +232,6 @@ model PatientRecord {
   id                String   @id @default(uuid())
   patientId         String   @map("patient_id")
   appointmentId     String   @map("appointment_id")
-  originalServiceId String?  @map("original_service_id")
   weight            Decimal? @db.Decimal(5, 2)
   bodyMeasurement   Json?    @map("body_measurement")
   healthNotes       String?  @map("health_notes")
@@ -311,22 +243,21 @@ model PatientRecord {
   // Relations
   patient         Patient     @relation(fields: [patientId], references: [id])
   appointment     Appointment @relation(fields: [appointmentId], references: [id])
-  originalService Service?    @relation("PatientRecordOriginalService", fields: [originalServiceId], references: [id])
   createdBy       User        @relation(fields: [createdById], references: [id])
 
   @@map("patient_records")
 }
 
 model Commission {
-  id               String           @id @default(uuid())
-  salesPersonId    String           @map("sales_person_id")
-  appointmentId    String           @map("appointment_id")
-  orderId          String?          @map("order_id") // El paquete/orden específico que generó la comisión
-  serviceId        String?          @map("service_id") // El servicio que generó la comisión
-  commissionRate   Decimal          @map("commission_rate") @db.Decimal(5, 4) // Tasa aplicada (copia del servicio al momento de la venta)
-  baseAmount       Decimal          @map("base_amount") @db.Decimal(10, 2) // Monto sobre el cual se calcula (precio del paquete)
-  commissionAmount Decimal          @map("commission_amount") @db.Decimal(10, 2) // Monto final de comisión
-  status           CommissionStatus @default(pending)
+  id                String           @id @default(uuid())
+  salesPersonId     String           @map("sales_person_id")
+  appointmentId     String           @map("appointment_id")
+  serviceInstanceId String?          @map("service_instance_id") // El paquete/orden específico que generó la comisión
+  serviceTemplateId String?          @map("service_template_id") // El servicio que generó la comisión
+  commissionRate    Decimal          @map("commission_rate") @db.Decimal(5, 4) // Tasa aplicada (copia del servicio al momento de la venta)
+  baseAmount        Decimal          @map("base_amount") @db.Decimal(10, 2) // Monto sobre el cual se calcula (precio del paquete)
+  commissionAmount  Decimal          @map("commission_amount") @db.Decimal(10, 2) // Monto final de comisión
+  status            CommissionStatus @default(pending)
 
   // Aprobación y pago
   approvedAt       DateTime?        @map("approved_at")
@@ -343,22 +274,22 @@ model Commission {
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
   // Relations
-  salesPerson User         @relation("SalesPersonCommissions", fields: [salesPersonId], references: [id])
-  appointment Appointment  @relation(fields: [appointmentId], references: [id])
-  order       Order?       @relation(fields: [orderId], references: [id])
-  service     Service?     @relation(fields: [serviceId], references: [id])
-  approvedBy  User?        @relation("CommissionApprovals", fields: [approvedById], references: [id])
-  paidBy      User?        @relation("CommissionPayments", fields: [paidById], references: [id])
+  salesPerson      User              @relation("SalesPersonCommissions", fields: [salesPersonId], references: [id])
+  appointment      Appointment       @relation(fields: [appointmentId], references: [id])
+  serviceInstance  ServiceInstance?  @relation(fields: [serviceInstanceId], references: [id])
+  serviceTemplate  ServiceTemplate?  @relation(fields: [serviceTemplateId], references: [id])
+  approvedBy       User?             @relation("CommissionApprovals", fields: [approvedById], references: [id])
+  paidBy           User?             @relation("CommissionPayments", fields: [paidById], references: [id])
 
   @@map("commissions")
 }
 
-model AppointmentService {
-  id            String   @id @default(uuid())
-  appointmentId String   @map("appointment_id")
-  orderId       String   @map("order_id")
-  sessionNumber Int?     @map("session_number")
-  createdAt     DateTime @default(now()) @map("created_at")
+model Session {
+  id                String   @id @default(uuid())
+  appointmentId     String   @map("appointment_id")
+  serviceInstanceId String   @map("service_instance_id")
+  sessionNumber     Int?     @map("session_number")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   // Soft Delete fields
   deletedAt    DateTime? @map("deleted_at")
@@ -366,11 +297,11 @@ model AppointmentService {
   deleteReason String?   @map("delete_reason")
 
   // Relations
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  order       Order       @relation(fields: [orderId], references: [id])
-  deletedBy   User?       @relation("AppointmentServiceDeletedBy", fields: [deletedById], references: [id])
+  appointment     Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  serviceInstance ServiceInstance @relation(fields: [serviceInstanceId], references: [id])
+  deletedBy       User?           @relation("AppointmentSessionDeletedBy", fields: [deletedById], references: [id])
 
-  @@map("appointment_services")
+  @@map("sessions")
 }
 
 model Invoice {
@@ -384,7 +315,7 @@ model Invoice {
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  orders    Order[] // Una factura puede tener muchas órdenes
+  orders    ServiceInstance[]
   patient   Patient   @relation(fields: [patientId], references: [id])
   createdBy User      @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
   payments  Payment[]
@@ -417,129 +348,3 @@ model Payment {
 
 // ==========================================
 // SISTEMA DE SUSCRIPCIONES (Stripe)
-// ==========================================
-
-model SubscriptionPlan {
-  id               String               @id @default(uuid())
-  name             String               @unique // "regular", "pro"
-  displayName      String               @map("display_name") // "Plan Regular", "Plan Pro"
-  description      String?
-  tier             SubscriptionPlanTier @default(regular)
-
-  // Precios (en céntimos para evitar problemas de decimales)
-  priceAmountCents Int    @map("price_amount_cents") // 8000 = S/80.00
-  currency         String @default("PEN") // ISO 4217
-  billingInterval  String @default("month") // "month", "year"
-
-  // Beneficios
-  discountPercentage Decimal @default(0) @map("discount_percentage") @db.Decimal(5, 2) // 10.00 = 10%
-  includedSessions   Int     @default(0) @map("included_sessions") // Sesiones incluidas/mes
-  priorityBooking    Boolean @default(false) @map("priority_booking")
-
-  // Features adicionales (JSON flexible para beneficios extras)
-  features Json? // Ej: {"exclusiveContent": true, "freeConsultations": 2}
-
-  // IDs de Stripe (sincronizados)
-  stripeProductId String? @unique @map("stripe_product_id")
-  stripePriceId   String? @unique @map("stripe_price_id")
-
-  // Metadatos
-  isActive  Boolean  @default(true) @map("is_active")
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  subscriptions Subscription[]
-
-  @@map("subscription_plans")
-}
-
-model Subscription {
-  id        String             @id @default(uuid())
-  patientId String             @map("patient_id")
-  planId    String             @map("plan_id")
-  status    SubscriptionStatus @default(incomplete)
-
-  // Gateway de pago usado: 'stripe' | 'niubiz'
-  paymentGateway String @default("niubiz") @map("payment_gateway")
-
-  // IDs de Stripe (legacy/opcional)
-  stripeSubscriptionId String? @unique @map("stripe_subscription_id")
-  stripeCustomerId     String? @map("stripe_customer_id")
-
-  // Niubiz - Para recurrencia manual
-  niubizLastTransactionId String? @map("niubiz_last_transaction_id") // Último ID de transacción
-  niubizLastPaymentDate   DateTime? @map("niubiz_last_payment_date")
-  niubizNextPaymentDate   DateTime? @map("niubiz_next_payment_date") // Próximo cobro programado
-  niubizRetryCount        Int       @default(0) @map("niubiz_retry_count") // Intentos de cobro fallidos
-
-  // Período de facturación
-  currentPeriodStart DateTime? @map("current_period_start")
-  currentPeriodEnd   DateTime? @map("current_period_end")
-
-  // Cancelación
-  canceledAt         DateTime? @map("canceled_at")
-  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
-  cancellationReason String?   @map("cancellation_reason")
-
-  // Uso de beneficios (por período)
-  sessionsUsedThisPeriod Int @default(0) @map("sessions_used_this_period")
-
-  // Metadatos
-  metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  patient        Patient               @relation(fields: [patientId], references: [id])
-  plan           SubscriptionPlan      @relation(fields: [planId], references: [id])
-  invoiceHistory SubscriptionInvoice[]
-
-  @@index([stripeSubscriptionId])
-  @@index([patientId])
-  @@index([niubizNextPaymentDate]) // Para el cron de recurrencia
-  @@map("subscriptions")
-}
-
-model SubscriptionInvoice {
-  id               String  @id @default(uuid())
-  subscriptionId   String  @map("subscription_id")
-
-  // IDs de transacción (Stripe o Niubiz)
-  stripeInvoiceId       String? @unique @map("stripe_invoice_id")
-  niubizTransactionId   String? @unique @map("niubiz_transaction_id")
-  niubizAuthCode        String? @map("niubiz_auth_code") // Código de autorización
-  niubizTraceNumber     String? @map("niubiz_trace_number")
-
-  // Montos (en céntimos)
-  amountDue  Int    @map("amount_due")
-  amountPaid Int    @map("amount_paid")
-  currency   String @default("PEN")
-
-  // Estado
-  status String // draft, open, paid, void, uncollectible, failed
-  paid   Boolean @default(false)
-
-  // URLs (solo Stripe)
-  hostedInvoiceUrl String? @map("hosted_invoice_url")
-  invoicePdfUrl    String? @map("invoice_pdf_url")
-
-  // Fechas
-  periodStart DateTime  @map("period_start")
-  periodEnd   DateTime  @map("period_end")
-  dueDate     DateTime? @map("due_date")
-  paidAt      DateTime? @map("paid_at")
-
-  // Error info (para pagos fallidos)
-  errorCode    String? @map("error_code")
-  errorMessage String? @map("error_message")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-
-  @@index([subscriptionId])
-  @@map("subscription_invoices")
-}

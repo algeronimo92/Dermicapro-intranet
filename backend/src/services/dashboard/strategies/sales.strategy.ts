@@ -37,7 +37,7 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
    */
   private async getSales(userId: string, dateRange: { gte: Date; lte: Date }) {
     // Aggregate de órdenes del vendedor
-    const ordersAggregate = await this.prisma.order.aggregate({
+    const ordersAggregate = await this.prisma.serviceInstance.aggregate({
       _count: true,
       _sum: { finalPrice: true },
       where: {
@@ -47,7 +47,7 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
     });
 
     // Ingresos mensuales
-    const monthlyOrders = await this.prisma.order.groupBy({
+    const monthlyOrders = await this.prisma.serviceInstance.groupBy({
       by: ['createdAt'],
       _sum: { finalPrice: true },
       where: {
@@ -171,7 +171,7 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
     const monthlyGoal = 10000;
 
     // Total vendido en el período
-    const achieved = await this.prisma.order.aggregate({
+    const achieved = await this.prisma.serviceInstance.aggregate({
       _sum: { finalPrice: true },
       where: {
         createdById: userId,

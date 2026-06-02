@@ -1,0 +1,278 @@
+/* ============================================================
+   DATE PICKER — trigger input
+   ============================================================ */
+
+.dp-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  height: var(--control-height);
+  padding: 0 var(--spacing-md);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.dp-trigger:hover:not(.dp-trigger--disabled) {
+  border-color: var(--color-border-focus, var(--color-primary-light));
+}
+
+.dp-trigger--open {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-alpha-10);
+}
+
+.dp-trigger--error {
+  border-color: var(--color-error);
+}
+
+.dp-trigger--error.dp-trigger--open {
+  box-shadow: 0 0 0 4px var(--color-error-alpha-10);
+}
+
+.dp-trigger--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--color-bg-secondary);
+}
+
+.dp-icon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  transition: color var(--transition-base);
+}
+
+.dp-trigger--open .dp-icon,
+.dp-trigger:hover:not(.dp-trigger--disabled) .dp-icon {
+  color: var(--color-primary);
+}
+
+.dp-value {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-value--placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.dp-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+}
+
+.dp-clear:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.dp-chevron {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  transition: transform var(--transition-base), color var(--transition-base);
+}
+
+.dp-chevron--open {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+/* ============================================================
+   DATE PICKER — popover container
+   ============================================================ */
+
+.dp-popover {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
+  padding: var(--spacing-md);
+  overflow: hidden;
+  animation: dp-fade-in var(--transition-base) ease-out;
+}
+
+@keyframes dp-fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   react-day-picker CSS variable overrides — design tokens
+   ============================================================ */
+
+.dp-popover .rdp-root {
+  /* Accent → primary teal */
+  --rdp-accent-color: var(--color-primary);
+  --rdp-accent-background-color: var(--color-primary-alpha-10);
+
+  /* Day sizes */
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-border-radius: var(--radius-lg);
+
+  /* Nav */
+  --rdp-nav_button-height: 32px;
+  --rdp-nav_button-width: 32px;
+  --rdp-nav-height: 40px;
+
+  /* Today */
+  --rdp-today-color: var(--color-primary);
+
+  /* Selected */
+  --rdp-selected-border: 2px solid var(--color-primary);
+
+  /* Animations */
+  --rdp-animation_duration: 0.2s;
+
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+/* Caption (mes/año header) */
+.dp-popover .rdp-month_caption {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  padding-bottom: var(--spacing-sm);
+}
+
+/* Dropdowns de mes/año */
+.dp-popover .rdp-dropdown {
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  appearance: auto;
+  transition: border-color var(--transition-base);
+}
+
+.dp-popover .rdp-dropdown:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+/* Días de la semana */
+.dp-popover .rdp-weekday {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Botón de día */
+.dp-popover .rdp-day_button {
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+.dp-popover .rdp-day_button:hover:not([disabled]) {
+  background-color: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+}
+
+/* Día seleccionado */
+.dp-popover .rdp-selected .rdp-day_button {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+  border-color: transparent;
+}
+
+/* Hoy */
+.dp-popover .rdp-today:not(.rdp-selected) .rdp-day_button {
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Días fuera del mes actual */
+.dp-popover .rdp-outside {
+  opacity: var(--rdp-outside-opacity, 0.4);
+}
+
+/* Días deshabilitados */
+.dp-popover .rdp-disabled .rdp-day_button {
+  cursor: not-allowed;
+  color: var(--color-text-disabled, var(--color-text-tertiary));
+}
+
+/* Botones de navegación */
+.dp-popover .rdp-nav {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.dp-popover .rdp-button_previous,
+.dp-popover .rdp-button_next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  width: var(--rdp-nav_button-width);
+  height: var(--rdp-nav_button-height);
+  transition: all var(--transition-base);
+}
+
+.dp-popover .rdp-button_previous:hover:not([disabled]),
+.dp-popover .rdp-button_next:hover:not([disabled]) {
+  background-color: var(--color-primary-alpha-10);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ============================================================
+   DARK MODE — los tokens cambian automáticamente con
+   [data-theme="dark"] en el root, pero reforzamos algunos
+   elementos que tienen color hardcodeado en la lib
+   ============================================================ */
+
+[data-theme="dark"] .dp-popover .rdp-day_button {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .dp-popover .rdp-selected .rdp-day_button {
+  color: var(--color-text-inverse);
+}
+
+[data-theme="dark"] .dp-popover .rdp-dropdown {
+  background-color: var(--color-bg-secondary);
+}

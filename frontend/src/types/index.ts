@@ -100,7 +100,7 @@ export interface Service {
 export interface Order {
   id: string;
   patientId: string;
-  serviceId: string;
+  serviceTemplateId: string;
   totalSessions: number;
   completedSessions: number;
   originalPrice: number;
@@ -118,10 +118,10 @@ export interface Order {
 export interface AppointmentService {
   id: string;
   appointmentId: string;
-  orderId: string;
+  serviceInstanceId: string;
   sessionNumber?: number | null;
   createdAt: string;
-  order: Partial<Order> & { service?: Service };
+  serviceInstance: Partial<Order> & { service?: Service };
   appointment?: Partial<Appointment>;
 }
 

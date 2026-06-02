@@ -4,6 +4,7 @@ import { invoicesService } from '../services/invoices.service';
 import { paymentsService } from '../services/payments.service';
 import { Invoice } from '../types';
 import { getLocalDateString, formatDate } from '../utils/dateUtils';
+import { DatePicker } from '../components/DatePicker';
 
 export const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -518,22 +519,12 @@ export const InvoiceDetailPage: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-                  Fecha de Pago
-                </label>
-                <input
-                  type="date"
+              <div style={{ marginBottom: 'var(--spacing-md)' }}>
+                <DatePicker
+                  label="Fecha de Pago"
                   value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                  }}
+                  onChange={setPaymentDate}
+                  maxDate={new Date()}
                 />
               </div>
 

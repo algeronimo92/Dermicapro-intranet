@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { usePatientAuth } from '../../contexts/PatientAuthContext';
-import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useNavigate } from 'react-router-dom';
 import './PatientDashboardPage.css';
 
 const PatientDashboardPage: React.FC = () => {
   const { patient, logout } = usePatientAuth();
-  const { hasActiveSubscription, currentPlan, discountPercentage, sessionsRemaining } = useSubscription();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -95,19 +93,6 @@ const PatientDashboardPage: React.FC = () => {
             <span className="patient-dashboard-nav-item-icon">💰</span>
             Facturas y Pagos
             <span className="patient-dashboard-nav-item-badge">Pronto</span>
-          </button>
-          <button
-            className="patient-dashboard-nav-item"
-            onClick={() => {
-              closeSidebar();
-              navigate('/patient/subscription');
-            }}
-          >
-            <span className="patient-dashboard-nav-item-icon">⭐</span>
-            Mi Suscripcion
-            {hasActiveSubscription && (
-              <span className="patient-dashboard-nav-item-badge active">{currentPlan?.displayName}</span>
-            )}
           </button>
           <button
             className="patient-dashboard-nav-item"
@@ -236,69 +221,10 @@ const PatientDashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column - Subscription & Profile */}
+          {/* Right Column - Profile */}
           <div>
-            {/* Subscription Card */}
-            <div className="patient-dashboard-card patient-dashboard-subscription-card">
-              <div className="patient-dashboard-card-header">
-                <h2>⭐ Mi Suscripcion</h2>
-                <button
-                  className="patient-dashboard-card-link"
-                  onClick={() => navigate('/patient/subscription')}
-                >
-                  {hasActiveSubscription ? 'Gestionar' : 'Ver planes'}
-                </button>
-              </div>
-              <div className="patient-dashboard-card-body">
-                {hasActiveSubscription && currentPlan ? (
-                  <div className="patient-dashboard-subscription-active">
-                    <div className="patient-dashboard-subscription-plan">
-                      <span className="patient-dashboard-subscription-plan-name">
-                        {currentPlan.displayName}
-                      </span>
-                      <span className="patient-dashboard-subscription-plan-price">
-                        {currentPlan.priceFormatted}/mes
-                      </span>
-                    </div>
-                    <div className="patient-dashboard-subscription-benefits">
-                      {discountPercentage > 0 && (
-                        <div className="patient-dashboard-subscription-benefit">
-                          <span className="benefit-icon">🏷️</span>
-                          <span>{discountPercentage}% descuento en servicios</span>
-                        </div>
-                      )}
-                      {currentPlan.includedSessions > 0 && (
-                        <div className="patient-dashboard-subscription-benefit">
-                          <span className="benefit-icon">💉</span>
-                          <span>{sessionsRemaining} sesiones restantes</span>
-                        </div>
-                      )}
-                      {currentPlan.priorityBooking && (
-                        <div className="patient-dashboard-subscription-benefit">
-                          <span className="benefit-icon">⚡</span>
-                          <span>Prioridad en citas</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="patient-dashboard-subscription-promo">
-                    <p className="patient-dashboard-subscription-promo-text">
-                      Obtén descuentos exclusivos y beneficios con nuestros planes de membresía
-                    </p>
-                    <button
-                      className="patient-dashboard-subscription-promo-btn"
-                      onClick={() => navigate('/patient/subscription')}
-                    >
-                      Ver planes disponibles
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Profile Card */}
-            <div className="patient-dashboard-card" style={{ marginTop: '1.5rem' }}>
+            <div className="patient-dashboard-card">
               <div className="patient-dashboard-card-header">
                 <h2>👤 Mi Perfil</h2>
               </div>

@@ -71,7 +71,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
           },
           appointmentServices: {
             include: {
-              order: {
+              serviceInstance: {
                 include: {
                   service: {
                     select: {
@@ -132,7 +132,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
         },
         appointmentServices: {
           include: {
-            order: {
+            serviceInstance: {
               include: {
                 service: true,
               },
@@ -221,7 +221,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
 
       for (const [tempPackageId, sessionsInPackage] of tempPackageGroups.entries()) {
         const firstSession = sessionsInPackage[0];
-        const service = await tx.service.findUnique({
+        const service = await tx.serviceTemplate.findUnique({
           where: { id: firstSession.serviceId },
         });
 
@@ -241,10 +241,10 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
           : 0;
 
         // Crear el nuevo Order
-        const createdOrder = await tx.order.create({
+        const createdOrder = await tx.serviceInstance.create({
           data: {
             patientId,
-            serviceId: firstSession.serviceId,
+            serviceTemplateId: firstSession.serviceId,
             totalSessions: service.defaultSessions || sessionsInPackage.length,
             originalPrice: service.basePrice,
             discount,
@@ -280,10 +280,10 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
         }
 
         // Crear AppointmentService
-        await tx.appointmentService.create({
+        await tx.session.create({
           data: {
             appointmentId: createdAppointment.id,
-            orderId: finalOrderId,
+            serviceInstanceId: finalOrderId,
             sessionNumber: session.sessionNumber,
           },
         });
@@ -311,7 +311,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
           },
           appointmentServices: {
             include: {
-              order: {
+              serviceInstance: {
                 include: {
                   service: true,
                 },
@@ -349,7 +349,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
       // PASO 1: Soft delete de sesiones marcadas
       // ============================================
       if (sessionOperations?.toDelete && sessionOperations.toDelete.length > 0) {
-        await tx.appointmentService.updateMany({
+        await tx.session.updateMany({
           where: {
             id: { in: sessionOperations.toDelete },
             appointmentId: id,  // Seguridad: solo de esta cita
@@ -369,7 +369,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
 
       if (sessionOperations?.newOrders && sessionOperations.newOrders.length > 0) {
         for (const newOrder of sessionOperations.newOrders) {
-          const service = await tx.service.findUnique({
+          const service = await tx.serviceTemplate.findUnique({
             where: { id: newOrder.serviceId },
           });
 
@@ -388,10 +388,10 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
           }
 
           // Crear el nuevo Order
-          const createdOrder = await tx.order.create({
+          const createdOrder = await tx.serviceInstance.create({
             data: {
               patientId: apt.patientId,
-              serviceId: newOrder.serviceId,
+              serviceTemplateId: newOrder.serviceId,
               totalSessions: newOrder.totalSessions,
               originalPrice: service.basePrice,
               discount: 0,
@@ -429,10 +429,10 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
           }
 
           // Crear AppointmentService
-          await tx.appointmentService.create({
+          await tx.session.create({
             data: {
               appointmentId: id,
-              orderId: finalOrderId,
+              serviceInstanceId: finalOrderId,
               sessionNumber: newSession.sessionNumber,
             },
           });
@@ -444,7 +444,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
       // ============================================
       if (sessionOperations?.orderPriceUpdates && sessionOperations.orderPriceUpdates.length > 0) {
         for (const priceUpdate of sessionOperations.orderPriceUpdates) {
-          await tx.order.update({
+          await tx.serviceInstance.update({
             where: { id: priceUpdate.orderId },
             data: {
               finalPrice: priceUpdate.finalPrice,
@@ -489,7 +489,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
               deletedAt: null,  // Solo sesiones activas (no eliminadas)
             },
             include: {
-              order: {
+              serviceInstance: {
                 include: {
                   service: true,
                 },
@@ -543,7 +543,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
           createdBy: true,
           appointmentServices: {
             include: {
-              order: {
+              serviceInstance: {
                 include: {
                   service: true,
                 },
@@ -588,7 +588,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
           },
           appointmentServices: {
             include: {
-              order: {
+              serviceInstance: {
                 include: {
                   service: true,
                 },
@@ -601,26 +601,26 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
       // ============================================
       // Generar comisiones por cada orden única
       // ============================================
-      const orderIds = [...new Set(
+      const serviceInstanceIds = [...new Set(
         existingAppointment.appointmentServices
-          .map(as => as.orderId)
+          .map(as => as.serviceInstanceId)
           .filter(Boolean)
       )];
 
-      for (const orderId of orderIds) {
+      for (const serviceInstanceId of serviceInstanceIds) {
         const appointmentService = existingAppointment.appointmentServices.find(
-          as => as.orderId === orderId
+          as => as.serviceInstanceId === serviceInstanceId
         );
 
-        if (!appointmentService?.order) continue;
+        if (!appointmentService?.serviceInstance) continue;
 
-        const order = appointmentService.order;
+        const order = appointmentService.serviceInstance;
 
-        // Verificar si ya existe una comisión para este appointment y order
+        // Verificar si ya existe una comisión para este appointment y serviceInstance
         const existingCommission = await tx.commission.findFirst({
           where: {
             appointmentId: id,
-            orderId: orderId,
+            serviceInstanceId: serviceInstanceId,
           },
         });
 
@@ -645,8 +645,8 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
             data: {
               salesPersonId: existingAppointment.createdBy.id,
               appointmentId: id,
-              orderId: orderId,
-              serviceId: order.serviceId,
+              serviceInstanceId: serviceInstanceId,
+              serviceTemplateId: order.serviceTemplateId,
               commissionRate: commissionRate || 0,
               baseAmount,
               commissionAmount,
@@ -802,7 +802,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
         },
         appointmentServices: {
           include: {
-            order: {
+            serviceInstance: {
               include: {
                 service: true,
               },
@@ -895,7 +895,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
         },
         appointmentServices: {
           include: {
-            order: {
+            serviceInstance: {
               include: {
                 service: true,
               },

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usersService, UserStats } from '../services/users.service';
-import { User, Role } from '../types';
+import { User } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { Modal } from '../components/Modal';
+import { EmployeeFormModal } from '../components/EmployeeFormModal';
 import { useAuth } from '../contexts/AuthContext';
-import { hasRole } from '../utils/roleHelpers';
 import { formatDate } from '../utils/dateUtils';
 
 export const EmployeeDetailPage: React.FC = () => {
@@ -19,6 +19,7 @@ export const EmployeeDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -50,9 +51,7 @@ export const EmployeeDetailPage: React.FC = () => {
     }
   };
 
-  const handleEdit = () => {
-    navigate(`/employees/${id}/edit`);
-  };
+  const handleEdit = () => setShowEditModal(true);
 
   const handleToggleActive = async () => {
     if (!id || !employee) return;
@@ -78,15 +77,6 @@ export const EmployeeDetailPage: React.FC = () => {
     navigate('/employees');
   };
 
-  if (!hasRole(currentUser, 'admin')) {
-    return (
-      <div className="page-container">
-        <div className="error-banner">
-          No tienes permisos para ver esta página
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return <Loading text="Cargando información del empleado..." />;
@@ -316,6 +306,16 @@ export const EmployeeDetailPage: React.FC = () => {
           </Button>
         </div>
       </Modal>
+
+      <EmployeeFormModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSaved={(updated) => {
+          setEmployee(updated);
+          setShowEditModal(false);
+        }}
+        userId={id}
+      />
     </div>
   );
 };

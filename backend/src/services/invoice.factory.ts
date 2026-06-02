@@ -2,7 +2,7 @@ import { Order } from '@prisma/client';
 import { addDays } from '../utils/dateUtils';
 
 interface CreateInvoiceDto {
-  orderIds: string[];
+  serviceInstanceIds: string[];
   patientId: string;
   createdById: string;
   dueDate?: Date;
@@ -21,7 +21,7 @@ export class InvoiceFactory {
     dueDate?: Date
   ): CreateInvoiceDto {
     return {
-      orderIds: [order.id],
+      serviceInstanceIds: [order.id],
       patientId: order.patientId,
       createdById,
       dueDate,
@@ -49,7 +49,7 @@ export class InvoiceFactory {
     }
 
     return {
-      orderIds: orders.map(o => o.id),
+      serviceInstanceIds: orders.map(o => o.id),
       patientId,
       createdById,
       dueDate,
@@ -61,17 +61,17 @@ export class InvoiceFactory {
    * (útil cuando el usuario selecciona órdenes desde la UI)
    */
   static createFromOrderIds(
-    orderIds: string[],
+    serviceInstanceIds: string[],
     patientId: string,
     createdById: string,
     dueDate?: Date
   ): CreateInvoiceDto {
-    if (orderIds.length === 0) {
+    if (serviceInstanceIds.length === 0) {
       throw new Error('Debe seleccionar al menos una orden');
     }
 
     return {
-      orderIds,
+      serviceInstanceIds,
       patientId,
       createdById,
       dueDate,
@@ -83,7 +83,7 @@ export class InvoiceFactory {
    * (por ejemplo, 30 días desde hoy)
    */
   static createWithAutoDueDate(
-    orderIds: string[],
+    serviceInstanceIds: string[],
     patientId: string,
     createdById: string,
     daysUntilDue: number = 30
@@ -91,7 +91,7 @@ export class InvoiceFactory {
     const dueDate = addDays(new Date(), daysUntilDue);
 
     return {
-      orderIds,
+      serviceInstanceIds,
       patientId,
       createdById,
       dueDate,

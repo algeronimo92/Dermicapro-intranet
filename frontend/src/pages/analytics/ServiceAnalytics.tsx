@@ -71,7 +71,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
             </thead>
             <tbody>
               {data.performance.map((service) => (
-                <tr key={service.serviceId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                <tr key={service.serviceTemplateId} style={{ borderBottom: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '12px', fontWeight: '500' }}>{service.serviceName}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>{service.timesOrdered}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>

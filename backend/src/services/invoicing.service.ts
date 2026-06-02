@@ -4,7 +4,7 @@ import { AppError } from '../middlewares/errorHandler';
 const prisma = new PrismaClient();
 
 interface CreateInvoiceDto {
-  orderIds: string[];
+  serviceInstanceIds: string[];
   patientId: string;
   createdById: string;
   dueDate?: Date;
@@ -22,17 +22,17 @@ export class InvoicingService {
    * @returns La factura creada con sus órdenes asociadas
    */
   async createInvoice(dto: CreateInvoiceDto): Promise<InvoiceWithOrders> {
-    const { orderIds, patientId, createdById, dueDate } = dto;
+    const { serviceInstanceIds, patientId, createdById, dueDate } = dto;
 
     // Validar que se proporcionaron órdenes
-    if (!orderIds || orderIds.length === 0) {
+    if (!serviceInstanceIds || serviceInstanceIds.length === 0) {
       throw new AppError('Debe seleccionar al menos una orden para facturar', 400);
     }
 
     // Obtener todas las órdenes con sus servicios
-    const orders = await prisma.order.findMany({
+    const orders = await prisma.serviceInstance.findMany({
       where: {
-        id: { in: orderIds },
+        id: { in: serviceInstanceIds },
       },
       include: {
         service: true,
@@ -41,7 +41,7 @@ export class InvoicingService {
     });
 
     // Validar que todas las órdenes existen
-    if (orders.length !== orderIds.length) {
+    if (orders.length !== serviceInstanceIds.length) {
       throw new AppError('Una o más órdenes no existen', 404);
     }
 
@@ -82,9 +82,9 @@ export class InvoicingService {
       });
 
       // Asociar todas las órdenes con la factura
-      await tx.order.updateMany({
+      await tx.serviceInstance.updateMany({
         where: {
-          id: { in: orderIds },
+          id: { in: serviceInstanceIds },
         },
         data: {
           invoiceId: newInvoice.id,
@@ -252,7 +252,7 @@ export class InvoicingService {
    * Obtiene las órdenes sin facturar de un paciente
    */
   async getUninvoicedOrders(patientId: string): Promise<Order[]> {
-    const orders = await prisma.order.findMany({
+    const orders = await prisma.serviceInstance.findMany({
       where: {
         patientId,
         invoiceId: null, // Órdenes sin factura
@@ -294,7 +294,7 @@ export class InvoicingService {
     // Usar transacción para cancelar factura y desasociar órdenes
     return await prisma.$transaction(async (tx) => {
       // Desasociar las órdenes de la factura
-      await tx.order.updateMany({
+      await tx.serviceInstance.updateMany({
         where: {
           invoiceId: invoice.id,
         },

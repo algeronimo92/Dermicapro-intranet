@@ -126,7 +126,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
           include: {
             appointmentServices: {
               include: {
-                order: {
+                serviceInstance: {
                   include: {
                     service: true,
                   },
@@ -346,7 +346,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
       include: {
         appointmentServices: {
           include: {
-            order: {
+            serviceInstance: {
               select: {
                 id: true,
                 totalSessions: true,
@@ -371,7 +371,6 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
         },
         patientRecords: {
           include: {
-            originalService: true,
             createdBy: {
               select: {
                 id: true,

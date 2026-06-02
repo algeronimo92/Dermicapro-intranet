@@ -53,7 +53,7 @@ export function useAnalytics<T>(
     filters?.period,
     filters?.startDate instanceof Date ? filters.startDate.getTime() : filters?.startDate,
     filters?.endDate instanceof Date ? filters.endDate.getTime() : filters?.endDate,
-    filters?.serviceId,
+    filters?.serviceTemplateId,
     filters?.salesPersonId
   ]);
 

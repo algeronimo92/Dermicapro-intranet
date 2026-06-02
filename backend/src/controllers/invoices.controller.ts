@@ -240,10 +240,10 @@ export const getInvoiceSummary = async (req: Request, res: Response): Promise<vo
  */
 export const createInvoice = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { orderIds, patientId, dueDate } = req.body;
+    const { serviceInstanceIds, patientId, dueDate } = req.body;
 
-    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
-      throw new AppError('orderIds es requerido y debe ser un array no vacío', 400);
+    if (!serviceInstanceIds || !Array.isArray(serviceInstanceIds) || serviceInstanceIds.length === 0) {
+      throw new AppError('serviceInstanceIds es requerido y debe ser un array no vacío', 400);
     }
 
     if (!patientId) {
@@ -251,7 +251,7 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
     }
 
     const invoiceDto = InvoiceFactory.createFromOrderIds(
-      orderIds,
+      serviceInstanceIds,
       patientId,
       req.user!.id,
       dueDate ? parseStartOfDay(dueDate) : undefined

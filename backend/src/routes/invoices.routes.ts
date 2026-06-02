@@ -10,7 +10,7 @@ import {
   cancelInvoice,
   autoUpdateInvoiceStatus,
 } from '../controllers/invoices.controller';
-import { authenticate, authorize } from '../middlewares/auth';
+import { authenticate } from '../middlewares/auth';
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.use(authenticate);
 router.get('/', getAllInvoices);
 
 // POST /api/invoices - Crear una nueva factura
-router.post('/', authorize('admin', 'sales'), createInvoice);
+router.post('/', createInvoice);
 
 // GET /api/invoices/patient/:patientId/uninvoiced - Obtener órdenes sin facturar
 router.get('/patient/:patientId/uninvoiced', getUninvoicedOrders);
@@ -36,12 +36,12 @@ router.get('/patient/:patientId/summary', getInvoiceSummary);
 router.get('/:id', getInvoiceById);
 
 // PUT /api/invoices/:id/status - Actualizar status de factura manualmente
-router.put('/:id/status', authorize('admin', 'sales'), updateInvoiceStatus);
+router.put('/:id/status', updateInvoiceStatus);
 
 // POST /api/invoices/:id/auto-update-status - Actualizar status automáticamente según pagos
 router.post('/:id/auto-update-status', autoUpdateInvoiceStatus);
 
 // POST /api/invoices/:id/cancel - Cancelar una factura
-router.post('/:id/cancel', authorize('admin'), cancelInvoice);
+router.post('/:id/cancel', cancelInvoice);
 
 export default router;

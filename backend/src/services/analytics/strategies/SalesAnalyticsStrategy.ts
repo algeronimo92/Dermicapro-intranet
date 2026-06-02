@@ -44,7 +44,7 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       where.createdById = filters.salesPersonId;
     }
 
-    const ordersData = await this.prisma.order.aggregate({
+    const ordersData = await this.prisma.serviceInstance.aggregate({
       _count: true,
       _sum: {
         finalPrice: true,
@@ -83,7 +83,7 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     lte: Date;
   }): Promise<SalesAnalyticsData['salesPeople']> {
     // Obtener datos de ventas por vendedor
-    const salesByPerson = await this.prisma.order.groupBy({
+    const salesByPerson = await this.prisma.serviceInstance.groupBy({
       by: ['createdById'],
       _count: true,
       _sum: {
@@ -203,8 +203,8 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     gte: Date;
     lte: Date;
   }): Promise<SalesAnalyticsData['topServices']> {
-    const servicesSales = await this.prisma.order.groupBy({
-      by: ['serviceId'],
+    const servicesSales = await this.prisma.serviceInstance.groupBy({
+      by: ['serviceTemplateId'],
       _count: true,
       _sum: {
         finalPrice: true,
@@ -223,10 +223,10 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       take: 10,
     });
 
-    const servicesInfo = await this.prisma.service.findMany({
+    const servicesInfo = await this.prisma.serviceTemplate.findMany({
       where: {
         id: {
-          in: servicesSales.map((s) => s.serviceId),
+          in: servicesSales.map((s) => s.serviceTemplateId),
         },
       },
       select: {
@@ -236,9 +236,9 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     });
 
     return servicesSales.map((sale) => {
-      const service = servicesInfo.find((s) => s.id === sale.serviceId);
+      const service = servicesInfo.find((s) => s.id === sale.serviceTemplateId);
       return {
-        serviceId: sale.serviceId,
+        serviceTemplateId: sale.serviceTemplateId,
         serviceName: service?.name || 'Servicio Desconocido',
         unitsSold: sale._count,
         revenue: Number(sale._sum.finalPrice) || 0,

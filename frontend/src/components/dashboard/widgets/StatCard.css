@@ -85,51 +85,82 @@
   font-size: var(--font-size-base);
 }
 
-/* Color Variants */
-.stat-card--primary .stat-card__icon {
-  background-color: var(--color-primary-alpha-10);
-  color: var(--color-primary);
+/* Color Variants — gradient backgrounds with inverse text */
+.stat-card--primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: transparent;
+  color: var(--color-text-inverse);
 }
 
-.stat-card--success .stat-card__icon {
-  background-color: var(--color-success-alpha-10);
-  color: var(--color-success);
+.stat-card--success {
+  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+  border-color: transparent;
+  color: var(--color-text-inverse);
 }
 
-.stat-card--warning .stat-card__icon {
-  background-color: var(--color-warning-alpha-10);
-  color: var(--color-warning);
+.stat-card--warning {
+  background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-dark) 100%);
+  border-color: transparent;
+  color: var(--color-text-inverse);
 }
 
-.stat-card--error .stat-card__icon {
-  background-color: var(--color-error-alpha-10);
-  color: var(--color-error);
+.stat-card--error {
+  background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error-dark) 100%);
+  border-color: transparent;
+  color: var(--color-text-inverse);
 }
 
+.stat-card--info {
+  background: linear-gradient(135deg, var(--color-info) 0%, var(--color-info-dark) 100%);
+  border-color: transparent;
+  color: var(--color-text-inverse);
+}
+
+/* Text inside gradient cards inherits white */
+.stat-card--primary .stat-card__title,
+.stat-card--success .stat-card__title,
+.stat-card--warning .stat-card__title,
+.stat-card--error .stat-card__title,
+.stat-card--info .stat-card__title {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.stat-card--primary .stat-card__value,
+.stat-card--success .stat-card__value,
+.stat-card--warning .stat-card__value,
+.stat-card--error .stat-card__value,
+.stat-card--info .stat-card__value {
+  color: inherit;
+}
+
+.stat-card--primary .stat-card__subtitle,
+.stat-card--success .stat-card__subtitle,
+.stat-card--warning .stat-card__subtitle,
+.stat-card--error .stat-card__subtitle,
+.stat-card--info .stat-card__subtitle {
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* Icon background: semi-transparent white on gradient cards */
+.stat-card--primary .stat-card__icon,
+.stat-card--success .stat-card__icon,
+.stat-card--warning .stat-card__icon,
+.stat-card--error .stat-card__icon,
 .stat-card--info .stat-card__icon {
-  background-color: var(--color-info-alpha-10);
-  color: var(--color-info);
+  background-color: rgba(255, 255, 255, 0.2);
+  color: inherit;
 }
 
-/* Border accent on hover */
-.stat-card--primary:hover {
-  border-color: var(--color-primary-light);
-}
-
-.stat-card--success:hover {
-  border-color: var(--color-success-light);
-}
-
-.stat-card--warning:hover {
-  border-color: var(--color-warning-light);
-}
-
-.stat-card--error:hover {
-  border-color: var(--color-error-light);
-}
-
+/* Hover: brightness boost instead of border color */
+.stat-card--primary:hover,
+.stat-card--success:hover,
+.stat-card--warning:hover,
+.stat-card--error:hover,
 .stat-card--info:hover {
-  border-color: var(--color-info-light);
+  filter: brightness(1.08);
+  border-color: transparent;
 }
 
 /* Responsive */

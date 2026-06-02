@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env';
+import { PatientJwtPayload } from '../types/auth.types';
 
 export interface JwtPayload {
   id: string;
@@ -8,22 +9,22 @@ export interface JwtPayload {
   roleName?: string;
 }
 
-export const generateAccessToken = (payload: JwtPayload): string => {
+export const generateAccessToken = (payload: JwtPayload | PatientJwtPayload): string => {
   return jwt.sign(payload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
   } as jwt.SignOptions);
 };
 
-export const generateRefreshToken = (payload: JwtPayload): string => {
+export const generateRefreshToken = (payload: JwtPayload | PatientJwtPayload): string => {
   return jwt.sign(payload, config.jwt.refreshSecret, {
     expiresIn: config.jwt.refreshExpiresIn,
   } as jwt.SignOptions);
 };
 
-export const verifyAccessToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.jwt.secret) as JwtPayload;
+export const verifyAccessToken = (token: string): JwtPayload | PatientJwtPayload => {
+  return jwt.verify(token, config.jwt.secret) as JwtPayload | PatientJwtPayload;
 };
 
-export const verifyRefreshToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.jwt.refreshSecret) as JwtPayload;
+export const verifyRefreshToken = (token: string): JwtPayload | PatientJwtPayload => {
+  return jwt.verify(token, config.jwt.refreshSecret) as JwtPayload | PatientJwtPayload;
 };

@@ -4,8 +4,8 @@ export interface Commission {
   id: string;
   salesPersonId: string;
   appointmentId: string;
-  orderId?: string | null;
-  serviceId?: string | null;
+  serviceInstanceId?: string | null;
+  serviceTemplateId?: string | null;
   commissionRate: number;
   baseAmount: number;
   commissionAmount: number;
@@ -38,12 +38,12 @@ export interface Commission {
       dni: string;
     };
   };
-  service?: {
+  serviceTemplate?: {
     id: string;
     name: string;
     basePrice: number;
   };
-  order?: {
+  serviceInstance?: {
     id: string;
     finalPrice: number;
     totalSessions: number;
@@ -96,7 +96,7 @@ export interface CommissionsFilters {
   salesPersonId?: string;
   startDate?: string;
   endDate?: string;
-  serviceId?: string;
+  serviceTemplateId?: string;
 }
 
 const commissionsService = {
@@ -112,7 +112,7 @@ const commissionsService = {
     if (filters.salesPersonId) params.append('salesPersonId', filters.salesPersonId);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
-    if (filters.serviceId) params.append('serviceId', filters.serviceId);
+    if (filters.serviceTemplateId) params.append('serviceTemplateId', filters.serviceTemplateId);
 
     const response = await api.get(`/commissions?${params.toString()}`);
     return response.data;

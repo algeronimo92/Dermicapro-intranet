@@ -91,7 +91,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     const services: string[] = [];
     if (apt.appointmentServices && apt.appointmentServices.length > 0) {
       apt.appointmentServices.forEach(appSvc => {
-        services.push(appSvc.order.service?.name || 'Servicio');
+        services.push(appSvc.serviceInstance?.service?.name || 'Servicio');
       });
     }
     return services.join(', ') || 'Sin servicio';

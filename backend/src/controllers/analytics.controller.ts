@@ -89,7 +89,7 @@ export const getServiceAnalytics = async (req: Request, res: Response): Promise<
       period: (req.query.period as any) || 'month',
       startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
       endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
-      serviceId: req.query.serviceId as string | undefined
+      serviceTemplateId: req.query.serviceTemplateId as string | undefined
     };
 
     const data = await analyticsService.getServiceAnalytics(filters);

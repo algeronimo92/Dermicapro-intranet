@@ -127,7 +127,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
         <h2 className="dashboard__section-title">Ventas</h2>
         <div className="stats-grid stats-grid--2">
           <StatCard
-            title="Total de Órdenes"
+            title="Servicios Vendidos"
             value={data.sales.totalOrders}
             icon="🛍️"
             color="primary"
@@ -155,7 +155,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
                 </thead>
                 <tbody>
                   {data.sales.topServices.map((service) => (
-                    <tr key={service.serviceId}>
+                    <tr key={service.serviceTemplateId}>
                       <td>{service.name}</td>
                       <td>{service.count}</td>
                       <td>{formatCurrency(service.revenue)}</td>

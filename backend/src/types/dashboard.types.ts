@@ -29,7 +29,7 @@ export interface AdminDashboardData {
     totalOrders: number;
     totalOrdersValue: number;
     topServices: Array<{
-      serviceId: string;
+      serviceTemplateId: string;
       name: string;
       count: number;
       revenue: number;
@@ -57,7 +57,7 @@ export interface NurseDashboardData {
   };
   services: {
     topPerformed: Array<{
-      serviceId: string;
+      serviceTemplateId: string;
       name: string;
       count: number;
     }>;

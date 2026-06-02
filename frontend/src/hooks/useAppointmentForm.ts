@@ -154,10 +154,10 @@ export const useAppointmentForm = () => {
 
       if (appointment.appointmentServices && appointment.appointmentServices.length > 0) {
         const sessions = appointment.appointmentServices
-          .filter(appSvc => appSvc.order?.serviceId)
+          .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId)
           .map(appSvc => ({
-            serviceId: appSvc.order!.serviceId as string,
-            orderId: appSvc.order!.id as string | undefined,
+            serviceId: appSvc.serviceInstance!.serviceTemplateId as string,
+            orderId: appSvc.serviceInstance!.id as string | undefined,
             sessionNumber: appSvc.sessionNumber || undefined,
             appointmentServiceId: appSvc.id
           }));

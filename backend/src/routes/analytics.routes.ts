@@ -1,12 +1,10 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middlewares/auth';
+import { authenticate } from '../middlewares/auth';
 import * as analyticsController from '../controllers/analytics.controller';
 
 const router = Router();
 
-// Middleware: solo admins
 router.use(authenticate);
-router.use(authorize('admin'));
 
 // Routes
 router.get('/executive', analyticsController.getExecutiveSummary);

@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PatientAuthProvider, usePatientAuth } from './contexts/PatientAuthContext';
-import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { APP_VERSION } from './config/version';
 import { PatientsPage } from './pages/PatientsPage';
@@ -16,25 +15,19 @@ import { AppointmentsPage } from './pages/AppointmentsPage';
 import { AppointmentFormPage } from './pages/AppointmentFormPage';
 import { AppointmentDetailPage } from './pages/AppointmentDetailPage';
 import { EmployeesPage } from './pages/EmployeesPage';
-import { EmployeeFormPage } from './pages/EmployeeFormPage';
 import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
 import { ServicesPage } from './pages/ServicesPage';
-import { ServiceFormPage } from './pages/ServiceFormPage';
-import { RolesPage } from './pages/RolesPage';
-import { RoleFormPage } from './pages/RoleFormPage';
-import { RoleDetailPage } from './pages/RoleDetailPage';
 import CommissionsPage from './pages/CommissionsPage';
 import SettingsPage from './pages/SettingsPage';
+import { StyleGuidePage } from './pages/StyleGuidePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 // Portal de Pacientes
 import { PatientLoginPage, PatientDashboardPage, PatientChangePasswordPage } from './pages/patient';
-import PatientSubscriptionPage from './pages/patient/PatientSubscriptionPage';
 import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/settings.css';
-import './styles/roles.css';
 import './styles/commissions-page.css';
 
 function App() {
@@ -42,7 +35,6 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <PatientAuthProvider>
-          <SubscriptionProvider>
             <Router>
               <Routes>
                 {/* Rutas del Portal de Pacientes */}
@@ -68,7 +60,6 @@ function App() {
                 />
               </Routes>
             </Router>
-          </SubscriptionProvider>
         </PatientAuthProvider>
       </AuthProvider>
     </ThemeProvider>
@@ -95,7 +86,6 @@ function PatientPortalRoutes() {
   return (
     <Routes>
       <Route path="dashboard" element={<PatientDashboardPage />} />
-      <Route path="subscription" element={<PatientSubscriptionPage />} />
       <Route path="change-password" element={<PatientChangePasswordPage />} />
       <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
     </Routes>
@@ -246,12 +236,6 @@ function DashboardLayout() {
                   </NavLink>
                 </li>
                 <li className="sidebar-nav-item">
-                  <NavLink to="/roles" className="sidebar-nav-link">
-                    <span className="sidebar-nav-icon">🔐</span>
-                    Roles y Permisos
-                  </NavLink>
-                </li>
-                <li className="sidebar-nav-item">
                   <NavLink to="/commissions" className="sidebar-nav-link">
                     <span className="sidebar-nav-icon">💰</span>
                     Comisiones
@@ -265,6 +249,12 @@ function DashboardLayout() {
                 </li>
               </>
             )}
+            <li className="sidebar-nav-item">
+              <NavLink to="/styleguide" className="sidebar-nav-link">
+                <span className="sidebar-nav-icon">🎨</span>
+                Ficha de Estilos
+              </NavLink>
+            </li>
             <li className="sidebar-nav-item">
               <NavLink to="/settings" className="sidebar-nav-link">
                 <span className="sidebar-nav-icon">⚙️</span>
@@ -287,7 +277,6 @@ function DashboardLayout() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/patients" element={<PatientsPage />} />
-            <Route path="/patients/new" element={<PatientFormPage />} />
             <Route path="/patients/:id" element={<PatientDetailPage />} />
             <Route path="/patients/:id/edit" element={<PatientFormPage />} />
             <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
@@ -299,19 +288,12 @@ function DashboardLayout() {
             <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
             <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
             <Route path="/services" element={<ServicesPage />} />
-            <Route path="/services/new" element={<ServiceFormPage />} />
-            <Route path="/services/:id/edit" element={<ServiceFormPage />} />
             <Route path="/employees" element={<EmployeesPage />} />
-            <Route path="/employees/new" element={<EmployeeFormPage />} />
             <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-            <Route path="/employees/:id/edit" element={<EmployeeFormPage />} />
-            <Route path="/roles" element={<RolesPage />} />
-            <Route path="/roles/new" element={<RoleFormPage />} />
-            <Route path="/roles/:id" element={<RoleDetailPage />} />
-            <Route path="/roles/:id/edit" element={<RoleFormPage />} />
             <Route path="/commissions" element={<CommissionsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/styleguide" element={<StyleGuidePage />} />
           </Routes>
         </div>
       </main>

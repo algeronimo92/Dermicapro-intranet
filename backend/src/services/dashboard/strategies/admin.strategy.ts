@@ -140,7 +140,7 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
   private async getSales(dateRange: { gte: Date; lte: Date }) {
     const [totalOrders, topServices] = await Promise.all([
       // Aggregate de todas las órdenes
-      this.prisma.order.aggregate({
+      this.prisma.serviceInstance.aggregate({
         _count: true,
         _sum: { finalPrice: true },
         where: {
@@ -149,8 +149,8 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
       }),
 
       // Top 5 servicios más vendidos
-      this.prisma.order.groupBy({
-        by: ['serviceId'],
+      this.prisma.serviceInstance.groupBy({
+        by: ['serviceTemplateId'],
         _count: true,
         _sum: { finalPrice: true },
         where: {
@@ -158,7 +158,7 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
         },
         orderBy: {
           _count: {
-            serviceId: 'desc',
+            serviceTemplateId: 'desc',
           },
         },
         take: 5,
@@ -166,8 +166,8 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
     ]);
 
     // Obtener nombres de servicios
-    const serviceIds = topServices.map((s) => s.serviceId);
-    const services = await this.prisma.service.findMany({
+    const serviceIds = topServices.map((s) => s.serviceTemplateId);
+    const services = await this.prisma.serviceTemplate.findMany({
       where: { id: { in: serviceIds } },
       select: { id: true, name: true },
     });
@@ -176,9 +176,9 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
       totalOrders: totalOrders._count,
       totalOrdersValue: this.decimalToNumber(totalOrders._sum.finalPrice) || 0,
       topServices: topServices.map((s) => ({
-        serviceId: s.serviceId,
+        serviceTemplateId: s.serviceTemplateId,
         name:
-          services.find((srv) => srv.id === s.serviceId)?.name || 'Desconocido',
+          services.find((srv) => srv.id === s.serviceTemplateId)?.name || 'Desconocido',
         count: s._count,
         revenue: this.decimalToNumber(s._sum.finalPrice) || 0,
       })),

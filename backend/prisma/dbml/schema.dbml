@@ -2,45 +2,12 @@
 //// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 //// ------------------------------------------------------
 
-Table system_roles {
+Table roles {
   id String [pk]
   name String [unique, not null]
   displayName String [not null]
-  description String
-  isActive Boolean [not null, default: true]
-  isSystem Boolean [not null, default: false]
   createdAt DateTime [default: `now()`, not null]
-  updatedAt DateTime [not null]
   users users [not null]
-  permissions role_permissions [not null]
-}
-
-Table permissions {
-  id String [pk]
-  name String [unique, not null]
-  displayName String [not null]
-  description String
-  module String [not null]
-  action String [not null]
-  createdAt DateTime [default: `now()`, not null]
-  roles role_permissions [not null]
-
-  indexes {
-    (module, action) [unique]
-  }
-}
-
-Table role_permissions {
-  id String [pk]
-  roleId String [not null]
-  permissionId String [not null]
-  createdAt DateTime [default: `now()`, not null]
-  role system_roles [not null]
-  permission permissions [not null]
-
-  indexes {
-    (roleId, permissionId) [unique]
-  }
 }
 
 Table users {
@@ -55,10 +22,10 @@ Table users {
   isActive Boolean [not null, default: true]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  role system_roles
+  role roles
   patientsCreated patients [not null]
   patientPasswordsSet patients [not null]
-  ordersCreated orders [not null]
+  ordersCreated service_instances [not null]
   appointmentsCreated appointments [not null]
   appointmentsAttended appointments [not null]
   patientRecords patient_records [not null]
@@ -67,7 +34,7 @@ Table users {
   commissionsPaid commissions [not null]
   invoicesCreated invoices [not null]
   paymentsCreated payments [not null]
-  appointmentServicesDeleted appointment_services [not null]
+  appointmentServicesDeleted sessions [not null]
   appointmentNotesCreated appointment_notes [not null]
 }
 
@@ -89,23 +56,16 @@ Table patients {
   lastLogin DateTime
   passwordSetByStaffId String
   passwordSetAt DateTime
-  stripeCustomerId String [unique]
-  niubizCardToken String
-  niubizCardBrand String
-  niubizCardLastFour String
-  niubizCardExpiryMonth Int
-  niubizCardExpiryYear Int
   createdBy users [not null]
   passwordSetByStaff users
-  orders orders [not null]
+  orders service_instances [not null]
   appointments appointments [not null]
   patientRecords patient_records [not null]
   invoices invoices [not null]
   payments payments [not null]
-  subscriptions subscriptions [not null]
 }
 
-Table services {
+Table service_templates {
   id String [pk]
   name String [not null]
   description String
@@ -120,15 +80,14 @@ Table services {
   commissionRate Decimal
   commissionFixedAmount Decimal
   commissionNotes String
-  orders orders [not null]
-  originalServiceRecords patient_records [not null]
+  orders service_instances [not null]
   commissions commissions [not null]
 }
 
-Table orders {
+Table service_instances {
   id String [pk]
   patientId String [not null]
-  serviceId String [not null]
+  serviceTemplateId String [not null]
   totalSessions Int [not null]
   completedSessions Int [not null, default: 0]
   originalPrice Decimal [not null]
@@ -140,10 +99,10 @@ Table orders {
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   patient patients [not null]
-  service services [not null]
+  service service_templates [not null]
   createdBy users [not null]
   invoice invoices
-  appointmentServices appointment_services [not null]
+  appointmentServices sessions [not null]
   commissions commissions [not null]
 }
 
@@ -165,7 +124,7 @@ Table appointments {
   attendedBy users
   patientRecords patient_records [not null]
   commissions commissions [not null]
-  appointmentServices appointment_services [not null]
+  appointmentServices sessions [not null]
   payments payments [not null]
   appointmentNotes appointment_notes [not null]
 }
@@ -184,7 +143,6 @@ Table patient_records {
   id String [pk]
   patientId String [not null]
   appointmentId String [not null]
-  originalServiceId String
   weight Decimal
   bodyMeasurement Json
   healthNotes String
@@ -194,7 +152,6 @@ Table patient_records {
   createdAt DateTime [default: `now()`, not null]
   patient patients [not null]
   appointment appointments [not null]
-  originalService services
   createdBy users [not null]
 }
 
@@ -202,8 +159,8 @@ Table commissions {
   id String [pk]
   salesPersonId String [not null]
   appointmentId String [not null]
-  orderId String
-  serviceId String
+  serviceInstanceId String
+  serviceTemplateId String
   commissionRate Decimal [not null]
   baseAmount Decimal [not null]
   commissionAmount Decimal [not null]
@@ -220,23 +177,23 @@ Table commissions {
   updatedAt DateTime [not null]
   salesPerson users [not null]
   appointment appointments [not null]
-  order orders
-  service services
+  serviceInstance service_instances
+  serviceTemplate service_templates
   approvedBy users
   paidBy users
 }
 
-Table appointment_services {
+Table sessions {
   id String [pk]
   appointmentId String [not null]
-  orderId String [not null]
+  serviceInstanceId String [not null]
   sessionNumber Int
   createdAt DateTime [default: `now()`, not null]
   deletedAt DateTime
   deletedById String
   deleteReason String
   appointment appointments [not null]
-  order orders [not null]
+  serviceInstance service_instances [not null]
   deletedBy users
 }
 
@@ -249,7 +206,7 @@ Table invoices {
   createdById String [not null]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
-  orders orders [not null]
+  orders service_instances [not null]
   patient patients [not null]
   createdBy users [not null]
   payments payments [not null]
@@ -272,78 +229,6 @@ Table payments {
   invoice invoices
   appointment appointments
   createdBy users [not null]
-}
-
-Table subscription_plans {
-  id String [pk]
-  name String [unique, not null]
-  displayName String [not null]
-  description String
-  tier SubscriptionPlanTier [not null, default: 'regular']
-  priceAmountCents Int [not null]
-  currency String [not null, default: 'PEN']
-  billingInterval String [not null, default: 'month']
-  discountPercentage Decimal [not null, default: 0]
-  includedSessions Int [not null, default: 0]
-  priorityBooking Boolean [not null, default: false]
-  features Json
-  stripeProductId String [unique]
-  stripePriceId String [unique]
-  isActive Boolean [not null, default: true]
-  sortOrder Int [not null, default: 0]
-  createdAt DateTime [default: `now()`, not null]
-  updatedAt DateTime [not null]
-  subscriptions subscriptions [not null]
-}
-
-Table subscriptions {
-  id String [pk]
-  patientId String [not null]
-  planId String [not null]
-  status SubscriptionStatus [not null, default: 'incomplete']
-  paymentGateway String [not null, default: 'niubiz']
-  stripeSubscriptionId String [unique]
-  stripeCustomerId String
-  niubizLastTransactionId String
-  niubizLastPaymentDate DateTime
-  niubizNextPaymentDate DateTime
-  niubizRetryCount Int [not null, default: 0]
-  currentPeriodStart DateTime
-  currentPeriodEnd DateTime
-  canceledAt DateTime
-  cancelAtPeriodEnd Boolean [not null, default: false]
-  cancellationReason String
-  sessionsUsedThisPeriod Int [not null, default: 0]
-  metadata Json
-  createdAt DateTime [default: `now()`, not null]
-  updatedAt DateTime [not null]
-  patient patients [not null]
-  plan subscription_plans [not null]
-  invoiceHistory subscription_invoices [not null]
-}
-
-Table subscription_invoices {
-  id String [pk]
-  subscriptionId String [not null]
-  stripeInvoiceId String [unique]
-  niubizTransactionId String [unique]
-  niubizAuthCode String
-  niubizTraceNumber String
-  amountDue Int [not null]
-  amountPaid Int [not null]
-  currency String [not null, default: 'PEN']
-  status String [not null]
-  paid Boolean [not null, default: false]
-  hostedInvoiceUrl String
-  invoicePdfUrl String
-  periodStart DateTime [not null]
-  periodEnd DateTime [not null]
-  dueDate DateTime
-  paidAt DateTime
-  errorCode String
-  errorMessage String
-  createdAt DateTime [default: `now()`, not null]
-  subscription subscriptions [not null]
 }
 
 Enum Sex {
@@ -389,42 +274,22 @@ Enum PaymentType {
   service_payment
   account_credit
   penalty
-  subscription_payment
   other
 }
 
-Enum SubscriptionStatus {
-  active
-  past_due
-  canceled
-  incomplete
-  incomplete_expired
-  unpaid
-  paused
-}
-
-Enum SubscriptionPlanTier {
-  regular
-  pro
-}
-
-Ref: role_permissions.roleId > system_roles.id [delete: Cascade]
-
-Ref: role_permissions.permissionId > permissions.id [delete: Cascade]
-
-Ref: users.roleId > system_roles.id
+Ref: users.roleId > roles.id
 
 Ref: patients.createdById > users.id
 
 Ref: patients.passwordSetByStaffId > users.id
 
-Ref: orders.patientId > patients.id
+Ref: service_instances.patientId > patients.id
 
-Ref: orders.serviceId > services.id
+Ref: service_instances.serviceTemplateId > service_templates.id
 
-Ref: orders.createdById > users.id
+Ref: service_instances.createdById > users.id
 
-Ref: orders.invoiceId > invoices.id
+Ref: service_instances.invoiceId > invoices.id
 
 Ref: appointments.patientId > patients.id
 
@@ -440,27 +305,25 @@ Ref: patient_records.patientId > patients.id
 
 Ref: patient_records.appointmentId > appointments.id
 
-Ref: patient_records.originalServiceId > services.id
-
 Ref: patient_records.createdById > users.id
 
 Ref: commissions.salesPersonId > users.id
 
 Ref: commissions.appointmentId > appointments.id
 
-Ref: commissions.orderId > orders.id
+Ref: commissions.serviceInstanceId > service_instances.id
 
-Ref: commissions.serviceId > services.id
+Ref: commissions.serviceTemplateId > service_templates.id
 
 Ref: commissions.approvedById > users.id
 
 Ref: commissions.paidById > users.id
 
-Ref: appointment_services.appointmentId > appointments.id [delete: Cascade]
+Ref: sessions.appointmentId > appointments.id [delete: Cascade]
 
-Ref: appointment_services.orderId > orders.id
+Ref: sessions.serviceInstanceId > service_instances.id
 
-Ref: appointment_services.deletedById > users.id
+Ref: sessions.deletedById > users.id
 
 Ref: invoices.patientId > patients.id
 
@@ -473,9 +336,3 @@ Ref: payments.invoiceId > invoices.id
 Ref: payments.appointmentId > appointments.id
 
 Ref: payments.createdById > users.id
-
-Ref: subscriptions.patientId > patients.id
-
-Ref: subscriptions.planId > subscription_plans.id
-
-Ref: subscription_invoices.subscriptionId > subscriptions.id

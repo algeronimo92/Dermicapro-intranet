@@ -39,8 +39,8 @@ interface PatientHistory {
     attendedAt: string | null;
     appointmentServices: Array<{
       id: string;
-      serviceId: string;
-      orderId: string | null;
+      serviceTemplateId: string;
+      serviceInstanceId: string | null;
       sessionNumber: number | null;
       service: {
         name: string;
@@ -403,11 +403,11 @@ export const PatientHistoryPage: React.FC = () => {
                           <span style={{ fontSize: '16px' }}>•</span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: '500', color: '#2c3e50' }}>
-                              {appSvc.order.service?.name}
+                              {appSvc.serviceInstance?.service?.name}
                             </div>
-                            {appSvc.order && appSvc.sessionNumber && (
+                            {appSvc.serviceInstance && appSvc.sessionNumber && (
                               <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                                Sesión {appSvc.sessionNumber} de {appSvc.order.totalSessions}
+                                Sesión {appSvc.sessionNumber} de {appSvc.serviceInstance.totalSessions}
                               </div>
                             )}
                           </div>

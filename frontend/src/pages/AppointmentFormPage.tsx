@@ -9,6 +9,7 @@ import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Loading } from '../components/Loading';
 import { PatientSelector } from '../components/PatientSelector';
+import { ServiceSelector } from '../components/ServiceSelector';
 import { UploadReservationModal } from '../components/UploadReservationModal';
 import { PackageGroupView } from '../components/PackageGroupView';
 import { DateTimePicker } from '../components/DateTimePicker';
@@ -186,10 +187,10 @@ export const AppointmentFormPage: React.FC = () => {
       // Load appointmentServices into allSessions for editing
       if (appointment.appointmentServices && appointment.appointmentServices.length > 0) {
         const sessions = appointment.appointmentServices
-          .filter(appSvc => appSvc.order?.serviceId) // Filter out invalid entries
+          .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId) // Filter out invalid entries
           .map(appSvc => ({
-            serviceId: appSvc.order!.serviceId as string,
-            orderId: appSvc.order!.id as string | undefined,
+            serviceId: appSvc.serviceInstance!.serviceTemplateId as string,
+            orderId: appSvc.serviceInstance!.id as string | undefined,
             sessionNumber: appSvc.sessionNumber || undefined,
             appointmentServiceId: appSvc.id // Marcar como sesión existente en BD
           }));
@@ -848,18 +849,10 @@ export const AppointmentFormPage: React.FC = () => {
                 </div>
 
                 <div className="add-session-fields">
-                  <Select
-                    label="Servicio/Tratamiento *"
-                    name="sessionService"
+                  <ServiceSelector
                     value={selectedSessionServiceId}
-                    onChange={(e) => setSelectedSessionServiceId(e.target.value)}
-                    options={[
-                      { value: '', label: '-- Seleccionar servicio --' },
-                      ...services.map(s => ({
-                        value: s.id,
-                        label: `${s.name} - S/. ${s.basePrice}${s.defaultSessions > 1 ? ` (${s.defaultSessions} sesiones)` : ''}`
-                      }))
-                    ]}
+                    onChange={setSelectedSessionServiceId}
+                    services={services}
                   />
 
                   {selectedSessionServiceId && (() => {

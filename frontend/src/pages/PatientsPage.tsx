@@ -7,7 +7,8 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
-import { Loading } from '../components/Loading';
+import { PageListLayout } from '../components/templates';
+import { CreatePatientModal } from '../components/CreatePatientModal';
 import { formatDate } from '../utils/dateUtils';
 
 export const PatientsPage: React.FC = () => {
@@ -15,10 +16,10 @@ export const PatientsPage: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Filtros y paginación
   const [search, setSearch] = useState('');
-  const [activeSearch, setActiveSearch] = useState(''); // Búsqueda activa aplicada
+  const [activeSearch, setActiveSearch] = useState('');
   const [sexFilter, setSexFilter] = useState<Sex | ''>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -35,7 +36,7 @@ export const PatientsPage: React.FC = () => {
         page: currentPage,
         limit,
         search: activeSearch || undefined,
-        sex: sexFilter || undefined
+        sex: sexFilter || undefined,
       };
 
       const response = await patientsService.getPatients(params);
@@ -59,9 +60,7 @@ export const PatientsPage: React.FC = () => {
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
   const handleClearFilters = () => {
@@ -71,116 +70,61 @@ export const PatientsPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleCreatePatient = () => {
-    navigate('/patients/new');
-  };
-
-  const handleRowClick = (patient: Patient) => {
-    navigate(`/patients/${patient.id}`);
-  };
-
   const columns: Column<Patient>[] = [
-    {
-      key: 'dni',
-      header: 'DNI',
-    },
-    {
-      key: 'firstName',
-      header: 'Nombres',
-    },
-    {
-      key: 'lastName',
-      header: 'Apellidos',
-    },
+    { key: 'dni', header: 'DNI' },
+    { key: 'firstName', header: 'Nombres' },
+    { key: 'lastName', header: 'Apellidos' },
     {
       key: 'sex',
       header: 'Sexo',
-      render: (patient) => {
-        const sexLabels: Record<Sex, string> = {
-          M: 'Masculino',
-          F: 'Femenino',
-          Other: 'Otro'
-        };
-        return sexLabels[patient.sex];
-      }
+      render: (patient) => ({ M: 'Masculino', F: 'Femenino', Other: 'Otro' }[patient.sex]),
     },
-    {
-      key: 'phone',
-      header: 'Teléfono',
-      render: (patient) => patient.phone || '-'
-    },
-    {
-      key: 'dateOfBirth',
-      header: 'Fecha de Nacimiento',
-      render: (patient) => formatDate(patient.dateOfBirth)
-    },
+    { key: 'phone', header: 'Teléfono', render: (p) => p.phone || '-' },
+    { key: 'dateOfBirth', header: 'Fecha de Nacimiento', render: (p) => formatDate(p.dateOfBirth) },
     {
       key: 'lastAttendedDate',
       header: 'Última Atención',
-      render: (patient) => patient.lastAttendedDate
-        ? formatDate(patient.lastAttendedDate)
-        : '-'
+      render: (p) => p.lastAttendedDate ? formatDate(p.lastAttendedDate) : '-',
     },
     {
       key: 'lastAttendedBy',
       header: 'Atendido por',
-      render: (patient) => patient.lastAttendedBy ? (
-        <span
-          style={{
-            color: '#2ecc71',
-            cursor: 'pointer',
-            textDecoration: 'underline'
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (patient.lastAttendedBy?.id) {
-              navigate(`/employees/${patient.lastAttendedBy.id}`);
-            }
-          }}
-        >
-          {patient.lastAttendedBy.firstName} {patient.lastAttendedBy.lastName}
-        </span>
-      ) : '-'
+      render: (p) =>
+        p.lastAttendedBy ? (
+          <span
+            style={{ color: 'var(--color-success)', cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={(e) => { e.stopPropagation(); navigate(`/employees/${p.lastAttendedBy!.id}`); }}
+          >
+            {p.lastAttendedBy.firstName} {p.lastAttendedBy.lastName}
+          </span>
+        ) : '-',
     },
     {
       key: 'createdBy',
       header: 'Registrado por',
-      render: (patient) => patient.createdBy ? (
-        <span
-          style={{
-            color: '#3498db',
-            cursor: 'pointer',
-            textDecoration: 'underline'
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (patient.createdBy?.id) {
-              navigate(`/employees/${patient.createdBy.id}`);
-            }
-          }}
-        >
-          {patient.createdBy.firstName} {patient.createdBy.lastName}
-        </span>
-      ) : '-'
+      render: (p) =>
+        p.createdBy ? (
+          <span
+            style={{ color: 'var(--color-info)', cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={(e) => { e.stopPropagation(); navigate(`/employees/${p.createdBy!.id}`); }}
+          >
+            {p.createdBy.firstName} {p.createdBy.lastName}
+          </span>
+        ) : '-',
     },
-    {
-      key: 'createdAt',
-      header: 'Fecha de Registro',
-      render: (patient) => formatDate(patient.createdAt)
-    }
+    { key: 'createdAt', header: 'Fecha de Registro', render: (p) => formatDate(p.createdAt) },
   ];
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>Gestión de Pacientes</h1>
-        <Button variant="primary" onClick={handleCreatePatient}>
+    <PageListLayout
+      title="Gestión de Pacientes"
+      actions={
+        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
           + Nuevo Paciente
         </Button>
-      </div>
-
-      <div className="filters-container">
-        <div className="filters-row">
+      }
+      filters={
+        <>
           <Input
             type="text"
             placeholder="Buscar por nombre, DNI, teléfono..."
@@ -189,61 +133,52 @@ export const PatientsPage: React.FC = () => {
             onKeyPress={handleSearchKeyPress}
             className="search-input"
           />
-
           <Select
             value={sexFilter}
             onChange={(e) => setSexFilter(e.target.value as Sex | '')}
             options={[
               { value: 'M', label: 'Masculino' },
               { value: 'F', label: 'Femenino' },
-              { value: 'Other', label: 'Otro' }
+              { value: 'Other', label: 'Otro' },
             ]}
             className="filter-select"
           />
-
           <Button variant="primary" onClick={handleSearch}>
             Buscar
           </Button>
-
           {(search || activeSearch || sexFilter) && (
-            <Button
-              variant="secondary"
-              onClick={handleClearFilters}
-            >
+            <Button variant="secondary" onClick={handleClearFilters}>
               Limpiar filtros
             </Button>
           )}
-        </div>
-      </div>
-
-      {error && (
-        <div className="error-banner">
-          {error}
-        </div>
-      )}
-
-      <div className="results-info">
-        <p>Total de pacientes: {total}</p>
-      </div>
-
-      {isLoading ? (
-        <Loading text="Cargando pacientes..." />
-      ) : (
-        <>
-          <Table
-            columns={columns}
-            data={patients}
-            onRowClick={handleRowClick}
-            emptyMessage="No se encontraron pacientes"
-          />
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
         </>
-      )}
-    </div>
+      }
+      total={total}
+      totalLabel="pacientes"
+      isLoading={isLoading}
+      loadingText="Cargando pacientes..."
+      error={error}
+    >
+      <Table
+        columns={columns}
+        data={patients}
+        onRowClick={(p) => navigate(`/patients/${p.id}`)}
+        emptyMessage="No se encontraron pacientes"
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+      <CreatePatientModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={(patient) => {
+          setPatients(prev => [patient, ...prev]);
+          setTotal(prev => prev + 1);
+          setShowCreateModal(false);
+        }}
+      />
+    </PageListLayout>
   );
 };

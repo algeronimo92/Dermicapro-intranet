@@ -3,175 +3,47 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-// Define permissions directly in seed to avoid import issues in production
-const BASE_PERMISSIONS = [
-  {
-    name: 'dashboard.access',
-    displayName: '📊 Acceso a Dashboard',
-    description: 'Permite acceder al módulo de Panel principal del sistema',
-    module: 'dashboard',
-    action: 'access',
-  },
-  {
-    name: 'patients.access',
-    displayName: '👥 Acceso a Pacientes',
-    description: 'Permite acceder al módulo de Gestión de pacientes',
-    module: 'patients',
-    action: 'access',
-  },
-  {
-    name: 'appointments.access',
-    displayName: '📅 Acceso a Citas',
-    description: 'Permite acceder al módulo de Gestión de citas',
-    module: 'appointments',
-    action: 'access',
-  },
-  {
-    name: 'services.access',
-    displayName: '💉 Acceso a Servicios',
-    description: 'Permite acceder al módulo de Gestión de servicios',
-    module: 'services',
-    action: 'access',
-  },
-  {
-    name: 'employees.access',
-    displayName: '👔 Acceso a Recursos Humanos',
-    description: 'Permite acceder al módulo de Gestión de empleados',
-    module: 'employees',
-    action: 'access',
-  },
-  {
-    name: 'roles.access',
-    displayName: '🔐 Acceso a Roles y Permisos',
-    description: 'Permite acceder al módulo de Gestión de roles y permisos',
-    module: 'roles',
-    action: 'access',
-  },
-  {
-    name: 'analytics.access',
-    displayName: '📈 Acceso a Analíticas',
-    description: 'Permite acceder al módulo de Analíticas y reportes',
-    module: 'analytics',
-    action: 'access',
-  },
-  {
-    name: 'invoices.access',
-    displayName: '💰 Acceso a Facturación',
-    description: 'Permite acceder al módulo de Facturas y pagos',
-    module: 'invoices',
-    action: 'access',
-  },
-  {
-    name: 'medical_records.access',
-    displayName: '📋 Acceso a Historiales Médicos',
-    description: 'Permite acceder al módulo de Historiales clínicos',
-    module: 'medical_records',
-    action: 'access',
-  },
-  {
-    name: 'settings.access',
-    displayName: '⚙️ Acceso a Configuración',
-    description: 'Permite acceder al módulo de Configuración del sistema',
-    module: 'settings',
-    action: 'access',
-  },
-];
-
 async function main() {
   console.log('Starting seed...');
 
-  // ===== STEP 1: Create/Update System Roles =====
-  console.log('Creating system roles...');
+  // ===== STEP 1: Create Roles =====
+  console.log('Creating roles...');
 
-  const adminRole = await prisma.systemRole.upsert({
+  const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
-    update: {},
-    create: {
-      name: 'admin',
-      displayName: 'Administrador',
-      description: 'Acceso completo al sistema',
-      isSystem: true,
-      isActive: true,
-    },
+    update: { displayName: 'Administrador' },
+    create: { name: 'admin', displayName: 'Administrador' },
   });
 
-  const nurseRole = await prisma.systemRole.upsert({
-    where: { name: 'nurse' },
-    update: {},
-    create: {
-      name: 'nurse',
-      displayName: 'Enfermera',
-      description: 'Personal de enfermería',
-      isSystem: true,
-      isActive: true,
-    },
+  const medicalRole = await prisma.role.upsert({
+    where: { name: 'medical_staff' },
+    update: { displayName: 'Personal Médico' },
+    create: { name: 'medical_staff', displayName: 'Personal Médico' },
   });
 
-  const salesRole = await prisma.systemRole.upsert({
+  const salesRole = await prisma.role.upsert({
     where: { name: 'sales' },
-    update: {},
-    create: {
-      name: 'sales',
-      displayName: 'Ventas',
-      description: 'Personal de ventas',
-      isSystem: true,
-      isActive: true,
-    },
+    update: { displayName: 'Ventas' },
+    create: { name: 'sales', displayName: 'Ventas' },
   });
 
-  console.log('System roles created/updated');
+  await prisma.role.upsert({
+    where: { name: 'receptionist' },
+    update: { displayName: 'Recepcionista' },
+    create: { name: 'receptionist', displayName: 'Recepcionista' },
+  });
 
-  // ===== STEP 2: Create/Update Permissions =====
-  console.log('Creating permissions...');
+  console.log('Roles created');
 
-  const createdPermissions = [];
-
-  for (const perm of BASE_PERMISSIONS) {
-    const permission = await prisma.permission.upsert({
-      where: { name: perm.name },
-      update: {
-        displayName: perm.displayName,
-        description: perm.description,
-      },
-      create: perm,
-    });
-    createdPermissions.push(permission);
-  }
-
-  console.log(`${createdPermissions.length} permissions created/updated`);
-
-  // ===== STEP 3: Assign ALL Permissions to Admin Role =====
-  console.log('Assigning all permissions to admin role...');
-
-  for (const permission of createdPermissions) {
-    await prisma.rolePermission.upsert({
-      where: {
-        roleId_permissionId: {
-          roleId: adminRole.id,
-          permissionId: permission.id,
-        },
-      },
-      update: {},
-      create: {
-        roleId: adminRole.id,
-        permissionId: permission.id,
-      },
-    });
-  }
-
-  console.log(`All ${createdPermissions.length} permissions assigned to admin`);
-
-  // ===== STEP 4: Create Default Users =====
+  // ===== STEP 2: Create Default Users =====
   console.log('Creating default users...');
 
-  // Create default admin user
-  const adminPassword = await bcrypt.hash('admin123', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@dermicapro.com' },
     update: {},
     create: {
       email: 'admin@dermicapro.com',
-      passwordHash: adminPassword,
+      passwordHash: await bcrypt.hash('admin123', 12),
       firstName: 'Admin',
       lastName: 'DermicaPro',
       roleId: adminRole.id,
@@ -179,33 +51,29 @@ async function main() {
       isActive: true,
     },
   });
-  console.log('Admin user created:', admin.email);
+  console.log('Admin user:', admin.email);
 
-  // Create nurse user
-  const nursePassword = await bcrypt.hash('nurse123', 12);
-  const nurse = await prisma.user.upsert({
-    where: { email: 'enfermera@dermicapro.com' },
+  const medical = await prisma.user.upsert({
+    where: { email: 'medico@dermicapro.com' },
     update: {},
     create: {
-      email: 'enfermera@dermicapro.com',
-      passwordHash: nursePassword,
+      email: 'medico@dermicapro.com',
+      passwordHash: await bcrypt.hash('medico123', 12),
       firstName: 'María',
       lastName: 'García',
-      roleId: nurseRole.id,
+      roleId: medicalRole.id,
       sex: 'F',
       isActive: true,
     },
   });
-  console.log('Nurse user created:', nurse.email);
+  console.log('Medical staff user:', medical.email);
 
-  // Create sales user
-  const salesPassword = await bcrypt.hash('sales123', 12);
   const sales = await prisma.user.upsert({
     where: { email: 'ventas@dermicapro.com' },
     update: {},
     create: {
       email: 'ventas@dermicapro.com',
-      passwordHash: salesPassword,
+      passwordHash: await bcrypt.hash('sales123', 12),
       firstName: 'Carlos',
       lastName: 'Rodríguez',
       roleId: salesRole.id,
@@ -213,174 +81,162 @@ async function main() {
       isActive: true,
     },
   });
-  console.log('Sales user created:', sales.email);
+  console.log('Sales user:', sales.email);
 
-  // ===== STEP 5: Create Services =====
-  console.log('Creating services...');
+  // ===== STEP 3: Clear and Recreate Service Templates =====
+  console.log('Clearing existing service data...');
+  await prisma.commission.deleteMany({});
+  await prisma.session.deleteMany({});
+  await prisma.serviceInstance.deleteMany({});
+  await prisma.serviceTemplate.deleteMany({});
+  console.log('Service data cleared');
 
-  const services = [
-    {
-      name: 'HIFU 12D (Lifting sin Cirugía)',
-      description: 'Tecnología de ultrasonido para combatir la flacidez facial',
-      basePrice: 500.00,
-      defaultSessions: 1,
-      commissionType: 'percentage',
-      commissionRate: 0.15, // 15%
-      commissionNotes: 'Comisión del 15% sobre el precio final',
-    },
-    {
-      name: 'Borrado de Manchas (Pico Láser)',
-      description: 'Tratamiento para manchas hormonales, solares y post-acné',
-      basePrice: 300.00,
-      defaultSessions: 1,
-      commissionType: 'percentage',
-      commissionRate: 0.12, // 12%
-      commissionNotes: 'Comisión del 12% sobre el precio final',
-    },
-    {
-      name: 'Hollywood Peel',
-      description: 'Luminosidad instantánea y cierre de poros',
-      basePrice: 180.00,
-      defaultSessions: 1,
-      commissionType: 'fixed',
-      commissionFixedAmount: 25.00, // S/ 25 fijo
-      commissionNotes: 'Comisión fija de S/ 25 por venta',
-    },
-    {
-      name: 'Hollywood Peel (Paquete x3)',
-      description: 'Paquete de 3 sesiones de Hollywood Peel con descuento',
-      basePrice: 500.00,
-      defaultSessions: 3,
-      commissionType: 'fixed',
-      commissionFixedAmount: 60.00, // S/ 60 fijo
-      commissionNotes: 'Comisión fija de S/ 60 por paquete',
-    },
-    {
-      name: 'Enzimas Recombinantes',
-      description: 'Tratamiento para grasa localizada, fibrosis y exceso de ácido hialurónico',
-      basePrice: 800.00,
-      defaultSessions: 2,
-      commissionType: 'percentage',
-      commissionRate: 0.18, // 18%
-      commissionNotes: 'Comisión del 18% sobre el precio final',
-    },
-    {
-      name: 'Reducción de Papada (Enzimas + HIFU)',
-      description: 'Combinación de tecnologías para eliminar grasa y tensar la piel',
-      basePrice: 600.00,
-      defaultSessions: 1,
-      commissionType: 'percentage',
-      commissionRate: 0.15, // 15%
-      commissionNotes: 'Comisión del 15% sobre el precio final',
-    },
-    {
-      name: 'Borrado de Tatuajes',
-      description: 'Eliminación segura de tatuajes',
-      basePrice: 400.00,
-      defaultSessions: 1,
-      commissionType: 'fixed',
-      commissionFixedAmount: 50.00, // S/ 50 fijo
-      commissionNotes: 'Comisión fija de S/ 50 por sesión',
-    },
-    {
-      name: 'Borrado de Micropigmentación',
-      description: 'Eliminación de micropigmentación fallida',
-      basePrice: 300.00,
-      defaultSessions: 1,
-      commissionType: 'percentage',
-      commissionRate: 0.10, // 10%
-      commissionNotes: 'Comisión del 10% sobre el precio final',
-    },
-    {
-      name: 'Borrado de Micropigmentación (Paquete x4)',
-      description: 'Paquete de 4 sesiones de Borrado de Micropigmentación con descuento',
-      basePrice: 999.00,
-      defaultSessions: 4,
-      commissionType: 'percentage',
-      commissionRate: 0.12, // 12%
-      commissionNotes: 'Comisión del 12% sobre el precio final del paquete',
-    },
+  console.log('Creating service templates...');
+
+  const serviceTemplates = [
+    // ─── GENERAL ───
+    { name: 'Consulta',                                                   basePrice: 50.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 5.00, commissionNotes: 'Comisión fija S/5' },
+
+    // ─── DEPILACIÓN LÁSER TRIDIODO (comisión fija S/10) ───
+    { name: 'Depilación Láser Tridiodo - Espalda Completa',            basePrice: 140.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Espalda Completa (x6)',       basePrice: 560.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Entrepierna',                 basePrice: 60.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Entrepierna (x6)',            basePrice: 240.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Medio Brazo',                 basePrice: 80.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Medio Brazo (x6)',            basePrice: 320.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Brazo Completo',              basePrice: 100.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Brazo Completo (x6)',         basePrice: 400.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bikini Brasilero',            basePrice: 100.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bikini Brasilero (x6)',       basePrice: 400.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bikini Clásico',              basePrice: 120.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bikini Clásico (x6)',         basePrice: 480.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Rostro Completo',             basePrice: 60.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Rostro Completo (x6)',        basePrice: 240.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bozo',                        basePrice: 40.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bozo (x6)',                   basePrice: 160.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Patillas',                    basePrice: 30.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Patillas (x6)',               basePrice: 120.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Axilas',                      basePrice: 50.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Axilas (x6)',                 basePrice: 200.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Piernas',                     basePrice: 200.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Piernas (x6)',                basePrice: 800.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Glúteos',                     basePrice: 100.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Glúteos (x6)',                basePrice: 400.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Rostro + Axila',              basePrice: 80.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Rostro + Axila (x6)',         basePrice: 320.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bozo + Bikini Completo',      basePrice: 100.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Bozo + Bikini Completo (x6)', basePrice: 400.00,   defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Piernas Completas + Axila',      basePrice: 200.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Depilación Láser Tridiodo - Piernas Completas + Axila (x6)', basePrice: 800.00, defaultSessions: 6, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+
+    // ─── HIFU 12D (comisión fija S/20) ───
+    { name: 'HIFU 12D - Rostro + Papada',                    basePrice: 400.00,  defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'HIFU 12D - Rostro + Papada + Cuello + Escote',  basePrice: 600.00,  defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'HIFU 12D - Brazos',                             basePrice: 700.00,  defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'HIFU 12D - Abdomen',                            basePrice: 1000.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+
+    // ─── HOLLYWOOD PEEL (x1: S/8, paquete x3: S/18) ───
+    { name: 'Hollywood Peel - Rostro',                basePrice: 180.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 8.00,  commissionNotes: 'Comisión fija S/8' },
+    { name: 'Hollywood Peel - Rostro (x3)',           basePrice: 400.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 18.00, commissionNotes: 'Comisión fija S/18' },
+    { name: 'Hollywood Peel - Rostro + Cuello',       basePrice: 220.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 8.00,  commissionNotes: 'Comisión fija S/8' },
+    { name: 'Hollywood Peel - Rostro + Cuello (x3)',  basePrice: 480.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 18.00, commissionNotes: 'Comisión fija S/18' },
+    { name: 'Hollywood Peel - Cuello',                basePrice: 100.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 8.00,  commissionNotes: 'Comisión fija S/8' },
+    { name: 'Hollywood Peel - Cuello (x3)',           basePrice: 200.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 18.00, commissionNotes: 'Comisión fija S/18' },
+    { name: 'Hollywood Peel - Axilas',                basePrice: 120.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 8.00,  commissionNotes: 'Comisión fija S/8' },
+    { name: 'Hollywood Peel - Axilas (x3)',           basePrice: 250.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 18.00, commissionNotes: 'Comisión fija S/18' },
+
+    // ─── LIMPIEZA FACIAL ESTÁNDAR (comisión fija S/6) ───
+    { name: 'Limpieza Facial Estándar - 1 Persona',       basePrice: 100.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+    { name: 'Limpieza Facial Estándar - 1 Persona (x2)',  basePrice: 180.00, defaultSessions: 2, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+    { name: 'Limpieza Facial Estándar - 1 Persona (x3)',  basePrice: 225.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+    { name: 'Limpieza Facial Estándar - 2 Personas',      basePrice: 160.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+
+    // ─── LIMPIEZA FACIAL PREMIUM (comisión fija S/6) ───
+    { name: 'Limpieza Facial Premium - 1 Persona',       basePrice: 150.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+    { name: 'Limpieza Facial Premium - 1 Persona (x2)',  basePrice: 280.00, defaultSessions: 2, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+    { name: 'Limpieza Facial Premium - 1 Persona (x3)',  basePrice: 380.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+    { name: 'Limpieza Facial Premium - 2 Personas',      basePrice: 260.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 6.00, commissionNotes: 'Comisión fija S/6' },
+
+    // ─── EXOSOMAS TRX (comisión fija S/12) ───
+    { name: 'Exosomas TRX - Rostro',       basePrice: 350.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 12.00, commissionNotes: 'Comisión fija S/12' },
+    { name: 'Exosomas TRX - Rostro (x3)',  basePrice: 950.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 12.00, commissionNotes: 'Comisión fija S/12' },
+
+    // ─── ÁCIDO TRANEXÁMICO (comisión fija S/15) ───
+    { name: 'Ácido Tranexámico - Rostro',       basePrice: 300.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+    { name: 'Ácido Tranexámico - Rostro (x3)',  basePrice: 800.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+
+    // ─── ENZIMAS RECOMBINANTES (comisión fija S/20) ───
+    { name: 'Enzimas Recombinantes - Papada',       basePrice: 450.00,  defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'Enzimas Recombinantes - Papada (x2)',  basePrice: 800.00,  defaultSessions: 2, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'Enzimas Recombinantes - Papada (x4)',  basePrice: 1500.00, defaultSessions: 4, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+
+    // ─── ADN DE SALMÓN (comisión fija S/15) ───
+    { name: 'ADN de Salmón - Rostro',       basePrice: 250.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+    { name: 'ADN de Salmón - Rostro (x3)',  basePrice: 650.00, defaultSessions: 3, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+
+    // ─── BORRADO DE CEJAS (comisión fija S/15) ───
+    { name: 'Borrado de Cejas',       basePrice: 250.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+    { name: 'Borrado de Cejas (x2)',  basePrice: 480.00, defaultSessions: 2, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+    { name: 'Borrado de Cejas (x4)',  basePrice: 800.00, defaultSessions: 4, commissionType: 'fixed', commissionFixedAmount: 15.00, commissionNotes: 'Comisión fija S/15' },
+
+    // ─── BOTOX (comisión fija S/20) ───
+    { name: 'Botox - 1 Zona',   basePrice: 350.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'Botox - 2 Zonas',  basePrice: 600.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'Botox - 3 Zonas',  basePrice: 850.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+
+    // ─── REMOCIÓN DE LUNARES O ACROCORDONES (comisión fija S/10) ───
+    { name: 'Remoción de Lunares - 1 a 2 Lunares',   basePrice: 100.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Remoción de Lunares - 2 a 5 Lunares',   basePrice: 150.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+    { name: 'Remoción de Lunares - 5 a 10 Lunares',  basePrice: 250.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },
+
+    // ─── RINOMODELACIÓN (comisión fija S/25) ───
+    { name: 'Rinomodelación - Nariz 1 Jeringa', basePrice: 700.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 25.00, commissionNotes: 'Comisión fija S/25' },
+
+    // ─── PUNTOS DE ANCLAJE (comisión 5%) — 1 sesión, precio según nº de jeringas ───
+    { name: 'Puntos de Anclaje - 1 Jeringa',  basePrice: 700.00,  defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.05, commissionNotes: 'Comisión 5%' },
+    { name: 'Puntos de Anclaje - 2 Jeringas', basePrice: 1200.00, defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.05, commissionNotes: 'Comisión 5%' },
+    { name: 'Puntos de Anclaje - 3 Jeringas', basePrice: 1740.00, defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.05, commissionNotes: 'Comisión 5%' },
+    { name: 'Puntos de Anclaje - 4 Jeringas', basePrice: 2200.00, defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.05, commissionNotes: 'Comisión 5%' },
+    { name: 'Puntos de Anclaje - 5 Jeringas', basePrice: 2600.00, defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.05, commissionNotes: 'Comisión 5%' },
+    { name: 'Puntos de Anclaje - 6 Jeringas', basePrice: 3000.00, defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.05, commissionNotes: 'Comisión 5%' },
+
+    // ─── EXOSOMAS + ADN VTECH (comisión fija S/20) ───
+    { name: 'Exosomas + ADN Vtech - Vial Entero', basePrice: 1000.00, defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+    { name: 'Exosomas + ADN Vtech - Medio Vial',  basePrice: 500.00,  defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 20.00, commissionNotes: 'Comisión fija S/20' },
+
+    // ─── BORRADO DE TATUAJES (comisión 10%) ───
+    // x2 = precio×2 con 10% descuento | x4 = precio×3 (1 sesión gratis)
+    { name: 'Borrado de Tatuajes - XXXS',       basePrice: 80.00,    defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXXS (x2)',  basePrice: 144.00,   defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXXS (x4)',  basePrice: 240.00,   defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXS',        basePrice: 150.00,   defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXS (x2)',   basePrice: 270.00,   defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXS (x4)',   basePrice: 450.00,   defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XS',         basePrice: 250.00,   defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XS (x2)',    basePrice: 450.00,   defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XS (x4)',    basePrice: 750.00,   defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - S',          basePrice: 350.00,   defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - S (x2)',     basePrice: 630.00,   defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - S (x4)',     basePrice: 1050.00,  defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - M',          basePrice: 500.00,   defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - M (x2)',     basePrice: 900.00,   defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - M (x4)',     basePrice: 1500.00,  defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - L',          basePrice: 800.00,   defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - L (x2)',     basePrice: 1440.00,  defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - L (x4)',     basePrice: 2400.00,  defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XL',         basePrice: 1200.00,  defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XL (x2)',    basePrice: 2160.00,  defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XL (x4)',    basePrice: 3600.00,  defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXL',        basePrice: 1600.00,  defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXL (x2)',   basePrice: 2880.00,  defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXL (x4)',   basePrice: 4800.00,  defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXXL',       basePrice: 2000.00,  defaultSessions: 1, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXXL (x2)',  basePrice: 3600.00,  defaultSessions: 2, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
+    { name: 'Borrado de Tatuajes - XXXL (x4)',  basePrice: 6000.00,  defaultSessions: 4, commissionType: 'percentage', commissionRate: 0.10, commissionNotes: 'Comisión 10%' },
   ];
 
-  for (const service of services) {
-    await prisma.service.upsert({
-      where: { id: service.name }, // temporary unique identifier
-      update: {},
-      create: service,
-    }).catch(() => {
-      // If upsert fails due to id issue, just create
-      return prisma.service.create({ data: service });
-    });
-  }
-  console.log(`${services.length} services created`);
-
-  // ===== STEP 6: Create Subscription Plans =====
-  console.log('Creating subscription plans...');
-
-  // NOTA: Los IDs de Stripe deben ser configurados después de crear
-  // los productos/precios en Stripe Dashboard. Por ahora se dejan null
-  // y se actualizan manualmente o vía API de admin.
-
-  const subscriptionPlans = [
-    {
-      name: 'regular',
-      displayName: 'Plan Regular',
-      description: 'Beneficios esenciales para pacientes frecuentes',
-      tier: 'regular' as const,
-      priceAmountCents: 8000, // S/ 80.00
-      currency: 'PEN',
-      billingInterval: 'month',
-      discountPercentage: 10, // 10% de descuento
-      includedSessions: 1, // 1 sesión incluida al mes
-      priorityBooking: false,
-      features: {
-        earlyAccess: false,
-        exclusiveContent: false,
-      },
-      isActive: true,
-      sortOrder: 1,
-      // stripeProductId y stripePriceId se configuran después
-    },
-    {
-      name: 'pro',
-      displayName: 'Plan Pro',
-      description: 'Máximos beneficios y prioridad en atención',
-      tier: 'pro' as const,
-      priceAmountCents: 12000, // S/ 120.00
-      currency: 'PEN',
-      billingInterval: 'month',
-      discountPercentage: 20, // 20% de descuento
-      includedSessions: 2, // 2 sesiones incluidas al mes
-      priorityBooking: true,
-      features: {
-        earlyAccess: true,
-        exclusiveContent: true,
-        prioritySupport: true,
-      },
-      isActive: true,
-      sortOrder: 2,
-      // stripeProductId y stripePriceId se configuran después
-    },
-  ];
-
-  for (const plan of subscriptionPlans) {
-    await prisma.subscriptionPlan.upsert({
-      where: { name: plan.name },
-      update: {
-        displayName: plan.displayName,
-        description: plan.description,
-        priceAmountCents: plan.priceAmountCents,
-        discountPercentage: plan.discountPercentage,
-        includedSessions: plan.includedSessions,
-        priorityBooking: plan.priorityBooking,
-        features: plan.features,
-        isActive: plan.isActive,
-        sortOrder: plan.sortOrder,
-      },
-      create: plan,
-    });
-  }
-  console.log(`${subscriptionPlans.length} subscription plans created`);
+  await prisma.serviceTemplate.createMany({ data: serviceTemplates });
+  console.log(`${serviceTemplates.length} service templates created`);
 
   console.log('Seed completed!');
 }

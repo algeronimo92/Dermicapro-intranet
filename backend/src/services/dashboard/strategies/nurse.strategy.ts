@@ -69,7 +69,7 @@ export class NurseDashboardStrategy extends BaseDashboardStrategy {
             deletedAt: null, // Solo servicios activos
           },
           include: {
-            order: {
+            serviceInstance: {
               include: {
                 service: {
                   select: {
@@ -143,9 +143,9 @@ export class NurseDashboardStrategy extends BaseDashboardStrategy {
   private async getTopServices() {
     const monthAgo = this.getDaysAgo(30);
 
-    // Agrupar por orderId para contar servicios
-    const topOrders = await this.prisma.appointmentService.groupBy({
-      by: ['orderId'],
+    // Agrupar por serviceInstanceId para contar servicios
+    const topOrders = await this.prisma.session.groupBy({
+      by: ['serviceInstanceId'],
       _count: true,
       where: {
         appointment: {
@@ -158,17 +158,17 @@ export class NurseDashboardStrategy extends BaseDashboardStrategy {
       },
       orderBy: {
         _count: {
-          orderId: 'desc',
+          serviceInstanceId: 'desc',
         },
       },
       take: 5,
     });
 
     // Obtener detalles de los servicios
-    const orderIds = topOrders.map((o) => o.orderId);
-    const orders = await this.prisma.order.findMany({
+    const serviceInstanceIds = topOrders.map((o) => o.serviceInstanceId);
+    const orders = await this.prisma.serviceInstance.findMany({
       where: {
-        id: { in: orderIds },
+        id: { in: serviceInstanceIds },
       },
       include: {
         service: {
@@ -182,9 +182,9 @@ export class NurseDashboardStrategy extends BaseDashboardStrategy {
 
     // Mapear resultados
     return topOrders.map((topOrder) => {
-      const order = orders.find((o) => o.id === topOrder.orderId);
+      const order = orders.find((o) => o.id === topOrder.serviceInstanceId);
       return {
-        serviceId: order?.service.id || '',
+        serviceTemplateId: order?.service.id || '',
         name: order?.service.name || 'Desconocido',
         count: topOrder._count,
       };
