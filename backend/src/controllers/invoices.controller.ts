@@ -250,7 +250,7 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
       throw new AppError('patientId es requerido', 400);
     }
 
-    const invoiceDto = InvoiceFactory.createFromOrderIds(
+    const invoiceDto = InvoiceFactory.createFromServiceInstanceIds(
       serviceInstanceIds,
       patientId,
       req.user!.id,
@@ -272,11 +272,11 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
 /**
  * Obtiene las órdenes sin facturar de un paciente
  */
-export const getUninvoicedOrders = async (req: Request, res: Response): Promise<void> => {
+export const getUninvoicedServiceInstances = async (req: Request, res: Response): Promise<void> => {
   try {
     const { patientId } = req.params;
 
-    const orders = await invoicingService.getUninvoicedOrders(patientId);
+    const orders = await invoicingService.getUninvoicedServiceInstances(patientId);
 
     res.json(orders);
   } catch (error) {

@@ -1,4 +1,4 @@
-import { PrismaClient, Invoice, InvoiceStatus, Order } from '@prisma/client';
+import { PrismaClient, Invoice, InvoiceStatus, ServiceInstance } from '@prisma/client';
 import { AppError } from '../middlewares/errorHandler';
 
 const prisma = new PrismaClient();
@@ -10,8 +10,8 @@ interface CreateInvoiceDto {
   dueDate?: Date;
 }
 
-interface InvoiceWithOrders extends Invoice {
-  orders?: (Order & { service?: any })[];
+interface InvoiceWithServiceInstances extends Invoice {
+  orders?: (ServiceInstance & { service?: any })[];
   payments?: any[];
 }
 
@@ -21,7 +21,7 @@ export class InvoicingService {
    * @param dto Datos para crear la factura
    * @returns La factura creada con sus órdenes asociadas
    */
-  async createInvoice(dto: CreateInvoiceDto): Promise<InvoiceWithOrders> {
+  async createInvoice(dto: CreateInvoiceDto): Promise<InvoiceWithServiceInstances> {
     const { serviceInstanceIds, patientId, createdById, dueDate } = dto;
 
     // Validar que se proporcionaron órdenes
@@ -124,7 +124,7 @@ export class InvoicingService {
   /**
    * Obtiene una factura por ID con todas sus órdenes y pagos
    */
-  async getInvoiceById(invoiceId: string): Promise<InvoiceWithOrders> {
+  async getInvoiceById(invoiceId: string): Promise<InvoiceWithServiceInstances> {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -167,7 +167,7 @@ export class InvoicingService {
   /**
    * Obtiene todas las facturas de un paciente
    */
-  async getPatientInvoices(patientId: string): Promise<InvoiceWithOrders[]> {
+  async getPatientInvoices(patientId: string): Promise<InvoiceWithServiceInstances[]> {
     const invoices = await prisma.invoice.findMany({
       where: { patientId },
       include: {
@@ -251,7 +251,7 @@ export class InvoicingService {
   /**
    * Obtiene las órdenes sin facturar de un paciente
    */
-  async getUninvoicedOrders(patientId: string): Promise<Order[]> {
+  async getUninvoicedServiceInstances(patientId: string): Promise<ServiceInstance[]> {
     const orders = await prisma.serviceInstance.findMany({
       where: {
         patientId,

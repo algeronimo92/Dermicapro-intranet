@@ -6,7 +6,7 @@ import {
   getInvoicesByPatient,
   getInvoiceSummary,
   createInvoice,
-  getUninvoicedOrders,
+  getUninvoicedServiceInstances,
   cancelInvoice,
   autoUpdateInvoiceStatus,
 } from '../controllers/invoices.controller';
@@ -24,7 +24,7 @@ router.get('/', getAllInvoices);
 router.post('/', createInvoice);
 
 // GET /api/invoices/patient/:patientId/uninvoiced - Obtener órdenes sin facturar
-router.get('/patient/:patientId/uninvoiced', getUninvoicedOrders);
+router.get('/patient/:patientId/uninvoiced', getUninvoicedServiceInstances);
 
 // GET /api/invoices/patient/:patientId - Obtener facturas de un paciente
 router.get('/patient/:patientId', getInvoicesByPatient);

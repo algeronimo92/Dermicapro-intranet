@@ -1,4 +1,4 @@
-import { Order } from '@prisma/client';
+import { ServiceInstance } from '@prisma/client';
 import { addDays } from '../utils/dateUtils';
 
 interface CreateInvoiceDto {
@@ -15,8 +15,8 @@ export class InvoiceFactory {
   /**
    * Crea una factura para una sola orden
    */
-  static createSingleOrderInvoice(
-    order: Order,
+  static createSingleServiceInstanceInvoice(
+    order: ServiceInstance,
     createdById: string,
     dueDate?: Date
   ): CreateInvoiceDto {
@@ -32,7 +32,7 @@ export class InvoiceFactory {
    * Crea una factura consolidada para múltiples órdenes del mismo paciente
    */
   static createConsolidatedInvoice(
-    orders: Order[],
+    orders: ServiceInstance[],
     createdById: string,
     dueDate?: Date
   ): CreateInvoiceDto {
@@ -60,7 +60,7 @@ export class InvoiceFactory {
    * Crea una factura por IDs de órdenes seleccionadas
    * (útil cuando el usuario selecciona órdenes desde la UI)
    */
-  static createFromOrderIds(
+  static createFromServiceInstanceIds(
     serviceInstanceIds: string[],
     patientId: string,
     createdById: string,

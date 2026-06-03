@@ -1,5 +1,16 @@
-import { CreateRoleDTO, UpdateRoleDTO } from '../services/role.service';
 import { AppError } from '../middlewares/errorHandler';
+
+interface CreateRoleDTO {
+  name: string;
+  displayName: string;
+  description?: string;
+}
+
+interface UpdateRoleDTO {
+  name?: string;
+  displayName?: string;
+  description?: string;
+}
 
 export class RoleValidator {
   validateCreateData(data: CreateRoleDTO): void {
