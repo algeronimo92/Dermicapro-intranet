@@ -72,16 +72,15 @@ services:
     restart: always
     depends_on:
       - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      # SSL certificates from Let's Encrypt
-      - /etc/letsencrypt/live/dermicapro.app/fullchain.pem:/etc/letsencrypt/live/dermicapro.app/fullchain.pem:ro
-      - /etc/letsencrypt/live/dermicapro.app/privkey.pem:/etc/letsencrypt/live/dermicapro.app/privkey.pem:ro
-      - /etc/letsencrypt/archive/dermicapro.app:/etc/letsencrypt/archive/dermicapro.app:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`dermicapro.app`) || Host(`www.dermicapro.app`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
     networks:
       - dermicapro-network
+      - traefik-network
 
 # ================================
 # Networks
@@ -89,6 +88,9 @@ services:
 networks:
   dermicapro-network:
     driver: bridge
+  traefik-network:
+    external: true
+    name: traefik-network
 
 # ================================
 # Volumes
