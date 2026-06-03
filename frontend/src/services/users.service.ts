@@ -1,12 +1,12 @@
 import api from './api';
-import { User, PaginatedResponse, Role } from '../types';
+import { User, PaginatedResponse, RoleInfo } from '../types';
 
 export interface CreateUserDto {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  role: Role;
+  roleId: string;
   sex?: 'M' | 'F' | 'Other';
   dateOfBirth?: string;
 }
@@ -15,7 +15,7 @@ export interface UpdateUserDto {
   email?: string;
   firstName?: string;
   lastName?: string;
-  role?: Role;
+  roleId?: string;
   sex?: 'M' | 'F' | 'Other';
   dateOfBirth?: string;
   isActive?: boolean;
@@ -26,8 +26,8 @@ export interface GetUsersParams {
   page?: number;
   limit?: number;
   search?: string;
-  role?: Role; // Legacy - mantener por compatibilidad
-  roleId?: string; // Nuevo - usa ID del rol
+  roleId?: string;
+  roleName?: string;
   isActive?: boolean | string;
 }
 
@@ -36,7 +36,7 @@ export interface UserStats {
     id: string;
     firstName: string;
     lastName: string;
-    role: Role;
+    role: RoleInfo | null;
   };
   counts: {
     patientsCreated: number;

@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
+import { ROLES } from '../constants/roles';
 
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '10', search = '', roleId = '', isActive = '' } = req.query;
+    const { page = '1', limit = '10', search = '', roleId = '', roleName = '', isActive = '' } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
@@ -22,9 +23,11 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       ];
     }
 
-    // Filtro por rol
+    // Filtro por rol (por ID o por nombre/slug)
     if (roleId) {
       conditions.roleId = roleId as string;
+    } else if (roleName) {
+      conditions.role = { name: roleName as string };
     }
 
     // Filtro por estado activo
@@ -40,6 +43,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
         skip,
         take,
         orderBy: { createdAt: 'desc' },
+        include: { role: true },
       }),
       prisma.user.count({ where }),
     ]);
@@ -49,7 +53,13 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.roleId,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        description: user.role.description,
+
+      } : null,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -78,6 +88,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
+        role: true,
         _count: {
           select: {
             patientsCreated: true,
@@ -99,7 +110,13 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.roleId,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        description: user.role.description,
+
+      } : null,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -149,6 +166,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
         sex: sex || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       },
+      include: { role: true },
     });
 
     res.status(201).json({
@@ -156,7 +174,13 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.roleId,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        description: user.role.description,
+
+      } : null,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -217,6 +241,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const user = await prisma.user.update({
       where: { id },
       data: updateData,
+      include: { role: true },
     });
 
     res.json({
@@ -224,7 +249,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.roleId,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        description: user.role.description,
+
+      } : null,
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
@@ -305,6 +336,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
+        role: true,
         _count: {
           select: {
             patientsCreated: true,
@@ -323,7 +355,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
 
     let additionalStats: any = {};
 
-    if (user.roleId === 'sales') {
+    if (user.role?.name === ROLES.SALES) {
       // Estadísticas de ventas
       const commissionStats = await prisma.commission.aggregate({
         where: { salesPersonId: id },
@@ -344,7 +376,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
         paidCommissions: paidCommissions._sum.commissionAmount || 0,
         commissionCount: commissionStats._count || 0,
       };
-    } else if (user.roleId === 'nurse') {
+    } else if (user.role?.name === ROLES.MEDICAL_STAFF) {
       // Estadísticas de enfermería
       const recentAppointments = await prisma.appointment.count({
         where: {
@@ -365,7 +397,13 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.roleId,
+        role: user.role ? {
+          id: user.role.id,
+          name: user.role.name,
+          displayName: user.role.displayName,
+        description: user.role.description,
+  
+        } : null,
       },
       counts: user._count,
       ...additionalStats,

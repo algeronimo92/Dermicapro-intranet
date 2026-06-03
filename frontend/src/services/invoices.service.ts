@@ -1,5 +1,13 @@
 import api from './api';
-import { Invoice, Order } from '../types';
+import { Invoice, Order, PaymentMethod } from '../types';
+
+export interface RegisterPaymentDto {
+  patientId: string;
+  invoiceId: string;
+  amountPaid: number;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+}
 
 export interface CreateInvoiceDto {
   serviceInstanceIds: string[];
@@ -38,6 +46,23 @@ export const invoicesService = {
   async createInvoice(data: CreateInvoiceDto): Promise<Invoice> {
     const response = await api.post<Invoice>('/invoices', data);
     return response.data;
+  },
+
+  /**
+   * Registra un pago para una factura y actualiza su estado automáticamente
+   */
+  async registerPayment(data: RegisterPaymentDto): Promise<Invoice> {
+    await api.post('/payments', {
+      patientId: data.patientId,
+      invoiceId: data.invoiceId,
+      amountPaid: data.amountPaid,
+      paymentMethod: data.paymentMethod,
+      paymentType: 'invoice_payment',
+      notes: data.notes || undefined,
+    });
+    // Recalcular estado de la factura (pagado/parcial/pendiente)
+    const updated = await api.post<Invoice>(`/invoices/${data.invoiceId}/auto-update-status`);
+    return updated.data;
   },
 
   /**

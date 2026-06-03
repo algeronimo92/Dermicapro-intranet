@@ -2,9 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { invoicesService } from '../services/invoices.service';
 import { paymentsService } from '../services/payments.service';
-import { Invoice } from '../types';
-import { getLocalDateString, formatDate } from '../utils/dateUtils';
-import { DatePicker } from '../components/DatePicker';
+import { Invoice, InvoiceStatus } from '../types';
+import { formatDate } from '../utils/dateUtils';
+import { Loading } from '../components/Loading';
+import { Button } from '../components/Button';
+import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
+import '../styles/patient-invoices.css';
+
+const RECEIPT_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+
+const getReceiptUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${RECEIPT_BASE}${url}`;
+};
+
+const METHOD_LABEL: Record<string, string> = {
+  cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', yape: 'Yape', plin: 'Plin',
+};
+const METHOD_ICON: Record<string, string> = {
+  cash: '💵', card: '💳', transfer: '🏦', yape: '📲', plin: '📱',
+};
+
+const StatusBadge: React.FC<{ status: InvoiceStatus }> = ({ status }) => {
+  const map: Record<string, { label: string; cls: string }> = {
+    paid:      { label: 'Pagada',       cls: 'invoice-status-paid' },
+    partial:   { label: 'Pago Parcial', cls: 'invoice-status-partial' },
+    pending:   { label: 'Pendiente',    cls: 'invoice-status-pending' },
+    cancelled: { label: 'Cancelada',    cls: 'invoice-status-cancelled' },
+  };
+  const { label, cls } = map[status] || { label: status, cls: 'invoice-status-pending' };
+  return <span className={`invoice-status-badge ${cls}`}>{label}</span>;
+};
 
 export const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,606 +42,274 @@ export const InvoiceDetailPage: React.FC = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Modal de pago
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'yape' | 'plin'>('cash');
-  const [paymentDate, setPaymentDate] = useState(getLocalDateString());
-  const [paymentNotes, setPaymentNotes] = useState('');
-  const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
-  const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
-  // Upload de comprobante
-  const [uploadingReceipt, setUploadingReceipt] = useState<string | null>(null);
+  useEffect(() => { if (id) load(id); }, [id]);
 
-  useEffect(() => {
-    if (id) {
-      loadInvoice(id);
-    }
-  }, [id]);
-
-  const loadInvoice = async (invoiceId: string) => {
+  const load = async (invoiceId: string) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await invoicesService.getInvoiceById(invoiceId);
-      setInvoice(data);
+      setInvoice(await invoicesService.getInvoiceById(invoiceId));
     } catch (err: any) {
-      console.error('Error loading invoice:', err);
       setError(err.response?.data?.error || 'Error al cargar la factura');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenPaymentModal = () => {
-    const balance = totalPaid !== undefined ? Number(invoice!.totalAmount) - totalPaid : Number(invoice!.totalAmount);
-    setPaymentAmount(balance.toFixed(2));
-    setShowPaymentModal(true);
-  };
-
-  const handleClosePaymentModal = () => {
-    setShowPaymentModal(false);
-    setPaymentAmount('');
-    setPaymentMethod('cash');
-    setPaymentDate(getLocalDateString());
-    setPaymentNotes('');
-    setPaymentReceipt(null);
-  };
-
-  const handleSubmitPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!invoice) return;
-
-    const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert('El monto debe ser mayor a 0');
-      return;
-    }
-
-    const balance = totalPaid !== undefined ? Number(invoice.totalAmount) - totalPaid : Number(invoice.totalAmount);
-    if (amount > balance) {
-      alert(`El monto no puede ser mayor al saldo pendiente (S/. ${balance.toFixed(2)})`);
-      return;
-    }
-
-    try {
-      setSubmittingPayment(true);
-      setError(null);
-
-      // Crear el pago
-      const createdPayment = await paymentsService.createPayment({
-        patientId: invoice.patientId,
-        invoiceId: invoice.id,
-        amountPaid: amount,
-        paymentMethod,
-        paymentType: 'invoice_payment',
-        paymentDate,
-        notes: paymentNotes || undefined,
-      });
-
-      // Si hay comprobante, subirlo
-      if (paymentReceipt) {
-        await paymentsService.uploadReceipt(createdPayment.id, paymentReceipt);
-      }
-
-      // Recargar la factura para ver el pago registrado
-      await loadInvoice(invoice.id);
-
-      // Cerrar modal
-      handleClosePaymentModal();
-    } catch (err: any) {
-      console.error('Error creating payment:', err);
-      setError(err.response?.data?.error || 'Error al registrar el pago');
-    } finally {
-      setSubmittingPayment(false);
-    }
-  };
-
   const handleUploadReceipt = async (paymentId: string, file: File) => {
     try {
-      setUploadingReceipt(paymentId);
-      setError(null);
-
+      setUploadingId(paymentId);
       await paymentsService.uploadReceipt(paymentId, file);
-
-      // Recargar la factura para ver el comprobante
-      if (invoice) {
-        await loadInvoice(invoice.id);
-      }
+      if (invoice) await load(invoice.id);
     } catch (err: any) {
-      console.error('Error uploading receipt:', err);
       setError(err.response?.data?.error || 'Error al subir el comprobante');
     } finally {
-      setUploadingReceipt(null);
+      setUploadingId(null);
     }
   };
 
-  const getReceiptUrl = (receiptUrl: string | null | undefined): string | null => {
-    if (!receiptUrl) return null;
-    if (receiptUrl.startsWith('http://') || receiptUrl.startsWith('https://')) {
-      return receiptUrl;
-    }
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-    const serverUrl = baseUrl.replace('/api', '');
-    return `${serverUrl}${receiptUrl}`;
-  };
-
-  if (loading) {
-    return (
-      <div className="page-container">
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          <p>Cargando factura...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <Loading text="Cargando factura..." />;
 
   if (error || !invoice) {
     return (
       <div className="page-container">
-        <div className="error-banner">{error || 'Factura no encontrada'}</div>
-        <button onClick={() => navigate(-1)} style={{ marginTop: '20px' }}>
-          Volver
-        </button>
+        <div className="alert alert-error">{error || 'Factura no encontrada'}</div>
+        <Button onClick={() => navigate(-1)} variant="secondary">Volver</Button>
       </div>
     );
   }
 
-  const totalPaid = invoice.payments?.reduce((sum, p) => sum + Number(p.amountPaid), 0) || 0;
-  const balance = Number(invoice.totalAmount) - totalPaid;
+  const totalPaid = invoice.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
+  const balance   = Number(invoice.totalAmount) - totalPaid;
+  const pct       = Number(invoice.totalAmount) > 0 ? Math.min((totalPaid / Number(invoice.totalAmount)) * 100, 100) : 0;
 
   return (
-    <div className="page-container">
-      <div style={{ marginBottom: '24px' }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#3b82f6',
-            cursor: 'pointer',
-            fontSize: '14px',
-            padding: '0',
-            marginBottom: '16px',
-          }}
-        >
-          ← Volver
-        </button>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>
-          Factura #{invoice.id.slice(0, 8).toUpperCase()}
-        </h1>
-        <p style={{ color: '#6b7280', fontSize: '14px' }}>
-          Paciente: {invoice.patient?.firstName} {invoice.patient?.lastName}
-        </p>
+    <div className="page-container" style={{ maxWidth: 760 }}>
+
+      {/* ── Back ── */}
+      <button className="pd-back" onClick={() => navigate(-1)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Volver a Facturas
+      </button>
+
+      {/* ── Header ── */}
+      <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
+            Factura #{invoice.id.slice(0, 8).toUpperCase()}
+          </h1>
+          <StatusBadge status={invoice.status} />
+        </div>
+        {invoice.patient && (
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
+            {invoice.patient.firstName} {invoice.patient.lastName}
+            {invoice.patient.dni && ` · DNI ${invoice.patient.dni}`}
+          </p>
+        )}
       </div>
 
-      {/* Invoice Details */}
-      <div
-        style={{
-          background: 'white',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '24px',
-          marginBottom: '24px',
-        }}
-      >
-        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-          Información de la Factura
-        </h2>
+      {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-md)' }}>{error}</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Estado</div>
-            <div style={{ fontSize: '16px', fontWeight: '600' }}>
-              {invoice.status === 'paid' && '✅ Pagada'}
-              {invoice.status === 'pending' && '⏳ Pendiente'}
-              {invoice.status === 'partial' && '📊 Parcial'}
-              {invoice.status === 'cancelled' && '❌ Cancelada'}
-            </div>
+      {/* ── Resumen de importes ── */}
+      <div className="invoices-summary" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--spacing-xl)' }}>
+        <div className="summary-card summary-card-total">
+          <div className="summary-label">Total Facturado</div>
+          <div className="summary-amount">S/. {Number(invoice.totalAmount).toFixed(2)}</div>
+          <div className="summary-subtitle">
+            {invoice.orders?.length || 0} {(invoice.orders?.length || 0) === 1 ? 'orden' : 'órdenes'}
           </div>
-
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Monto Total</div>
-            <div style={{ fontSize: '16px', fontWeight: '600' }}>S/. {Number(invoice.totalAmount).toFixed(2)}</div>
+        </div>
+        <div className="summary-card summary-card-paid">
+          <div className="summary-label">Total Pagado</div>
+          <div className="summary-amount">S/. {totalPaid.toFixed(2)}</div>
+          <div className="summary-subtitle">{pct.toFixed(0)}% completado</div>
+        </div>
+        <div className="summary-card summary-card-pending">
+          <div className="summary-label">{balance > 0 ? 'Saldo Pendiente' : 'Sin Deuda'}</div>
+          <div className="summary-amount">S/. {balance.toFixed(2)}</div>
+          <div className="summary-subtitle">
+            {invoice.dueDate ? `Vence: ${formatDate(invoice.dueDate)}` : 'Sin vencimiento'}
           </div>
-
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Total Pagado</div>
-            <div style={{ fontSize: '16px', fontWeight: '600', color: '#10b981' }}>S/. {totalPaid.toFixed(2)}</div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Saldo Pendiente</div>
-            <div style={{ fontSize: '16px', fontWeight: '600', color: balance > 0 ? '#ef4444' : '#10b981' }}>
-              S/. {balance.toFixed(2)}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Fecha de Emisión</div>
-            <div style={{ fontSize: '14px' }}>{formatDate(invoice.createdAt)}</div>
-          </div>
-
-          {invoice.dueDate && (
-            <div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Fecha de Vencimiento</div>
-              <div style={{ fontSize: '14px' }}>{formatDate(invoice.dueDate)}</div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Orders */}
-      <div
-        style={{
-          background: 'white',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '24px',
-          marginBottom: '24px',
-        }}
-      >
-        <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-          Órdenes Incluidas ({invoice.orders?.length || 0})
-        </h2>
+      {/* Barra de progreso global */}
+      <div className="payment-progress" style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <div className="payment-progress-header">
+          <span>Progreso de pago</span>
+          <span>{pct.toFixed(0)}%</span>
+        </div>
+        <div className="payment-progress-bar">
+          <div
+            className={`payment-progress-fill ${invoice.status === 'paid' ? 'payment-progress-fill-paid' : 'payment-progress-fill-partial'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* ── Información de la factura ── */}
+      <div className="glass-card">
+        <div className="card-header">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="card-icon">
+            <path d="M4 4h12v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke="currentColor" strokeWidth="2"/>
+            <path d="M4 8h12M8 4v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <h2>Información de la Factura</h2>
+        </div>
+        <div className="pd-info-list">
+          <div className="pd-info-row">
+            <span className="pd-info-label">Emisión</span>
+            <span className="pd-info-value">{formatDate(invoice.createdAt)}</span>
+          </div>
+          {invoice.dueDate && (
+            <div className="pd-info-row">
+              <span className="pd-info-label">Vencimiento</span>
+              <span className="pd-info-value">{formatDate(invoice.dueDate)}</span>
+            </div>
+          )}
+          <div className="pd-info-row">
+            <span className="pd-info-label">Estado</span>
+            <span className="pd-info-value"><StatusBadge status={invoice.status} /></span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Órdenes incluidas ── */}
+      <div className="glass-card">
+        <div className="card-header">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="card-icon">
+            <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <h2>Órdenes Incluidas ({invoice.orders?.length || 0})</h2>
+        </div>
 
         {invoice.orders && invoice.orders.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {invoice.orders.map((order, idx) => (
-              <div
-                key={order.id}
-                style={{
-                  padding: '16px',
-                  background: '#f9fafb',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
-                      {order.service?.name || 'Servicio'}
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                      {order.totalSessions} {order.totalSessions === 1 ? 'sesión' : 'sesiones'} •{' '}
-                      {order.completedSessions} completadas
-                    </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+            {invoice.orders.map(order => (
+              <div key={order.id} className="cinv-order" style={{ cursor: 'default' }}>
+                <div style={{ flex: 1 }}>
+                  <div className="cinv-order__name">{order.service?.name || 'Servicio'}</div>
+                  <div className="cinv-order__meta">
+                    {order.totalSessions} {order.totalSessions === 1 ? 'sesión' : 'sesiones'} · {order.completedSessions} completadas
                   </div>
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>S/. {Number(order.finalPrice).toFixed(2)}</div>
                 </div>
+                <div className="cinv-order__price">S/. {Number(order.finalPrice).toFixed(2)}</div>
               </div>
             ))}
           </div>
         ) : (
-          <p style={{ color: '#6b7280' }}>No hay órdenes asociadas a esta factura</p>
+          <p className="pd-info-empty">No hay órdenes asociadas a esta factura</p>
         )}
       </div>
 
-      {/* Payments */}
-      <div
-        style={{
-          background: 'white',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '24px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
-            Pagos Registrados ({invoice.payments?.length || 0})
-          </h2>
-
+      {/* ── Pagos registrados ── */}
+      <div className="glass-card">
+        <div className="card-header" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="card-icon">
+              <rect x="1" y="4" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M1 8h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <h2>Pagos Registrados ({invoice.payments?.length || 0})</h2>
+          </div>
           {balance > 0 && invoice.status !== 'cancelled' && (
-            <button
-              onClick={handleOpenPaymentModal}
-              style={{
-                background: '#10b981',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-              }}
-            >
-              Registrar Pago
-            </button>
+            <Button variant="primary" size="small" onClick={() => setShowPaymentModal(true)}>
+              + Registrar Pago
+            </Button>
           )}
         </div>
 
         {invoice.payments && invoice.payments.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {invoice.payments.map((payment, idx) => (
-              <div
-                key={payment.id}
-                style={{
-                  padding: '16px',
-                  background: '#f0fdf4',
-                  borderRadius: '8px',
-                  border: '1px solid #d1fae5',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <div>
-                      <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>
-                        {payment.paymentMethod === 'cash' && 'Efectivo'}
-                        {payment.paymentMethod === 'card' && 'Tarjeta'}
-                        {payment.paymentMethod === 'transfer' && 'Transferencia'}
-                        {payment.paymentMethod === 'yape' && 'Yape'}
-                        {payment.paymentMethod === 'plin' && 'Plin'}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                        {formatDate(payment.paymentDate)}
-                        {payment.createdBy && ` • Por ${payment.createdBy.firstName} ${payment.createdBy.lastName}`}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#10b981' }}>
-                      S/. {Number(payment.amountPaid).toFixed(2)}
-                    </div>
-                  </div>
-                  {payment.notes && (
-                    <div style={{ fontSize: '13px', color: '#6b7280', fontStyle: 'italic', marginTop: '8px' }}>
-                      Nota: {payment.notes}
-                    </div>
-                  )}
-
-                  {/* Comprobante */}
-                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #d1fae5' }}>
-                    {payment.receiptUrl ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
-                          Comprobante de pago:
-                        </div>
-                        <a
-                          href={getReceiptUrl(payment.receiptUrl) || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'inline-block',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            maxWidth: '200px',
-                            transition: 'border-color 0.2s',
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
-                        >
-                          <img
-                            src={getReceiptUrl(payment.receiptUrl) || ''}
-                            alt="Comprobante de pago"
-                            style={{
-                              width: '100%',
-                              height: 'auto',
-                              display: 'block',
-                            }}
-                          />
-                        </a>
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                          Click para ver en tamaño completo
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <input
-                          type="file"
-                          id={`receipt-${payment.id}`}
-                          accept="image/jpeg,image/jpg,image/png,image/webp"
-                          style={{ display: 'none' }}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleUploadReceipt(payment.id, file);
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={`receipt-${payment.id}`}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '6px 12px',
-                            background: '#3b82f6',
-                            color: 'white',
-                            borderRadius: '4px',
-                            fontSize: '13px',
-                            cursor: uploadingReceipt === payment.id ? 'wait' : 'pointer',
-                            opacity: uploadingReceipt === payment.id ? 0.6 : 1,
-                          }}
-                        >
-                          {uploadingReceipt === payment.id ? '⏳ Subiendo...' : '📎 Subir comprobante'}
-                        </label>
-                      </div>
+          <div className="adet-notes-list">
+            {invoice.payments.map(payment => (
+              <div key={payment.id} className="adet-note-item" style={{ borderLeftColor: 'var(--color-success)' }}>
+                <div className="adet-note-item__header">
+                  <div>
+                    <span className="adet-note-item__author">
+                      {METHOD_ICON[payment.paymentMethod]} {METHOD_LABEL[payment.paymentMethod] || payment.paymentMethod}
+                    </span>
+                    {payment.createdBy && (
+                      <span className="adet-note-item__role"> · {payment.createdBy.firstName} {payment.createdBy.lastName}</span>
                     )}
                   </div>
+                  <span style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-success-dark)' }}>
+                    +S/. {Number(payment.amountPaid).toFixed(2)}
+                  </span>
+                </div>
+
+                <p className="adet-note-item__text" style={{ color: 'var(--color-text-tertiary)', marginBottom: payment.notes ? 'var(--spacing-xs)' : 0 }}>
+                  {formatDate(payment.paymentDate)}
+                </p>
+
+                {payment.notes && (
+                  <p className="adet-note-item__text" style={{ fontStyle: 'italic' }}>
+                    {payment.notes}
+                  </p>
+                )}
+
+                {/* Comprobante */}
+                <div style={{ marginTop: 'var(--spacing-sm)', paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-border-secondary)' }}>
+                  {payment.receiptUrl ? (
+                    <div>
+                      <div className="pd-info-label" style={{ marginBottom: 'var(--spacing-xs)' }}>Comprobante</div>
+                      <a href={getReceiptUrl(payment.receiptUrl) || '#'} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'inline-block', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '2px solid var(--color-border-secondary)', maxWidth: 160, transition: 'border-color 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border-secondary)')}>
+                        <img src={getReceiptUrl(payment.receiptUrl) || ''} alt="Comprobante" style={{ width: '100%', display: 'block' }} />
+                      </a>
+                    </div>
+                  ) : (
+                    <div>
+                      <input type="file" id={`rcpt-${payment.id}`} accept="image/jpeg,image/jpg,image/png,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadReceipt(payment.id, f); }} />
+                      <label htmlFor={`rcpt-${payment.id}`}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '5px 12px', borderRadius: 'var(--radius-md)',
+                          background: 'var(--color-bg-secondary)',
+                          border: '1.5px solid var(--color-border-primary)',
+                          color: 'var(--color-text-secondary)',
+                          fontSize: 'var(--font-size-xs)', fontWeight: 600,
+                          cursor: uploadingId === payment.id ? 'wait' : 'pointer',
+                          opacity: uploadingId === payment.id ? 0.6 : 1,
+                          fontFamily: 'inherit',
+                        }}>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M12.25 8.75v2.333A1.167 1.167 0 0111.083 12.25H2.917A1.167 1.167 0 011.75 11.083V8.75M9.917 4.667L7 1.75m0 0L4.083 4.667M7 1.75v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {uploadingId === payment.id ? 'Subiendo...' : 'Subir comprobante'}
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p style={{ color: '#6b7280' }}>No hay pagos registrados para esta factura</p>
+          <p className="adet-notes-empty">No hay pagos registrados para esta factura</p>
         )}
       </div>
 
-      {/* Modal de Registro de Pago */}
-      {showPaymentModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
+      {/* ── Modal de pago ── */}
+      {invoice.patient && (
+        <RegisterPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          invoice={invoice}
+          patientId={invoice.patientId}
+          onSuccess={updated => {
+            setInvoice(updated);
+            setShowPaymentModal(false);
           }}
-          onClick={handleClosePaymentModal}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '24px',
-              maxWidth: '500px',
-              width: '90%',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '20px' }}>
-              Registrar Pago
-            </h2>
-
-            <form onSubmit={handleSubmitPayment}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-                  Monto a Pagar
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                  }}
-                />
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                  Saldo pendiente: S/. {balance.toFixed(2)}
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-                  Método de Pago
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                  }}
-                >
-                  <option value="cash">Efectivo</option>
-                  <option value="card">Tarjeta</option>
-                  <option value="transfer">Transferencia</option>
-                  <option value="yape">Yape</option>
-                  <option value="plin">Plin</option>
-                </select>
-              </div>
-
-              <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                <DatePicker
-                  label="Fecha de Pago"
-                  value={paymentDate}
-                  onChange={setPaymentDate}
-                  maxDate={new Date()}
-                />
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-                  Notas (opcional)
-                </label>
-                <textarea
-                  value={paymentNotes}
-                  onChange={(e) => setPaymentNotes(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '6px' }}>
-                  Comprobante de Pago (opcional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setPaymentReceipt(file);
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                  }}
-                />
-                {paymentReceipt && (
-                  <div style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>
-                    ✓ Archivo seleccionado: {paymentReceipt.name}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={handleClosePaymentModal}
-                  disabled={submittingPayment}
-                  style={{
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '6px',
-                    cursor: submittingPayment ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingPayment}
-                  style={{
-                    background: submittingPayment ? '#d1d5db' : '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '6px',
-                    cursor: submittingPayment ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                  }}
-                >
-                  {submittingPayment ? 'Registrando...' : 'Registrar Pago'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        />
       )}
     </div>
   );

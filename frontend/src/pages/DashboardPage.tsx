@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Role } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
 import { AdminDashboard } from '../components/dashboard/AdminDashboard';
@@ -21,7 +22,7 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  const roleName = user.role?.name || '';
+  const roleName = typeof user.role === 'string' ? user.role : (user.role?.name || '');
 
   const handlePeriodChange = (newPeriod: 'today' | 'week' | 'month' | 'year') => {
     setPeriod(newPeriod);
@@ -74,28 +75,28 @@ export const DashboardPage: React.FC = () => {
       {/* Role-based Dashboard Rendering */}
       {!error && (
         <>
-          {roleName === 'admin' && (
+          {roleName === Role.admin && (
             <AdminDashboard
               data={data as AdminDashboardData | null}
               isLoading={isLoading}
             />
           )}
 
-          {(roleName === 'nurse' || roleName === 'medical_staff') && (
+          {roleName === Role.medical_staff && (
             <NurseDashboard
               data={data as NurseDashboardData | null}
               isLoading={isLoading}
             />
           )}
 
-          {roleName === 'sales' && (
+          {roleName === Role.sales && (
             <SalesDashboard
               data={data as SalesDashboardData | null}
               isLoading={isLoading}
             />
           )}
 
-          {!['admin', 'nurse', 'medical_staff', 'sales'].includes(roleName) && !isLoading && (
+          {!(Object.values(Role) as string[]).includes(roleName) && !isLoading && (
             <div className="dashboard-error">
               <p>Dashboard no disponible para el rol: {roleName}</p>
             </div>

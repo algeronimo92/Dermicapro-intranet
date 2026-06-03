@@ -227,7 +227,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
 
 export const createPatient = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { firstName, lastName, dni, dateOfBirth, sex, phone, email, address } = req.body;
+    const { firstName, lastName, dni, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
 
     if (!firstName || !lastName || !dni || !dateOfBirth || !sex) {
       throw new AppError('Missing required fields', 400);
@@ -252,10 +252,10 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
         dateOfBirth: parseStartOfDay(dateOfBirth),
         sex,
         phone,
-        email: email || dni, // Si no hay email, usar DNI como email
+        email: email || dni,
         address,
+        photoUrl: photoUrl || null,
         createdById: req.user!.id,
-        // Credenciales del portal: DNI como usuario y contraseña
         passwordHash,
         hasPortalAccess: true,
         passwordSetByStaffId: req.user!.id,
@@ -276,7 +276,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
 export const updatePatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, dateOfBirth, sex, phone, email, address } = req.body;
+    const { firstName, lastName, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
 
     const patient = await prisma.patient.update({
       where: { id },
@@ -288,6 +288,7 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
         phone,
         email,
         address,
+        ...(photoUrl !== undefined && { photoUrl }),
       },
     });
 

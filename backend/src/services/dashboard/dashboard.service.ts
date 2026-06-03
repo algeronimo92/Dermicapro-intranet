@@ -6,6 +6,7 @@ import { NurseDashboardStrategy } from './strategies/nurse.strategy';
 import { SalesDashboardStrategy } from './strategies/sales.strategy';
 import { DashboardData } from '../../types/dashboard.types';
 import { AppError } from '../../middlewares/errorHandler';
+import { ROLES } from '../../constants/roles';
 
 /**
  * Dashboard Service
@@ -19,9 +20,9 @@ export class DashboardService {
   constructor(prisma: PrismaClient) {
     // Registro de estrategias: Map<roleName, Strategy>
     this.strategies = new Map<string, DashboardStrategy>([
-      ['admin', new AdminDashboardStrategy(prisma)],
-      ['nurse', new NurseDashboardStrategy(prisma)],
-      ['sales', new SalesDashboardStrategy(prisma)],
+      [ROLES.ADMIN, new AdminDashboardStrategy(prisma)],
+      [ROLES.MEDICAL_STAFF, new NurseDashboardStrategy(prisma)],
+      [ROLES.SALES, new SalesDashboardStrategy(prisma)],
     ]);
   }
 

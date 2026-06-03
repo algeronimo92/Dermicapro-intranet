@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Role } from '../types';
 import { DatePicker } from '../components/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import commissionsService, { Commission, CommissionsFilters } from '../services/commissions.service';
@@ -47,7 +48,7 @@ const CommissionsPage = () => {
 
   const loadSalesPersons = async () => {
     try {
-      const users = await usersService.getAllUsers({ role: 'sales' });
+      const users = await usersService.getAllUsers({ roleName: Role.sales });
       setSalesPersons(users);
     } catch (err) {
       console.error('Error loading sales persons:', err);

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
+import { ROLES } from '../constants/roles';
 
 /**
  * Obtener todas las comisiones con filtros
@@ -30,7 +31,7 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
     // Filtro por vendedor
     if (salesPersonId) {
       where.salesPersonId = salesPersonId;
-    } else if (req.user?.roleName === 'sales') {
+    } else if (req.user?.roleName === ROLES.SALES) {
       // Si es vendedor, solo ver sus propias comisiones
       where.salesPersonId = req.user.id;
     }
@@ -200,7 +201,7 @@ export const getCommissionById = async (req: Request, res: Response): Promise<vo
     }
 
     // Verificar permisos: solo admin o el vendedor pueden ver la comisión
-    if (req.user?.roleName !== 'admin' && commission.salesPersonId !== req.user?.id) {
+    if (req.user?.roleName !== ROLES.ADMIN && commission.salesPersonId !== req.user?.id) {
       throw new AppError('Unauthorized', 403);
     }
 

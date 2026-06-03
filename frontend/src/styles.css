@@ -2127,7 +2127,7 @@ body {
 }
 
 .medical-record-item {
-  background-color: var(--color-bg-primary)8e1;
+  background-color: var(--color-bg-primary);
   padding: 15px;
   border-radius: 6px;
   border-left: 4px solid var(--color-warning);
@@ -2770,7 +2770,7 @@ body {
 
 /* System Info Card */
 .system-card {
-  background: rgba(243, 244, 246, 0.9);
+  background: var(--color-bg-secondary);
   border-color: var(--color-border-secondary);
 }
 

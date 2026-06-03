@@ -5,6 +5,7 @@ import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { AppointmentStatus } from '../types';
 import { formatDate, formatDateTime } from '../utils/dateUtils';
+import '../styles/patient-history.css';
 
 interface PatientHistory {
   patient: {
@@ -14,11 +15,7 @@ interface PatientHistory {
     email: string;
     phone: string;
     createdAt: string;
-    createdBy: {
-      id: string;
-      firstName: string;
-      lastName: string;
-    };
+    createdBy: { id: string; firstName: string; lastName: string };
   };
   statistics: {
     totalAppointments: number;
@@ -42,25 +39,12 @@ interface PatientHistory {
       serviceTemplateId: string;
       serviceInstanceId: string | null;
       sessionNumber: number | null;
-      service: {
-        name: string;
-        basePrice: string;
-      };
-      order: {
-        id: string;
-        totalSessions: number;
-      } | null;
+      serviceInstance?: { totalSessions: number; service?: { name: string } } | null;
+      service?: { name: string; basePrice: string };
+      order: { id: string; totalSessions: number } | null;
     }>;
-    createdBy: {
-      id: string;
-      firstName: string;
-      lastName: string;
-    };
-    attendedBy: {
-      id: string;
-      firstName: string;
-      lastName: string;
-    } | null;
+    createdBy: { id: string; firstName: string; lastName: string };
+    attendedBy: { id: string; firstName: string; lastName: string } | null;
     patientRecords: Array<{
       id: string;
       weight: string | null;
@@ -68,31 +52,26 @@ interface PatientHistory {
       beforePhotoUrls: string[] | null;
       afterPhotoUrls: string[] | null;
       createdAt: string;
-      originalService?: {
-        id: string;
-        name: string;
-        basePrice: string;
-      } | null;
-      createdBy: {
-        id: string;
-        firstName: string;
-        lastName: string;
-      };
+      createdBy: { id: string; firstName: string; lastName: string };
     }>;
     appointmentNotes?: Array<{
       id: string;
-      appointmentId: string;
       note: string;
-      createdById: string;
       createdAt: string;
-      createdBy?: {
-        id: string;
-        firstName: string;
-        lastName: string;
-      };
+      createdBy?: { id: string; firstName: string; lastName: string };
     }>;
   }>;
 }
+
+const statusLabels: Record<AppointmentStatus, string> = {
+  reserved: 'Reservada',
+  in_progress: 'En Atención',
+  attended: 'Atendida',
+  cancelled: 'Cancelada',
+  no_show: 'No asistió',
+};
+
+const photoBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
 export const PatientHistoryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,12 +80,10 @@ export const PatientHistoryPage: React.FC = () => {
   const [history, setHistory] = useState<PatientHistory | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAllAppointments, setShowAllAppointments] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      loadHistory(id);
-    }
+    if (id) loadHistory(id);
   }, [id]);
 
   const loadHistory = async (patientId: string) => {
@@ -122,455 +99,269 @@ export const PatientHistoryPage: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    navigate(`/patients/${id}`);
-  };
-
-  const statusLabels: Record<AppointmentStatus, string> = {
-    reserved: 'Reservada',
-    in_progress: 'En Atención',
-    attended: 'Atendida',
-    cancelled: 'Cancelada',
-    no_show: 'No asistió'
-  };
-
-  const statusColors: Record<AppointmentStatus, string> = {
-    reserved: '#3498db',
-    in_progress: '#f39c12',
-    attended: '#2ecc71',
-    cancelled: '#e74c3c',
-    no_show: '#95a5a6'
-  };
-
-  if (isLoading) {
-    return <Loading text="Cargando historial del paciente..." />;
-  }
+  if (isLoading) return <Loading text="Cargando historial del paciente..." />;
 
   if (error || !history) {
     return (
       <div className="page-container">
-        <div className="error-banner">
-          {error || 'No se pudo cargar el historial'}
-        </div>
-        <Button onClick={handleBack}>Volver</Button>
+        <div className="alert alert-error">{error || 'No se pudo cargar el historial'}</div>
+        <Button onClick={() => navigate(`/patients/${id}`)}>Volver</Button>
       </div>
     );
   }
 
+  const withRecords = history.appointments.filter(
+    apt => apt.status === 'attended' && apt.patientRecords?.length > 0,
+  );
+  const displayList = showAll ? history.appointments : withRecords;
+
+  const lastRecordDate = displayList.length > 0
+    ? displayList
+        .map(apt => new Date(apt.attendedAt || apt.scheduledDate))
+        .sort((a, b) => b.getTime() - a.getTime())[0]
+    : null;
+
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div>
-          <Button variant="secondary" onClick={handleBack}>
-            ← Volver al Perfil
-          </Button>
-          <h1>Historial Médico</h1>
-          <h2 style={{ color: '#7f8c8d', fontWeight: 'normal', marginTop: '10px' }}>
-            {history.patient.firstName} {history.patient.lastName}
-          </h2>
+
+      {/* ── Back + Header ── */}
+      <button className="pd-back" onClick={() => navigate(`/patients/${id}`)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Volver al Perfil
+      </button>
+
+      <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: '0 0 var(--spacing-xs)' }}>
+        Historial Médico
+      </h1>
+      <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-base)', margin: '0 0 var(--spacing-xl)' }}>
+        {history.patient.firstName} {history.patient.lastName}
+      </p>
+
+      {/* ── Tabs ── */}
+      <div className="phist-tabs">
+        <button
+          className={`phist-tab${!showAll ? ' phist-tab--active' : ''}`}
+          onClick={() => setShowAll(false)}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M2 8h12M2 12h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          Historial Médico
+          <span className="phist-tab__badge">{withRecords.length}</span>
+        </button>
+        <button
+          className={`phist-tab${showAll ? ' phist-tab--active' : ''}`}
+          onClick={() => setShowAll(true)}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
+            <path d="M2 6h12M6 2v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          Todas las Citas
+          <span className="phist-tab__badge">{history.appointments.length}</span>
+        </button>
+      </div>
+
+      {/* ── Stat cards ── */}
+      <div className="phist-stat-grid">
+        <div className="phist-stat-card phist-stat-card--records">
+          <div className="phist-stat-card__value">{displayList.length}</div>
+          <div className="phist-stat-card__label">Procedimientos Documentados</div>
+        </div>
+        <div className="phist-stat-card phist-stat-card--since">
+          <div className="phist-stat-card__value">
+            {history.statistics.registrationDate ? formatDate(history.statistics.registrationDate) : '-'}
+          </div>
+          <div className="phist-stat-card__label">Paciente desde</div>
+        </div>
+        <div className="phist-stat-card phist-stat-card--last">
+          <div className="phist-stat-card__value">
+            {lastRecordDate ? formatDate(lastRecordDate) : 'Ninguno'}
+          </div>
+          <div className="phist-stat-card__label">Último Registro</div>
+        </div>
+        <div className="phist-stat-card phist-stat-card--files">
+          <div className="phist-stat-card__value">
+            {displayList.reduce((t, apt) => t + (apt.patientRecords?.length || 0), 0)}
+          </div>
+          <div className="phist-stat-card__label">Archivos Médicos</div>
         </div>
       </div>
 
-      {/* View Tabs */}
-      <div style={{
-        marginBottom: '30px',
-        borderBottom: '2px solid #e5e7eb',
-        display: 'flex',
-        gap: '4px'
-      }}>
-        {/* Tab: Historial Médico */}
-        <button
-          onClick={() => setShowAllAppointments(false)}
-          style={{
-            padding: '12px 24px',
-            border: 'none',
-            borderBottom: showAllAppointments ? 'none' : '3px solid #2ecc71',
-            background: showAllAppointments ? 'transparent' : 'linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%)',
-            color: showAllAppointments ? '#7f8c8d' : '#2c3e50',
-            fontWeight: showAllAppointments ? '500' : '600',
-            fontSize: '15px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            borderRadius: '8px 8px 0 0',
-            marginBottom: '-2px'
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>📋</span>
-          Historial Médico
-          <span style={{
-            background: showAllAppointments ? '#e5e7eb' : '#2ecc71',
-            color: showAllAppointments ? '#6b7280' : 'white',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            fontWeight: '600',
-            marginLeft: '4px'
-          }}>
-            {history.appointments.filter(apt => apt.status === 'attended' && apt.patientRecords && apt.patientRecords.length > 0).length}
-          </span>
-        </button>
-
-        {/* Tab: Todas las Citas */}
-        <button
-          onClick={() => setShowAllAppointments(true)}
-          style={{
-            padding: '12px 24px',
-            border: 'none',
-            borderBottom: showAllAppointments ? '3px solid #3498db' : 'none',
-            background: showAllAppointments ? 'linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%)' : 'transparent',
-            color: showAllAppointments ? '#2c3e50' : '#7f8c8d',
-            fontWeight: showAllAppointments ? '600' : '500',
-            fontSize: '15px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            borderRadius: '8px 8px 0 0',
-            marginBottom: '-2px'
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>📅</span>
-          Todas las Citas
-          <span style={{
-            background: showAllAppointments ? '#3498db' : '#e5e7eb',
-            color: showAllAppointments ? 'white' : '#6b7280',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            fontWeight: '600',
-            marginLeft: '4px'
-          }}>
-            {history.appointments.length}
-          </span>
-        </button>
-      </div>
-
-      {/* Statistics Cards - Medical Focus */}
-      <div className="stats-grid" style={{ marginBottom: '30px' }}>
-        {(() => {
-          // Filtrar citas según el checkbox
-          const appointmentsWithRecords = showAllAppointments
-            ? history.appointments // Mostrar todas las citas
-            : history.appointments.filter( // Solo citas con registros médicos
-                apt => apt.status === 'attended' && apt.patientRecords && apt.patientRecords.length > 0
-              );
-
-          // Encontrar la fecha del último registro médico
-          const lastRecordDate = appointmentsWithRecords.length > 0
-            ? appointmentsWithRecords
-                .map(apt => new Date(apt.attendedAt || apt.scheduledDate))
-                .sort((a, b) => b.getTime() - a.getTime())[0]
-            : null;
-
-          return (
-            <>
-              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)' }}>
-                <div className="stat-value">{appointmentsWithRecords.length}</div>
-                <div className="stat-label">Procedimientos Documentados</div>
-              </div>
-              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)' }}>
-                <div className="stat-value">
-                  {history.statistics.registrationDate
-                    ? formatDate(history.statistics.registrationDate)
-                    : '-'}
-                </div>
-                <div className="stat-label">Paciente desde</div>
-              </div>
-              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)' }}>
-                <div className="stat-value">
-                  {lastRecordDate
-                    ? formatDate(lastRecordDate)
-                    : 'Ninguno'}
-                </div>
-                <div className="stat-label">Último Registro</div>
-              </div>
-              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <div className="stat-value">
-                  {appointmentsWithRecords.reduce((total, apt) =>
-                    total + (apt.patientRecords?.length || 0), 0
-                  )}
-                </div>
-                <div className="stat-label">Archivos Médicos</div>
-              </div>
-            </>
-          );
-        })()}
-      </div>
-
-      {/* Timeline - Medical Records Only */}
+      {/* ── Timeline ── */}
       <div className="timeline-container">
-        <h2 style={{ marginBottom: '30px', color: '#2c3e50' }}>
-          {showAllAppointments ? 'Historial de Citas' : 'Historial de Procedimientos'}
+        <h2 className="phist-section-title">
+          {showAll ? 'Historial de Citas' : 'Historial de Procedimientos'}
         </h2>
 
-        {(() => {
-          // Filtrar citas según el checkbox (igual que en statistics)
-          const filteredAppointments = showAllAppointments
-            ? history.appointments
-            : history.appointments.filter(apt => apt.status === 'attended' && apt.patientRecords && apt.patientRecords.length > 0);
+        {displayList.length === 0 ? (
+          <div className="phist-empty">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ margin: '0 auto var(--spacing-md)', display: 'block' }}>
+              <rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
+              <path d="M14 16h20M14 22h20M14 28h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            {showAll ? 'No hay citas registradas para este paciente' : 'No hay registros médicos para este paciente'}
+          </div>
+        ) : (
+          <div className="timeline">
+            {displayList.map(apt => (
+              <div key={apt.id} className="timeline-item">
 
-          if (filteredAppointments.length === 0) {
-            return (
-              <div style={{
-                textAlign: 'center',
-                padding: '40px',
-                color: '#7f8c8d',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px'
-              }}>
-                <p style={{ fontSize: '18px' }}>
-                  {showAllAppointments
-                    ? 'No hay citas registradas para este paciente'
-                    : 'No hay registros médicos para este paciente'}
-                </p>
-              </div>
-            );
-          }
-
-          return (
-            <div className="timeline">
-              {filteredAppointments.map((appointment, index) => (
-              <div key={appointment.id} className="timeline-item">
-                <div
-                  className="timeline-marker"
-                  style={{ backgroundColor: statusColors[appointment.status] }}
-                >
-                  {appointment.status === 'attended' ? '✓' :
-                   appointment.status === 'reserved' ? '📅' :
-                   appointment.status === 'in_progress' ? '⏳' :
-                   appointment.status === 'cancelled' ? '✕' :
-                   appointment.status === 'no_show' ? '⚠' : '?'}
+                {/* Marker con color de estado */}
+                <div className={`timeline-marker timeline-marker--${apt.status}`}>
+                  {apt.status === 'attended'    ? '✓' :
+                   apt.status === 'reserved'    ? '◆' :
+                   apt.status === 'in_progress' ? '▶' :
+                   apt.status === 'cancelled'   ? '✕' :
+                   apt.status === 'no_show'     ? '!' : '?'}
                 </div>
+
                 <div className="timeline-content">
+                  {/* Header */}
                   <div className="timeline-header">
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
-                        <h3 style={{ margin: 0, color: '#2c3e50', fontSize: '18px' }}>
-                          {formatDate(appointment.attendedAt || appointment.scheduledDate, {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          })}
-                        </h3>
-                        {showAllAppointments && (
-                          <span style={{
-                            background: statusColors[appointment.status],
-                            color: 'white',
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontSize: '12px',
-                            fontWeight: '600'
-                          }}>
-                            {statusLabels[appointment.status]}
-                          </span>
-                        )}
-                      </div>
-                      <p style={{ margin: '5px 0', color: '#7f8c8d', fontSize: '13px' }}>
-                        {appointment.status === 'attended' && appointment.attendedBy
-                          ? `Atendido por: ${appointment.attendedBy.firstName} ${appointment.attendedBy.lastName}`
-                          : `Creado por: ${appointment.createdBy.firstName} ${appointment.createdBy.lastName}`}
-                      </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
+                      <h3 className="phist-apt-date">
+                        {formatDate(apt.attendedAt || apt.scheduledDate, {
+                          day: 'numeric', month: 'long', year: 'numeric',
+                        })}
+                      </h3>
+                      {showAll && (
+                        <span className={`phist-status-badge phist-status-badge--${apt.status}`}>
+                          {statusLabels[apt.status]}
+                        </span>
+                      )}
                     </div>
+                    <p className="phist-apt-meta">
+                      {apt.status === 'attended' && apt.attendedBy
+                        ? `Atendido por: ${apt.attendedBy.firstName} ${apt.attendedBy.lastName}`
+                        : `Creado por: ${apt.createdBy.firstName} ${apt.createdBy.lastName}`}
+                    </p>
                   </div>
 
-                  {/* Treatments Section */}
-                  <div style={{
-                    marginTop: '15px',
-                    marginBottom: '15px',
-                    padding: '15px',
-                    backgroundColor: '#e8f5e9',
-                    borderRadius: '8px',
-                    border: '1px solid #c8e6c9'
-                  }}>
-                    <h4 style={{ margin: '0 0 12px 0', color: '#2c3e50', fontSize: '15px', fontWeight: '600' }}>
-                      Tratamientos Realizados
-                    </h4>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {appointment.appointmentServices.map((appSvc, idx) => (
-                        <div key={appSvc.id} style={{
-                          padding: '8px 12px',
-                          backgroundColor: 'white',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}>
-                          <span style={{ fontSize: '16px' }}>•</span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: '500', color: '#2c3e50' }}>
-                              {appSvc.serviceInstance?.service?.name}
-                            </div>
-                            {appSvc.serviceInstance && appSvc.sessionNumber && (
-                              <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                                Sesión {appSvc.sessionNumber} de {appSvc.serviceInstance.totalSessions}
+                  {/* Tratamientos */}
+                  {apt.appointmentServices.length > 0 && (
+                    <div className="phist-treatment-block">
+                      <div className="phist-treatment-block__title">Tratamientos Realizados</div>
+                      <div className="phist-treatment-list">
+                        {apt.appointmentServices.map(svc => (
+                          <div key={svc.id} className="phist-treatment-row">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <circle cx="7" cy="7" r="3" fill="var(--color-success)"/>
+                            </svg>
+                            <div>
+                              <div className="phist-treatment-row__name">
+                                {svc.serviceInstance?.service?.name || svc.service?.name || 'Servicio'}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Medical Records */}
-                  {appointment.patientRecords && appointment.patientRecords.length > 0 && (
-                    <div className="medical-records">
-                      {appointment.patientRecords.map((record) => (
-                        <div key={record.id} className="medical-record-item">
-                          {record.healthNotes && (
-                            <div style={{
-                              marginBottom: '15px',
-                              padding: '15px',
-                              backgroundColor: '#fff3e0',
-                              borderRadius: '8px',
-                              borderLeft: '4px solid #ff9800'
-                            }}>
-                              <strong style={{ display: 'block', marginBottom: '8px', color: '#e65100', fontSize: '14px' }}>
-                                📋 Notas del Procedimiento
-                              </strong>
-                              <p style={{ margin: 0, lineHeight: '1.6', color: '#5d4037' }}>{record.healthNotes}</p>
+                              {svc.serviceInstance && svc.sessionNumber && (
+                                <div className="phist-treatment-row__session">
+                                  Sesión {svc.sessionNumber} de {svc.serviceInstance.totalSessions}
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {record.weight && (
-                            <div style={{
-                              padding: '12px',
-                              backgroundColor: '#e3f2fd',
-                              borderRadius: '8px',
-                              marginBottom: '15px',
-                              display: 'inline-block'
-                            }}>
-                              <strong style={{ color: '#1565c0' }}>⚖️ Peso registrado:</strong> {Number(record.weight).toFixed(1)} kg
-                            </div>
-                          )}
-
-                          {/* Before Photos */}
-                          {record.beforePhotoUrls && Array.isArray(record.beforePhotoUrls) && record.beforePhotoUrls.length > 0 && (
-                            <div style={{ marginTop: '20px' }}>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                marginBottom: '12px',
-                                padding: '8px 12px',
-                                backgroundColor: '#fce4ec',
-                                borderRadius: '6px',
-                                width: 'fit-content'
-                              }}>
-                                <span style={{ fontSize: '20px' }}>📸</span>
-                                <strong style={{ color: '#c2185b', fontSize: '14px' }}>Fotos Antes del Tratamiento</strong>
-                              </div>
-                              <div className="photo-grid">
-                                {record.beforePhotoUrls.map((url, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'}${url}`}
-                                    alt={`Antes ${idx + 1}`}
-                                    className="timeline-photo"
-                                    onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'}${url}`, '_blank')}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* After Photos */}
-                          {record.afterPhotoUrls && Array.isArray(record.afterPhotoUrls) && record.afterPhotoUrls.length > 0 && (
-                            <div style={{ marginTop: '20px' }}>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                marginBottom: '12px',
-                                padding: '8px 12px',
-                                backgroundColor: '#e8f5e9',
-                                borderRadius: '6px',
-                                width: 'fit-content'
-                              }}>
-                                <span style={{ fontSize: '20px' }}>✨</span>
-                                <strong style={{ color: '#2e7d32', fontSize: '14px' }}>Fotos Después del Tratamiento</strong>
-                              </div>
-                              <div className="photo-grid">
-                                {record.afterPhotoUrls.map((url, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'}${url}`}
-                                    alt={`Después ${idx + 1}`}
-                                    className="timeline-photo"
-                                    onClick={() => window.open(`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'}${url}`, '_blank')}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Appointment Notes */}
-                  {appointment.appointmentNotes && appointment.appointmentNotes.length > 0 && (
-                    <div style={{
-                      marginTop: '15px',
-                      padding: '15px',
-                      backgroundColor: '#f0f4ff',
-                      borderRadius: '8px',
-                      border: '1px solid #d0e0ff'
-                    }}>
-                      <h4 style={{ margin: '0 0 12px 0', color: '#2c3e50', fontSize: '15px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '18px' }}>💬</span>
-                        Notas de Atención
-                      </h4>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {appointment.appointmentNotes.map((note) => (
-                          <div
-                            key={note.id}
-                            style={{
-                              padding: '12px',
-                              background: 'white',
-                              borderRadius: '6px',
-                              borderLeft: '3px solid #3b82f6'
-                            }}
-                          >
-                            <div style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              marginBottom: '6px'
-                            }}>
-                              <div>
-                                <span style={{ fontWeight: '600', color: '#2c3e50', fontSize: '13px' }}>
-                                  {note.createdBy?.firstName} {note.createdBy?.lastName}
-                                </span>
-                              </div>
-                              <span style={{ color: '#7f8c8d', fontSize: '11px' }}>
-                                {formatDateTime(note.createdAt, {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            </div>
-                            <p style={{ margin: 0, color: '#2c3e50', fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
-                              {note.note}
-                            </p>
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Registros médicos */}
+                  {apt.patientRecords?.length > 0 && (
+                    <div className="medical-records">
+                      {apt.patientRecords.map(record => (
+                        <div key={record.id} className="medical-record-item">
+
+                          {/* Notas de salud */}
+                          {record.healthNotes && (
+                            <div className="phist-health-note">
+                              <strong className="phist-health-note__title">Notas del Procedimiento</strong>
+                              <p className="phist-health-note__text">{record.healthNotes}</p>
+                            </div>
+                          )}
+
+                          {/* Peso */}
+                          {record.weight && (
+                            <div className="phist-weight">
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <path d="M2 10h10M4 10V7a3 3 0 016 0v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                              </svg>
+                              Peso registrado: {Number(record.weight).toFixed(1)} kg
+                            </div>
+                          )}
+
+                          {/* Fotos antes */}
+                          {record.beforePhotoUrls && record.beforePhotoUrls.length > 0 && (
+                            <div className="phist-photo-section">
+                              <div className="phist-photo-badge phist-photo-badge--before">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <rect x="1" y="2" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+                                  <circle cx="4" cy="5" r="1" stroke="currentColor" strokeWidth="1.2"/>
+                                  <path d="M1 8l3-2.5 2 2 2-2.5 3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Fotos Antes del Tratamiento
+                              </div>
+                              <div className="photo-grid">
+                                {record.beforePhotoUrls.map((url, i) => (
+                                  <img key={i} src={`${photoBase}${url}`} alt={`Antes ${i + 1}`}
+                                    className="timeline-photo"
+                                    onClick={() => window.open(`${photoBase}${url}`, '_blank')} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Fotos después */}
+                          {record.afterPhotoUrls && record.afterPhotoUrls.length > 0 && (
+                            <div className="phist-photo-section">
+                              <div className="phist-photo-badge phist-photo-badge--after">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M2 9l3-3 2 2 3-4 2 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <rect x="1" y="2" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+                                </svg>
+                                Fotos Después del Tratamiento
+                              </div>
+                              <div className="photo-grid">
+                                {record.afterPhotoUrls.map((url, i) => (
+                                  <img key={i} src={`${photoBase}${url}`} alt={`Después ${i + 1}`}
+                                    className="timeline-photo"
+                                    onClick={() => window.open(`${photoBase}${url}`, '_blank')} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Notas de atención */}
+                  {apt.appointmentNotes && apt.appointmentNotes.length > 0 && (
+                    <div className="phist-notes-block">
+                      <div className="phist-notes-block__title">Notas de Atención</div>
+                      {apt.appointmentNotes.map(note => (
+                        <div key={note.id} className="phist-note-item">
+                          <div className="phist-note-item__header">
+                            <span className="phist-note-item__author">
+                              {note.createdBy?.firstName} {note.createdBy?.lastName}
+                            </span>
+                            <span className="phist-note-item__date">
+                              {formatDateTime(note.createdAt, {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          <p className="phist-note-item__text">{note.note}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
             ))}
           </div>
-          );
-        })()}
+        )}
       </div>
     </div>
   );

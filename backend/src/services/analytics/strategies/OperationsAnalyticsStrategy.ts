@@ -211,7 +211,7 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
         },
         appointmentServices: {
           include: {
-            order: {
+            serviceInstance: {
               include: {
                 service: {
                   select: {
@@ -232,9 +232,9 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
         firstName: apt.patient.firstName,
         lastName: apt.patient.lastName,
       },
-      services: apt.appointmentServices.map(
-        (as) => as.order.service.name
-      ),
+      services: apt.appointmentServices
+        .map((as) => as.serviceInstance?.service?.name)
+        .filter((n): n is string => !!n),
       status: apt.status,
     }));
   }

@@ -31,6 +31,12 @@ export const AppointmentFormPage: React.FC = () => {
   const preselectedPatientId = searchParams.get('patientId');
   const preselectedServiceId = searchParams.get('serviceId');
   const preselectedOrderId = searchParams.get('orderId');
+  // Destino al cancelar o guardar: volver al paciente si llegamos desde allí,
+  // al detalle de cita si estamos editando, o a la lista de citas por defecto.
+  const returnTo = searchParams.get('returnTo')
+    || (preselectedPatientId ? `/patients/${preselectedPatientId}` : null)
+    || (isEditMode && id ? `/appointments/${id}` : null)
+    || '/appointments';
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -696,7 +702,7 @@ export const AppointmentFormPage: React.FC = () => {
         }
       }
 
-      navigate('/appointments');
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al guardar cita');
     } finally {
@@ -728,7 +734,7 @@ export const AppointmentFormPage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate('/appointments');
+    navigate(returnTo);
   };
 
   if (loadingData || isLoading) {

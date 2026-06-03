@@ -83,26 +83,26 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       badge: 'badge-blue',
     },
     permissions: {
-      canView: [Role.admin, Role.nurse, Role.sales],
+      canView: [Role.admin, Role.medical_staff, Role.sales],
       canEdit: [Role.admin, Role.sales],
       canDelete: [Role.admin],
-      canChangeStatus: [Role.admin, Role.nurse],
-      canUploadPhotos: [],
+      canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadReceipt: [Role.admin, Role.sales],
-      canMarkAttended: [Role.admin, Role.nurse],
+      canMarkAttended: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
     },
     visibility: {
       showWorkflowGuide: true,
-      showPhotoGallery: (hasPhotos) => hasPhotos, // Solo si ya hay fotos
+      showPhotoGallery: (hasPhotos) => hasPhotos,
       showPaymentCard: true,
       showSystemInfo: {
         visible: true,
-        defaultExpanded: false, // Colapsado por defecto
+        defaultExpanded: false,
       },
       showActionButtons: {
         edit: true,
         delete: true,
-        attend: false, // Se usa CTA en su lugar
+        attend: false,
       },
     },
     cta: {
@@ -110,7 +110,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       icon: 'play',
       variant: 'primary',
       action: 'start',
-      roles: [Role.admin, Role.nurse],
+      roles: [Role.admin, Role.medical_staff],
       pulse: true, // Animación para llamar atención
     },
     paymentHighlight: {
@@ -131,13 +131,13 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       badge: 'badge-orange',
     },
     permissions: {
-      canView: [Role.admin, Role.nurse, Role.sales],
+      canView: [Role.admin, Role.medical_staff, Role.sales],
       canEdit: [Role.admin, Role.sales],
       canDelete: [Role.admin],
-      canChangeStatus: [Role.admin, Role.nurse],
-      canUploadPhotos: [Role.admin, Role.nurse],
+      canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadReceipt: [Role.admin, Role.sales],
-      canMarkAttended: [Role.admin, Role.nurse],
+      canMarkAttended: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
     },
     visibility: {
       showWorkflowGuide: true,
@@ -158,7 +158,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       icon: 'check',
       variant: 'success',
       action: 'finish',
-      roles: [Role.admin, Role.nurse],
+      roles: [Role.admin, Role.medical_staff],
       pulse: false,
     },
     paymentHighlight: {
@@ -179,13 +179,13 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       badge: 'badge-green',
     },
     permissions: {
-      canView: [Role.admin, Role.nurse, Role.sales],
+      canView: [Role.admin, Role.medical_staff, Role.sales],
       canEdit: [Role.admin],
       canDelete: [Role.admin],
-      canChangeStatus: [Role.admin],
-      canUploadPhotos: [Role.admin, Role.nurse], // Pueden agregar fotos adicionales
+      canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadReceipt: [Role.admin, Role.sales],
-      canMarkAttended: [],
+      canMarkAttended: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
     },
     visibility: {
       showWorkflowGuide: false, // Workflow completado
@@ -206,7 +206,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       icon: 'calendar',
       variant: 'secondary',
       action: 'next-session',
-      roles: [Role.admin, Role.sales, Role.nurse],
+      roles: [Role.admin, Role.sales, Role.medical_staff],
       pulse: false,
     },
     paymentHighlight: {
@@ -227,10 +227,10 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       badge: 'badge-red',
     },
     permissions: {
-      canView: [Role.admin, Role.nurse, Role.sales],
+      canView: [Role.admin, Role.medical_staff, Role.sales],
       canEdit: [Role.admin],
       canDelete: [Role.admin],
-      canChangeStatus: [Role.admin],
+      canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadPhotos: [],
       canUploadReceipt: [],
       canMarkAttended: [],
@@ -275,10 +275,10 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       badge: 'badge-gray',
     },
     permissions: {
-      canView: [Role.admin, Role.nurse, Role.sales],
+      canView: [Role.admin, Role.medical_staff, Role.sales],
       canEdit: [Role.admin],
       canDelete: [Role.admin],
-      canChangeStatus: [Role.admin],
+      canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadPhotos: [],
       canUploadReceipt: [],
       canMarkAttended: [],

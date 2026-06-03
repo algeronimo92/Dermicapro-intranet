@@ -17,21 +17,9 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
     filters
   );
 
-  if (isLoading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Cargando...</div>;
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: '20px', color: '#e74c3c' }}>
-        Error: {error}
-      </div>
-    );
-  }
-
-  if (!data) {
-    return <div style={{ padding: '20px' }}>No hay datos disponibles</div>;
-  }
+  if (isLoading) return <div className="anlx-loading">Cargando resumen ejecutivo...</div>;
+  if (error)     return <div className="anlx-error">Error: {error}</div>;
+  if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-PE', {
@@ -41,13 +29,18 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
     }).format(value);
   };
 
+  const STATUS_LABELS: Record<string, string> = {
+    reserved: 'Reservada', in_progress: 'En Atención',
+    attended: 'Atendida', cancelled: 'Cancelada', no_show: 'No Asistió',
+  };
+
   const pieData = data.appointmentsByStatus.map((item) => ({
-    name: item.status,
-    value: item.count
+    name: STATUS_LABELS[item.status] ?? item.status,
+    value: item.count,
   }));
 
   return (
-    <div style={{ display: 'grid', gap: '20px' }}>
+    <div className="anlx-section" style={{ display: 'grid', gap: 'var(--spacing-lg)' }}>
       {/* KPIs Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
         <KPICard
@@ -77,7 +70,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
         <TrendChart
           data={data.revenueTrend}
           title="Tendencia de Ingresos"
-          color="#2ecc71"
+          colorIndex={2}
         />
         <PieChart
           data={pieData}
@@ -89,8 +82,8 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
         <RankingTable
           title="Top 5 Servicios"
-          data={data.topServices}
-          valueLabel="Revenue"
+          data={data.topServices.map(s => ({ id: s.id, name: s.name, value: s.revenue, count: s.count }))}
+          valueLabel="Ingresos"
           countLabel="Ventas"
         />
       </div>

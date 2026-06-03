@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { invoicesService } from '../services/invoices.service';
 import { patientsService } from '../services/patients.service';
 import { Order, Patient } from '../types';
+import { Loading } from '../components/Loading';
+import { Button } from '../components/Button';
+import '../styles/patient-invoices.css';
 
 const CreateInvoicePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -10,305 +13,210 @@ const CreateInvoicePage: React.FC = () => {
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [uninvoicedOrders, setUninvoicedOrders] = useState<Order[]>([]);
-  const [selectedServiceInstanceIds, setSelectedServiceInstanceIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-
+    if (!id) return;
+    const fetch = async () => {
       try {
         setLoading(true);
         setError(null);
-
         const [patientData, ordersData] = await Promise.all([
           patientsService.getPatient(id),
           invoicesService.getUninvoicedOrders(id),
         ]);
-
         setPatient(patientData);
         setUninvoicedOrders(ordersData);
       } catch (err: any) {
-        console.error('Error fetching data:', err);
         setError(err.response?.data?.error || 'Error al cargar los datos');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    fetch();
   }, [id]);
 
-  const handleToggleOrder = (serviceInstanceId: string) => {
-    setSelectedServiceInstanceIds((prev) =>
-      prev.includes(serviceInstanceId)
-        ? prev.filter((id) => id !== serviceInstanceId)
-        : [...prev, serviceInstanceId]
+  const toggleOrder = (orderId: string) =>
+    setSelectedIds(prev =>
+      prev.includes(orderId) ? prev.filter(x => x !== orderId) : [...prev, orderId]
     );
-  };
 
-  const handleSelectAll = () => {
-    if (selectedServiceInstanceIds.length === uninvoicedOrders.length) {
-      setSelectedServiceInstanceIds([]);
-    } else {
-      setSelectedServiceInstanceIds(uninvoicedOrders.map((order) => order.id));
-    }
-  };
+  const toggleAll = () =>
+    setSelectedIds(
+      selectedIds.length === uninvoicedOrders.length ? [] : uninvoicedOrders.map(o => o.id)
+    );
 
-  const calculateTotal = () => {
-    return uninvoicedOrders
-      .filter((order) => selectedServiceInstanceIds.includes(order.id))
-      .reduce((sum, order) => sum + Number(order.finalPrice), 0);
-  };
+  const total = uninvoicedOrders
+    .filter(o => selectedIds.includes(o.id))
+    .reduce((sum, o) => sum + Number(o.finalPrice), 0);
 
-  const handleCreateInvoice = async () => {
-    if (!id || selectedServiceInstanceIds.length === 0) return;
-
+  const handleCreate = async () => {
+    if (!id || selectedIds.length === 0) return;
     try {
       setCreating(true);
       setError(null);
-
-      await invoicesService.createInvoice({
-        serviceInstanceIds: selectedServiceInstanceIds,
-        patientId: id,
-      });
-
-      // Navegar de vuelta a la página de facturas del paciente
+      await invoicesService.createInvoice({ serviceInstanceIds: selectedIds, patientId: id });
       navigate(`/patients/${id}/invoices`);
     } catch (err: any) {
-      console.error('Error creating invoice:', err);
       setError(err.response?.data?.error || 'Error al crear la factura');
     } finally {
       setCreating(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container" style={{ padding: '20px', textAlign: 'center' }}>
-        <p>Cargando servicios sin facturar...</p>
-      </div>
-    );
-  }
+  const goBack = () => navigate(`/patients/${id}/invoices`);
 
-  if (error) {
+  if (loading) return <Loading text="Cargando servicios sin facturar..." />;
+
+  if (error && !patient) {
     return (
-      <div className="container" style={{ padding: '20px' }}>
-        <div style={{ color: '#ef4444', marginBottom: '16px' }}>
-          {error}
-        </div>
-        <button onClick={() => navigate(`/patients/${id}/invoices`)}>
-          Volver a Facturas
-        </button>
+      <div className="page-container">
+        <div className="alert alert-error">{error}</div>
+        <Button onClick={goBack} variant="secondary">Volver a Facturas</Button>
       </div>
     );
   }
 
   if (!patient) {
     return (
-      <div className="container" style={{ padding: '20px' }}>
-        <p>Paciente no encontrado</p>
+      <div className="page-container">
+        <p style={{ color: 'var(--color-text-tertiary)' }}>Paciente no encontrado</p>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '20px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <button
-          onClick={() => navigate(`/patients/${id}/invoices`)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#3b82f6',
-            cursor: 'pointer',
-            fontSize: '14px',
-            padding: '0',
-            marginBottom: '12px',
-          }}
-        >
-          ← Volver a Facturas
-        </button>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-          Generar Factura
-        </h1>
-        <p style={{ color: '#6b7280', fontSize: '14px' }}>
-          {patient.firstName} {patient.lastName} • DNI: {patient.dni}
-        </p>
+    <div className="page-container" style={{ maxWidth: 720 }}>
+
+      {/* ── Back ── */}
+      <button className="invoices-back-button" onClick={goBack}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Volver a Facturas
+      </button>
+
+      {/* ── Header con avatar ── */}
+      <div className="invoices-patient-strip" style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <div className="invoices-patient-avatar">
+          {patient.photoUrl
+            ? <img src={patient.photoUrl} alt={`${patient.firstName} ${patient.lastName}`} />
+            : `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`.toUpperCase()}
+        </div>
+        <div>
+          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
+            Generar Factura
+          </h1>
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
+            {patient.firstName} {patient.lastName} · DNI: {patient.dni}
+          </p>
+        </div>
       </div>
 
-      {/* No hay órdenes sin facturar */}
+      {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-lg)' }}>{error}</div>}
+
       {uninvoicedOrders.length === 0 ? (
-        <div
-          style={{
-            background: '#f3f4f6',
-            padding: '24px',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ color: '#6b7280', marginBottom: '16px' }}>
-            No hay servicios sin facturar para este paciente
-          </p>
-          <button onClick={() => navigate(`/patients/${id}/invoices`)}>
-            Volver a Facturas
-          </button>
+        <div className="pd-empty" style={{ background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-2xl)' }}>
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
+            <path d="M14 16h20M14 22h20M14 28h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <p>No hay servicios sin facturar para este paciente</p>
+          <Button onClick={goBack} variant="secondary">Volver a Facturas</Button>
         </div>
       ) : (
         <>
-          {/* Selección de órdenes */}
-          <div
-            style={{
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '20px',
-              marginBottom: '24px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-              }}
-            >
-              <h2 style={{ fontSize: '18px', fontWeight: '600' }}>
-                Servicios sin facturar ({uninvoicedOrders.length})
-              </h2>
+          {/* ── Selección de órdenes ── */}
+          <div className="glass-card" style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <div className="card-header" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="card-icon">
+                  <rect x="2" y="3" width="16" height="14" rx="1.5" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M2 8h16M6 1v4M14 1v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <h2>Servicios sin facturar ({uninvoicedOrders.length})</h2>
+              </div>
               <button
-                onClick={handleSelectAll}
+                onClick={toggleAll}
                 style={{
-                  background: 'none',
-                  border: '1px solid #d1d5db',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
+                  background: 'transparent',
+                  border: '1.5px solid var(--color-border-primary)',
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
-                  fontSize: '13px',
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 'var(--font-weight-semibold)',
+                  color: 'var(--color-text-secondary)',
+                  fontFamily: 'inherit',
+                  transition: 'all var(--transition-fast)',
+                }}
+                onMouseEnter={e => {
+                  (e.target as HTMLElement).style.borderColor = 'var(--color-primary)';
+                  (e.target as HTMLElement).style.color = 'var(--color-primary)';
+                }}
+                onMouseLeave={e => {
+                  (e.target as HTMLElement).style.borderColor = 'var(--color-border-primary)';
+                  (e.target as HTMLElement).style.color = 'var(--color-text-secondary)';
                 }}
               >
-                {selectedServiceInstanceIds.length === uninvoicedOrders.length
-                  ? 'Deseleccionar todas'
-                  : 'Seleccionar todas'}
+                {selectedIds.length === uninvoicedOrders.length ? 'Deseleccionar todas' : 'Seleccionar todas'}
               </button>
             </div>
 
-            {/* Lista de órdenes */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {uninvoicedOrders.map((order) => (
-                <div
-                  key={order.id}
-                  onClick={() => handleToggleOrder(order.id)}
-                  style={{
-                    border: selectedServiceInstanceIds.includes(order.id)
-                      ? '2px solid #3b82f6'
-                      : '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    background: selectedServiceInstanceIds.includes(order.id)
-                      ? '#eff6ff'
-                      : 'white',
-                    transition: 'all 0.2s',
-                  }}
-                >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+              {uninvoicedOrders.map(order => {
+                const isSelected = selectedIds.includes(order.id);
+                return (
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                    }}
+                    key={order.id}
+                    className={`cinv-order${isSelected ? ' cinv-order--selected' : ''}`}
+                    onClick={() => toggleOrder(order.id)}
                   >
                     <input
                       type="checkbox"
-                      checked={selectedServiceInstanceIds.includes(order.id)}
+                      className="cinv-order__checkbox"
+                      checked={isSelected}
                       readOnly
-                      style={{ cursor: 'pointer', pointerEvents: 'none' }}
                     />
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        {order.service?.name || 'Servicio'}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                        {order.totalSessions}{' '}
-                        {order.totalSessions === 1 ? 'sesión' : 'sesiones'} •{' '}
-                        {order.completedSessions} completadas
-                        {order.notes && ` • ${order.notes}`}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="cinv-order__name">{order.service?.name || 'Servicio'}</div>
+                      <div className="cinv-order__meta">
+                        {order.totalSessions} {order.totalSessions === 1 ? 'sesión' : 'sesiones'} · {order.completedSessions} completadas
                       </div>
                     </div>
-                    <div
-                      style={{
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        color: '#1f2937',
-                      }}
-                    >
-                      S/. {Number(order.finalPrice).toFixed(2)}
-                    </div>
+                    <div className="cinv-order__price">S/. {Number(order.finalPrice).toFixed(2)}</div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* Resumen y acción */}
-          <div
-            style={{
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '20px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-              }}
-            >
+          {/* ── Resumen y acción ── */}
+          <div className="glass-card">
+            <div className="cinv-summary">
               <div>
-                <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                  {selectedServiceInstanceIds.length}{' '}
-                  {selectedServiceInstanceIds.length === 1 ? 'servicio seleccionado' : 'servicios seleccionados'}
+                <div className="cinv-summary__count">
+                  {selectedIds.length} {selectedIds.length === 1 ? 'servicio seleccionado' : 'servicios seleccionados'}
                 </div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>
-                  Total: S/. {calculateTotal().toFixed(2)}
+                <div className="cinv-summary__total">
+                  Total: S/. {total.toFixed(2)}
                 </div>
               </div>
-              <button
-                onClick={handleCreateInvoice}
-                disabled={selectedServiceInstanceIds.length === 0 || creating}
-                style={{
-                  background: selectedServiceInstanceIds.length === 0 || creating ? '#d1d5db' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  cursor: selectedServiceInstanceIds.length === 0 || creating ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                }}
+              <Button
+                onClick={handleCreate}
+                disabled={selectedIds.length === 0 || creating}
+                variant="primary"
+                size="large"
+                isLoading={creating}
               >
-                {creating ? 'Generando...' : 'Generar Factura'}
-              </button>
+                Generar Factura
+              </Button>
             </div>
-
-            {selectedServiceInstanceIds.length === 0 && (
-              <div style={{ fontSize: '13px', color: '#9ca3af' }}>
-                Selecciona al menos un servicio para generar la factura
-              </div>
+            {selectedIds.length === 0 && (
+              <p className="cinv-summary__hint">Selecciona al menos un servicio para generar la factura</p>
             )}
           </div>
         </>

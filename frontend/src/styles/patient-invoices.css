@@ -54,73 +54,49 @@
 /* Summary Cards */
 .invoices-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-3xl);
 }
 
-.summary-card {
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  border: 2px solid;
+/* Escopar bajo .invoices-summary para mayor especificidad
+   que la regla global de commissions-page.css */
+.invoices-summary .summary-card {
+  background: var(--color-bg-primary) !important;
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  color: var(--color-text-primary);
 }
 
-.summary-card-total {
-  background: linear-gradient(135deg, var(--color-primary-alpha-10) 0%, var(--color-primary-alpha-20) 100%);
-  border-color: var(--color-primary);
-}
-
-.summary-card-paid {
-  background: linear-gradient(135deg, var(--color-success-alpha-10) 0%, var(--color-success-alpha-20) 100%);
-  border-color: var(--color-success);
-}
-
-.summary-card-pending {
-  background: linear-gradient(135deg, var(--color-error-alpha-10) 0%, var(--color-error-alpha-20) 100%);
-  border-color: var(--color-error);
-}
-
-.summary-label {
+.invoices-summary .summary-label {
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--spacing-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.summary-card-total .summary-label {
-  color: var(--color-primary);
-}
-
-.summary-card-paid .summary-label {
-  color: var(--color-success-dark);
-}
-
-.summary-card-pending .summary-label {
-  color: var(--color-error-dark);
-}
-
-.summary-amount {
-  font-size: var(--font-size-4xl);
   font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+  opacity: 1;
 }
 
-.summary-card-total .summary-amount {
-  color: var(--color-primary);
+.invoices-summary .summary-amount {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  margin: var(--spacing-xs) 0;
 }
 
-.summary-card-paid .summary-amount {
-  color: var(--color-success-dark);
-}
+.invoices-summary .summary-card-total   .summary-amount { color: var(--color-primary); }
+.invoices-summary .summary-card-paid    .summary-amount { color: var(--color-success-dark); }
+.invoices-summary .summary-card-pending .summary-amount { color: var(--color-error); }
 
-.summary-card-pending .summary-amount {
-  color: var(--color-error-dark);
-}
-
-.summary-subtitle {
+.invoices-summary .summary-subtitle {
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
 }
 
 /* Invoices List */
@@ -212,7 +188,7 @@
 }
 
 .invoice-status-badge {
-  color: white;
+  color: var(--color-on-primary);
   padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: 11px;
@@ -357,6 +333,130 @@
 .register-payment-button:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+
+/* ── CREATE INVOICE: Order selection item ── */
+
+.cinv-order {
+  border: 1.5px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  background: var(--color-bg-primary);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  user-select: none;
+}
+
+.cinv-order:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
+
+.cinv-order--selected {
+  border: 2px solid var(--color-primary);
+  background: var(--color-primary-alpha-10);
+}
+
+.cinv-order__checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.cinv-order__name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+
+.cinv-order__meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.cinv-order__price {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Summary bar */
+.cinv-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.cinv-summary__count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-bottom: 2px;
+}
+
+.cinv-summary__total {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.cinv-summary__hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-sm);
+}
+
+/* Uninvoiced order item */
+.invoice-item--uninvoiced {
+  border-left: 4px solid var(--color-warning);
+  cursor: default;
+}
+.invoice-item--uninvoiced:hover {
+  background-color: var(--color-warning-alpha-10);
+}
+
+.invoices-list-title--warning {
+  color: var(--color-warning-dark);
+}
+
+/* Patient avatar in header */
+.invoices-patient-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.invoices-patient-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: var(--color-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 2px 8px var(--color-primary-alpha-20);
+  letter-spacing: -0.5px;
+}
+.invoices-patient-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Responsive */

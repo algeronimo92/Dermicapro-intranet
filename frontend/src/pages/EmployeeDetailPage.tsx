@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usersService, UserStats } from '../services/users.service';
-import { User } from '../types';
+import { User, Role, RoleInfo } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { Modal } from '../components/Modal';
@@ -91,25 +91,32 @@ export const EmployeeDetailPage: React.FC = () => {
     );
   }
 
-  const getRoleLabel = (role: Role): string => {
-    const roleLabels: Record<Role, string> = {
-      admin: 'Administrador',
-      nurse: 'Enfermera',
-      sales: 'Ventas',
-    };
-    return roleLabels[role];
+  const resolveRoleName = (role: RoleInfo | Role | null | undefined): string => {
+    if (!role) return '';
+    if (typeof role === 'string') return role;
+    return role.name;
   };
 
-  const getRoleBadgeColor = (role: Role): string => {
-    switch (role) {
-      case 'admin':
-        return '#e74c3c';
-      case 'nurse':
-        return '#3498db';
-      case 'sales':
-        return '#2ecc71';
-      default:
-        return '#95a5a6';
+  const getRoleLabel = (role: RoleInfo | Role | null | undefined): string => {
+    if (!role) return 'Sin rol';
+    if (typeof role === 'object') return role.displayName;
+    const roleLabels: Record<string, string> = {
+      admin:         'Administrador',
+      medical_staff: 'Personal Médico',
+      assistant:     'Personal Asistente',
+      sales:         'Vendedor',
+    };
+    return roleLabels[role] ?? role;
+  };
+
+  const getRoleBadgeColor = (role: RoleInfo | Role | null | undefined): string => {
+    const name = resolveRoleName(role);
+    switch (name) {
+      case Role.admin:         return '#e74c3c';
+      case Role.medical_staff: return '#3498db';
+      case Role.assistant:     return '#f39c12';
+      case Role.sales:         return '#2ecc71';
+      default:                 return '#95a5a6';
     }
   };
 
@@ -215,7 +222,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 <div className="stat-label">Pacientes Registrados</div>
               </div>
 
-              {(typeof employee.role === 'string' ? employee.role === 'sales' : employee.role?.name === 'sales') && (
+              {resolveRoleName(employee.role) === Role.sales && (
                 <>
                   <div className="stat-card">
                     <div className="stat-value">{stats.counts.appointmentsCreated}</div>
@@ -240,7 +247,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 </>
               )}
 
-              {(typeof employee.role === 'string' ? employee.role === 'nurse' : employee.role?.name === 'nurse') && (
+              {resolveRoleName(employee.role) === Role.medical_staff && (
                 <>
                   <div className="stat-card">
                     <div className="stat-value">{stats.counts.appointmentsAttended}</div>
@@ -257,7 +264,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 </>
               )}
 
-              {(typeof employee.role === 'string' ? employee.role === 'admin' : employee.role?.name === 'admin') && (
+              {resolveRoleName(employee.role) === Role.admin && (
                 <>
                   <div className="stat-card">
                     <div className="stat-value">{stats.counts.appointmentsCreated}</div>

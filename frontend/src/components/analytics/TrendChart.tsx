@@ -1,50 +1,33 @@
 import React from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getChartColor } from '../../utils/chartColors';
 
 interface TrendChartProps {
   data: { month: string; value: number }[];
   title: string;
-  color?: string;
+  colorIndex?: 1 | 2 | 3 | 4 | 5 | 6;
   height?: number;
   valueFormatter?: (value: number) => string;
 }
 
+const fmtPEN = (v: number) =>
+  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 0 }).format(v);
+
 export const TrendChart: React.FC<TrendChartProps> = ({
-  data,
-  title,
-  color = '#3498db',
-  height = 300,
-  valueFormatter
+  data, title, colorIndex = 2, height = 300, valueFormatter,
 }) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatter = valueFormatter || formatCurrency;
-
+  const color = getChartColor(colorIndex);
+  const fmt = valueFormatter || fmtPEN;
   return (
-    <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-      <h3 style={{ marginBottom: '20px', fontSize: '18px' }}>{title}</h3>
+    <div className="anlx-chart-card">
+      <h3 className="anlx-chart-title">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="month" />
-          <YAxis tickFormatter={formatter} />
-          <Tooltip formatter={(value: any) => formatter(value)} />
-          <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} />
+          <YAxis tickFormatter={(v: any) => fmtPEN(Number(v))} />
+          <Tooltip formatter={(v: any) => fmt(Number(v))} />
+          <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={{ r: 4, fill: color }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -4,6 +4,7 @@ import { patientsService } from '../services/patients.service';
 import { invoicesService } from '../services/invoices.service';
 import { Patient, Invoice, InvoiceStatus, Order } from '../types';
 import { Loading } from '../components/Loading';
+import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { formatDate } from '../utils/dateUtils';
 import '../styles/patient-invoices.css';
 
@@ -16,6 +17,7 @@ export const PatientInvoicesPage: React.FC = () => {
   const [uninvoicedOrders, setUninvoicedOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -131,13 +133,18 @@ export const PatientInvoicesPage: React.FC = () => {
         </button>
 
         <div className="invoices-header-content">
-          <div>
-            <h1 className="invoices-title">
-              Facturas y Pagos
-            </h1>
-            <p className="invoices-patient-info">
-              {patient.firstName} {patient.lastName} - DNI: {patient.dni}
-            </p>
+          <div className="invoices-patient-strip">
+            <div className="invoices-patient-avatar">
+              {patient.photoUrl
+                ? <img src={patient.photoUrl} alt={`${patient.firstName} ${patient.lastName}`} />
+                : `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`.toUpperCase()}
+            </div>
+            <div>
+              <h1 className="invoices-title">Facturas y Pagos</h1>
+              <p className="invoices-patient-info">
+                {patient.firstName} {patient.lastName} · DNI {patient.dni}
+              </p>
+            </div>
           </div>
           <button onClick={handleCreateInvoice} className="btn btn-primary">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -191,7 +198,7 @@ export const PatientInvoicesPage: React.FC = () => {
       {uninvoicedOrders.length > 0 && (
         <div className="invoices-list-container" style={{ marginBottom: '30px' }}>
           <div className="invoices-list-header">
-            <h2 className="invoices-list-title" style={{ color: '#e67e22' }}>
+            <h2 className="invoices-list-title invoices-list-title--warning">
               Órdenes Pendientes de Facturar ({uninvoicedOrders.length})
             </h2>
           </div>
@@ -199,8 +206,7 @@ export const PatientInvoicesPage: React.FC = () => {
             {uninvoicedOrders.map((order) => (
               <div
                 key={order.id}
-                className="invoice-item"
-                style={{ borderLeft: '4px solid #e67e22' }}
+                className="invoice-item invoice-item--uninvoiced"
               >
                 <div className="invoice-item-header">
                   <div className="invoice-item-left">
@@ -262,7 +268,7 @@ export const PatientInvoicesPage: React.FC = () => {
           </div>
         ) : (
           <div>
-            {invoices.map((invoice, index) => {
+            {invoices.map((invoice) => {
               const invoiceOrders = invoice.orders || [];
               const invoiceStatus = invoice.status;
               const amountPaid = invoice.payments?.reduce((sum, p) => sum + Number(p.amountPaid), 0) || 0;
@@ -377,7 +383,7 @@ export const PatientInvoicesPage: React.FC = () => {
                       className="register-payment-button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        alert('Modal de registro de pago - Por implementar');
+                        setPaymentInvoice(invoice);
                       }}
                     >
                       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -393,6 +399,20 @@ export const PatientInvoicesPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── Modal de registro de pago ── */}
+      {paymentInvoice && patient && (
+        <RegisterPaymentModal
+          isOpen={!!paymentInvoice}
+          onClose={() => setPaymentInvoice(null)}
+          invoice={paymentInvoice}
+          patientId={patient.id}
+          onSuccess={(updated) => {
+            setInvoices(prev => prev.map(inv => inv.id === updated.id ? updated : inv));
+            setPaymentInvoice(null);
+          }}
+        />
+      )}
     </div>
   );
 };

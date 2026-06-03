@@ -82,7 +82,7 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     from: AppointmentStatus.reserved,
     to: AppointmentStatus.in_progress,
     guards: {
-      allowedRoles: [Role.admin, Role.nurse],
+      allowedRoles: [Role.admin, Role.medical_staff],
       errorMessage: 'Solo administradores y enfermeras pueden iniciar la atención',
     },
     label: 'Iniciar Atención',
@@ -121,7 +121,7 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     from: AppointmentStatus.in_progress,
     to: AppointmentStatus.attended,
     guards: {
-      allowedRoles: [Role.admin, Role.nurse],
+      allowedRoles: [Role.admin, Role.medical_staff],
       // NO validamos en condition para que el botón siempre aparezca
       // La validación se hace al hacer click y se muestra el error
       errorMessage: 'Debes subir al menos fotos de ANTES para finalizar la atención',
@@ -134,7 +134,7 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     from: AppointmentStatus.in_progress,
     to: AppointmentStatus.reserved,
     guards: {
-      allowedRoles: [Role.admin, Role.nurse],
+      allowedRoles: [Role.admin, Role.medical_staff],
       requiresConfirmation: true,
       confirmationMessage: '¿Regresar a estado Reservada? Se perderá el progreso de la atención.',
       errorMessage: 'Solo administradores y enfermeras pueden revertir el estado de atención',
@@ -221,44 +221,16 @@ export const STATE_TRANSITIONS: StateTransition[] = [
 // ============================================
 
 /**
- * Extrae el nombre del rol del usuario (soporta RoleInfo y Role string)
- */
-const getRoleName = (role: any): Role | undefined => {
-  if (!role) return undefined;
-
-  // Si es un objeto con propiedad 'name', usarla
-  if (typeof role === 'object' && role.name) {
-    return role.name as Role;
-  }
-
-  // Si es un string, usarlo directamente
-  if (typeof role === 'string') {
-    return role as Role;
-  }
-
-  return undefined;
-};
-
-/**
  * Obtiene todas las transiciones válidas desde un estado específico
  */
 export const getAvailableTransitions = (
   fromStatus: AppointmentStatus,
-  userRole?: any,
+  _userRole?: any,
   context?: TransitionContext
 ): StateTransition[] => {
-  const roleName = getRoleName(userRole);
-
   return STATE_TRANSITIONS.filter(transition => {
-    // Filtrar por estado origen
     if (transition.from !== fromStatus) return false;
 
-    // Filtrar por rol
-    if (!roleName || !transition.guards.allowedRoles.includes(roleName)) {
-      return false;
-    }
-
-    // Evaluar condición adicional si existe
     if (transition.guards.condition && context) {
       return transition.guards.condition(context);
     }
@@ -273,33 +245,15 @@ export const getAvailableTransitions = (
 export const canTransition = (
   from: AppointmentStatus,
   to: AppointmentStatus,
-  userRole?: any,
+  _userRole?: any,
   context?: TransitionContext
 ): { allowed: boolean; reason?: string } => {
-  const roleName = getRoleName(userRole);
-
-  if (!roleName) {
-    return { allowed: false, reason: 'Usuario no autenticado' };
-  }
-
-  // Buscar la transición
-  const transition = STATE_TRANSITIONS.find(
-    t => t.from === from && t.to === to
-  );
+  const transition = STATE_TRANSITIONS.find(t => t.from === from && t.to === to);
 
   if (!transition) {
     return { allowed: false, reason: 'Transición no definida en el sistema' };
   }
 
-  // Validar rol
-  if (!transition.guards.allowedRoles.includes(roleName)) {
-    return {
-      allowed: false,
-      reason: transition.guards.errorMessage || 'No tienes permisos para esta acción'
-    };
-  }
-
-  // Validar condición
   if (transition.guards.condition && context) {
     if (!transition.guards.condition(context)) {
       return {

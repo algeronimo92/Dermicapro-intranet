@@ -1,6 +1,7 @@
 export enum Role {
   admin = 'admin',
-  nurse = 'nurse',
+  medical_staff = 'medical_staff',
+  assistant = 'assistant',
   sales = 'sales',
 }
 
@@ -47,10 +48,7 @@ export interface RoleInfo {
   name: string;
   displayName: string;
   description?: string;
-  isActive: boolean;
-  isSystem: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface User {
@@ -62,6 +60,8 @@ export interface User {
   sex?: Sex;
   dateOfBirth?: string;
   isActive: boolean;
+  mustChangePassword?: boolean;
+  themeMode?: 'light' | 'dark' | 'auto';
   createdAt: string;
 }
 
@@ -75,12 +75,13 @@ export interface Patient {
   phone?: string;
   email?: string;
   address?: string;
+  photoUrl?: string | null;
   createdAt: string;
   createdBy?: Partial<User>;
   lastAttendedDate?: string | null;
   lastAttendedBy?: Partial<User> | null;
   orders?: Order[];
-  appointments?: Appointment[]; // Historial de citas del paciente
+  appointments?: Appointment[];
 }
 
 export interface Service {
@@ -195,6 +196,7 @@ export interface PatientRecord {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  mustChangePassword?: boolean;
   user: User;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Role } from '../types';
+import { User } from '../types';
 import { usersService, CreateUserDto, UpdateUserDto } from '../services/users.service';
 import { Modal } from './Modal';
 import { Input } from './Input';
@@ -47,17 +47,19 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
 
   useEffect(() => {
-    loadRoles();
-  }, []);
+    if (isOpen) {
+      loadRoles();
+      if (!isEdit) {
+        setForm(EMPTY_FORM);
+        setErrors({});
+        setError(null);
+      }
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && isEdit && userId && availableRoles.length > 0) {
       loadUser(userId);
-    }
-    if (!isOpen) {
-      setForm(EMPTY_FORM);
-      setErrors({});
-      setError(null);
     }
   }, [isOpen, userId, availableRoles.length]);
 
@@ -136,8 +138,6 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 
     try {
       setIsSaving(true);
-      const selectedRole = availableRoles.find(r => r.id === form.roleId);
-      const roleName = selectedRole?.name as Role;
 
       let saved: User;
       if (isEdit && userId) {
@@ -145,7 +145,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           email: form.email,
           firstName: form.firstName,
           lastName: form.lastName,
-          role: roleName,
+          roleId: form.roleId,
           sex: form.sex || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
           isActive: form.isActive,
@@ -158,7 +158,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           password: form.password,
           firstName: form.firstName,
           lastName: form.lastName,
-          role: roleName,
+          roleId: form.roleId,
           sex: form.sex || undefined,
           dateOfBirth: form.dateOfBirth || undefined,
         };

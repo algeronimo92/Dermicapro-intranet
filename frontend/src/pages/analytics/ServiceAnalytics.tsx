@@ -2,11 +2,18 @@ import React from 'react';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, ServiceAnalyticsData } from '../../types/analytics.types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getChartColor } from '../../utils/chartColors';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface ServiceAnalyticsProps {
-  filters?: AnalyticsFilters;
-}
+interface ServiceAnalyticsProps { filters?: AnalyticsFilters; }
+
+const fmt = (v: number) => `S/ ${v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const completionVariant = (rate: number) => {
+  if (rate >= 80) return { bg: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)' };
+  if (rate >= 60) return { bg: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)' };
+  return { bg: 'var(--color-error-alpha-10)', color: 'var(--color-error)' };
+};
 
 export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) => {
   const { data, isLoading, error } = useAnalytics<ServiceAnalyticsData>(
@@ -14,181 +21,136 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
     filters
   );
 
-  if (isLoading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando datos de servicios...</div>;
-  }
-
-  if (error) {
-    return <div style={{ padding: '40px', color: '#e74c3c' }}>Error: {error}</div>;
-  }
-
-  if (!data) {
-    return <div style={{ padding: '40px' }}>No hay datos disponibles</div>;
-  }
+  if (isLoading) return <div className="anlx-loading">Cargando datos de servicios...</div>;
+  if (error)     return <div className="anlx-error">Error: {error}</div>;
+  if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="anlx-section">
+
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #3498db' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Total Servicios</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{data.overview.totalServices}</div>
+      <div className="anlx-kpi-grid">
+        <div className="anlx-kpi-card anlx-kpi-card--info">
+          <div className="anlx-kpi-label">Total Servicios</div>
+          <div className="anlx-kpi-value">{data.overview.totalServices}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #2ecc71' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Servicios Activos</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{data.overview.activeServices}</div>
+        <div className="anlx-kpi-card anlx-kpi-card--success">
+          <div className="anlx-kpi-label">Servicios Activos</div>
+          <div className="anlx-kpi-value">{data.overview.activeServices}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #9b59b6' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Ingresos Totales</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-            S/ {data.overview.totalRevenue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+        <div className="anlx-kpi-card anlx-kpi-card--primary">
+          <div className="anlx-kpi-label">Ingresos Totales</div>
+          <div className="anlx-kpi-value">{fmt(data.overview.totalRevenue)}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #f39c12' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Precio Promedio</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-            S/ {data.pricing.averageServicePrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+        <div className="anlx-kpi-card anlx-kpi-card--warning">
+          <div className="anlx-kpi-label">Precio Promedio</div>
+          <div className="anlx-kpi-value">{fmt(data.pricing.averageServicePrice)}</div>
         </div>
       </div>
 
-      {/* Service Performance Table */}
-      <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '30px' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Rendimiento por Servicio</h3>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {/* Tabla de rendimiento */}
+      <div className="anlx-chart-card">
+        <h3 className="anlx-chart-title">Rendimiento por Servicio</h3>
+        <div className="anlx-table-wrap">
+          <table className="anlx-table">
             <thead>
-              <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Servicio</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Veces Ordenado</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Ingresos</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Precio Promedio</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Tasa de Completado</th>
+              <tr>
+                <th>Servicio</th>
+                <th className="anlx-table__right">Veces Ordenado</th>
+                <th className="anlx-table__right">Ingresos</th>
+                <th className="anlx-table__right">Precio Promedio</th>
+                <th className="anlx-table__right">% Completado</th>
               </tr>
             </thead>
             <tbody>
-              {data.performance.map((service) => (
-                <tr key={service.serviceTemplateId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '12px', fontWeight: '500' }}>{service.serviceName}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>{service.timesOrdered}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                    S/ {service.revenue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>
-                    S/ {service.averagePrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>
-                    <span
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        background: service.completionRate >= 80 ? '#d4edda' : service.completionRate >= 60 ? '#fff3cd' : '#f8d7da',
-                        color: service.completionRate >= 80 ? '#155724' : service.completionRate >= 60 ? '#856404' : '#721c24',
-                      }}
-                    >
-                      {service.completionRate.toFixed(1)}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {data.performance.map((svc) => {
+                const v = completionVariant(svc.completionRate);
+                return (
+                  <tr key={svc.serviceTemplateId}>
+                    <td style={{ fontWeight: 500 }}>{svc.serviceName}</td>
+                    <td className="anlx-table__right">{svc.timesOrdered}</td>
+                    <td className="anlx-table__right anlx-table__currency">{fmt(svc.revenue)}</td>
+                    <td className="anlx-table__right">{fmt(svc.averagePrice)}</td>
+                    <td className="anlx-table__right">
+                      <span style={{ padding: '3px 8px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, background: v.bg, color: v.color }}>
+                        {svc.completionRate.toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-        {/* Revenue by Service */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Servicios por Ingresos</h3>
-          <ResponsiveContainer width="100%" height={300}>
+      {/* Charts */}
+      <div className="anlx-chart-grid">
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Top 10 Servicios por Ingresos</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={data.performance.slice(0, 10)} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
+              <YAxis dataKey="serviceName" type="category" width={150} />
+              <Tooltip formatter={(v: any) => fmt(Number(v))} />
+              <Bar dataKey="revenue" fill={getChartColor(2)} name="Ingresos" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Top 10 Servicios por Popularidad</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.performance.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="serviceName" type="category" width={150} />
               <Tooltip />
-              <Bar dataKey="revenue" fill="#2ecc71" name="Ingresos" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Times Ordered by Service */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Servicios por Popularidad</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.performance.slice(0, 10)} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="serviceName" type="category" width={150} />
-              <Tooltip />
-              <Bar dataKey="timesOrdered" fill="#3498db" name="Veces Ordenado" />
+              <Bar dataKey="timesOrdered" fill={getChartColor(1)} name="Veces Ordenado" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Pricing Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Precio Mínimo</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3498db' }}>
-            S/ {data.pricing.priceRange.min.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+      {/* Rango de precios */}
+      <div className="anlx-kpi-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+        <div className="anlx-kpi-card anlx-kpi-card--info" style={{ textAlign: 'center' }}>
+          <div className="anlx-kpi-label">Precio Mínimo</div>
+          <div className="anlx-kpi-value">{fmt(data.pricing.priceRange.min)}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Precio Promedio</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#2ecc71' }}>
-            S/ {data.pricing.averageServicePrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+        <div className="anlx-kpi-card anlx-kpi-card--success" style={{ textAlign: 'center' }}>
+          <div className="anlx-kpi-label">Precio Promedio</div>
+          <div className="anlx-kpi-value">{fmt(data.pricing.averageServicePrice)}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Precio Máximo</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#e74c3c' }}>
-            S/ {data.pricing.priceRange.max.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+        <div className="anlx-kpi-card anlx-kpi-card--error" style={{ textAlign: 'center' }}>
+          <div className="anlx-kpi-label">Precio Máximo</div>
+          <div className="anlx-kpi-value">{fmt(data.pricing.priceRange.max)}</div>
         </div>
       </div>
 
-      {/* Packages */}
+      {/* Paquetes */}
       {data.packages.length > 0 && (
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Paquetes de Servicios</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Paquetes de Servicios</h3>
+          <div className="anlx-table-wrap">
+            <table className="anlx-table">
               <thead>
-                <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paquete</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Servicios</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Precio</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Popularidad</th>
+                <tr>
+                  <th>Paquete</th>
+                  <th className="anlx-table__right">Servicios</th>
+                  <th className="anlx-table__right">Precio</th>
+                  <th className="anlx-table__right">Popularidad</th>
                 </tr>
               </thead>
               <tbody>
                 {data.packages.map((pkg) => (
-                  <tr key={pkg.packageId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '12px', fontWeight: '500' }}>{pkg.packageName}</td>
-                    <td style={{ padding: '12px', textAlign: 'right' }}>{pkg.serviceCount}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                      S/ {pkg.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right' }}>
-                      <span
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          background: '#e3f2fd',
-                          color: '#1976d2',
-                        }}
-                      >
+                  <tr key={pkg.packageId}>
+                    <td style={{ fontWeight: 500 }}>{pkg.packageName}</td>
+                    <td className="anlx-table__right">{pkg.serviceCount}</td>
+                    <td className="anlx-table__right anlx-table__currency">{fmt(pkg.totalPrice)}</td>
+                    <td className="anlx-table__right">
+                      <span style={{ padding: '3px 8px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)' }}>
                         {pkg.popularity} órdenes
                       </span>
                     </td>

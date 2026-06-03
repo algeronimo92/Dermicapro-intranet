@@ -217,7 +217,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         <div className="kanban-card-patient">
                           {patient && (
                             <div className="kanban-avatar">
-                              {getInitials(patient.firstName, patient.lastName)}
+                              {patient.photoUrl
+                                ? <img src={patient.photoUrl} alt={`${patient.firstName} ${patient.lastName}`} />
+                                : getInitials(patient.firstName, patient.lastName)}
                             </div>
                           )}
                           <div className="kanban-card-meta">

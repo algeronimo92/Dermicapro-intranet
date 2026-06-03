@@ -41,29 +41,29 @@ export abstract class BaseAnalyticsStrategy<T> implements IAnalyticsStrategy<T> 
 
   // Helper: obtener rango de fechas
   protected getDateRange(filters?: AnalyticsFilters): { gte: Date; lte: Date } {
-    const now = new Date();
-    let gte: Date;
-    let lte: Date = now;
+    // lte siempre es "ahora" — usar new Date() para no compartir referencia con gte
+    const lte = new Date();
+
+    if (filters?.period === 'custom') {
+      return { gte: filters.startDate!, lte: filters.endDate! };
+    }
+
+    // Calcular gte copiando lte para no mutar el objeto lte
+    const gte = new Date(lte);
 
     switch (filters?.period) {
       case 'today':
-        gte = new Date(now.setHours(0, 0, 0, 0));
+        gte.setHours(0, 0, 0, 0);
         break;
       case 'week':
-        gte = new Date(now.setDate(now.getDate() - 7));
-        break;
-      case 'month':
-        gte = new Date(now.setMonth(now.getMonth() - 1));
+        gte.setDate(gte.getDate() - 7);
         break;
       case 'year':
-        gte = new Date(now.setFullYear(now.getFullYear() - 1));
+        gte.setFullYear(gte.getFullYear() - 1);
         break;
-      case 'custom':
-        gte = filters!.startDate!;
-        lte = filters!.endDate!;
-        break;
+      case 'month':
       default:
-        gte = new Date(now.setMonth(now.getMonth() - 1));
+        gte.setMonth(gte.getMonth() - 1);
     }
 
     return { gte, lte };

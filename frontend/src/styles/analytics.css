@@ -1,0 +1,345 @@
+/* ============================================================
+   ANALYTICS MODULE  —  design tokens, light + dark
+   Cubre: AnalyticsPage + todos los sub-componentes
+   ============================================================ */
+
+/* ── CHART COLORS (tokens en hex para compatibilidad con Recharts/SVG) ── */
+:root {
+  --chart-1: #0F766E; /* --color-primary        teal */
+  --chart-2: #059669; /* --color-success         emerald */
+  --chart-3: #D97706; /* --color-warning         amber */
+  --chart-4: #DC2626; /* --color-error           red */
+  --chart-5: #0284C7; /* --color-info            sky */
+  --chart-6: #BE185D; /* --color-accent          pink */
+}
+
+[data-theme="dark"] {
+  --chart-1: #2DD4BF; /* --color-primary dark */
+  --chart-2: #34D399; /* --color-success dark */
+  --chart-3: #FCD34D; /* --color-warning dark */
+  --chart-4: #F87171; /* --color-error dark */
+  --chart-5: #38BDF8; /* --color-info dark */
+  --chart-6: #C084FC; /* --color-accent dark */
+}
+
+/* ── MAIN PAGE ── */
+
+.analytics-page {
+  padding: 0;
+}
+
+.page-header h1 {
+  color: var(--color-text-primary);
+}
+
+/* ── PERIOD SELECTOR ── */
+
+.period-selector {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.period-button {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  border: 1.5px solid var(--color-border-primary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-base);
+  transition: all var(--transition-fast);
+}
+
+.period-button:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.period-button.active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px var(--color-primary-alpha-20);
+}
+
+/* ── TABS ── */
+
+.analytics-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--color-border-secondary);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  overflow-x: auto;
+}
+
+.tab-button {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  margin-bottom: -2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.tab-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-inverse);
+}
+
+.tab-button.active {
+  background: var(--color-bg-primary);
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── ANALYTICS CONTENT ── */
+
+.analytics-content {
+  background: var(--color-bg-primary);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  border: 1px solid var(--color-border-secondary);
+  border-top: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── CUSTOM DATE RANGE ── */
+
+.custom-date-range {
+  display: flex;
+  gap: var(--spacing-xl);
+  align-items: flex-end;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.date-input-group label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── ACCESS DENIED ── */
+
+.access-denied {
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2xl);
+  text-align: center;
+  border: 1px solid var(--color-border-secondary);
+}
+
+.access-denied h2 { color: var(--color-error); margin-bottom: var(--spacing-sm); }
+.access-denied p  { color: var(--color-text-secondary); font-size: var(--font-size-base); }
+
+/* ══════════════════════════════════════
+   ANALYTICS SUB-COMPONENTS (shared)
+═══════════════════════════════════════ */
+
+/* ── Section wrapper ── */
+.anlx-section {
+  padding: var(--spacing-xl);
+}
+
+/* ── States ── */
+.anlx-loading,
+.anlx-empty {
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.anlx-error {
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+/* ── KPI Grid ── */
+.anlx-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.anlx-kpi-card {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-secondary);
+  border-left: 4px solid var(--color-border-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Variantes de color en el borde izquierdo */
+.anlx-kpi-card--primary { border-left-color: var(--color-primary); }
+.anlx-kpi-card--success { border-left-color: var(--color-success); }
+.anlx-kpi-card--warning { border-left-color: var(--color-warning); }
+.anlx-kpi-card--error   { border-left-color: var(--color-error); }
+.anlx-kpi-card--info    { border-left-color: var(--color-info); }
+.anlx-kpi-card--accent  { border-left-color: var(--color-accent); }
+
+.anlx-kpi-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.anlx-kpi-value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.anlx-kpi-sub {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.anlx-kpi-card--primary .anlx-kpi-sub { color: var(--color-primary); }
+.anlx-kpi-card--success .anlx-kpi-sub { color: var(--color-success-dark); }
+.anlx-kpi-card--warning .anlx-kpi-sub { color: var(--color-warning-dark); }
+.anlx-kpi-card--error   .anlx-kpi-sub { color: var(--color-error); }
+.anlx-kpi-card--info    .anlx-kpi-sub { color: var(--color-info-dark); }
+.anlx-kpi-card--accent  .anlx-kpi-sub { color: var(--color-accent); }
+
+/* ── Chart Grid ── */
+.anlx-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.anlx-chart-grid--full { grid-template-columns: 1fr; }
+
+@media (max-width: 768px) {
+  .anlx-chart-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Chart Card ── */
+.anlx-chart-card {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.anlx-chart-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-lg);
+}
+
+/* ── Table ── */
+.anlx-table-wrap { overflow-x: auto; }
+
+.anlx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.anlx-table th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+  border-bottom: 2px solid var(--color-border-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.anlx-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.anlx-table tr:last-child td { border-bottom: none; }
+.anlx-table tr:hover td { background: var(--color-bg-hover); }
+
+.anlx-table__right { text-align: right; }
+.anlx-table__currency { font-weight: var(--font-weight-semibold); color: var(--color-success-dark); }
+.anlx-table__muted   { color: var(--color-text-tertiary); }
+
+/* ── Ranking badge ── */
+.anlx-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-primary);
+}
+.anlx-rank-badge--gold   { background: var(--color-warning); }
+.anlx-rank-badge--silver { background: var(--color-text-tertiary); }
+.anlx-rank-badge--bronze { background: var(--color-warning-dark); opacity: 0.8; }
+.anlx-rank-badge--default{ background: var(--color-bg-tertiary); color: var(--color-text-tertiary); }
+
+/* ── Recharts overrides: adaptación al tema ── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--color-border-secondary);
+}
+
+.recharts-text.recharts-cartesian-axis-tick-value {
+  fill: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--color-bg-primary) !important;
+  border: 1px solid var(--color-border-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--color-text-primary) !important;
+  font-weight: 600;
+}
+
+.recharts-legend-item-text {
+  color: var(--color-text-secondary) !important;
+}

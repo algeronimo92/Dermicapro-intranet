@@ -1,11 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme, ThemeMode } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/auth.service';
+import { useSystemSettings } from '../contexts/SystemSettingsContext';
+import { ShieldCheck, Save } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
   const { mode, resolvedTheme, setMode } = useTheme();
+  const { user, updateUser } = useAuth();
+  const { settings, updateSetting } = useSystemSettings();
 
-  const handleThemeChange = (newMode: ThemeMode) => {
+  const roleName = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
+  const isAdmin  = roleName === 'admin';
+
+  const [timeoutInput, setTimeoutInput] = useState(settings.session_timeout_minutes);
+  const [timeoutSaving, setTimeoutSaving] = useState(false);
+  const [timeoutError, setTimeoutError] = useState('');
+  const [timeoutSaved, setTimeoutSaved] = useState(false);
+
+  const handleThemeChange = async (newMode: ThemeMode) => {
     setMode(newMode);
+    try {
+      const updated = await authService.updateMe({ themeMode: newMode });
+      updateUser(updated);
+    } catch {
+      // falla silenciosa — el cambio visual ya está aplicado
+    }
+  };
+
+  const handleTimeoutSave = async () => {
+    const val = Number(timeoutInput);
+    if (isNaN(val) || val < 1 || val > 120) {
+      setTimeoutError('Ingresa un valor entre 1 y 120 minutos.');
+      return;
+    }
+    setTimeoutError('');
+    setTimeoutSaving(true);
+    try {
+      await updateSetting('session_timeout_minutes', String(val));
+      setTimeoutSaved(true);
+      setTimeout(() => setTimeoutSaved(false), 2500);
+    } catch {
+      setTimeoutError('Error al guardar. Intenta de nuevo.');
+    } finally {
+      setTimeoutSaving(false);
+    }
   };
 
   return (
@@ -171,6 +210,74 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* ── Configuración del Sistema — solo admin ── */}
+        {isAdmin && (
+          <section className="settings-section">
+            <div className="settings-section-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShieldCheck size={18} strokeWidth={1.75} color="var(--color-primary)" />
+                <h2 className="settings-section-title" style={{ margin: 0 }}>Configuración del Sistema</h2>
+              </div>
+              <p className="settings-section-description">
+                Parámetros de seguridad y comportamiento global. Solo visible para administradores.
+              </p>
+            </div>
+
+            <div className="settings-group">
+              <label className="settings-label">Tiempo de inactividad (minutos)</label>
+              <p className="settings-hint">
+                La sesión se cerrará automáticamente si el usuario está inactivo durante este tiempo.
+                Valor actual en DB: <strong>{settings.session_timeout_minutes} min</strong>.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={timeoutInput}
+                  onChange={e => { setTimeoutInput(e.target.value); setTimeoutError(''); setTimeoutSaved(false); }}
+                  style={{
+                    width: 90,
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    border: `1.5px solid ${timeoutError ? 'var(--color-error)' : 'var(--color-border-primary)'}`,
+                    background: 'var(--color-bg-primary)',
+                    color: 'var(--color-text-primary)',
+                    fontSize: 'var(--font-size-sm)',
+                    fontFamily: 'var(--font-family-mono)',
+                    fontWeight: 600,
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={handleTimeoutSave}
+                  disabled={timeoutSaving}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '8px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    border: 'none',
+                    background: timeoutSaved ? 'var(--color-success)' : 'var(--color-primary)',
+                    color: '#fff',
+                    fontSize: 'var(--font-size-sm)',
+                    fontWeight: 600,
+                    cursor: timeoutSaving ? 'not-allowed' : 'pointer',
+                    opacity: timeoutSaving ? 0.7 : 1,
+                    transition: 'background var(--transition-base)',
+                  }}
+                >
+                  <Save size={14} strokeWidth={2} />
+                  {timeoutSaved ? '¡Guardado!' : timeoutSaving ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+              {timeoutError && (
+                <p style={{ fontSize: 12, color: 'var(--color-error)', marginTop: 4 }}>{timeoutError}</p>
+              )}
+            </div>
+          </section>
+        )}
+
       </div>
     </div>
   );

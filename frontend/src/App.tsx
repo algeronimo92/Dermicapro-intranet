@@ -1,9 +1,13 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, NavLink, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { NAV_ITEMS, canAccessNav } from './config/navigation.config';
+import { Sidebar } from './components/Sidebar';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { Timer } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PatientAuthProvider, usePatientAuth } from './contexts/PatientAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { APP_VERSION } from './config/version';
+import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
 import { PatientsPage } from './pages/PatientsPage';
 import { PatientFormPage } from './pages/PatientFormPage';
 import { PatientDetailPage } from './pages/PatientDetailPage';
@@ -21,7 +25,10 @@ import CommissionsPage from './pages/CommissionsPage';
 import SettingsPage from './pages/SettingsPage';
 import { StyleGuidePage } from './pages/StyleGuidePage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
+import { LoginPage } from './pages/LoginPage';
+import { FirstLoginModal } from './components/FirstLoginModal';
 // Portal de Pacientes
 import { PatientLoginPage, PatientDashboardPage, PatientChangePasswordPage } from './pages/patient';
 import './styles/design-tokens.css';
@@ -30,11 +37,22 @@ import './styles/dashboard.css';
 import './styles/settings.css';
 import './styles/commissions-page.css';
 
+// Wrapper interno para SystemSettingsProvider (necesita acceso a useAuth)
+function SystemSettingsWrapper({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return (
+    <SystemSettingsProvider isAuthenticated={isAuthenticated}>
+      {children}
+    </SystemSettingsProvider>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <PatientAuthProvider>
+          <SystemSettingsWrapper>
             <Router>
               <Routes>
                 {/* Rutas del Portal de Pacientes */}
@@ -60,6 +78,7 @@ function App() {
                 />
               </Routes>
             </Router>
+          </SystemSettingsWrapper>
         </PatientAuthProvider>
       </AuthProvider>
     </ThemeProvider>
@@ -106,198 +125,163 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [error, setError] = React.useState('');
 
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await login(email, password);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión');
-    }
-  };
-
-  return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-header">
-          <h1 className="login-logo">DermicaPro</h1>
-          <h2 className="login-title">Iniciar Sesión</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="login-form-group">
-            <label className="login-form-label">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="login-form-input"
-              placeholder="usuario@dermicapro.com"
-            />
-          </div>
-
-          <div className="login-form-group">
-            <label className="login-form-label">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="login-form-input"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && <div className="login-error">{error}</div>}
-
-          <button type="submit" className="login-submit-btn">
-            Ingresar
-          </button>
-        </form>
-
-        <div className="login-version">
-          <p>v{APP_VERSION}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+const IDLE_WARNING_MS = 60 * 1000; // advertencia 1 min antes (fijo)
 
 function DashboardLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, mustChangePassword } = useAuth();
+  const { sessionTimeoutMs } = useSystemSettings();
 
-  // Helper para verificar el nombre del rol (soporta tanto string como objeto)
-  const hasRole = (roleName: string) => {
-    if (!user?.role) return false;
-    return typeof user.role === 'string'
-      ? user.role === roleName
-      : user.role.name === roleName;
-  };
+  const roleName    = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
+  const roleDisplay = typeof user?.role === 'string' ? user.role : (user?.role?.displayName ?? '');
+  const isAdmin     = roleName === 'admin';
+
+  const { showWarning, secondsLeft, percentageRemaining, msRemaining, extendSession } = useIdleTimeout({
+    timeout:       sessionTimeoutMs,
+    warningBefore: IDLE_WARNING_MS,
+    onTimeout:     logout,
+  });
+
+  // Anillo de cuenta regresiva del modal
+  const warningTotal  = Math.floor(IDLE_WARNING_MS / 1000); // 60 s
+  const pct           = secondsLeft / warningTotal;
+  const isCritical    = secondsLeft <= 15;
+  const ringColor     = isCritical ? 'var(--color-error)' : 'var(--color-warning)';
+  const r    = 28;
+  const circ = 2 * Math.PI * r;
+
+  const fmtCountdown = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
-    <div className="dashboard-layout">
-      <aside className="dashboard-sidebar">
-        <div className="sidebar-header">
-          <h1 className="sidebar-logo">DermicaPro</h1>
-        </div>
+    <>
+      {mustChangePassword && <FirstLoginModal />}
+      <div className="dashboard-layout">
+        <Sidebar
+          user={{ firstName: user?.firstName, lastName: user?.lastName, roleDisplay }}
+          navItems={NAV_ITEMS.filter(item => canAccessNav(item, roleName))}
+          onLogout={logout}
+          idleInfo={isAdmin ? { percentage: percentageRemaining, msRemaining } : undefined}
+        />
+        <main className="dashboard-main">
+          <div className="dashboard-content">
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/patients" element={<PatientsPage />} />
+              <Route path="/patients/:id" element={<PatientDetailPage />} />
+              <Route path="/patients/:id/edit" element={<PatientFormPage />} />
+              <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
+              <Route path="/patients/:id/invoices" element={<PatientInvoicesPage />} />
+              <Route path="/patients/:id/create-invoice" element={<CreateInvoicePage />} />
+              <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+              <Route path="/appointments" element={<AppointmentsPage />} />
+              <Route path="/appointments/new" element={<AppointmentFormPage />} />
+              <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
+              <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+              <Route path="/commissions" element={<CommissionsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/styleguide" element={<StyleGuidePage />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
 
-        <div className="sidebar-user">
-          <p className="sidebar-user-name">
-            {user?.firstName} {user?.lastName}
-          </p>
-          <p className="sidebar-user-role">
-            {typeof user?.role === 'string' ? user.role : user?.role?.displayName}
-          </p>
-        </div>
+      {/* Modal de inactividad */}
+      {showWarning && (
+        <div
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'var(--color-bg-overlay)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 'var(--z-modal-backdrop)' as any,
+            padding: 'var(--spacing-md)',
+          }}
+        >
+          <div style={{
+            background: 'var(--color-bg-primary)',
+            borderRadius: 'var(--radius-2xl)',
+            boxShadow: 'var(--shadow-2xl)',
+            border: '1px solid var(--color-border-secondary)',
+            width: '100%', maxWidth: 360,
+            overflow: 'hidden',
+            padding: 'var(--spacing-xl)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 'var(--spacing-md)', textAlign: 'center',
+          }}>
+            {/* Anillo de cuenta regresiva */}
+            <div style={{ position: 'relative', width: 80, height: 80 }}>
+              <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx="40" cy="40" r={r} fill="none"
+                  stroke="var(--color-border-secondary)" strokeWidth="5" />
+                <circle cx="40" cy="40" r={r} fill="none"
+                  stroke={ringColor}
+                  strokeWidth="5"
+                  strokeDasharray={circ}
+                  strokeDashoffset={circ * (1 - pct)}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+                />
+              </svg>
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Timer size={22} strokeWidth={1.75} color={ringColor} />
+              </div>
+            </div>
 
-        <nav className="sidebar-nav">
-          <ul className="sidebar-nav-list">
-            <li className="sidebar-nav-item">
-              <NavLink to="/" end className="sidebar-nav-link">
-                <span className="sidebar-nav-icon">🏠</span>
-                Dashboard
-              </NavLink>
-            </li>
-            <li className="sidebar-nav-item">
-              <NavLink to="/patients" className="sidebar-nav-link">
-                <span className="sidebar-nav-icon">👥</span>
-                Pacientes
-              </NavLink>
-            </li>
-            <li className="sidebar-nav-item">
-              <NavLink to="/appointments" className="sidebar-nav-link">
-                <span className="sidebar-nav-icon">📅</span>
-                Citas
-              </NavLink>
-            </li>
-            {hasRole('admin') && (
-              <>
-                <li className="sidebar-nav-item">
-                  <NavLink to="/services" className="sidebar-nav-link">
-                    <span className="sidebar-nav-icon">💉</span>
-                    Servicios
-                  </NavLink>
-                </li>
-                <li className="sidebar-nav-item">
-                  <NavLink to="/employees" className="sidebar-nav-link">
-                    <span className="sidebar-nav-icon">👨‍⚕️</span>
-                    Recursos Humanos
-                  </NavLink>
-                </li>
-                <li className="sidebar-nav-item">
-                  <NavLink to="/commissions" className="sidebar-nav-link">
-                    <span className="sidebar-nav-icon">💰</span>
-                    Comisiones
-                  </NavLink>
-                </li>
-                <li className="sidebar-nav-item">
-                  <NavLink to="/analytics" className="sidebar-nav-link">
-                    <span className="sidebar-nav-icon">📊</span>
-                    Analíticas
-                  </NavLink>
-                </li>
-              </>
-            )}
-            <li className="sidebar-nav-item">
-              <NavLink to="/styleguide" className="sidebar-nav-link">
-                <span className="sidebar-nav-icon">🎨</span>
-                Ficha de Estilos
-              </NavLink>
-            </li>
-            <li className="sidebar-nav-item">
-              <NavLink to="/settings" className="sidebar-nav-link">
-                <span className="sidebar-nav-icon">⚙️</span>
-                Configuración
-              </NavLink>
-            </li>
-          </ul>
-        </nav>
+            <div>
+              <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', marginBottom: 6 }}>
+                ¿Sigues ahí?
+              </div>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', lineHeight: 'var(--line-height-normal)' }}>
+                La sesión cerrará en{' '}
+                <strong style={{ color: ringColor }}>
+                  {fmtCountdown(secondsLeft)}
+                </strong>{' '}
+                por inactividad.
+              </div>
+            </div>
 
-        <div className="sidebar-footer">
-          <button onClick={logout} className="sidebar-logout-btn">
-            <span>🚪</span>
-            Cerrar Sesión
-          </button>
+            <div style={{ display: 'flex', gap: 'var(--spacing-sm)', width: '100%' }}>
+              <button
+                onClick={logout}
+                style={{
+                  flex: 1, padding: '10px var(--spacing-md)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1.5px solid var(--color-border-primary)',
+                  background: 'var(--color-bg-secondary)',
+                  color: 'var(--color-text-secondary)',
+                  fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
+                  cursor: 'pointer',
+                }}
+              >
+                Cerrar sesión
+              </button>
+              <button
+                autoFocus
+                onClick={extendSession}
+                style={{
+                  flex: 2, padding: '10px var(--spacing-md)',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)',
+                  cursor: 'pointer',
+                }}
+              >
+                Continuar sesión
+              </button>
+            </div>
+          </div>
         </div>
-      </aside>
-
-      <main className="dashboard-main">
-        <div className="dashboard-content">
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/patients" element={<PatientsPage />} />
-            <Route path="/patients/:id" element={<PatientDetailPage />} />
-            <Route path="/patients/:id/edit" element={<PatientFormPage />} />
-            <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
-            <Route path="/patients/:id/invoices" element={<PatientInvoicesPage />} />
-            <Route path="/patients/:id/create-invoice" element={<CreateInvoicePage />} />
-            <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
-            <Route path="/appointments" element={<AppointmentsPage />} />
-            <Route path="/appointments/new" element={<AppointmentFormPage />} />
-            <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
-            <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/employees" element={<EmployeesPage />} />
-            <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-            <Route path="/commissions" element={<CommissionsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/styleguide" element={<StyleGuidePage />} />
-          </Routes>
-        </div>
-      </main>
-    </div>
+      )}
+    </>
   );
 }
 

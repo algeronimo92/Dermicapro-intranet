@@ -165,7 +165,7 @@ App.tsx (routing) → Pages → Components
 ### Database Schema (Prisma)
 
 **Core Models:**
-- `User` - System users with roles (admin, nurse, sales)
+- `User` - System users with roles (admin, medical_staff, assistant, sales)
 - `SystemRole` - Roles with permissions (RBAC)
 - `Permission` - Granular permissions for RBAC
 - `Patient` - Customer records with DNI (Peruvian ID)
@@ -202,13 +202,14 @@ App.tsx (routing) → Pages → Components
 
 **Role Hierarchy:**
 - `admin` - Full system access, manages users/roles/commissions
-- `nurse` - Attends appointments, records medical data
+- `medical_staff` - Medical doctor, performs procedures
+- `assistant` - Attends appointments, records medical data (previously "nurse")
 - `sales` - Creates appointments, manages patients (filtered to own appointments)
 
 **Critical Authorization Rules:**
 - Sales users ONLY see appointments they created (`createdById` filter)
 - Only admins can manage users, services, and view all appointments
-- Only nurses/admins can mark appointments as attended and create medical records
+- Only assistant/admins can mark appointments as attended and create medical records
 
 ### Business Logic Patterns
 
@@ -371,10 +372,16 @@ Default pagination for list endpoints:
 - Commissions: filter by salesPersonId, status, date range
 
 ### Testing
-- Test user credentials (after running `make seed`):
-  - Admin: `admin@dermicapro.com` / `admin123`
-  - Nurse: `enfermera@dermicapro.com` / `nurse123`
-  - Sales: `ventas@dermicapro.com` / `sales123`
+- User credentials (after running `make seed`):
+
+  | Rol | Email | Contraseña |
+  |-----|-------|------------|
+  | admin | `admin@dermicapro.com` | `admin123` |
+  | medical_staff | `diego@dermicapro.com` | `medico123` |
+  | assistant | `estefany@dermicapro.com` | `asistente123` |
+  | assistant | `astrid@dermicapro.com` | `asistente123` |
+  | sales | `grecia@dermicapro.com` | `ventas123` |
+  | sales | `antonella@dermicapro.com` | `ventas123` |
 
 ### Database Migrations
 

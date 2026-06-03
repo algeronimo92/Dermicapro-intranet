@@ -114,7 +114,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
       include: {
         appointmentServices: {
           include: {
-            order: { select: { finalPrice: true } }
+            serviceInstance: { select: { finalPrice: true } }
           }
         }
       }
@@ -122,7 +122,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
 
     const projected = futureAppointments.reduce((sum, apt) => {
       return sum + apt.appointmentServices.reduce((s, as) => {
-        return s + this.decimalToNumber(as.order.finalPrice);
+        return s + (as.serviceInstance ? this.decimalToNumber(as.serviceInstance.finalPrice) : 0);
       }, 0);
     }, 0);
 

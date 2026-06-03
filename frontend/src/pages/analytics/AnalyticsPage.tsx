@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Role } from '../../types';
 import { DatePicker } from '../../components/DatePicker';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -43,9 +44,8 @@ export const AnalyticsPage: React.FC = () => {
     setSearchParams(params, { replace: true });
   }, [activeTab, period, startDate, endDate, setSearchParams]);
 
-  // Check if user is admin
   const isAdmin = user?.role
-    ? (typeof user.role === 'string' ? user.role === 'admin' : user.role.name === 'admin')
+    ? (typeof user.role === 'string' ? user.role === Role.admin : user.role.name === Role.admin)
     : false;
 
   if (!isAdmin) {

@@ -10,6 +10,7 @@ export interface CreatePatientDto {
   phone?: string;
   email?: string;
   address?: string;
+  photoUrl?: string | null;
 }
 
 export interface UpdatePatientDto extends Partial<CreatePatientDto> {}

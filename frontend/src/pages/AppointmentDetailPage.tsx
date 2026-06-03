@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentsService } from '../services/appointments.service';
 import { patientsService } from '../services/patients.service';
-import { Appointment, Patient } from '../types';
+import { Appointment, Patient, Role } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
-import { Modal } from '../components/Modal';
 import { AttendAppointmentModal } from '../components/AttendAppointmentModal';
 import { UploadReservationModal } from '../components/UploadReservationModal';
 import { UploadPhotosModal } from '../components/UploadPhotosModal';
@@ -386,7 +385,29 @@ export const AppointmentDetailPage: React.FC = () => {
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Recibo subido exitosamente
+          Guardado correctamente
+        </div>
+      )}
+
+      {/* Patient Strip — foto o iniciales + nombre */}
+      {appointment.patient && (
+        <div className="adet-patient-strip" onClick={handleViewPatient} role="button" tabIndex={0}>
+          <div className="adet-patient-avatar">
+            {appointment.patient.photoUrl
+              ? <img src={appointment.patient.photoUrl} alt={`${appointment.patient.firstName} ${appointment.patient.lastName}`} />
+              : `${appointment.patient.firstName.charAt(0)}${appointment.patient.lastName.charAt(0)}`.toUpperCase()}
+          </div>
+          <div className="adet-patient-info">
+            <p className="adet-patient-name">
+              {appointment.patient.firstName} {appointment.patient.lastName}
+            </p>
+            <span className="adet-patient-meta">
+              {appointment.patient.dni ? `DNI ${appointment.patient.dni}` : 'Ver ficha del paciente'}
+            </span>
+          </div>
+          <svg className="adet-patient-chevron" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M7 5l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </div>
       )}
 
@@ -571,429 +592,157 @@ export const AppointmentDetailPage: React.FC = () => {
           <h2>Estado de Pago</h2>
         </div>
 
-        {/* SECCIÓN 1: PAGO DE PAQUETES */}
+        {/* SECCIÓN 1: PAGO DEL PAQUETE */}
         {paymentData.packagesTotal > 0 && (
-          <div style={{
-            background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-            border: '2px solid #3b82f6',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '20px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '12px',
-              fontSize: '13px',
-              fontWeight: '700',
-              color: '#1e40af',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
+          <div className="adet-pay-pkg">
+            <div className="adet-pay-pkg__title">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M2 5h12M2 8h12M2 11h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              PAGO DEL PAQUETE
+              Pago del Paquete
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '12px',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                background: 'white',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #bfdbfe'
-              }}>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
-                  TOTAL DEL PAQUETE
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e40af' }}>
-                  S/. {paymentData.packagesTotal.toFixed(2)}
-                </div>
+            <div className="adet-pay-pkg__stats">
+              <div className="adet-pay-stat adet-pay-stat--total">
+                <div className="adet-pay-stat__label">Total</div>
+                <div className="adet-pay-stat__amount">S/. {paymentData.packagesTotal.toFixed(2)}</div>
               </div>
-
-              <div style={{
-                background: 'white',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #86efac'
-              }}>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
-                  PAGADO
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#15803d' }}>
-                  S/. {paymentData.packagesPaid.toFixed(2)}
-                </div>
+              <div className="adet-pay-stat adet-pay-stat--paid">
+                <div className="adet-pay-stat__label">Pagado</div>
+                <div className="adet-pay-stat__amount">S/. {paymentData.packagesPaid.toFixed(2)}</div>
               </div>
-
-              <div style={{
-                background: 'white',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #fca5a5'
-              }}>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
-                  PENDIENTE
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#dc2626' }}>
-                  S/. {paymentData.packagesPending.toFixed(2)}
-                </div>
+              <div className="adet-pay-stat adet-pay-stat--pending">
+                <div className="adet-pay-stat__label">Pendiente</div>
+                <div className="adet-pay-stat__amount">S/. {paymentData.packagesPending.toFixed(2)}</div>
               </div>
             </div>
 
-            {/* Barra de progreso */}
-            <div style={{
-              background: '#e5e7eb',
-              height: '8px',
-              borderRadius: '4px',
-              overflow: 'hidden',
-              marginBottom: '12px'
-            }}>
-              <div style={{
-                height: '100%',
-                background: 'linear-gradient(90deg, #10b981, #059669)',
-                width: `${paymentData.packagesTotal > 0 ? (paymentData.packagesPaid / paymentData.packagesTotal * 100) : 0}%`,
-                transition: 'width 0.3s ease'
+            <div className="adet-pay-progress">
+              <div className="adet-pay-progress__fill" style={{
+                width: `${paymentData.packagesTotal > 0 ? (paymentData.packagesPaid / paymentData.packagesTotal * 100) : 0}%`
               }} />
             </div>
 
             {hasPendingPayment ? (
-              <button className="btn-pay" onClick={handleViewInvoices} style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                color: 'white',
-                border: 'none',
-                padding: '12px 20px',
-                borderRadius: '8px',
-                fontWeight: '600',
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <rect x="2.5" y="3.333" width="15" height="13.333" rx="1.667" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M2.5 7.5h15" stroke="currentColor" strokeWidth="2"/>
+              <button className="adet-pay-cta" onClick={handleViewInvoices}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <rect x="2" y="3" width="14" height="12" rx="1.5" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M2 7h14" stroke="currentColor" strokeWidth="2"/>
                 </svg>
                 Ver Facturas del Paciente
               </button>
             ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '12px',
-                background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                borderRadius: '8px',
-                color: '#065f46',
-                fontWeight: '600',
-                fontSize: '14px'
-              }}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M16.667 5L7.5 14.167L3.333 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <div className="adet-pay-done">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M15 4.5L7 12.5L3 8.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                ¡Paquete Pagado Completamente!
+                Paquete Pagado Completamente
               </div>
             )}
           </div>
         )}
 
-        {/* SECCIÓN 2: PREVIEW DE FACTURAS IMPAGAS DEL PACIENTE */}
+        {/* SECCIÓN 2: OTRAS FACTURAS PENDIENTES */}
         {paymentData.unpaidInvoicesCount > 0 && paymentData.otherOrders.length > 0 && (
-          <div style={{
-            background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
-            border: '2px solid #f97316',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '20px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px',
-                fontWeight: '700',
-                color: '#c2410c',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
+          <div className="adet-other-invoices">
+            <div className="adet-other-invoices__header">
+              <div className="adet-other-invoices__title">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1v14M1 8h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M8 4v4M8 11h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                OTRAS FACTURAS PENDIENTES
+                Otras Facturas Pendientes
               </div>
-              <div style={{
-                background: '#ea580c',
-                color: 'white',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: '700'
-              }}>
+              <span className="adet-other-invoices__count">
                 {paymentData.otherOrders.length} {paymentData.otherOrders.length === 1 ? 'factura' : 'facturas'}
-              </div>
+              </span>
             </div>
 
-            <div style={{
-              background: 'white',
-              borderRadius: '8px',
-              padding: '12px',
-              marginBottom: '12px',
-              border: '1px solid #fed7aa'
-            }}>
-              <div style={{
-                fontSize: '11px',
-                color: '#9a3412',
-                fontWeight: '600',
-                marginBottom: '8px'
-              }}>
-                Este paciente tiene pagos pendientes de otros servicios/paquetes:
-              </div>
-
-              {paymentData.otherOrders.map((order, idx) => (
-                <div key={order.serviceInstanceId} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '8px',
-                  background: idx % 2 === 0 ? '#fff7ed' : 'white',
-                  borderRadius: '6px',
-                  marginBottom: idx < paymentData.otherOrders.length - 1 ? '6px' : '0'
-                }}>
+            <div className="adet-invoice-list">
+              {paymentData.otherOrders.map((order) => (
+                <div key={order.serviceInstanceId} className="adet-invoice-item">
                   <div>
-                    <div style={{
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      color: '#1f2937',
-                      marginBottom: '2px'
-                    }}>
-                      {order.serviceName}
-                    </div>
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#6b7280'
-                    }}>
-                      Estado: <span style={{
-                        color: order.status === 'pending' ? '#dc2626' : '#f59e0b',
-                        fontWeight: '600',
-                        textTransform: 'uppercase'
-                      }}>
-                        {order.status === 'pending' ? 'SIN PAGAR' : 'PAGO PARCIAL'}
-                      </span>
+                    <div className="adet-invoice-item__name">{order.serviceName}</div>
+                    <div className="adet-invoice-item__status">
+                      {order.status === 'pending' ? 'Sin pagar' : 'Pago parcial'}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{
-                      fontSize: '14px',
-                      fontWeight: '700',
-                      color: '#dc2626'
-                    }}>
-                      S/. {order.pendingAmount.toFixed(2)}
-                    </div>
-                    <div style={{
-                      fontSize: '10px',
-                      color: '#6b7280'
-                    }}>
-                      pendiente
-                    </div>
+                  <div>
+                    <div className="adet-invoice-item__amount">S/. {order.pendingAmount.toFixed(2)}</div>
+                    <div className="adet-invoice-item__amount-sub">pendiente</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px',
-              background: 'white',
-              borderRadius: '8px',
-              marginBottom: '12px'
-            }}>
-              <div style={{
-                fontSize: '13px',
-                fontWeight: '700',
-                color: '#1f2937'
-              }}>
-                TOTAL PENDIENTE (Otras facturas)
-              </div>
-              <div style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#dc2626'
-              }}>
-                S/. {paymentData.otherOrdersPending.toFixed(2)}
-              </div>
+            <div className="adet-other-invoices__total">
+              <span className="adet-other-invoices__total-label">Total pendiente</span>
+              <span className="adet-other-invoices__total-amount">S/. {paymentData.otherOrdersPending.toFixed(2)}</span>
             </div>
 
-            <button className="btn-view-all-invoices" onClick={handleViewInvoices} style={{
-              width: '100%',
-              background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-              color: 'white',
-              border: 'none',
-              padding: '12px 20px',
-              borderRadius: '8px',
-              fontWeight: '600',
-              fontSize: '14px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <button className="adet-other-invoices__cta" onClick={handleViewInvoices}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="2" y="3" width="14" height="12" rx="1.5" stroke="currentColor" strokeWidth="2"/>
+                <path d="M2 7h14M6 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               Ver Todas las Facturas del Paciente
             </button>
 
-            <div style={{
-              marginTop: '12px',
-              padding: '10px',
-              background: 'rgba(255, 255, 255, 0.5)',
-              borderRadius: '6px',
-              fontSize: '11px',
-              color: '#9a3412',
-              fontStyle: 'italic'
-            }}>
-              💡 <strong>Nota:</strong> Estas facturas corresponden a otros servicios del paciente. No están incluidas en el pago de esta cita.
+            <div className="adet-other-invoices__note">
+              Estas facturas son de otros servicios del paciente, no de esta cita.
             </div>
           </div>
         )}
 
-        {/* SECCIÓN 3: RESERVA DE CITA (INDEPENDIENTE) */}
-        <div style={{
-          background: paymentData.hasReservation ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' : 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)',
-          border: paymentData.hasReservation ? '2px solid #10b981' : '2px dashed #d1d5db',
-          borderRadius: '12px',
-          padding: '16px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '12px',
-            fontSize: '13px',
-            fontWeight: '700',
-            color: paymentData.hasReservation ? '#065f46' : '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }}>
+        {/* SECCIÓN 3: RESERVA */}
+        <div className={`adet-reservation ${paymentData.hasReservation ? 'adet-reservation--paid' : 'adet-reservation--empty'}`}>
+          <div className="adet-reservation__title">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
               <path d="M2 6h12" stroke="currentColor" strokeWidth="2"/>
             </svg>
-            RESERVA DE CITA (Independiente)
+            Reserva de Cita
           </div>
 
           {paymentData.hasReservation ? (
             <>
-              <div style={{
-                background: 'white',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '12px',
-                border: '1px solid #86efac'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
-                      Adelanto Pagado
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#15803d' }}>
-                      S/. {paymentData.reservationPaid.toFixed(2)}
-                    </div>
-                  </div>
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="14" stroke="#10b981" strokeWidth="2"/>
-                    <path d="M10 16l4 4 8-8" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+              <div className="adet-reservation__amount-row">
+                <div>
+                  <div className="adet-reservation__amount-label">Adelanto Pagado</div>
+                  <div className="adet-reservation__amount">S/. {paymentData.reservationPaid.toFixed(2)}</div>
                 </div>
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                  <circle cx="14" cy="14" r="12" stroke="var(--color-success)" strokeWidth="2"/>
+                  <path d="M8 14l4 4 8-8" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
 
               {appointment.reservationReceiptUrl && (
-                <div style={{
-                  background: 'white',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '12px',
-                  border: '1px solid #d1d5db'
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-bg-primary)', padding: '10px 12px', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--spacing-sm)', border: '1px solid var(--color-border-secondary)' }}>
                   {(appointment.reservationReceiptUrl.toLowerCase().endsWith('.jpg') ||
                     appointment.reservationReceiptUrl.toLowerCase().endsWith('.jpeg') ||
                     appointment.reservationReceiptUrl.toLowerCase().endsWith('.png')) && (
                     <img
                       src={getReceiptUrl(appointment.reservationReceiptUrl) || ''}
                       alt="Recibo de reserva"
-                      style={{
-                        width: '60px',
-                        height: '60px',
-                        objectFit: 'cover',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
+                      style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-md)', cursor: 'pointer', flexShrink: 0 }}
                       onClick={() => window.open(getReceiptUrl(appointment.reservationReceiptUrl) || '', '_blank')}
                     />
                   )}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                    <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                       Comprobante de Reserva
                     </div>
-                    <a
-                      href={getReceiptUrl(appointment.reservationReceiptUrl) || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        fontSize: '12px',
-                        color: '#3b82f6',
-                        textDecoration: 'none',
-                        fontWeight: '500'
-                      }}
-                    >
-                      📄 Ver recibo completo →
+                    <a href={getReceiptUrl(appointment.reservationReceiptUrl) || '#'} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 'var(--font-weight-semibold)' }}>
+                      Ver recibo completo →
                     </a>
                   </div>
                 </div>
               )}
 
               {appointment.status === 'reserved' && (
-                <button onClick={handleUploadReceipt} style={{
-                  width: '100%',
-                  background: 'white',
-                  border: '1px solid #d1d5db',
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
+                <button onClick={handleUploadReceipt} className="adet-reservation__upload-btn">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M14 10v2.667A1.333 1.333 0 0112.667 14H3.333A1.333 1.333 0 012 12.667V10M11.333 5.333L8 2m0 0L4.667 5.333M8 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -1003,39 +752,16 @@ export const AppointmentDetailPage: React.FC = () => {
             </>
           ) : (
             <>
-              <div style={{
-                textAlign: 'center',
-                padding: '24px',
-                color: '#9ca3af'
-              }}>
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ margin: '0 auto 12px' }}>
-                  <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
-                  <path d="M24 16v16M16 24h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <div className="adet-reservation__empty-msg">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ margin: '0 auto 8px' }}>
+                  <circle cx="20" cy="20" r="17" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
+                  <path d="M20 13v14M13 20h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
-                  No se pagó reserva
-                </div>
-                <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                  La reserva es un adelanto opcional para asegurar la cita
-                </div>
+                <p>Sin reserva registrada</p>
+                <p className="adet-reservation__empty-sub">Adelanto opcional para asegurar la cita</p>
               </div>
-
               {appointment.status === 'reserved' && (
-                <button onClick={handleUploadReceipt} style={{
-                  width: '100%',
-                  background: 'white',
-                  border: '2px dashed #d1d5db',
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
+                <button onClick={handleUploadReceipt} className="adet-reservation__upload-btn">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M14 10v2.667A1.333 1.333 0 0112.667 14H3.333A1.333 1.333 0 012 12.667V10M11.333 5.333L8 2m0 0L4.667 5.333M8 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -1045,25 +771,12 @@ export const AppointmentDetailPage: React.FC = () => {
             </>
           )}
 
-          {/* Nota explicativa */}
-          <div style={{
-            marginTop: '12px',
-            padding: '10px 12px',
-            background: 'rgba(255, 255, 255, 0.7)',
-            borderRadius: '6px',
-            fontSize: '11px',
-            color: '#6b7280',
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'flex-start'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginTop: '1px', flexShrink: 0 }}>
+          <div className="adet-reservation__note">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: '1px' }}>
               <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M7 6.5V10M7 4.5h.005" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            <div>
-              <strong>Nota:</strong> La reserva es un adelanto independiente del pago del paquete. No descuenta del total del tratamiento.
-            </div>
+            La reserva es un adelanto independiente del pago del paquete.
           </div>
         </div>
       </div>
@@ -1346,186 +1059,65 @@ export const AppointmentDetailPage: React.FC = () => {
                 {(patientRecord.weight || patientRecord.bodyMeasurement?.height) && (() => {
                   const weight = patientRecord.weight;
                   const height = patientRecord.bodyMeasurement?.height;
-
-                  // Calcular IMC si hay peso y altura
                   let bmi: number | null = null;
-                  let bmiCategory: { label: string; color: string; bg: string } | null = null;
+                  let bmiVariant: 'info' | 'success' | 'warning' | 'error' = 'success';
+                  let bmiLabel = '';
 
                   if (weight && height) {
-                    const heightInMeters = height / 100;
-                    bmi = weight / (heightInMeters * heightInMeters);
-
-                    if (bmi < 18.5) {
-                      bmiCategory = { label: 'Bajo peso', color: '#3b82f6', bg: '#eff6ff' };
-                    } else if (bmi < 25) {
-                      bmiCategory = { label: 'Peso normal', color: '#10b981', bg: '#f0fdf4' };
-                    } else if (bmi < 30) {
-                      bmiCategory = { label: 'Sobrepeso', color: '#f59e0b', bg: '#fef3c7' };
-                    } else {
-                      bmiCategory = { label: 'Obesidad', color: '#ef4444', bg: '#fee2e2' };
-                    }
+                    const hm = height / 100;
+                    bmi = weight / (hm * hm);
+                    if (bmi < 18.5)      { bmiVariant = 'info';    bmiLabel = 'Bajo peso'; }
+                    else if (bmi < 25)   { bmiVariant = 'success'; bmiLabel = 'Peso normal'; }
+                    else if (bmi < 30)   { bmiVariant = 'warning'; bmiLabel = 'Sobrepeso'; }
+                    else                 { bmiVariant = 'error';   bmiLabel = 'Obesidad'; }
                   }
 
+                  const cols = [weight, height, bmi].filter(Boolean).length;
                   return (
-                    <>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: weight && height ? '1fr 1fr 1fr' : (weight || height ? '1fr' : ''),
-                        gap: '16px',
-                        marginBottom: '16px'
-                      }}>
-                        {weight && (
-                          <div style={{
-                            background: '#f0fdf4',
-                            border: '2px solid #10b981',
-                            borderRadius: '12px',
-                            padding: '16px'
-                          }}>
-                            <div style={{
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#065f46',
-                              marginBottom: '8px',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px'
-                            }}>
-                              Peso
-                            </div>
-                            <div style={{ fontSize: '32px', fontWeight: '700', color: '#047857' }}>
-                              {weight} kg
-                            </div>
-                          </div>
-                        )}
-
-                        {height && (
-                          <div style={{
-                            background: '#fef3c7',
-                            border: '2px solid #f59e0b',
-                            borderRadius: '12px',
-                            padding: '16px'
-                          }}>
-                            <div style={{
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: '#92400e',
-                              marginBottom: '8px',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px'
-                            }}>
-                              Altura
-                            </div>
-                            <div style={{ fontSize: '32px', fontWeight: '700', color: '#b45309' }}>
-                              {height} cm
-                            </div>
-                          </div>
-                        )}
-
-                        {bmi && bmiCategory && (
-                          <div style={{
-                            background: bmiCategory.bg,
-                            border: `2px solid ${bmiCategory.color}`,
-                            borderRadius: '12px',
-                            padding: '16px'
-                          }}>
-                            <div style={{
-                              fontSize: '13px',
-                              fontWeight: '700',
-                              color: bmiCategory.color,
-                              marginBottom: '8px',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px'
-                            }}>
-                              IMC
-                            </div>
-                            <div style={{
-                              fontSize: '32px',
-                              fontWeight: '700',
-                              color: bmiCategory.color,
-                              marginBottom: '4px'
-                            }}>
-                              {bmi.toFixed(1)}
-                            </div>
-                            <div style={{
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              color: bmiCategory.color,
-                              opacity: 0.8
-                            }}>
-                              {bmiCategory.label}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
+                    <div className="adet-measures-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+                      {weight && (
+                        <div className="adet-measure-stat adet-measure-stat--success">
+                          <div className="adet-measure-stat__label">Peso</div>
+                          <div className="adet-measure-stat__value">{weight} <span style={{ fontSize: 'var(--font-size-base)' }}>kg</span></div>
+                        </div>
+                      )}
+                      {height && (
+                        <div className="adet-measure-stat adet-measure-stat--warning">
+                          <div className="adet-measure-stat__label">Altura</div>
+                          <div className="adet-measure-stat__value">{height} <span style={{ fontSize: 'var(--font-size-base)' }}>cm</span></div>
+                        </div>
+                      )}
+                      {bmi && (
+                        <div className={`adet-measure-stat adet-measure-stat--${bmiVariant}`}>
+                          <div className="adet-measure-stat__label">IMC</div>
+                          <div className="adet-measure-stat__value">{bmi.toFixed(1)}</div>
+                          <div className="adet-measure-stat__sub">{bmiLabel}</div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })()}
 
                 {/* Medidas Corporales */}
                 {patientRecord.bodyMeasurement && Object.keys(patientRecord.bodyMeasurement).length > 0 && (
-                  <div style={{
-                    background: '#eff6ff',
-                    border: '2px solid #3b82f6',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginBottom: '16px'
-                  }}>
-                    <div style={{
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      color: '#1e40af',
-                      marginBottom: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Medidas del Cuerpo
-                    </div>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                      gap: '12px'
-                    }}>
+                  <div className="adet-body-block">
+                    <div className="adet-body-block__title">Medidas del Cuerpo</div>
+                    <div className="adet-body-items">
                       {Object.entries(patientRecord.bodyMeasurement).map(([key, value]) => {
-                        // Excluir altura ya que se muestra arriba
                         if (key === 'height') return null;
-
                         const labels: Record<string, string> = {
-                          waist: 'Cintura',
-                          chest: 'Pecho',
-                          hips: 'Cadera',
-                          leftArm: 'Brazo Izq.',
-                          rightArm: 'Brazo Der.',
-                          leftThigh: 'Muslo Izq.',
-                          rightThigh: 'Muslo Der.',
-                          leftCalf: 'Pantorrilla Izq.',
-                          rightCalf: 'Pantorrilla Der.',
-                          abdomen: 'Abdomen (grosor)',
-                          triceps: 'Tríceps (grosor)',
-                          subscapular: 'Subescapular (grosor)',
-                          suprailiac: 'Suprailiaco (grosor)',
-                          thigh: 'Muslo (grosor)',
+                          waist: 'Cintura', chest: 'Pecho', hips: 'Cadera',
+                          leftArm: 'Brazo Izq.', rightArm: 'Brazo Der.',
+                          leftThigh: 'Muslo Izq.', rightThigh: 'Muslo Der.',
+                          leftCalf: 'Pantorrilla Izq.', rightCalf: 'Pantorrilla Der.',
+                          abdomen: 'Abdomen', triceps: 'Tríceps',
+                          subscapular: 'Subescapular', suprailiac: 'Suprailiaco', thigh: 'Muslo',
                         };
-
-                        const isThickness = ['abdomen', 'triceps', 'subscapular', 'suprailiac', 'thigh'].includes(key);
-                        const unit = isThickness ? 'mm' : 'cm';
-
+                        const unit = ['abdomen', 'triceps', 'subscapular', 'suprailiac', 'thigh'].includes(key) ? 'mm' : 'cm';
                         return (
-                          <div key={key} style={{
-                            background: 'white',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: '1px solid #bfdbfe'
-                          }}>
-                            <div style={{
-                              fontSize: '11px',
-                              color: '#6b7280',
-                              marginBottom: '4px',
-                              fontWeight: '600'
-                            }}>
-                              {labels[key] || key}
-                            </div>
-                            <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e40af' }}>
-                              {value} {unit}
-                            </div>
+                          <div key={key} className="adet-body-item">
+                            <div className="adet-body-item__label">{labels[key] || key}</div>
+                            <div className="adet-body-item__value">{value} {unit}</div>
                           </div>
                         );
                       })}
@@ -1535,95 +1127,33 @@ export const AppointmentDetailPage: React.FC = () => {
 
                 {/* Notas de Salud */}
                 {patientRecord.healthNotes && (
-                  <div style={{
-                    background: '#fef3c7',
-                    border: '2px solid #f59e0b',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginBottom: '16px'
-                  }}>
-                    <div style={{
-                      fontSize: '13px',
-                      fontWeight: '700',
-                      color: '#92400e',
-                      marginBottom: '8px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Notas de Salud
-                    </div>
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#78350f',
-                      lineHeight: '1.6',
-                      whiteSpace: 'pre-wrap'
-                    }}>
-                      {patientRecord.healthNotes}
-                    </div>
+                  <div className="adet-health-notes">
+                    <div className="adet-health-notes__title">Notas de Salud</div>
+                    <div className="adet-health-notes__text">{patientRecord.healthNotes}</div>
                   </div>
                 )}
 
                 {canMarkAttended && (
-                  <button
-                    onClick={() => setShowBodyMeasurementsModal(true)}
-                    style={{
-                      width: '100%',
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 20px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <button className="adet-pay-cta" onClick={() => setShowBodyMeasurementsModal(true)}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M12 3a2 2 0 112.828 2.828l-.707.707-2.828-2.828.707-.707zM10.172 5.172L2 13.344V16h2.656l8.172-8.172-2.656-2.656z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     Actualizar Medidas
                   </button>
                 )}
               </div>
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '40px 20px',
-                color: '#9ca3af'
-              }}>
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style={{ margin: '0 auto 16px' }}>
-                  <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
-                  <path d="M32 20v24M20 32h24" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <div className="adet-measures-empty">
+                <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                  <circle cx="28" cy="28" r="25" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
+                  <path d="M28 18v20M18 28h20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <div style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
-                  No hay medidas registradas
-                </div>
-                <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '20px' }}>
-                  Registra el peso, medidas corporales y grosor de piel/grasa para llevar un seguimiento del tratamiento
-                </div>
+                <p>No hay medidas registradas</p>
+                <p className="adet-measures-empty__sub">Registra peso, medidas y grosor de piel para el seguimiento</p>
                 {canMarkAttended && (
-                  <button
-                    onClick={() => setShowBodyMeasurementsModal(true)}
-                    style={{
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <button className="adet-pay-cta" style={{ marginTop: 'var(--spacing-sm)' }} onClick={() => setShowBodyMeasurementsModal(true)}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                     Registrar Medidas
                   </button>
@@ -1646,22 +1176,12 @@ export const AppointmentDetailPage: React.FC = () => {
         </div>
 
         {/* Add Note Form */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: 'var(--spacing-lg)' }}>
           <textarea
+            className="adet-note-textarea"
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
             placeholder="Agregar una nota sobre esta cita (reacciones, alergias, observaciones, etc.)"
-            style={{
-              width: '100%',
-              minHeight: '80px',
-              padding: '12px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontFamily: 'inherit',
-              resize: 'vertical',
-              marginBottom: '12px'
-            }}
             disabled={isSubmittingNote}
           />
           <Button
@@ -1676,51 +1196,37 @@ export const AppointmentDetailPage: React.FC = () => {
 
         {/* Notes List */}
         {appointment.appointmentNotes && appointment.appointmentNotes.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="adet-notes-list">
             {appointment.appointmentNotes.map((note) => (
-              <div
-                key={note.id}
-                style={{
-                  padding: '16px',
-                  background: '#f8f9fa',
-                  borderRadius: '8px',
-                  borderLeft: '4px solid #3b82f6'
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
-                }}>
+              <div key={note.id} className="adet-note-item">
+                <div className="adet-note-item__header">
                   <div>
-                    <span style={{ fontWeight: '600', color: '#2c3e50', fontSize: '14px' }}>
+                    <span className="adet-note-item__author">
                       {note.createdBy?.firstName} {note.createdBy?.lastName}
                     </span>
-                    <span style={{ color: '#7f8c8d', fontSize: '12px', marginLeft: '8px' }}>
-                      {note.createdBy?.role === 'admin' ? 'Admin' : note.createdBy?.role === 'nurse' ? 'Enfermera' : 'Ventas'}
+                    <span className="adet-note-item__role">
+                      {(() => {
+                        const roleName = typeof note.createdBy?.role === 'string' ? note.createdBy.role : note.createdBy?.role?.name;
+                        if (roleName === Role.admin) return 'Admin';
+                        if (roleName === Role.medical_staff) return 'Personal Médico';
+                        if (roleName === Role.sales) return 'Vendedor';
+                        return note.createdBy?.role && typeof note.createdBy.role !== 'string' ? note.createdBy.role.displayName : roleName;
+                      })()}
                     </span>
                   </div>
-                  <span style={{ color: '#7f8c8d', fontSize: '12px' }}>
+                  <span className="adet-note-item__date">
                     {new Date(note.createdAt).toLocaleString('es-PE', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
                     })}
                   </span>
                 </div>
-                <p style={{ margin: 0, color: '#2c3e50', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                  {note.note}
-                </p>
+                <p className="adet-note-item__text">{note.note}</p>
               </div>
             ))}
           </div>
         ) : (
-          <p style={{ color: '#7f8c8d', textAlign: 'center', margin: 0 }}>
-            No hay notas para esta cita. Agrega la primera nota arriba.
-          </p>
+          <p className="adet-notes-empty">No hay notas para esta cita. Agrega la primera nota arriba.</p>
         )}
       </div>
 

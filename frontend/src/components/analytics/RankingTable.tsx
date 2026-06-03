@@ -2,67 +2,51 @@ import React from 'react';
 
 interface RankingTableProps {
   title: string;
-  data: {
-    id: string;
-    name: string;
-    value: number;
-    count?: number;
-  }[];
+  data: { id: string; name: string; value: number; count?: number; }[];
   valueLabel?: string;
   countLabel?: string;
   valueFormatter?: (value: number) => string;
 }
 
+const fmtPEN = (v: number) =>
+  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 0 }).format(v);
+
 export const RankingTable: React.FC<RankingTableProps> = ({
-  title,
-  data,
-  valueLabel = 'Revenue',
-  countLabel = 'Count',
-  valueFormatter
+  title, data,
+  valueLabel = 'Valor',
+  countLabel = 'Cantidad',
+  valueFormatter,
 }) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatter = valueFormatter || formatCurrency;
-
+  const fmt = valueFormatter || fmtPEN;
   return (
-    <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-      <h3 style={{ marginBottom: '20px', fontSize: '18px' }}>{title}</h3>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #eee' }}>
-            <th style={{ textAlign: 'left', padding: '12px', fontSize: '14px', color: '#666' }}>#</th>
-            <th style={{ textAlign: 'left', padding: '12px', fontSize: '14px', color: '#666' }}>Name</th>
-            {data[0]?.count !== undefined && (
-              <th style={{ textAlign: 'right', padding: '12px', fontSize: '14px', color: '#666' }}>{countLabel}</th>
-            )}
-            <th style={{ textAlign: 'right', padding: '12px', fontSize: '14px', color: '#666' }}>{valueLabel}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((item, index) => (
-            <tr key={item.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-              <td style={{ padding: '12px', fontSize: '16px', fontWeight: 'bold', color: '#999' }}>
-                {index + 1}
-              </td>
-              <td style={{ padding: '12px', fontSize: '14px' }}>{item.name}</td>
-              {item.count !== undefined && (
-                <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right' }}>
-                  {item.count}
-                </td>
-              )}
-              <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', fontWeight: 'bold' }}>
-                {formatter(item.value)}
-              </td>
+    <div className="anlx-chart-card">
+      <h3 className="anlx-chart-title">{title}</h3>
+      <div className="anlx-table-wrap">
+        <table className="anlx-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre</th>
+              {data[0]?.count !== undefined && <th className="anlx-table__right">{countLabel}</th>}
+              <th className="anlx-table__right">{valueLabel}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((item, idx) => (
+              <tr key={item.id}>
+                <td>
+                  <span className={`anlx-rank-badge anlx-rank-badge--${idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'default'}`}>
+                    {idx + 1}
+                  </span>
+                </td>
+                <td style={{ fontWeight: 500 }}>{item.name}</td>
+                {item.count !== undefined && <td className="anlx-table__right">{item.count}</td>}
+                <td className="anlx-table__right anlx-table__currency">{fmt(item.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

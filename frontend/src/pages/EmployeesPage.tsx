@@ -109,9 +109,10 @@ export const EmployeesPage: React.FC = () => {
 
   const getRoleBadgeStyle = (roleName: string): React.CSSProperties => {
     const map: Record<string, { bg: string; color: string }> = {
-      admin:   { bg: 'var(--color-error-alpha-10)',   color: 'var(--color-error-dark)' },
-      nurse:   { bg: 'var(--color-info-alpha-10)',    color: 'var(--color-info-dark)' },
-      sales:   { bg: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)' },
+      admin:         { bg: 'var(--color-error-alpha-10)',   color: 'var(--color-error-dark)' },
+      medical_staff: { bg: 'var(--color-info-alpha-10)',    color: 'var(--color-info-dark)' },
+      assistant:     { bg: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)' },
+      sales:         { bg: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)' },
     };
     const s = map[roleName] ?? { bg: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' };
     return {
@@ -126,9 +127,10 @@ export const EmployeesPage: React.FC = () => {
 
   const getRoleLabel = (roleName: string): string => {
     const roleLabels: Record<string, string> = {
-      admin: 'Administrador',
-      nurse: 'Enfermera',
-      sales: 'Ventas',
+      admin:         'Administrador',
+      medical_staff: 'Personal Médico',
+      assistant:     'Personal Asistente',
+      sales:         'Vendedor',
     };
     return roleLabels[roleName] || roleName;
   };

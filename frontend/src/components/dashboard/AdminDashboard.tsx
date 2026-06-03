@@ -3,6 +3,14 @@ import { AdminDashboardData } from '../../types/dashboard.types';
 import { StatCard } from './widgets/StatCard';
 import { RevenueChart } from './widgets/RevenueChart';
 
+const STATUS_LABELS: Record<string, string> = {
+  reserved:    'Reservada',
+  in_progress: 'En Atención',
+  attended:    'Atendida',
+  cancelled:   'Cancelada',
+  no_show:     'No Asistió',
+};
+
 interface AdminDashboardProps {
   data: AdminDashboardData | null;
   isLoading: boolean;
@@ -113,7 +121,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
             <div className="status-list">
               {data.appointments.byStatus.map((statusItem) => (
                 <div key={statusItem.status} className="status-item">
-                  <span className="status-item__label">{statusItem.status}</span>
+                  <span className="status-item__label">
+                    {STATUS_LABELS[statusItem.status] ?? statusItem.status}
+                  </span>
                   <span className="status-item__value">{statusItem.count}</span>
                 </div>
               ))}

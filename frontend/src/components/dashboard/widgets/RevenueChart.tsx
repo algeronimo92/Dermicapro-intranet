@@ -60,7 +60,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
             style={{ fontSize: '12px' }}
           />
           <YAxis
-            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            tickFormatter={(value) => `S/${(value / 1000).toFixed(0)}k`}
             stroke="#6b7280"
             style={{ fontSize: '12px' }}
           />

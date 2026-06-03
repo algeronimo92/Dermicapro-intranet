@@ -1,18 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { servicesService } from '../services/services.service';
 import { Service } from '../types';
 import { Modal } from '../components/Modal';
 import { ServiceFormModal } from '../components/ServiceFormModal';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
+import { PageListLayout } from '../components/templates';
 
 export function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [search, setSearch] = useState('');
 
   const [createModal, setCreateModal] = useState(false);
   const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null);
+
+  const filteredServices = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter(s => s.name.toLowerCase().includes(q));
+  }, [services, search]);
 
   useEffect(() => {
     loadServices();
@@ -81,39 +91,42 @@ export function ServicesPage() {
     return '-';
   };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner" />
-        <p>Cargando servicios...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>Servicios</h1>
-        <div className="header-actions">
-          <label className="checkbox-modern" style={{ cursor: 'pointer' }}>
+    <PageListLayout
+      title="Servicios"
+      actions={
+        <Button variant="primary" onClick={() => setCreateModal(true)}>
+          + Nuevo Servicio
+        </Button>
+      }
+      filters={
+        <>
+          <Input
+            type="text"
+            placeholder="Buscar servicio..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+          <label className="checkbox-modern" style={{ cursor: 'pointer', flexShrink: 0 }}>
             <input
               type="checkbox"
               checked={showDeleted}
               onChange={(e) => setShowDeleted(e.target.checked)}
             />
             <span className="checkbox-custom" />
-            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
               Mostrar eliminados
             </span>
           </label>
-          <button className="action-btn primary" onClick={() => setCreateModal(true)}>
-            + Nuevo Servicio
-          </button>
-        </div>
-      </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
-
+        </>
+      }
+      total={filteredServices.length}
+      totalLabel="servicios"
+      isLoading={loading}
+      loadingText="Cargando servicios..."
+      error={error}
+    >
       <div className="table-container">
         <table className="table">
           <thead>
@@ -128,12 +141,14 @@ export function ServicesPage() {
             </tr>
           </thead>
           <tbody>
-            {services.length === 0 ? (
+            {filteredServices.length === 0 ? (
               <tr>
-                <td colSpan={7} className="table-empty">No hay servicios registrados</td>
+                <td colSpan={7} className="table-empty">
+                  {search ? `Sin resultados para "${search}"` : 'No hay servicios registrados'}
+                </td>
               </tr>
             ) : (
-              services.map((service) => {
+              filteredServices.map((service) => {
                 const isDeleted = !!service.deletedAt;
                 return (
                   <tr key={service.id} className={isDeleted ? 'row-deleted' : ''}>
@@ -203,14 +218,12 @@ export function ServicesPage() {
         </table>
       </div>
 
-      {/* Modal crear */}
       <ServiceFormModal
         isOpen={createModal}
         onClose={() => setCreateModal(false)}
         onSaved={(service) => { handleSaved(service); setCreateModal(false); }}
       />
 
-      {/* Modal editar */}
       <ServiceFormModal
         isOpen={!!editServiceId}
         onClose={() => setEditServiceId(null)}
@@ -218,7 +231,6 @@ export function ServicesPage() {
         serviceId={editServiceId ?? undefined}
       />
 
-      {/* Modal eliminar */}
       <Modal
         isOpen={!!deleteModal}
         onClose={() => setDeleteModal(null)}
@@ -247,6 +259,6 @@ export function ServicesPage() {
           </button>
         </div>
       </Modal>
-    </div>
+    </PageListLayout>
   );
 }

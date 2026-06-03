@@ -22,4 +22,13 @@ export const authService = {
     const response = await api.post<AuthResponse>('/auth/refresh', { refreshToken });
     return response.data;
   },
+
+  async updateMe(data: { firstName?: string; lastName?: string; email?: string; sex?: string; themeMode?: 'light' | 'dark' | 'auto' }): Promise<User> {
+    const response = await api.put<User>('/auth/me', data);
+    return response.data;
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.put('/auth/me/password', { currentPassword, newPassword });
+  },
 };

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { prepareDateRange } from '../utils/dateUtils';
+import { ROLES } from '../constants/roles';
 
 export const getAllAppointments = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -32,11 +33,11 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
       }
     }
 
-    if (req.user?.roleName === 'sales') {
+    if (req.user?.roleName === ROLES.SALES) {
       where.createdById = req.user.id;
     }
 
-    if (userId && req.user?.roleName === 'admin') {
+    if (userId && req.user?.roleName === ROLES.ADMIN) {
       where.createdById = userId;
     }
 
@@ -53,6 +54,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
               firstName: true,
               lastName: true,
               dni: true,
+              photoUrl: true,
             },
           },
           createdBy: {

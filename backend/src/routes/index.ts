@@ -10,6 +10,8 @@ import paymentsRoutes from './payments.routes';
 import commissionsRoutes from './commissions.routes';
 import dashboardRoutes from './dashboard.routes';
 import analyticsRoutes from './analytics.routes';
+import rolesRoutes from './roles.routes';
+import settingsRoutes from './settings.routes';
 const router = Router();
 
 // Staff authentication
@@ -28,6 +30,8 @@ router.use('/payments', paymentsRoutes);
 router.use('/commissions', commissionsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/roles', rolesRoutes);
+router.use('/settings', settingsRoutes);
 
 router.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

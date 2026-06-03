@@ -2,13 +2,12 @@ import React from 'react';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, CustomerAnalyticsData } from '../../types/analytics.types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { getChartColor } from '../../utils/chartColors';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-interface CustomerAnalyticsProps {
-  filters?: AnalyticsFilters;
-}
+interface CustomerAnalyticsProps { filters?: AnalyticsFilters; }
 
-const COLORS = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+const fmt = (v: number) => `S/ ${v.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters }) => {
   const { data, isLoading, error } = useAnalytics<CustomerAnalyticsData>(
@@ -16,242 +15,153 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
     filters
   );
 
-  if (isLoading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando datos de clientes...</div>;
-  }
-
-  if (error) {
-    return <div style={{ padding: '40px', color: '#e74c3c' }}>Error: {error}</div>;
-  }
-
-  if (!data) {
-    return <div style={{ padding: '40px' }}>No hay datos disponibles</div>;
-  }
+  if (isLoading) return <div className="anlx-loading">Cargando datos de clientes...</div>;
+  if (error)     return <div className="anlx-error">Error: {error}</div>;
+  if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
   const genderData = data.demographics.byGender.map((item) => ({
-    name: item.gender === 'male' ? 'Masculino' : item.gender === 'female' ? 'Femenino' : 'Otro',
+    name: item.gender === 'M' ? 'Masculino' : item.gender === 'F' ? 'Femenino' : 'Otro',
     value: item.count,
   }));
 
+  const PIE_COLORS = [getChartColor(1), getChartColor(6), getChartColor(3)];
+
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="anlx-section">
+
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #3498db' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Total Pacientes</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{data.overview.totalPatients}</div>
+      <div className="anlx-kpi-grid">
+        <div className="anlx-kpi-card anlx-kpi-card--info">
+          <div className="anlx-kpi-label">Total Pacientes</div>
+          <div className="anlx-kpi-value">{data.overview.totalPatients}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #2ecc71' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Nuevos Pacientes</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{data.overview.newPatients}</div>
+        <div className="anlx-kpi-card anlx-kpi-card--success">
+          <div className="anlx-kpi-label">Nuevos Pacientes</div>
+          <div className="anlx-kpi-value">{data.overview.newPatients}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #9b59b6' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Pacientes Recurrentes</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{data.overview.returningPatients}</div>
+        <div className="anlx-kpi-card anlx-kpi-card--accent">
+          <div className="anlx-kpi-label">Pacientes Recurrentes</div>
+          <div className="anlx-kpi-value">{data.overview.returningPatients}</div>
         </div>
-
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', borderLeft: '4px solid #e74c3c' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Tasa de Abandono</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{data.overview.churnRate.toFixed(1)}%</div>
+        <div className="anlx-kpi-card anlx-kpi-card--error">
+          <div className="anlx-kpi-label">Tasa de Abandono</div>
+          <div className="anlx-kpi-value">{data.overview.churnRate.toFixed(1)}%</div>
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-        {/* Demographics by Gender */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Pacientes por Género</h3>
-          <ResponsiveContainer width="100%" height={300}>
+      {/* Charts: Género + Edad */}
+      <div className="anlx-chart-grid">
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Pacientes por Género</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie
-                data={genderData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={(entry) => `${entry.name}: ${entry.value}`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {genderData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
+              <Pie data={genderData} cx="50%" cy="50%" outerRadius={100}
+                labelLine={false} label={(e) => `${e.name}: ${e.value}`} dataKey="value">
+                {genderData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1f2937'}} 
+                itemStyle={{ color: '#fff' }} 
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Demographics by Age Range */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Pacientes por Rango de Edad</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Pacientes por Rango de Edad</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.demographics.byAgeRange}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="range" />
               <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3498db" name="Pacientes" />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1f2937'}} 
+                itemStyle={{ color: '#fff' }} 
+                cursor={{ fill: 'none' }}
+              />
+              <Bar dataKey="count" fill={getChartColor(1)} name="Pacientes" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Lifetime Value & Debt Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Valor de Vida Promedio (CLV)</h3>
-          <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#2ecc71', textAlign: 'center', padding: '20px 0' }}>
-            S/ {data.lifetime.averageCLV.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      {/* CLV + Deuda + Retención */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-xl)' }}>
+        <div className="anlx-chart-card" style={{ textAlign: 'center', marginBottom: 0 }}>
+          <h3 className="anlx-chart-title">Valor de Vida Promedio (CLV)</h3>
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--color-success-dark)', padding: 'var(--spacing-lg) 0' }}>
+            {fmt(data.lifetime.averageCLV)}
           </div>
-          <div style={{ textAlign: 'center', color: '#666', fontSize: '13px' }}>Dinero pagado por cliente</div>
+          <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--font-size-xs)' }}>Dinero pagado por cliente</div>
         </div>
 
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Total Por Cobrar</h3>
-          <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#e67e22', textAlign: 'center', padding: '20px 0' }}>
-            S/ {data.accountsReceivable.totalDebt.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="anlx-chart-card" style={{ textAlign: 'center', marginBottom: 0 }}>
+          <h3 className="anlx-chart-title">Total Por Cobrar</h3>
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--color-warning-dark)', padding: 'var(--spacing-lg) 0' }}>
+            {fmt(data.accountsReceivable.totalDebt)}
           </div>
-          <div style={{ textAlign: 'center', color: '#666', fontSize: '13px' }}>{data.accountsReceivable.debtorCount} deudor(es)</div>
+          <div style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
+            {data.accountsReceivable.debtorCount} deudor(es)
+          </div>
         </div>
 
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Métricas de Retención</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666', fontSize: '13px' }}>Tasa de Retención:</span>
-              <span style={{ fontWeight: 'bold', color: '#2ecc71', fontSize: '16px' }}>
-                {data.retention.rate.toFixed(1)}%
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666', fontSize: '13px' }}>Clientes Recurrentes:</span>
-              <span style={{ fontWeight: 'bold', color: '#3498db', fontSize: '16px' }}>
-                {data.retention.repeatCustomerRate.toFixed(1)}%
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
-              <span style={{ fontWeight: '500', color: '#666', fontSize: '13px' }}>Días Entre Visitas:</span>
-              <span style={{ fontWeight: 'bold', color: '#9b59b6', fontSize: '16px' }}>
-                {data.retention.averageDaysBetweenVisits.toFixed(0)}
-              </span>
-            </div>
+        <div className="anlx-chart-card" style={{ marginBottom: 0 }}>
+          <h3 className="anlx-chart-title">Métricas de Retención</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
+            {[
+              { label: 'Tasa de Retención', value: `${data.retention.rate.toFixed(1)}%`, color: 'var(--color-success-dark)' },
+              { label: 'Clientes Recurrentes', value: `${data.retention.repeatCustomerRate.toFixed(1)}%`, color: 'var(--color-primary)' },
+              { label: 'Días Entre Visitas', value: `${data.retention.averageDaysBetweenVisits.toFixed(0)} días`, color: 'var(--color-accent)' },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--spacing-sm) var(--spacing-md)', background: 'var(--color-bg-primary)', borderRadius: 'var(--radius-md)' }}>
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', fontWeight: 600 }}>{label}</span>
+                <span style={{ fontWeight: 700, color, fontSize: 'var(--font-size-sm)' }}>{value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Tables Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
-        {/* Top Customers by CLV */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Clientes por Dinero Pagado</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>#</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paciente</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Citas</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Total Pagado</th>
-                </tr>
-              </thead>
+      {/* Tablas: Top clientes + Top deudores */}
+      <div className="anlx-chart-grid">
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Top 10 Clientes por Dinero Pagado</h3>
+          <div className="anlx-table-wrap">
+            <table className="anlx-table">
+              <thead><tr><th>#</th><th>Paciente</th><th className="anlx-table__right">Citas</th><th className="anlx-table__right">Total Pagado</th></tr></thead>
               <tbody>
                 {data.lifetime.topCustomers.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-                      No hay pagos registrados aún
-                    </td>
+                  <tr><td colSpan={4} style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-disabled)' }}>No hay pagos registrados aún</td></tr>
+                ) : data.lifetime.topCustomers.map((c, idx) => (
+                  <tr key={c.patientId}>
+                    <td><span className={`anlx-rank-badge anlx-rank-badge--${idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'default'}`}>{idx + 1}</span></td>
+                    <td style={{ fontWeight: 500 }}>{c.patientName}</td>
+                    <td className="anlx-table__right">{c.appointmentsCount}</td>
+                    <td className="anlx-table__right anlx-table__currency">{fmt(c.totalSpent)}</td>
                   </tr>
-                ) : (
-                  data.lifetime.topCustomers.map((customer, idx) => (
-                    <tr key={customer.patientId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '12px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '50%',
-                            background: idx === 0 ? '#f39c12' : idx === 1 ? '#95a5a6' : idx === 2 ? '#cd7f32' : '#ecf0f1',
-                            color: idx < 3 ? 'white' : '#666',
-                            textAlign: 'center',
-                            lineHeight: '30px',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          {idx + 1}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', fontWeight: '500' }}>{customer.patientName}</td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>{customer.appointmentsCount}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2ecc71' }}>
-                        S/ {customer.totalSpent.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Top Debtors */}
-        <div style={{ padding: '20px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Top 10 Deudores (Por Cobrar)</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>#</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#666' }}>Paciente</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Facturas</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Sin Facturar</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#666' }}>Total Deuda</th>
-                </tr>
-              </thead>
+        <div className="anlx-chart-card">
+          <h3 className="anlx-chart-title">Top 10 Deudores (Por Cobrar)</h3>
+          <div className="anlx-table-wrap">
+            <table className="anlx-table">
+              <thead><tr><th>#</th><th>Paciente</th><th className="anlx-table__right">Facturas</th><th className="anlx-table__right">Sin Facturar</th><th className="anlx-table__right">Total Deuda</th></tr></thead>
               <tbody>
                 {data.accountsReceivable.topDebtors.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-                      No hay deudas pendientes
-                    </td>
+                  <tr><td colSpan={5} style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-disabled)' }}>No hay deudas pendientes</td></tr>
+                ) : data.accountsReceivable.topDebtors.map((d, idx) => (
+                  <tr key={d.patientId}>
+                    <td><span className="anlx-rank-badge" style={{ background: 'var(--color-error-alpha-10)', color: 'var(--color-error)' }}>{idx + 1}</span></td>
+                    <td style={{ fontWeight: 500 }}>{d.patientName}</td>
+                    <td className="anlx-table__right" style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-xs)' }}>{fmt(d.invoicesDebt)}</td>
+                    <td className="anlx-table__right" style={{ color: 'var(--color-warning-dark)', fontSize: 'var(--font-size-xs)' }}>{fmt(d.uninvoicedOrders)}</td>
+                    <td className="anlx-table__right" style={{ fontWeight: 160, color: 'var(--color-error)' }}>{fmt(d.totalDebt)}</td>
                   </tr>
-                ) : (
-                  data.accountsReceivable.topDebtors.map((debtor, idx) => (
-                    <tr key={debtor.patientId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '12px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '50%',
-                            background: '#e74c3c',
-                            color: 'white',
-                            textAlign: 'center',
-                            lineHeight: '30px',
-                            fontWeight: 'bold',
-                            fontSize: '14px',
-                          }}
-                        >
-                          {idx + 1}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', fontWeight: '500' }}>{debtor.patientName}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', color: '#e74c3c', fontSize: '13px' }}>
-                        S/ {debtor.invoicesDebt.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right', color: '#e67e22', fontSize: '13px' }}>
-                        S/ {debtor.uninvoicedOrders.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#c0392b' }}>
-                        S/ {debtor.totalDebt.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

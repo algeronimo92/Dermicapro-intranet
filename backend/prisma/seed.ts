@@ -11,26 +11,26 @@ async function main() {
 
   const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
-    update: { displayName: 'Administrador' },
-    create: { name: 'admin', displayName: 'Administrador' },
+    update: { displayName: 'Administrador', description: 'Acceso completo al sistema' },
+    create: { name: 'admin', displayName: 'Administrador', description: 'Acceso completo al sistema' },
   });
 
   const medicalRole = await prisma.role.upsert({
     where: { name: 'medical_staff' },
-    update: { displayName: 'Personal Médico' },
-    create: { name: 'medical_staff', displayName: 'Personal Médico' },
+    update: { displayName: 'Personal Médico', description: 'Atiende citas y registra fichas médicas' },
+    create: { name: 'medical_staff', displayName: 'Personal Médico', description: 'Atiende citas y registra fichas médicas' },
+  });
+
+  const assistantRole = await prisma.role.upsert({
+    where: { name: 'assistant' },
+    update: { displayName: 'Personal Asistente', description: 'Apoya en la gestión de citas y pacientes' },
+    create: { name: 'assistant', displayName: 'Personal Asistente', description: 'Apoya en la gestión de citas y pacientes' },
   });
 
   const salesRole = await prisma.role.upsert({
     where: { name: 'sales' },
-    update: { displayName: 'Ventas' },
-    create: { name: 'sales', displayName: 'Ventas' },
-  });
-
-  await prisma.role.upsert({
-    where: { name: 'receptionist' },
-    update: { displayName: 'Recepcionista' },
-    create: { name: 'receptionist', displayName: 'Recepcionista' },
+    update: { displayName: 'Vendedor', description: 'Gestiona ventas y citas con pacientes' },
+    create: { name: 'sales', displayName: 'Vendedor', description: 'Gestiona ventas y citas con pacientes' },
   });
 
   console.log('Roles created');
@@ -40,7 +40,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@dermicapro.com' },
-    update: {},
+    update: { themeMode: 'dark' },
     create: {
       email: 'admin@dermicapro.com',
       passwordHash: await bcrypt.hash('admin123', 12),
@@ -49,39 +49,110 @@ async function main() {
       roleId: adminRole.id,
       sex: 'Other',
       isActive: true,
+      themeMode: 'dark',
     },
   });
   console.log('Admin user:', admin.email);
 
-  const medical = await prisma.user.upsert({
-    where: { email: 'medico@dermicapro.com' },
-    update: {},
+  const defaultPassword = await bcrypt.hash('1234567890', 12);
+
+  await prisma.user.upsert({
+    where: { email: 'ggeronimo@dermicapro.com' },
+    update: { themeMode: 'dark', email: 'ggeronimo@dermicapro.com' },
     create: {
-      email: 'medico@dermicapro.com',
-      passwordHash: await bcrypt.hash('medico123', 12),
-      firstName: 'María',
-      lastName: 'García',
-      roleId: medicalRole.id,
+      email: 'ggeronimo@dermicapro.com',
+      passwordHash: defaultPassword,
+      firstName: 'Grecia',
+      lastName: 'Geronimo',
+      roleId: salesRole.id,
       sex: 'F',
       isActive: true,
+      mustChangePassword: true,
+      themeMode: 'dark',
     },
   });
-  console.log('Medical staff user:', medical.email);
+  console.log('Sales user: ggeronimo@dermicapro.com');
 
-  const sales = await prisma.user.upsert({
-    where: { email: 'ventas@dermicapro.com' },
-    update: {},
+  await prisma.user.upsert({
+    where: { email: 'ageronimo@dermicapro.com' },
+    update: { themeMode: 'dark', email: 'ageronimo@dermicapro.com' },
     create: {
-      email: 'ventas@dermicapro.com',
-      passwordHash: await bcrypt.hash('sales123', 12),
-      firstName: 'Carlos',
-      lastName: 'Rodríguez',
+      email: 'ageronimo@dermicapro.com',
+      passwordHash: defaultPassword,
+      firstName: 'Antonella',
+      lastName: 'Elizabeth',
       roleId: salesRole.id,
+      sex: 'F',
+      isActive: true,
+      mustChangePassword: true,
+      themeMode: 'dark',
+    },
+  });
+  console.log('Sales user: ageronimo@dermicapro.com');
+
+  await prisma.user.upsert({
+    where: { email: 'emurga@dermicapro.com' },
+    update: { themeMode: 'dark', email: 'emurga@dermicapro.com' },
+    create: {
+      email: 'emurga@dermicapro.com',
+      passwordHash: defaultPassword,
+      firstName: 'Estefany',
+      lastName: 'Murga',
+      roleId: assistantRole.id,
+      sex: 'F',
+      isActive: true,
+      mustChangePassword: true,
+      themeMode: 'dark',
+    },
+  });
+  console.log('Assistant user: emurga@dermicapro.com');
+
+  await prisma.user.upsert({
+    where: { email: 'aterres@dermicapro.com' },
+    update: { themeMode: 'dark', email: 'aterres@dermicapro.com' },
+    create: {
+      email: 'aterres@dermicapro.com',
+      passwordHash: defaultPassword,
+      firstName: 'Astrid',
+      lastName: 'Terres',
+      roleId: assistantRole.id,
+      sex: 'F',
+      isActive: true,
+      mustChangePassword: true,
+      themeMode: 'dark',
+    },
+  });
+  console.log('Assistant user: aterres@dermicapro.com');
+
+  await prisma.user.upsert({
+    where: { email: 'daguilar@dermicapro.com' },
+    update: { themeMode: 'dark', email: 'daguilar@dermicapro.com' },
+    create: {
+      email: 'daguilar@dermicapro.com',
+      passwordHash: defaultPassword,
+      firstName: 'Diego',
+      lastName: 'Aguilar',
+      roleId: medicalRole.id,
       sex: 'M',
       isActive: true,
+      mustChangePassword: true,
+      themeMode: 'dark',
     },
   });
-  console.log('Sales user:', sales.email);
+  console.log('Medical staff user: daguilar@dermicapro.com');
+
+  // ===== STEP 2b: System Settings =====
+  console.log('Creating system settings...');
+  await prisma.systemSetting.upsert({
+    where: { key: 'session_timeout_minutes' },
+    update: {},
+    create: {
+      key: 'session_timeout_minutes',
+      value: '5',
+      description: 'Minutos de inactividad antes de cerrar sesión automáticamente',
+    },
+  });
+  console.log('System settings created');
 
   // ===== STEP 3: Clear and Recreate Service Templates =====
   console.log('Clearing existing service data...');
@@ -96,6 +167,7 @@ async function main() {
   const serviceTemplates = [
     // ─── GENERAL ───
     { name: 'Consulta',                                                   basePrice: 50.00,    defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 5.00, commissionNotes: 'Comisión fija S/5' },
+    { name: 'Control',                                                    basePrice: 0.00,     defaultSessions: 1 },
 
     // ─── DEPILACIÓN LÁSER TRIDIODO (comisión fija S/10) ───
     { name: 'Depilación Láser Tridiodo - Espalda Completa',            basePrice: 140.00,   defaultSessions: 1, commissionType: 'fixed', commissionFixedAmount: 10.00, commissionNotes: 'Comisión fija S/10' },

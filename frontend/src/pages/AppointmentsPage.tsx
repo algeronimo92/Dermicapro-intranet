@@ -504,7 +504,9 @@ export const AppointmentsPage: React.FC = () => {
                       <div className="card-header-row">
                         {patient && (
                           <div className="patient-avatar">
-                            {getInitials(patient.firstName, patient.lastName)}
+                            {patient.photoUrl
+                              ? <img src={patient.photoUrl} alt={`${patient.firstName} ${patient.lastName}`} />
+                              : getInitials(patient.firstName, patient.lastName)}
                           </div>
                         )}
                         <div className={`card-status-badge card-status-badge--${appointment.status}`}>

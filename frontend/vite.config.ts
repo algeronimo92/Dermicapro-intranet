@@ -12,12 +12,19 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true, // Listen on all network interfaces
+    watch: {
+      // Forzar a Vite a revisar los archivos cada X tiempo en lugar de esperar eventos
+      usePolling: true,
+    },
     proxy: {
       '/api': {
         target: 'http://backend:5000',
         changeOrigin: true,
         secure: false,
       },
+    },
+    hmr: {
+      clientPort: 5173,
     },
   },
 });
