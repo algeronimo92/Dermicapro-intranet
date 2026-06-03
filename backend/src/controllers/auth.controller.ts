@@ -195,8 +195,17 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       throw new AppError('Se requieren la contraseña actual y la nueva', 400);
     }
 
-    if (newPassword.length < 6) {
-      throw new AppError('La nueva contraseña debe tener al menos 6 caracteres', 400);
+    if (newPassword.length < 8) {
+      throw new AppError('La nueva contraseña debe tener al menos 8 caracteres', 400);
+    }
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword)) {
+      throw new AppError('La contraseña debe tener letras mayúsculas y minúsculas', 400);
+    }
+    if (!/\d/.test(newPassword)) {
+      throw new AppError('La contraseña debe contener al menos un número', 400);
+    }
+    if (!/[^A-Za-z0-9]/.test(newPassword)) {
+      throw new AppError('La contraseña debe contener al menos un carácter especial', 400);
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
