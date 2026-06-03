@@ -21,12 +21,11 @@ jobs:
             set -e
 
             # Traefik primero
-            cd /docker/traefik-8pvc
-            docker compose pull || true
-            docker compose up -d
+            docker compose -p traefik -f /root/Dermicapro-intranet/traefik/docker-compose.yml pull || true                                                                                                                                                                   
+            docker compose -p traefik -f /root/Dermicapro-intranet/traefik/docker-compose.yml up -d                                                                                                                                                                          
 
             # DermicaPro
-            cd /docker/dermicapro-intranet
+            cd /root/Dermicapro-intranet
             git pull origin main
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d
