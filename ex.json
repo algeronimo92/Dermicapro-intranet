@@ -1,0 +1,37 @@
+{
+  "$id": "https://example.com/person.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Person",
+  "type": "object",
+  "properties": {
+  
+"monto": {
+      "description": "amount of payment",
+      "type": "integer",
+      "minimum": 0
+    },
+  "moneda": ["PEN", "USD", "OTRO"],
+  "numero_de_celular": {
+      "description": "phone",
+      "type": "string"
+    },
+  "numero_de_operacion": {
+      "description": "numero de operacion",
+      "type": "string"
+    },
+  "fecha": {
+      "description": "fecha de la operacion formato mes/dia/año",
+      "type": "string",
+        "minLength": 10,
+        "maxLength": 10
+    },
+  "hora": {
+      "description": "HORA de la operacion formato mes/dia/año",
+      "type": "string",
+        "minLength": 5,
+        "maxLength": 5
+    },
+	"banco": ["PLIN", "YAPE", "BCP", "BBVA", "DALE", "OTRO"]  
+  },
+  "required": [ "monto", "moneda", "numero_de_celular", "numero_de_operacion", "fecha", "hora", "banco" ]
+  }

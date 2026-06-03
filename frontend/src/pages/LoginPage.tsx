@@ -70,7 +70,7 @@ export function LoginPage() {
           </div>
 
           <div className="login-form-header">
-            <h1 className="login-welcome">Bienvenido de vuelta</h1>
+            <h1 className="login-welcome">Bienvenido de vuelta!</h1>
             <p className="login-subtitle">Ingresa tus credenciales para continuar</p>
           </div>
 
