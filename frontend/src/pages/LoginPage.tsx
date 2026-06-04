@@ -108,6 +108,7 @@ export function LoginPage() {
                   type="button"
                   className="login-password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
+                  onMouseDown={(e) => e.preventDefault()}
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   tabIndex={-1}
                 >
