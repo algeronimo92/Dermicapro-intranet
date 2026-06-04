@@ -23,7 +23,8 @@ jobs:
 
             # Fix red traefik si tiene labels incorrectos
             if docker network inspect traefik-network >/dev/null 2>&1; then
-              docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml down || true
+            docker compose -f docker-compose.prod.yml down || true  
+            docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml down || true
               docker network rm traefik-network || true
             fi
 
