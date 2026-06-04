@@ -1,15 +1,10 @@
 name: Deploy to Production
-
 on:
   push:
-    branches:
-      - main
-
+    branches: [main]
 jobs:
   deploy:
-    name: Deploy via SSH
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -20,13 +15,16 @@ jobs:
           debug: true
           script: |
             set -e
-
-            # Actualizar código primero
             cd /docker/dermicapro-intranet
             git pull origin main
 
+            # Fix red traefik si tiene labels incorrectos
+            if docker network inspect traefik-network >/dev/null 2>&1; then
+              docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml down || true
+              docker network rm traefik-network || true
+            fi
+
             # Traefik
-            docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml pull || true
             docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml up -d
 
             # DermicaPro
