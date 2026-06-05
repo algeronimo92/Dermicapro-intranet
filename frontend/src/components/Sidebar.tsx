@@ -19,6 +19,7 @@ export interface SidebarUser {
   firstName?: string;
   lastName?: string;
   roleDisplay?: string;
+  photoUrl?: string | null;
 }
 
 export interface SidebarIdleInfo {

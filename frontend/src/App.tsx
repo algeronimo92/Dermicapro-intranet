@@ -157,7 +157,7 @@ function DashboardLayout() {
       {mustChangePassword && <FirstLoginModal />}
       <div className="dashboard-layout">
         <Sidebar
-          user={{ firstName: user?.firstName, lastName: user?.lastName, roleDisplay }}
+          user={{ firstName: user?.firstName, lastName: user?.lastName, roleDisplay, photoUrl: user?.photoUrl }}
           navItems={NAV_ITEMS.filter(item => canAccessNav(item, roleName))}
           onLogout={logout}
           idleInfo={isAdmin ? { percentage: percentageRemaining, msRemaining } : undefined}
