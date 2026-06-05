@@ -43,7 +43,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${DB_USER:-dermicapro}:${DB_PASSWORD:-dermicapro123}@db:5432/${DB_NAME:-dermicapro_db}
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
     ports:
