@@ -14,6 +14,54 @@ interface AuthContextType {
   clearMustChangePassword: () => void;
 }
 
+const REMEMBERED_USERS_KEY = 'dermicapro_remembered_users';
+const MAX_REMEMBERED = 5;
+
+export interface RememberedUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  roleName: string;
+  roleKey: string;
+  photoUrl?: string | null;
+}
+
+export function getRememberedUsers(): RememberedUser[] {
+  try {
+    return JSON.parse(localStorage.getItem(REMEMBERED_USERS_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function removeRememberedUser(id: string): void {
+  const updated = getRememberedUsers().filter((u) => u.id !== id);
+  localStorage.setItem(REMEMBERED_USERS_KEY, JSON.stringify(updated));
+}
+
+function saveRememberedUser(userData: User): void {
+  const roleKey =
+    typeof userData.role === 'string'
+      ? userData.role
+      : (userData.role as any)?.name ?? '';
+  const roleName =
+    typeof userData.role === 'string'
+      ? userData.role
+      : (userData.role as any)?.displayName ?? roleKey;
+  const entry: RememberedUser = {
+    id: userData.id,
+    email: userData.email,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    roleName,
+    roleKey,
+  };
+  const existing = getRememberedUsers().filter((u) => u.id !== entry.id);
+  const updated = [entry, ...existing].slice(0, MAX_REMEMBERED);
+  localStorage.setItem(REMEMBERED_USERS_KEY, JSON.stringify(updated));
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -55,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userData);
     applyUserTheme(userData);
     if (mcp) setMustChangePassword(true);
+    saveRememberedUser(userData);
   };
 
   const logout = async () => {

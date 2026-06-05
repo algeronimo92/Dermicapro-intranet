@@ -57,6 +57,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  photoUrl?: string | null;
   role: RoleInfo | Role; // Soporta ambos: objeto completo o string legacy
   sex?: Sex;
   dateOfBirth?: string;
