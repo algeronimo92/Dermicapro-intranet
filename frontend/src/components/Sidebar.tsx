@@ -114,7 +114,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
 
         {/* User */}
         <div className="sidebar-user">
-          <div className="sidebar-user-avatar">{initials}</div>
+          <div className="sidebar-user-avatar">
+            {user.photoUrl
+              ? <img src={user.photoUrl} alt={initials} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-full)' }} />
+              : initials}
+          </div>
           {!isCollapsed && (
             <div>
               <p className="sidebar-user-name">{user.firstName} {user.lastName}</p>
