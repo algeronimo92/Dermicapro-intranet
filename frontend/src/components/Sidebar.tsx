@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
   BadgeDollarSign, BarChart3, Palette, CircleUser, Settings,
-  LogOut, ChevronLeft, ChevronRight, LucideIcon, AlertTriangle, Timer,
+  LogOut, ChevronLeft, ChevronRight, LucideIcon, AlertTriangle, Timer, Menu, X,
 } from 'lucide-react';
 import { NavItem } from '../config/navigation.config';
 import { APP_VERSION } from '../config/version';
@@ -14,6 +14,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const COLLAPSED_KEY = 'dermicapro_sidebar_collapsed';
+const MOBILE_BREAKPOINT = 768;
 
 export interface SidebarUser {
   firstName?: string;
@@ -23,15 +24,15 @@ export interface SidebarUser {
 }
 
 export interface SidebarIdleInfo {
-  percentage: number;   // 100 = recién activo, 0 = expirado
-  msRemaining: number;  // ms hasta logout
+  percentage: number;
+  msRemaining: number;
 }
 
 export interface SidebarProps {
   user: SidebarUser;
   navItems: NavItem[];
   onLogout: () => void;
-  idleInfo?: SidebarIdleInfo; // solo para admins
+  idleInfo?: SidebarIdleInfo;
 }
 
 function NavIcon({ name }: { name: string }) {
@@ -57,7 +58,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
   const [isCollapsed, setIsCollapsed] = useState(() =>
     localStorage.getItem(COLLAPSED_KEY) === 'true'
   );
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Detectar cambios de tamaño
+  useEffect(() => {
+    const handler = () => {
+      const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
+      setIsMobile(mobile);
+      if (!mobile) setIsMobileOpen(false);
+    };
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  // Bloquear scroll del body cuando el drawer está abierto en móvil
+  useEffect(() => {
+    document.body.style.overflow = isMobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileOpen]);
 
   const toggle = () => {
     setIsCollapsed(prev => {
@@ -67,60 +87,111 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
     });
   };
 
-  const handleLogoutClick   = () => setShowLogoutConfirm(true);
+  const closeMobileMenu = () => setIsMobileOpen(false);
+
+  const handleLogoutClick   = () => { setShowLogoutConfirm(true); closeMobileMenu(); };
   const handleLogoutCancel  = () => setShowLogoutConfirm(false);
   const handleLogoutConfirm = () => { setShowLogoutConfirm(false); onLogout(); };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') setShowLogoutConfirm(false);
+    if (e.key === 'Escape') {
+      setShowLogoutConfirm(false);
+      setIsMobileOpen(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (showLogoutConfirm) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [showLogoutConfirm, handleKeyDown]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   const mainItems = navItems.filter(i => !i.meta);
   const metaItems = navItems.filter(i => i.meta);
   const initials  = (user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '');
 
-  // Props del indicador de inactividad
   const showIdle     = idleInfo !== undefined;
   const idlePct      = idleInfo?.percentage ?? 100;
   const idleMs       = idleInfo?.msRemaining ?? 0;
   const idleCritical = idlePct <= 20;
   const color        = idleColor(idlePct);
 
+  // En móvil el sidebar siempre muestra texto completo
+  const showLabels = isMobile ? true : !isCollapsed;
+
+  const avatarEl = (
+    <div className="sidebar-user-avatar">
+      {user.photoUrl
+        ? <img src={user.photoUrl} alt={initials} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-full)' }} />
+        : initials}
+    </div>
+  );
+
   return (
     <>
-      <aside className={`dashboard-sidebar${isCollapsed ? ' is-collapsed' : ''}`}>
-        {/* Header */}
-        {isCollapsed ? (
-          <button className="sidebar-header--collapsed" onClick={toggle} aria-label="Expandir menú">
-            <div className="sidebar-header--collapsed-inner">
-              <ChevronRight size={18} strokeWidth={2.5} />
-              <span className="sidebar-header--collapsed-hint">Abrir</span>
-            </div>
+      {/* ── Header fijo en móvil ── */}
+      {isMobile && (
+        <header className="sidebar-mobile-header">
+          <button
+            className="sidebar-mobile-hamburger"
+            onClick={() => setIsMobileOpen(p => !p)}
+            aria-label={isMobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {isMobileOpen ? <X size={22} strokeWidth={2} /> : <Menu size={22} strokeWidth={2} />}
           </button>
-        ) : (
-          <div className="sidebar-header">
+
+          <span className="sidebar-mobile-logo">DermicaPro</span>
+
+          <div className="sidebar-mobile-avatar">
+            {avatarEl}
+          </div>
+        </header>
+      )}
+
+      {/* ── Backdrop ── */}
+      {isMobile && isMobileOpen && (
+        <div className="sidebar-backdrop" onClick={closeMobileMenu} aria-hidden="true" />
+      )}
+
+      {/* ── Sidebar / Drawer ── */}
+      <aside className={[
+        'dashboard-sidebar',
+        !isMobile && isCollapsed ? 'is-collapsed' : '',
+        isMobile && isMobileOpen ? 'is-mobile-open' : '',
+      ].filter(Boolean).join(' ')}>
+
+        {/* Header del drawer (solo desktop) */}
+        {!isMobile && (
+          isCollapsed ? (
+            <button className="sidebar-header--collapsed" onClick={toggle} aria-label="Expandir menú">
+              <div className="sidebar-header--collapsed-inner">
+                <ChevronRight size={18} strokeWidth={2.5} />
+                <span className="sidebar-header--collapsed-hint">Abrir</span>
+              </div>
+            </button>
+          ) : (
+            <div className="sidebar-header">
+              <h1 className="sidebar-logo">DermicaPro</h1>
+              <button className="sidebar-toggle-btn" onClick={toggle} aria-label="Colapsar menú">
+                <ChevronLeft size={15} strokeWidth={2.5} />
+              </button>
+            </div>
+          )
+        )}
+
+        {/* Header del drawer en móvil — logo + cerrar */}
+        {isMobile && (
+          <div className="sidebar-header sidebar-header--mobile">
             <h1 className="sidebar-logo">DermicaPro</h1>
-            <button className="sidebar-toggle-btn" onClick={toggle} aria-label="Colapsar menú">
-              <ChevronLeft size={15} strokeWidth={2.5} />
+            <button className="sidebar-toggle-btn" onClick={closeMobileMenu} aria-label="Cerrar menú">
+              <X size={16} strokeWidth={2.5} />
             </button>
           </div>
         )}
 
         {/* User */}
         <div className="sidebar-user">
-          <div className="sidebar-user-avatar">
-            {user.photoUrl
-              ? <img src={user.photoUrl} alt={initials} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-full)' }} />
-              : initials}
-          </div>
-          {!isCollapsed && (
+          {avatarEl}
+          {showLabels && (
             <div>
               <p className="sidebar-user-name">{user.firstName} {user.lastName}</p>
               <p className="sidebar-user-role">{user.roleDisplay}</p>
@@ -133,9 +204,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
           <ul className="sidebar-nav-list">
             {mainItems.map(item => (
               <li key={item.to} className="sidebar-nav-item">
-                <NavLink to={item.to} end={item.end} className="sidebar-nav-link" data-label={item.label}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className="sidebar-nav-link"
+                  data-label={item.label}
+                  onClick={isMobile ? closeMobileMenu : undefined}
+                >
                   <span className="sidebar-nav-icon"><NavIcon name={item.icon} /></span>
-                  {!isCollapsed && item.label}
+                  {showLabels && item.label}
                 </NavLink>
               </li>
             ))}
@@ -146,9 +223,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
               <ul className="sidebar-nav-list">
                 {metaItems.map(item => (
                   <li key={item.to} className="sidebar-nav-item">
-                    <NavLink to={item.to} end={item.end} className="sidebar-nav-link sidebar-nav-link--meta" data-label={item.label}>
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      className="sidebar-nav-link sidebar-nav-link--meta"
+                      data-label={item.label}
+                      onClick={isMobile ? closeMobileMenu : undefined}
+                    >
                       <span className="sidebar-nav-icon"><NavIcon name={item.icon} /></span>
-                      {!isCollapsed && item.label}
+                      {showLabels && item.label}
                     </NavLink>
                   </li>
                 ))}
@@ -162,22 +245,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
           <button
             onClick={handleLogoutClick}
             className="sidebar-logout-btn"
-            title={isCollapsed ? 'Cerrar Sesión' : undefined}
+            title={!showLabels ? 'Cerrar Sesión' : undefined}
           >
             <LogOut size={16} strokeWidth={2} />
-            {!isCollapsed && 'Cerrar Sesión'}
+            {showLabels && 'Cerrar Sesión'}
           </button>
 
-            {/* Indicador de inactividad — solo admins */}
           {showIdle && (
             <div className={`sidebar-idle-indicator${idleCritical ? ' sidebar-idle-indicator--pulse' : ''}`}>
-              {!isCollapsed ? (
-                /* Expandido: icono + tiempo + barra */
+              {showLabels ? (
                 <div className="sidebar-idle-row">
                   <Timer size={12} strokeWidth={2} style={{ color, flexShrink: 0 }} />
-                  <span className="sidebar-idle-time" style={{ color }}>
-                    {formatMs(idleMs)}
-                  </span>
+                  <span className="sidebar-idle-time" style={{ color }}>{formatMs(idleMs)}</span>
                   <div className="sidebar-idle-track">
                     <div
                       className="sidebar-idle-fill"
@@ -190,25 +269,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
                   </div>
                 </div>
               ) : (
-                /* Colapsado: solo la barra */
                 <div className="sidebar-idle-track">
-                  <div
-                    className="sidebar-idle-fill"
-                    style={{
-                      width: `${idlePct}%`,
-                      background: color,
-                    }}
-                  />
+                  <div className="sidebar-idle-fill" style={{ width: `${idlePct}%`, background: color }} />
                 </div>
               )}
             </div>
           )}
 
-          {!isCollapsed && <div className="sidebar-footer-version">v{APP_VERSION}</div>}
+          {showLabels && <div className="sidebar-footer-version">v{APP_VERSION}</div>}
         </div>
       </aside>
 
-      {/* Modal de confirmación de logout manual */}
+      {/* Modal de confirmación de logout */}
       {showLogoutConfirm && (
         <div
           onClick={handleLogoutCancel}
