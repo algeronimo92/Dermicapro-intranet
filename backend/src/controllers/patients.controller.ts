@@ -90,6 +90,7 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
         id: patient.id,
         firstName: patient.firstName,
         lastName: patient.lastName,
+        photoUrl: patient.photoUrl ?? null,
         dni: patient.dni,
         dateOfBirth: patient.dateOfBirth,
         sex: patient.sex,
