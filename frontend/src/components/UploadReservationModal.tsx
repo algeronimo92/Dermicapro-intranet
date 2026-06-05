@@ -1,19 +1,22 @@
 import React, { useState, useRef } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { CameraCapture } from './CameraCapture';
 
 interface UploadReservationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (amount: number, file: File) => Promise<void>;
   maxAmount?: number;
+  fixedAmount?: number;
 }
 
 export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  maxAmount
+  maxAmount,
+  fixedAmount
 }) => {
   const [amount, setAmount] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +24,16 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showCamera, setShowCamera] = useState(false);
+
+  const handleCameraCapture = (capturedFile: File) => {
+    setShowCamera(false);
+    setFile(capturedFile);
+    setError(null);
+    const reader = new FileReader();
+    reader.onloadend = () => setPreviewUrl(reader.result as string);
+    reader.readAsDataURL(capturedFile);
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -57,7 +70,9 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    const effectiveAmount = fixedAmount ?? parseFloat(amount);
+
+    if (!fixedAmount && (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)) {
       setError('Por favor ingrese un monto válido');
       return;
     }
@@ -67,7 +82,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
       return;
     }
 
-    if (maxAmount && parseFloat(amount) > maxAmount) {
+    if (!fixedAmount && maxAmount && parseFloat(amount) > maxAmount) {
       setError(`El monto no puede ser mayor a S/. ${maxAmount.toFixed(2)}`);
       return;
     }
@@ -75,7 +90,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
     try {
       setIsSubmitting(true);
       setError(null);
-      await onSubmit(parseFloat(amount), file);
+      await onSubmit(effectiveAmount, file);
       handleClose();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al subir recibo');
@@ -111,24 +126,34 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
         <div className="form-section">
           <div className="input-group">
             <label className="input-label">
-              Monto de la Reserva *
+              Monto de la Reserva {fixedAmount === undefined ? '*' : ''}
             </label>
             <div className="input-with-icon">
               <span className="input-prefix">S/.</span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max={maxAmount}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="input input-with-prefix"
-                placeholder="0.00"
-                required
-                disabled={isSubmitting}
-              />
+              {fixedAmount !== undefined ? (
+                <input
+                  type="number"
+                  value={fixedAmount.toFixed(2)}
+                  className="input input-with-prefix"
+                  readOnly
+                  disabled
+                />
+              ) : (
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={maxAmount}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="input input-with-prefix"
+                  placeholder="0.00"
+                  required
+                  disabled={isSubmitting}
+                />
+              )}
             </div>
-            {maxAmount && (
+            {!fixedAmount && maxAmount && (
               <p className="input-help">
                 Máximo: S/. {maxAmount.toFixed(2)}
               </p>
@@ -151,19 +176,36 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
               />
 
               {!file ? (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="file-upload-button"
-                  disabled={isSubmitting}
-                >
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4"/>
-                    <path d="M24 16v16M16 24h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  <span className="upload-text">Clic para seleccionar archivo</span>
-                  <span className="upload-hint">JPG, PNG o PDF (máx. 5MB)</span>
-                </button>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-sm)', width: '100%' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="file-upload-button"
+                    disabled={isSubmitting}
+                    style={{ padding: 'var(--spacing-lg) var(--spacing-md)' }}
+                  >
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M16 6v14M16 6l-6 6M16 6l6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6 24h20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                    </svg>
+                    <span className="upload-text">Subir archivo</span>
+                    <span className="upload-hint">JPG, PNG o PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCamera(true)}
+                    className="file-upload-button"
+                    disabled={isSubmitting}
+                    style={{ padding: 'var(--spacing-lg) var(--spacing-md)' }}
+                  >
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <path d="M23 7l-7 5 7 5V7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <rect x="1" y="5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    <span className="upload-text">Tomar foto</span>
+                    <span className="upload-hint">Usar cámara</span>
+                  </button>
+                </div>
               ) : (
                 <div className="file-preview">
                   {previewUrl ? (
@@ -219,6 +261,12 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
           </Button>
         </div>
       </form>
+      {showCamera && (
+        <CameraCapture
+          onClose={() => setShowCamera(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
     </Modal>
   );
 };

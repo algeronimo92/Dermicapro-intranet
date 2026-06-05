@@ -299,6 +299,7 @@ export interface CreateAppointmentDto {
   scheduledDate: string;
   durationMinutes: number;
   reservationAmount?: number;
+  reservationPaymentMethod?: string;
   services?: any[];  // Para modo create (legacy)
   sessionOperations?: SessionOperations;  // Para modo edit (nuevo)
 }

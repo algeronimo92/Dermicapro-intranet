@@ -80,6 +80,7 @@ model User {
   isActive           Boolean   @default(true) @map("is_active")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
   themeMode          String    @default("auto") @map("theme_mode")
+  photoUrl           String?   @map("photo_url")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 

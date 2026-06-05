@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
+import { ImageViewer } from '../components/ImageViewer';
 import { AppointmentStatus } from '../types';
 import { formatDate, formatDateTime } from '../utils/dateUtils';
 import '../styles/patient-history.css';
@@ -93,6 +94,14 @@ export const PatientHistoryPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const openViewer = (images: string[], index = 0) => {
+    setViewerImages(images);
+    setViewerIndex(index);
+  };
+  const closeViewer = () => setViewerImages([]);
 
   useEffect(() => {
     if (id) loadHistory(id);
@@ -391,7 +400,8 @@ export const PatientHistoryPage: React.FC = () => {
                                 {record.beforePhotoUrls.map((url, i) => (
                                   <img key={i} src={`${photoBase}${url}`} alt={`Antes ${i + 1}`}
                                     className="timeline-photo"
-                                    onClick={() => window.open(`${photoBase}${url}`, '_blank')} />
+                                    style={{ cursor: 'zoom-in' }}
+                                    onClick={() => openViewer((record.beforePhotoUrls ?? []).map((u: string) => `${photoBase}${u}`), i)} />
                                 ))}
                               </div>
                             </div>
@@ -411,7 +421,8 @@ export const PatientHistoryPage: React.FC = () => {
                                 {record.afterPhotoUrls.map((url, i) => (
                                   <img key={i} src={`${photoBase}${url}`} alt={`Después ${i + 1}`}
                                     className="timeline-photo"
-                                    onClick={() => window.open(`${photoBase}${url}`, '_blank')} />
+                                    style={{ cursor: 'zoom-in' }}
+                                    onClick={() => openViewer((record.afterPhotoUrls ?? []).map((u: string) => `${photoBase}${u}`), i)} />
                                 ))}
                               </div>
                             </div>
@@ -451,6 +462,10 @@ export const PatientHistoryPage: React.FC = () => {
           );
         })()}
       </div>
+
+      {viewerImages.length > 0 && (
+        <ImageViewer images={viewerImages} initialIndex={viewerIndex} onClose={closeViewer} />
+      )}
     </div>
   );
 };

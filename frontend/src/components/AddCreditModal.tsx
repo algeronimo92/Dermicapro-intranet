@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { CameraCaptureModal } from './CameraCaptureModal';
+import { CameraCapture } from './CameraCapture';
+import { ImageViewer } from './ImageViewer';
 import { PaymentMethod } from '../types';
 import { creditsService } from '../services/credits.service';
 import { paymentOrdersService } from '../services/paymentOrders.service';
@@ -262,18 +262,15 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
         </Button>
       </div>
 
-      <CameraCaptureModal isOpen={showCamera} onClose={() => setShowCamera(false)}
-        onCapture={file => { handleFileChange(file); setShowCamera(false); }} />
+      {showCamera && (
+        <CameraCapture
+          onClose={() => setShowCamera(false)}
+          onCapture={file => { handleFileChange(file); setShowCamera(false); }}
+        />
+      )}
 
-      {lightbox && receiptPreview && createPortal(
-        <div onClick={() => setLightbox(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-lg)', cursor: 'zoom-out' }}>
-          <button onClick={() => setLightbox(false)}
-            style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-          <img src={receiptPreview} alt="Comprobante" onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 'var(--radius-xl)', boxShadow: '0 25px 60px rgba(0,0,0,0.8)', cursor: 'default' }} />
-        </div>,
-        document.body
+      {lightbox && receiptPreview && (
+        <ImageViewer images={[receiptPreview]} alt="Comprobante" onClose={() => setLightbox(false)} />
       )}
     </Modal>
   );

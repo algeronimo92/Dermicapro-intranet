@@ -178,7 +178,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
 
 export const createAppointment = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { patientId, scheduledDate, durationMinutes, reservationAmount, services } = req.body;
+    const { patientId, scheduledDate, durationMinutes, reservationAmount, reservationPaymentMethod, services } = req.body;
 
     if (!patientId || !scheduledDate) {
       throw new AppError('Missing required fields: patientId and scheduledDate', 400);
@@ -327,6 +327,28 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
           },
         },
       });
+
+      // ============================================
+      // PASO FINAL: Registrar pago de reserva y acreditar al paciente
+      // ============================================
+      const parsedReservation = reservationAmount ? parseFloat(reservationAmount) : 0;
+      if (parsedReservation > 0 && reservationPaymentMethod) {
+        await tx.payment.create({
+          data: {
+            patientId,
+            appointmentId: fullAppointment.id,
+            amountPaid: parsedReservation,
+            paymentMethod: reservationPaymentMethod,
+            paymentType: 'reservation',
+            createdById: req.user!.id,
+          },
+        });
+
+        await tx.patient.update({
+          where: { id: patientId },
+          data: { accountBalance: { increment: parsedReservation } },
+        });
+      }
 
       return fullAppointment;
     });

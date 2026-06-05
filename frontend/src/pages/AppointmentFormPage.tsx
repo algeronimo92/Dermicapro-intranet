@@ -12,6 +12,7 @@ import { PatientSelector } from '../components/PatientSelector';
 import { ServiceSelector } from '../components/ServiceSelector';
 import { UploadReservationModal } from '../components/UploadReservationModal';
 import { PackageGroupView } from '../components/PackageGroupView';
+import { ImageViewer } from '../components/ImageViewer';
 import { DateTimePicker } from '../components/DateTimePicker';
 import { packageSimulator } from '../utils/packageSimulation';
 import { formatDate } from '../utils/dateUtils';
@@ -58,6 +59,7 @@ export const AppointmentFormPage: React.FC = () => {
   const [showUploadReceiptModal, setShowUploadReceiptModal] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<string | null>(null);
   const [pendingReceiptFile, setPendingReceiptFile] = useState<File | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
   // Get query parameters for pre-filling form from calendar helper
   const scheduledDateParam = searchParams.get('scheduledDate');
@@ -109,6 +111,7 @@ export const AppointmentFormPage: React.FC = () => {
     scheduledDate: getDefaultScheduledDate(),
     durationMinutes: getDefaultDuration(),
     reservationAmount: undefined,
+    reservationPaymentMethod: undefined,
     notes: '',
     orderId: preselectedOrderId || undefined,
     services: []
@@ -686,6 +689,9 @@ export const AppointmentFormPage: React.FC = () => {
     if (formData.reservationAmount !== undefined && formData.reservationAmount < 0) {
       newErrors.reservationAmount = 'El monto debe ser mayor o igual a 0';
     }
+    if (formData.reservationAmount && formData.reservationAmount > 0 && !formData.reservationPaymentMethod) {
+      newErrors.reservationPaymentMethod = 'Selecciona un método de pago para la reserva';
+    }
 
     setErrors(newErrors);
 
@@ -733,11 +739,12 @@ export const AppointmentFormPage: React.FC = () => {
           customPrice: session.tempPackageId ? packageCustomPrices[session.tempPackageId] : undefined
         }));
 
-        const submissionData: import('../types').CreateAppointmentDto = {
+        const submissionData: import('../services/appointments.service').CreateAppointmentDto = {
           patientId: formData.patientId,
           scheduledDate: localToUTC(formData.scheduledDate),
           durationMinutes: formData.durationMinutes || 30,
           reservationAmount: formData.reservationAmount,
+          reservationPaymentMethod: formData.reservationPaymentMethod,
           services: sessionsWithPrices,
         };
 
@@ -1195,12 +1202,35 @@ export const AppointmentFormPage: React.FC = () => {
               type="number"
               name="reservationAmount"
               value={formData.reservationAmount?.toString() || ''}
-              onChange={handleChange}
+              onChange={isEditMode ? undefined : handleChange}
+              readOnly={isEditMode}
               error={errors.reservationAmount}
               placeholder="0.00"
               step="0.01"
               min="0"
             />
+
+            {!isEditMode && formData.reservationAmount && formData.reservationAmount > 0 && (
+              <div className="input-group">
+                <label className="field-label">Método de Pago de la Reserva *</label>
+                <select
+                  name="reservationPaymentMethod"
+                  value={formData.reservationPaymentMethod || ''}
+                  onChange={handleChange}
+                  className={`input${errors.reservationPaymentMethod ? ' input-error' : ''}`}
+                >
+                  <option value="">Seleccionar método...</option>
+                  <option value="yape">Yape</option>
+                  <option value="plin">Plin</option>
+                  <option value="cash">Efectivo</option>
+                  <option value="transfer">Transferencia</option>
+                  <option value="card">Tarjeta</option>
+                </select>
+                {errors.reservationPaymentMethod && (
+                  <span className="input-error-message">{errors.reservationPaymentMethod}</span>
+                )}
+              </div>
+            )}
 
             {/* Upload Receipt Section */}
             <div>
@@ -1231,14 +1261,13 @@ export const AppointmentFormPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="receipt-actions">
-                        <a
-                          href={currentReceipt.startsWith('blob:') ? currentReceipt : `http://localhost:3000${currentReceipt}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
                           className="receipt-view-btn"
+                          onClick={() => setViewerUrl(currentReceipt.startsWith('blob:') ? currentReceipt : `http://localhost:3000${currentReceipt}`)}
                         >
                           Ver
-                        </a>
+                        </button>
                         <button
                           type="button"
                           onClick={() => setShowUploadReceiptModal(true)}
@@ -1328,6 +1357,10 @@ export const AppointmentFormPage: React.FC = () => {
         onClose={() => setShowUploadReceiptModal(false)}
         onSubmit={handleUploadReceipt}
       />
+
+      {viewerUrl && (
+        <ImageViewer images={[viewerUrl]} alt="Comprobante" onClose={() => setViewerUrl(null)} />
+      )}
     </div>
   );
 };

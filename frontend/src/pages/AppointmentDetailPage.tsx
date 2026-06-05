@@ -11,6 +11,7 @@ import { UploadPhotosModal } from '../components/UploadPhotosModal';
 import { BodyMeasurementsModal } from '../components/BodyMeasurementsModal';
 import { StateTransitionSelector } from '../components/StateTransitionSelector';
 import { PackageGroupView } from '../components/PackageGroupView';
+import { ImageViewer } from '../components/ImageViewer';
 import { useAuth } from '../contexts/AuthContext';
 import { packageSimulator } from '../utils/packageSimulation';
 import { addToGoogleCalendar, downloadICSFile } from '../utils/googleCalendar';
@@ -51,6 +52,14 @@ export const AppointmentDetailPage: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [showBodyMeasurementsModal, setShowBodyMeasurementsModal] = useState(false);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const openViewer = (images: string[], index = 0) => {
+    setViewerImages(images);
+    setViewerIndex(index);
+  };
+  const closeViewer = () => setViewerImages([]);
 
   // System Info collapsible state - expandido por defecto en estados finales
   const [systemInfoExpanded, setSystemInfoExpanded] = useState(() => {
@@ -760,28 +769,29 @@ export const AppointmentDetailPage: React.FC = () => {
                     <img
                       src={getReceiptUrl(appointment.reservationReceiptUrl) || ''}
                       alt="Recibo de reserva"
-                      style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-md)', cursor: 'pointer', flexShrink: 0 }}
-                      onClick={() => window.open(getReceiptUrl(appointment.reservationReceiptUrl) || '', '_blank')}
+                      style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-md)', cursor: 'zoom-in', flexShrink: 0 }}
+                      onClick={() => openViewer([getReceiptUrl(appointment.reservationReceiptUrl) || ''])}
                     />
                   )}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                       Comprobante de Reserva
                     </div>
-                    <a href={getReceiptUrl(appointment.reservationReceiptUrl) || '#'} target="_blank" rel="noopener noreferrer"
-                      style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 'var(--font-weight-semibold)' }}>
+                    <button
+                      onClick={() => openViewer([getReceiptUrl(appointment.reservationReceiptUrl) || ''])}
+                      style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 'var(--font-weight-semibold)', fontFamily: 'inherit' }}>
                       Ver recibo completo →
-                    </a>
+                    </button>
                   </div>
                 </div>
               )}
 
-              {appointment.status === 'reserved' && (
+              {appointment.status === 'reserved' && !appointment.reservationReceiptUrl && (
                 <button onClick={handleUploadReceipt} className="adet-reservation__upload-btn">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M14 10v2.667A1.333 1.333 0 0112.667 14H3.333A1.333 1.333 0 012 12.667V10M11.333 5.333L8 2m0 0L4.667 5.333M8 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  {appointment.reservationReceiptUrl ? 'Reemplazar Recibo' : 'Subir Recibo'}
+                  Subir Recibo
                 </button>
               )}
             </>
@@ -903,7 +913,7 @@ export const AppointmentDetailPage: React.FC = () => {
                           <div
                             key={index}
                             className="apt-detail__photo-card"
-                            onClick={() => window.open(getReceiptUrl(url) || '', '_blank')}
+                            onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}
                           >
                             <img
                               src={getReceiptUrl(url) || ''}
@@ -931,7 +941,7 @@ export const AppointmentDetailPage: React.FC = () => {
                           <div
                             key={index}
                             className="apt-detail__photo-card"
-                            onClick={() => window.open(getReceiptUrl(url) || '', '_blank')}
+                            onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}
                           >
                             <img
                               src={getReceiptUrl(url) || ''}
@@ -1374,7 +1384,7 @@ export const AppointmentDetailPage: React.FC = () => {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onSubmit={handleUploadSubmit}
-        maxAmount={paymentData.packagesTotal}
+        fixedAmount={appointment?.reservationAmount ? Number(appointment.reservationAmount) : undefined}
       />
 
       {/* Upload Photos Modal */}
@@ -1429,6 +1439,10 @@ export const AppointmentDetailPage: React.FC = () => {
           />
         );
       })()}
+
+      {viewerImages.length > 0 && (
+        <ImageViewer images={viewerImages} initialIndex={viewerIndex} onClose={closeViewer} />
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ImageViewer } from '../components/ImageViewer';
 import { useParams, useNavigate } from 'react-router-dom';
 import { paymentOrdersService } from '../services/paymentOrders.service';
 import { paymentsService } from '../services/payments.service';
@@ -8,7 +9,7 @@ import { formatDate } from '../utils/dateUtils';
 import { Loading } from '../components/Loading';
 import { Button } from '../components/Button';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
-import { CameraCaptureModal } from '../components/CameraCaptureModal';
+import { CameraCapture } from '../components/CameraCapture';
 import '../styles/patient-payment-orders.css';
 
 const getReceiptUrl = (url: string | null | undefined): string | null => {
@@ -406,49 +407,18 @@ export const PaymentOrderDetailPage: React.FC = () => {
       )}
 
       {/* ── Cámara para comprobante de pago existente ── */}
-      <CameraCaptureModal
-        isOpen={!!cameraPaymentId}
-        onClose={() => setCameraPaymentId(null)}
-        onCapture={async file => {
-          if (cameraPaymentId) await handleUploadReceipt(cameraPaymentId, file);
-          setCameraPaymentId(null);
-        }}
-      />
-
-      {/* ── Lightbox para ver comprobante a tamaño completo ── */}
-      {lightboxUrl && (
-        <div
-          onClick={() => setLightboxUrl(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(0,0,0,0.88)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 'var(--spacing-lg)',
-            cursor: 'zoom-out',
+      {!!cameraPaymentId && (
+        <CameraCapture
+          onClose={() => setCameraPaymentId(null)}
+          onCapture={async file => {
+            if (cameraPaymentId) await handleUploadReceipt(cameraPaymentId, file);
+            setCameraPaymentId(null);
           }}
-        >
-          <button
-            onClick={() => setLightboxUrl(null)}
-            style={{
-              position: 'absolute', top: 16, right: 16,
-              width: 40, height: 40, borderRadius: 'var(--radius-full)',
-              background: 'rgba(255,255,255,0.15)', border: 'none',
-              color: '#fff', fontSize: 22, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >×</button>
-          <img
-            src={lightboxUrl}
-            alt="Comprobante"
-            onClick={e => e.stopPropagation()}
-            style={{
-              maxWidth: '100%', maxHeight: '90vh',
-              borderRadius: 'var(--radius-xl)',
-              boxShadow: 'var(--shadow-2xl)',
-              cursor: 'default',
-            }}
-          />
-        </div>
+        />
+      )}
+
+      {lightboxUrl && (
+        <ImageViewer images={[lightboxUrl]} alt="Comprobante" onClose={() => setLightboxUrl(null)} />
       )}
     </div>
   );
