@@ -151,6 +151,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
         id: true,
         firstName: true,
         lastName: true,
+        photoUrl: true,
         email: true,
         dni: true,
         dateOfBirth: true,

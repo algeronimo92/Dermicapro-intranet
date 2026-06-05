@@ -38,7 +38,7 @@ export class MedicalDashboardStrategy extends BaseDashboardStrategy {
           },
           include: {
             patient: {
-              select: { id: true, firstName: true, lastName: true, phone: true },
+              select: { id: true, firstName: true, lastName: true, phone: true, photoUrl: true },
             },
             appointmentServices: {
               where: { deletedAt: null },
@@ -59,7 +59,7 @@ export class MedicalDashboardStrategy extends BaseDashboardStrategy {
             status: { in: ['reserved', 'in_progress'] },
           },
           include: {
-            patient: { select: { id: true, firstName: true, lastName: true } },
+            patient: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
             appointmentServices: {
               where: { deletedAt: null },
               include: {

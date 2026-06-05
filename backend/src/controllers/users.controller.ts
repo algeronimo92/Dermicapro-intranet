@@ -53,6 +53,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      photoUrl: user.photoUrl ?? null,
       role: user.role ? {
         id: user.role.id,
         name: user.role.name,

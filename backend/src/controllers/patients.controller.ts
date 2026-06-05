@@ -329,6 +329,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
         id: true,
         firstName: true,
         lastName: true,
+        photoUrl: true,
         email: true,
         phone: true,
         createdAt: true,
