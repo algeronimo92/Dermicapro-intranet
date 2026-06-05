@@ -56,6 +56,7 @@ function saveRememberedUser(userData: User): void {
     lastName: userData.lastName,
     roleName,
     roleKey,
+    photoUrl: userData.photoUrl ?? null,
   };
   const existing = getRememberedUsers().filter((u) => u.id !== entry.id);
   const updated = [entry, ...existing].slice(0, MAX_REMEMBERED);
@@ -115,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = (updated: User) => {
     setUser(updated);
     if (!updated.mustChangePassword) setMustChangePassword(false);
+    saveRememberedUser(updated);
   };
 
   const clearMustChangePassword = () => setMustChangePassword(false);
