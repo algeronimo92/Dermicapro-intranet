@@ -199,9 +199,9 @@ export interface CustomerAnalyticsData {
     topDebtors: {
       patientId: string;
       patientName: string;
-      totalDebt: number; // Facturas + órdenes sin facturar
-      invoicesDebt: number; // Solo facturas pendientes
-      uninvoicedOrders: number; // Solo órdenes sin facturar
+      totalDebt: number; // Órdenes de pago + órdenes sin ODP
+      paymentOrdersDebt: number; // Solo órdenes de pago pendientes
+      ordersWithoutPaymentOrder: number; // Solo órdenes sin orden de pago
     }[];
   };
   retention: {

@@ -35,7 +35,7 @@ Table users {
   commissions commissions [not null]
   commissionsApproved commissions [not null]
   commissionsPaid commissions [not null]
-  invoicesCreated invoices [not null]
+  paymentOrdersCreated ordenes_de_pago [not null]
   paymentsCreated payments [not null]
   appointmentServicesDeleted sessions [not null]
   appointmentNotesCreated appointment_notes [not null]
@@ -65,7 +65,7 @@ Table patients {
   orders service_instances [not null]
   appointments appointments [not null]
   patientRecords patient_records [not null]
-  invoices invoices [not null]
+  paymentOrders ordenes_de_pago [not null]
   payments payments [not null]
 }
 
@@ -98,14 +98,14 @@ Table service_instances {
   discount Decimal [not null, default: 0]
   finalPrice Decimal [not null]
   notes String
-  invoiceId String
+  paymentOrderId String
   createdById String [not null]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   patient patients [not null]
   service service_templates [not null]
   createdBy users [not null]
-  invoice invoices
+  paymentOrder ordenes_de_pago
   appointmentServices sessions [not null]
   commissions commissions [not null]
 }
@@ -201,11 +201,11 @@ Table sessions {
   deletedBy users
 }
 
-Table invoices {
+Table ordenes_de_pago {
   id String [pk]
   patientId String [not null]
   totalAmount Decimal [not null]
-  status InvoiceStatus [not null, default: 'pending']
+  status PaymentOrderStatus [not null, default: 'pending']
   dueDate DateTime
   createdById String [not null]
   createdAt DateTime [default: `now()`, not null]
@@ -219,7 +219,7 @@ Table invoices {
 Table payments {
   id String [pk]
   patientId String [not null]
-  invoiceId String
+  paymentOrderId String
   appointmentId String
   amountPaid Decimal [not null]
   paymentMethod PaymentMethod [not null]
@@ -230,7 +230,7 @@ Table payments {
   createdById String [not null]
   createdAt DateTime [default: `now()`, not null]
   patient patients [not null]
-  invoice invoices
+  paymentOrder ordenes_de_pago
   appointment appointments
   createdBy users [not null]
 }
@@ -273,7 +273,7 @@ Enum CommissionStatus {
   rejected
 }
 
-Enum InvoiceStatus {
+Enum PaymentOrderStatus {
   pending
   partial
   paid
@@ -281,7 +281,7 @@ Enum InvoiceStatus {
 }
 
 Enum PaymentType {
-  invoice_payment
+  payment_order_payment
   reservation
   service_payment
   account_credit
@@ -301,7 +301,7 @@ Ref: service_instances.serviceTemplateId > service_templates.id
 
 Ref: service_instances.createdById > users.id
 
-Ref: service_instances.invoiceId > invoices.id
+Ref: service_instances.paymentOrderId > ordenes_de_pago.id
 
 Ref: appointments.patientId > patients.id
 
@@ -337,13 +337,13 @@ Ref: sessions.serviceInstanceId > service_instances.id
 
 Ref: sessions.deletedById > users.id
 
-Ref: invoices.patientId > patients.id
+Ref: ordenes_de_pago.patientId > patients.id
 
-Ref: invoices.createdById > users.id
+Ref: ordenes_de_pago.createdById > users.id
 
 Ref: payments.patientId > patients.id
 
-Ref: payments.invoiceId > invoices.id
+Ref: payments.paymentOrderId > ordenes_de_pago.id
 
 Ref: payments.appointmentId > appointments.id
 

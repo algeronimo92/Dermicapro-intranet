@@ -135,10 +135,10 @@ export const AppointmentDetailPage: React.FC = () => {
     }
   };
 
-  const handleViewInvoices = () => {
+  const handleViewPaymentOrders = () => {
     if (appointment?.patientId) {
-      // TODO: Navigate to patient invoices page
-      navigate(`/patients/${appointment.patientId}/invoices`);
+      // TODO: Navigate to patient payment orders page
+      navigate(`/patients/${appointment.patientId}/payment-orders`);
     }
   };
 
@@ -264,9 +264,9 @@ export const AppointmentDetailPage: React.FC = () => {
     // Procesar TODAS las órdenes del paciente
     const allOrders = ordersToProcess.map(order => {
       const finalPrice = Number(order.finalPrice || 0);
-      const invoice = order.invoice;
-      const amountPaid = invoice?.payments?.reduce((sum, p) => sum + Number(p.amountPaid), 0) || 0;
-      const status = invoice?.status || 'pending';
+      const paymentOrder = order.paymentOrder;
+      const amountPaid = paymentOrder?.payments?.reduce((sum, p) => sum + Number(p.amountPaid), 0) || 0;
+      const status = paymentOrder?.status || 'pending';
       const isPending = status === 'pending' || status === 'partial';
       const isInCurrentAppointment = currentAppointmentOrderIds.has(order.id); // order.id is the ServiceInstance ID
 
@@ -279,7 +279,7 @@ export const AppointmentDetailPage: React.FC = () => {
         status,
         isPending,
         isInCurrentAppointment,
-        invoiceId: invoice?.id
+        paymentOrderId: paymentOrder?.id
       };
     });
 
@@ -302,10 +302,10 @@ export const AppointmentDetailPage: React.FC = () => {
     const otherPaid = otherOrders.reduce((sum, o) => sum + o.amountPaid, 0);
     const otherPending = otherTotal - otherPaid;
 
-    // Facturas impagas (estado pending o partial)
-    const unpaidInvoices = allOrders.filter(o => o.isPending);
-    const unpaidInvoicesCount = unpaidInvoices.length;
-    const unpaidInvoicesTotal = unpaidInvoices.reduce((sum, o) => sum + o.pendingAmount, 0);
+    // Órdenes de pago sin pagar (estado pending o partial)
+    const unpaidPaymentOrders = allOrders.filter(o => o.isPending);
+    const unpaidPaymentOrdersCount = unpaidPaymentOrders.length;
+    const unpaidPaymentOrdersTotal = unpaidPaymentOrders.reduce((sum, o) => sum + o.pendingAmount, 0);
 
     const reservationPaid = appointment.reservationAmount ? Number(appointment.reservationAmount) : 0;
     const hasReservation = reservationPaid > 0;
@@ -328,10 +328,10 @@ export const AppointmentDetailPage: React.FC = () => {
       otherOrdersPending: otherPending,
       otherOrders: otherOrders.filter(o => o.isPending), // Solo mostrar las pendientes
 
-      // Facturas impagas
-      unpaidInvoices,
-      unpaidInvoicesCount,
-      unpaidInvoicesTotal,
+      // Órdenes de pago sin pagar
+      unpaidPaymentOrders,
+      unpaidPaymentOrdersCount,
+      unpaidPaymentOrdersTotal,
 
       // Reserva
       reservationPaid,
@@ -561,14 +561,14 @@ export const AppointmentDetailPage: React.FC = () => {
           false // No es modo edición, es solo vista
         );
 
-        // Enriquecer con datos reales de factura desde paymentData (que sí los tiene)
+        // Enriquecer con datos reales de orden de pago desde paymentData (que sí los tiene)
         const enrichedGroups = packageGroups.map(pg => {
           if (!pg.orderId) return pg;
           const pdata = paymentData.packages.find(p => p.serviceInstanceId === pg.orderId);
           return {
             ...pg,
-            isInvoiced:    !!pdata?.invoiceId,
-            isInvoicePaid: pdata?.status === 'paid',
+            hasPaymentOrder:    !!pdata?.paymentOrderId,
+            isPaymentOrderPaid: pdata?.status === 'paid',
           };
         });
 
@@ -586,7 +586,7 @@ export const AppointmentDetailPage: React.FC = () => {
               {appointment.appointmentServices.length} sesión{appointment.appointmentServices.length > 1 ? 'es' : ''} incluida{appointment.appointmentServices.length > 1 ? 's' : ''}
             </p>
 
-            {/* Usar PackageGroupView con estado de factura correcto */}
+            {/* Usar PackageGroupView con estado de orden de pago correcto */}
             <PackageGroupView
               packageGroups={enrichedGroups}
               services={uniqueServices}
@@ -659,12 +659,12 @@ export const AppointmentDetailPage: React.FC = () => {
             </div>
 
             {hasPendingPayment ? (
-              <button className="adet-pay-cta" onClick={handleViewInvoices}>
+              <button className="adet-pay-cta" onClick={handleViewPaymentOrders}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <rect x="2" y="3" width="14" height="12" rx="1.5" stroke="currentColor" strokeWidth="2"/>
                   <path d="M2 7h14" stroke="currentColor" strokeWidth="2"/>
                 </svg>
-                Ver Facturas del Paciente
+                Ver Órdenes de Pago del Paciente
               </button>
             ) : (
               <div className="adet-pay-done">
@@ -677,54 +677,54 @@ export const AppointmentDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* SECCIÓN 2: OTRAS FACTURAS PENDIENTES */}
-        {paymentData.unpaidInvoicesCount > 0 && paymentData.otherOrders.length > 0 && (
-          <div className="adet-other-invoices">
-            <div className="adet-other-invoices__header">
-              <div className="adet-other-invoices__title">
+        {/* SECCIÓN 2: OTRAS ÓRDENES DE PAGO PENDIENTES */}
+        {paymentData.unpaidPaymentOrdersCount > 0 && paymentData.otherOrders.length > 0 && (
+          <div className="adet-other-payment-orders">
+            <div className="adet-other-payment-orders__header">
+              <div className="adet-other-payment-orders__title">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="2"/>
                   <path d="M8 4v4M8 11h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                Otras Facturas Pendientes
+                Otras Órdenes de Pago Pendientes
               </div>
-              <span className="adet-other-invoices__count">
-                {paymentData.otherOrders.length} {paymentData.otherOrders.length === 1 ? 'factura' : 'facturas'}
+              <span className="adet-other-payment-orders__count">
+                {paymentData.otherOrders.length} {paymentData.otherOrders.length === 1 ? 'orden de pago' : 'órdenes de pago'}
               </span>
             </div>
 
-            <div className="adet-invoice-list">
+            <div className="adet-payment-order-list">
               {paymentData.otherOrders.map((order) => (
-                <div key={order.serviceInstanceId} className="adet-invoice-item">
+                <div key={order.serviceInstanceId} className="adet-payment-order-item">
                   <div>
-                    <div className="adet-invoice-item__name">{order.serviceName}</div>
-                    <div className="adet-invoice-item__status">
+                    <div className="adet-payment-order-item__name">{order.serviceName}</div>
+                    <div className="adet-payment-order-item__status">
                       {order.status === 'pending' ? 'Sin pagar' : 'Pago parcial'}
                     </div>
                   </div>
                   <div>
-                    <div className="adet-invoice-item__amount">S/. {order.pendingAmount.toFixed(2)}</div>
-                    <div className="adet-invoice-item__amount-sub">pendiente</div>
+                    <div className="adet-payment-order-item__amount">S/. {order.pendingAmount.toFixed(2)}</div>
+                    <div className="adet-payment-order-item__amount-sub">pendiente</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="adet-other-invoices__total">
-              <span className="adet-other-invoices__total-label">Total pendiente</span>
-              <span className="adet-other-invoices__total-amount">S/. {paymentData.otherOrdersPending.toFixed(2)}</span>
+            <div className="adet-other-payment-orders__total">
+              <span className="adet-other-payment-orders__total-label">Total pendiente</span>
+              <span className="adet-other-payment-orders__total-amount">S/. {paymentData.otherOrdersPending.toFixed(2)}</span>
             </div>
 
-            <button className="adet-other-invoices__cta" onClick={handleViewInvoices}>
+            <button className="adet-other-payment-orders__cta" onClick={handleViewPaymentOrders}>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <rect x="2" y="3" width="14" height="12" rx="1.5" stroke="currentColor" strokeWidth="2"/>
                 <path d="M2 7h14M6 11h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              Ver Todas las Facturas del Paciente
+              Ver Todas las Órdenes de Pago del Paciente
             </button>
 
-            <div className="adet-other-invoices__note">
-              Estas facturas son de otros servicios del paciente, no de esta cita.
+            <div className="adet-other-payment-orders__note">
+              Estas órdenes de pago son de otros servicios del paciente, no de esta cita.
             </div>
           </div>
         )}

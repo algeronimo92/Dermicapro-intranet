@@ -61,8 +61,8 @@ const PackageGroupCard: React.FC<{
         basePrice={service?.basePrice}
         tempPackageId={packageGroup.id}
         onUpdatePrice={onUpdatePackagePrice}
-        readOnly={readOnly || !!packageGroup.isInvoiced}
-        isInvoicePaid={packageGroup.isInvoicePaid}
+        readOnly={readOnly || !!packageGroup.hasPaymentOrder}
+        isPaymentOrderPaid={packageGroup.isPaymentOrderPaid}
       />
       <div className="pkg-sessions">
         {packageGroup.sessions.map((session, idx) => (
@@ -96,13 +96,13 @@ const PackageHeader: React.FC<{
   tempPackageId?: string;
   onUpdatePrice?: (tempPackageId: string, newPrice: number) => void;
   readOnly?: boolean;
-  isInvoicePaid?: boolean;
+  isPaymentOrderPaid?: boolean;
 }> = ({
   serviceName, isNewPackage, sessionCount, totalSessions,
   completedSessions = 0, scheduledElsewhere,
   hasPendingReservations = false,
   orderCreatedAt, finalPrice, basePrice, tempPackageId, onUpdatePrice,
-  readOnly = false, isInvoicePaid = false,
+  readOnly = false, isPaymentOrderPaid = false,
 }) => {
   const [isEditingPrice, setIsEditingPrice] = React.useState(false);
   const [editedPrice, setEditedPrice] = React.useState(
@@ -158,7 +158,7 @@ const PackageHeader: React.FC<{
             <span className="pkg-header__price">
               S/. {Number(finalPrice ?? basePrice).toFixed(2)}
             </span>
-            {/* Botones de edición — solo si no está facturado */}
+            {/* Botones de edición — solo si no tiene orden de pago */}
             {!readOnly && onUpdatePrice && (
               <>
                 <button className="pkg-price-btn pkg-price-btn--edit" onClick={() => setIsEditingPrice(true)} title="Editar precio">✎</button>
@@ -181,15 +181,15 @@ const PackageHeader: React.FC<{
                 {discount > 0 ? `${discount.toFixed(0)}% OFF` : `+${Math.abs(discount).toFixed(0)}%`}
               </span>
             )}
-            {/* Badge de estado de factura */}
-            {isInvoicePaid && (
+            {/* Badge de estado de orden de pago */}
+            {isPaymentOrderPaid && (
               <span className="pkg-header__badge" style={{ background: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)', fontSize: 10 }}>
-                ✓ Facturado
+                ✓ Con Orden de Pago
               </span>
             )}
-            {readOnly && !isInvoicePaid && !isNewPackage && (
+            {readOnly && !isPaymentOrderPaid && !isNewPackage && (
               <span className="pkg-header__badge" style={{ background: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning)', fontSize: 10 }}>
-                Factura pendiente
+                Orden de Pago pendiente
               </span>
             )}
           </div>

@@ -97,44 +97,44 @@ async function testOrders() {
     const count = await prisma.order.count();
 
     // Verificar que la columna invoice_id existe intentando incluir la relación
-    const orderWithInvoice = await prisma.order.findFirst({
-      include: { invoice: true }
+    const orderWithPaymentOrder = await prisma.serviceInstance.findFirst({
+      include: { paymentOrder: true }
     });
 
     results.push({
-      test: 'Orders Table (with invoice_id)',
+      test: 'Orders Table (with payment_order_id)',
       status: 'PASS',
-      message: `Tabla orders accesible con relación invoice_id (${count} registros)`
+      message: `Tabla orders accesible con relación payment_order_id (${count} registros)`
     });
   } catch (error) {
     results.push({
-      test: 'Orders Table (with invoice_id)',
+      test: 'Orders Table (with payment_order_id)',
       status: 'FAIL',
-      message: 'Error al acceder a la tabla orders o relación invoice',
+      message: 'Error al acceder a la tabla orders o relación paymentOrder',
       error: error instanceof Error ? error.message : String(error)
     });
   }
 }
 
-async function testInvoices() {
+async function testPaymentOrders() {
   try {
-    const count = await prisma.invoice.count();
+    const count = await prisma.paymentOrder.count();
 
-    // Verificar relación inversa orders -> invoice
-    const invoiceWithOrders = await prisma.invoice.findFirst({
+    // Verificar relación inversa orders -> paymentOrder
+    const paymentOrderWithOrders = await prisma.paymentOrder.findFirst({
       include: { orders: true }
     });
 
     results.push({
-      test: 'Invoices Table (with orders relation)',
+      test: 'Ordenes de Pago (with orders relation)',
       status: 'PASS',
-      message: `Tabla invoices accesible con relación orders (${count} registros)`
+      message: `Tabla ordenes_de_pago accesible con relación orders (${count} registros)`
     });
   } catch (error) {
     results.push({
-      test: 'Invoices Table (with orders relation)',
+      test: 'Ordenes de Pago (with orders relation)',
       status: 'FAIL',
-      message: 'Error al acceder a la tabla invoices o relación orders',
+      message: 'Error al acceder a la tabla ordenes_de_pago o relación orders',
       error: error instanceof Error ? error.message : String(error)
     });
   }
@@ -205,7 +205,7 @@ async function testPayments() {
     const payment = await prisma.payment.findFirst({
       include: {
         patient: true,
-        invoice: true,
+        paymentOrder: true,
         appointment: true,
         createdBy: true
       }
@@ -326,7 +326,7 @@ async function main() {
     testPatients(),
     testServices(),
     testOrders(),
-    testInvoices(),
+    testPaymentOrders(),
     testAppointments(),
     testAppointmentServices(),
     testPayments(),

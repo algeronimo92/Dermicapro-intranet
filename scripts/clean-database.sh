@@ -12,7 +12,7 @@ psql dermicapro <<EOF
 DELETE FROM commissions;
 DELETE FROM patient_records;
 DELETE FROM payments;
-DELETE FROM invoices;
+DELETE FROM ordenes_de_pago;
 DELETE FROM appointment_services;
 DELETE FROM appointments;
 DELETE FROM orders;
@@ -38,7 +38,7 @@ SELECT 'appointment_services', COUNT(*) FROM appointment_services
 UNION ALL
 SELECT 'patient_records', COUNT(*) FROM patient_records
 UNION ALL
-SELECT 'invoices', COUNT(*) FROM invoices
+SELECT 'ordenes_de_pago', COUNT(*) FROM ordenes_de_pago
 UNION ALL
 SELECT 'payments', COUNT(*) FROM payments
 UNION ALL

@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
-import { invoicingService } from '../services/invoicing.service';
-import { InvoiceFactory } from '../services/invoice.factory';
+import { paymentOrderService } from '../services/paymentOrder.service';
+import { PaymentOrderFactory } from '../services/paymentOrder.factory';
 import { parseStartOfDay } from '../utils/dateUtils';
 
-export const getAllInvoices = async (req: Request, res: Response): Promise<void> => {
+export const getAllPaymentOrders = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page = '1', limit = '10', patientId, status } = req.query;
 
@@ -22,8 +22,8 @@ export const getAllInvoices = async (req: Request, res: Response): Promise<void>
       where.status = status;
     }
 
-    const [invoices, total] = await Promise.all([
-      prisma.invoice.findMany({
+    const [paymentOrders, total] = await Promise.all([
+      prisma.paymentOrder.findMany({
         where,
         skip,
         take,
@@ -67,26 +67,26 @@ export const getAllInvoices = async (req: Request, res: Response): Promise<void>
           },
         },
       }),
-      prisma.invoice.count({ where }),
+      prisma.paymentOrder.count({ where }),
     ]);
 
-    // Calcular balance para cada factura
-    const invoicesWithBalance = invoices.map((invoice) => {
-      const totalPaid = invoice.payments.reduce(
+    // Calcular balance para cada orden de pago
+    const paymentOrdersWithBalance = paymentOrders.map((paymentOrder) => {
+      const totalPaid = paymentOrder.payments.reduce(
         (sum, payment) => sum + parseFloat(payment.amountPaid.toString()),
         0
       );
-      const balance = parseFloat(invoice.totalAmount.toString()) - totalPaid;
+      const balance = parseFloat(paymentOrder.totalAmount.toString()) - totalPaid;
 
       return {
-        ...invoice,
+        ...paymentOrder,
         totalPaid,
         balance,
       };
     });
 
     res.json({
-      data: invoicesWithBalance,
+      data: paymentOrdersWithBalance,
       pagination: {
         page: parseInt(page as string),
         limit: take,
@@ -95,25 +95,25 @@ export const getAllInvoices = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch invoices' });
+    res.status(500).json({ error: 'Failed to fetch payment orders' });
   }
 };
 
-export const getInvoiceById = async (req: Request, res: Response): Promise<void> => {
+export const getPaymentOrderById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const invoice = await invoicingService.getInvoiceById(id);
+    const paymentOrder = await paymentOrderService.getPaymentOrderById(id);
 
     // Calcular total pagado y balance
-    const totalPaid = invoice.payments?.reduce(
+    const totalPaid = paymentOrder.payments?.reduce(
       (sum, payment) => sum + parseFloat(payment.amountPaid.toString()),
       0
     ) || 0;
-    const balance = parseFloat(invoice.totalAmount.toString()) - totalPaid;
+    const balance = parseFloat(paymentOrder.totalAmount.toString()) - totalPaid;
 
     res.json({
-      ...invoice,
+      ...paymentOrder,
       totalPaid,
       balance,
     });
@@ -121,12 +121,12 @@ export const getInvoiceById = async (req: Request, res: Response): Promise<void>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch invoice' });
+      res.status(500).json({ error: 'Failed to fetch payment order' });
     }
   }
 };
 
-export const updateInvoiceStatus = async (req: Request, res: Response): Promise<void> => {
+export const updatePaymentOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -135,7 +135,7 @@ export const updateInvoiceStatus = async (req: Request, res: Response): Promise<
       throw new AppError('Invalid status. Must be one of: pending, partial, paid, cancelled', 400);
     }
 
-    const invoice = await prisma.invoice.update({
+    const paymentOrder = await prisma.paymentOrder.update({
       where: { id },
       data: { status },
       include: {
@@ -149,48 +149,48 @@ export const updateInvoiceStatus = async (req: Request, res: Response): Promise<
       },
     });
 
-    res.json(invoice);
+    res.json(paymentOrder);
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update invoice status' });
+      res.status(500).json({ error: 'Failed to update payment order status' });
     }
   }
 };
 
-export const getInvoicesByPatient = async (req: Request, res: Response): Promise<void> => {
+export const getPaymentOrdersByPatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { patientId } = req.params;
 
-    const invoices = await invoicingService.getPatientInvoices(patientId);
+    const paymentOrders = await paymentOrderService.getPatientPaymentOrders(patientId);
 
-    // Calcular balance para cada factura
-    const invoicesWithBalance = invoices.map((invoice) => {
-      const totalPaid = invoice.payments?.reduce(
+    // Calcular balance para cada orden de pago
+    const paymentOrdersWithBalance = paymentOrders.map((paymentOrder) => {
+      const totalPaid = paymentOrder.payments?.reduce(
         (sum, payment) => sum + parseFloat(payment.amountPaid.toString()),
         0
       ) || 0;
-      const balance = parseFloat(invoice.totalAmount.toString()) - totalPaid;
+      const balance = parseFloat(paymentOrder.totalAmount.toString()) - totalPaid;
 
       return {
-        ...invoice,
+        ...paymentOrder,
         totalPaid,
         balance,
       };
     });
 
-    res.json(invoicesWithBalance);
+    res.json(paymentOrdersWithBalance);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch patient invoices' });
+    res.status(500).json({ error: 'Failed to fetch patient payment orders' });
   }
 };
 
-export const getInvoiceSummary = async (req: Request, res: Response): Promise<void> => {
+export const getPaymentOrderSummary = async (req: Request, res: Response): Promise<void> => {
   try {
     const { patientId } = req.params;
 
-    const invoices = await prisma.invoice.findMany({
+    const paymentOrders = await prisma.paymentOrder.findMany({
       where: { patientId },
       include: {
         payments: true,
@@ -198,47 +198,47 @@ export const getInvoiceSummary = async (req: Request, res: Response): Promise<vo
     });
 
     // Calcular totales
-    const summary = invoices.reduce(
-      (acc, invoice) => {
-        const totalPaid = invoice.payments.reduce(
+    const summary = paymentOrders.reduce(
+      (acc, paymentOrder) => {
+        const totalPaid = paymentOrder.payments.reduce(
           (sum, payment) => sum + parseFloat(payment.amountPaid.toString()),
           0
         );
-        const balance = parseFloat(invoice.totalAmount.toString()) - totalPaid;
+        const balance = parseFloat(paymentOrder.totalAmount.toString()) - totalPaid;
 
-        acc.totalInvoiced += parseFloat(invoice.totalAmount.toString());
+        acc.totalBilled += parseFloat(paymentOrder.totalAmount.toString());
         acc.totalPaid += totalPaid;
         acc.totalBalance += balance;
 
-        if (invoice.status === 'pending') acc.pendingCount++;
-        if (invoice.status === 'partial') acc.partialCount++;
-        if (invoice.status === 'paid') acc.paidCount++;
+        if (paymentOrder.status === 'pending') acc.pendingCount++;
+        if (paymentOrder.status === 'partial') acc.partialCount++;
+        if (paymentOrder.status === 'paid') acc.paidCount++;
 
         return acc;
       },
       {
-        totalInvoiced: 0,
+        totalBilled: 0,
         totalPaid: 0,
         totalBalance: 0,
         pendingCount: 0,
         partialCount: 0,
         paidCount: 0,
-        totalInvoices: invoices.length,
+        totalPaymentOrders: paymentOrders.length,
       }
     );
 
     res.json(summary);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch invoice summary' });
+    res.status(500).json({ error: 'Failed to fetch payment order summary' });
   }
 };
 
 // ========== NUEVOS ENDPOINTS PARA N:1 RELATIONSHIP ==========
 
 /**
- * Crea una factura para una o múltiples órdenes
+ * Crea una orden de pago para una o múltiples órdenes
  */
-export const createInvoice = async (req: Request, res: Response): Promise<void> => {
+export const createPaymentOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const { serviceInstanceIds, patientId, dueDate, priceOverrides } = req.body;
 
@@ -250,7 +250,7 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
       throw new AppError('patientId es requerido', 400);
     }
 
-    // Actualizar precios si el usuario los modificó antes de facturar
+    // Actualizar precios si el usuario los modificó antes de generar la orden de pago
     if (priceOverrides && Array.isArray(priceOverrides) && priceOverrides.length > 0) {
       await Promise.all(
         (priceOverrides as { id: string; finalPrice: number }[]).map(override =>
@@ -262,74 +262,74 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
       );
     }
 
-    const invoiceDto = InvoiceFactory.createFromServiceInstanceIds(
+    const paymentOrderDto = PaymentOrderFactory.createFromServiceInstanceIds(
       serviceInstanceIds,
       patientId,
       req.user!.id,
       dueDate ? parseStartOfDay(dueDate) : undefined
     );
 
-    const invoice = await invoicingService.createInvoice(invoiceDto);
+    const paymentOrder = await paymentOrderService.createPaymentOrder(paymentOrderDto);
 
-    res.status(201).json(invoice);
+    res.status(201).json(paymentOrder);
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to create invoice' });
+      res.status(500).json({ error: 'Failed to create payment order' });
     }
   }
 };
 
 /**
- * Obtiene las órdenes sin facturar de un paciente
+ * Obtiene las órdenes sin orden de pago de un paciente
  */
-export const getUninvoicedServiceInstances = async (req: Request, res: Response): Promise<void> => {
+export const getOrdersWithoutPaymentOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const { patientId } = req.params;
 
-    const orders = await invoicingService.getUninvoicedServiceInstances(patientId);
+    const orders = await paymentOrderService.getOrdersWithoutPaymentOrder(patientId);
 
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch uninvoiced orders' });
+    res.status(500).json({ error: 'Failed to fetch orders without payment order' });
   }
 };
 
 /**
- * Cancela una factura (solo si no tiene pagos)
+ * Cancela una orden de pago (solo si no tiene pagos)
  */
-export const cancelInvoice = async (req: Request, res: Response): Promise<void> => {
+export const cancelPaymentOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const invoice = await invoicingService.cancelInvoice(id);
+    const paymentOrder = await paymentOrderService.cancelPaymentOrder(id);
 
-    res.json(invoice);
+    res.json(paymentOrder);
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to cancel invoice' });
+      res.status(500).json({ error: 'Failed to cancel payment order' });
     }
   }
 };
 
 /**
- * Actualiza automáticamente el estado de una factura basándose en pagos
+ * Actualiza automáticamente el estado de una orden de pago basándose en pagos
  */
-export const autoUpdateInvoiceStatus = async (req: Request, res: Response): Promise<void> => {
+export const autoUpdatePaymentOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    const invoice = await invoicingService.updateInvoiceStatus(id);
+    const paymentOrder = await paymentOrderService.updatePaymentOrderStatus(id);
 
-    res.json(invoice);
+    res.json(paymentOrder);
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update invoice status' });
+      res.status(500).json({ error: 'Failed to update payment order status' });
     }
   }
 };

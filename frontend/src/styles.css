@@ -4519,8 +4519,8 @@ body {
   color: var(--color-text-secondary);
 }
 
-/* Invoices Card */
-.invoices-content {
+/* Payment Orders Card */
+.payment-orders-content {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -4550,13 +4550,13 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.invoices-list {
+.payment-orders-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.invoice-item {
+.payment-order-item {
   padding: 14px 16px;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-bg-tertiary);
@@ -4565,26 +4565,26 @@ body {
   transition: all 0.2s;
 }
 
-.invoice-item:hover {
+.payment-order-item:hover {
   background: var(--color-bg-primary)5e6;
   border-left-color: var(--color-error);
   box-shadow: 0 2px 8px rgba(243, 156, 18, 0.15);
 }
 
-.invoice-header {
+.payment-order-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }
 
-.invoice-date {
+.payment-order-date {
   font-size: 12px;
   color: var(--color-text-secondary);
   font-weight: 600;
 }
 
-.invoice-status {
+.payment-order-status {
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -4593,29 +4593,29 @@ body {
   letter-spacing: 0.3px;
 }
 
-.invoice-status.pending {
+.payment-order-status.pending {
   background: var(--color-bg-primary)3cd;
   color: var(--color-warning-dark);
 }
 
-.invoice-status.partial {
+.payment-order-status.partial {
   background: var(--color-error-alpha-10);
   color: var(--color-error-dark);
 }
 
-.invoice-amount {
+.payment-order-amount {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.invoice-amount .amount-label {
+.payment-order-amount .amount-label {
   font-size: 12px;
   color: var(--color-text-secondary);
   font-weight: 600;
 }
 
-.invoice-amount .amount-value {
+.payment-order-amount .amount-value {
   font-size: 18px;
   font-weight: 700;
   color: var(--color-error);
@@ -4696,7 +4696,7 @@ body {
     grid-column: span 1;
   }
 
-  .invoices-card {
+  .payment-orders-card {
     grid-column: span 1;
   }
 
@@ -4726,7 +4726,7 @@ body {
     font-size: 16px;
   }
 
-  .invoice-amount .amount-value {
+  .payment-order-amount .amount-value {
     font-size: 16px;
   }
 }

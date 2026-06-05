@@ -28,7 +28,7 @@ export enum PaymentMethod {
   account_credit = 'account_credit',
 }
 
-export enum InvoiceStatus {
+export enum PaymentOrderStatus {
   pending = 'pending',
   partial = 'partial',
   paid = 'paid',
@@ -36,7 +36,7 @@ export enum InvoiceStatus {
 }
 
 export enum PaymentType {
-  invoice_payment = 'invoice_payment',
+  payment_order_payment = 'payment_order_payment',
   reservation = 'reservation',
   service_payment = 'service_payment',
   account_credit = 'account_credit',
@@ -95,8 +95,8 @@ export interface CreditTransaction {
   paymentDate: string;
   notes?: string;
   receiptUrl?: string;
-  invoiceId?: string;
-  invoice?: { id: string } | null;
+  paymentOrderId?: string;
+  paymentOrder?: { id: string } | null;
   createdBy?: Partial<User>;
   createdAt: string;
 }
@@ -134,7 +134,7 @@ export interface Order {
   service?: Service;
   createdBy?: Partial<User>;
   appointmentServices?: AppointmentService[];
-  invoice?: Partial<Invoice>;
+  paymentOrder?: Partial<PaymentOrder>;
 }
 
 export interface AppointmentService {
@@ -221,16 +221,16 @@ export interface AuthResponse {
   user: User;
 }
 
-export interface Invoice {
+export interface PaymentOrder {
   id: string;
   patientId: string;
   totalAmount: number;
-  status: InvoiceStatus;
+  status: PaymentOrderStatus;
   dueDate?: string;
   createdById: string;
   createdAt: string;
   updatedAt: string;
-  orders?: (Order & { service?: Service })[]; // N:1 - Una factura tiene muchas órdenes
+  orders?: (Order & { service?: Service })[]; // N:1 - Una orden de pago tiene muchas órdenes
   patient?: Partial<Patient>;
   createdBy?: Partial<User>;
   payments?: Payment[];
@@ -239,7 +239,7 @@ export interface Invoice {
 export interface Payment {
   id: string;
   patientId: string;
-  invoiceId?: string;
+  paymentOrderId?: string;
   appointmentId?: string;
   amountPaid: number;
   paymentMethod: PaymentMethod;
@@ -250,7 +250,7 @@ export interface Payment {
   createdById: string;
   createdAt: string;
   patient?: Partial<Patient>;
-  invoice?: Partial<Invoice>;
+  paymentOrder?: Partial<PaymentOrder>;
   appointment?: Partial<Appointment>;
   createdBy?: Partial<User>;
 }

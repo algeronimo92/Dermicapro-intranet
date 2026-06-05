@@ -3,7 +3,7 @@ import '../styles/appointments-page.css';
 import '../styles/patient-detail.css';
 import '../styles/state-transitions.css';
 import '../styles/appointment-detail.css';
-import '../styles/patient-invoices.css';
+import '../styles/patient-payment-orders.css';
 import '../styles/patient-history.css';
 import '../styles/analytics.css';
 import { DatePicker } from '../components/DatePicker';
@@ -450,7 +450,7 @@ export const StyleGuidePage: React.FC = () => {
             </div>
             <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)' }}>14px / w400</div>
             <code style={{ fontSize: 14, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
-              patient_id: "a1b2c3d4" · invoice_status: "partial"
+              patient_id: "a1b2c3d4" · payment_order_status: "partial"
             </code>
           </div>
         </div>
@@ -815,10 +815,10 @@ export const StyleGuidePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Estado de facturas */}
+        {/* Estado de órdenes de pago */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 12 }}>
-            Estados de facturas (InvoiceStatus) y pagos
+            Estados de órdenes de pago (PaymentOrderStatus) y pagos
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {[
@@ -876,7 +876,7 @@ export const StyleGuidePage: React.FC = () => {
             },
             {
               type: 'error', icon: '!',
-              title: 'Error al guardar la factura',
+              title: 'Error al guardar la orden de pago',
               msg: 'El monto total no puede ser menor al pago registrado. Revisa los datos e intenta nuevamente.',
               color: 'var(--color-error-dark)', bg: 'var(--color-error-alpha-10)', border: 'var(--color-error)',
               iconBg: 'var(--color-error)',
@@ -884,7 +884,7 @@ export const StyleGuidePage: React.FC = () => {
             {
               type: 'warning', icon: '⚠',
               title: 'Pagos pendientes',
-              msg: 'Este paciente tiene S/ 850.00 en facturas pendientes. Se recomienda verificar antes de agendar.',
+              msg: 'Este paciente tiene S/ 850.00 en órdenes de pago pendientes. Se recomienda verificar antes de agendar.',
               color: 'var(--color-warning-dark)', bg: 'var(--color-warning-alpha-10)', border: 'var(--color-warning)',
               iconBg: 'var(--color-warning)',
             },
@@ -1884,7 +1884,7 @@ export const StyleGuidePage: React.FC = () => {
               { label: 'Contacto', cls: 'pd-card__icon--teal', title: 'Contacto' },
               { label: 'Calendario', cls: 'pd-card__icon--purple', title: 'Última Atención' },
               { label: 'Éxito', cls: 'pd-card__icon--green', title: 'Completados' },
-              { label: 'Alerta', cls: 'pd-card__icon--amber', title: 'Facturas' },
+              { label: 'Alerta', cls: 'pd-card__icon--amber', title: 'Órdenes de Pago' },
               { label: 'Error', cls: 'pd-card__icon--red', title: 'Pendiente' },
             ].map(({ cls, title }) => (
               <div key={title} className="pd-card" style={{ width: 200 }}>
@@ -2034,36 +2034,36 @@ export const StyleGuidePage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Factura pendiente + Quick actions ── */}
+        {/* ── Orden de pago pendiente + Quick actions ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
 
-          {/* Factura pendiente */}
+          {/* Orden de pago pendiente */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Factura pendiente (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-pending-total · .pd-invoice</code>)
+              Orden de pago pendiente (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-pending-total · .pd-payment-order</code>)
             </div>
             <div className="pd-pending-total">
               <span className="pd-pending-total__label">Total pendiente</span>
               <span className="pd-pending-total__amount">S/ 1,250.00</span>
             </div>
-            <div className="pd-invoice-list" style={{ marginTop: 12 }}>
+            <div className="pd-payment-order-list" style={{ marginTop: 12 }}>
               {[
                 { date: '15 May 2026', status: 'pending', amount: 'S/ 800.00' },
                 { date: '02 May 2026', status: 'partial', amount: 'S/ 450.00' },
               ].map(inv => (
-                <div key={inv.date} className="pd-invoice">
+                <div key={inv.date} className="pd-payment-order">
                   <div>
-                    <div className="pd-invoice__date">{inv.date}</div>
-                    <span className={`pd-invoice__status pd-invoice__status--${inv.status}`}>
+                    <div className="pd-payment-order__date">{inv.date}</div>
+                    <span className={`pd-payment-order__status pd-payment-order__status--${inv.status}`}>
                       {inv.status === 'pending' ? 'Pendiente' : 'Pago parcial'}
                     </span>
                   </div>
-                  <span className="pd-invoice__amount">{inv.amount}</span>
+                  <span className="pd-payment-order__amount">{inv.amount}</span>
                 </div>
               ))}
             </div>
             <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 8, fontFamily: 'monospace' }}>
-              .pd-pending-total · .pd-invoice-list · .pd-invoice · .pd-invoice__status--pending/partial
+              .pd-pending-total · .pd-payment-order-list · .pd-payment-order · .pd-payment-order__status--pending/partial
             </div>
           </div>
 
@@ -2075,7 +2075,7 @@ export const StyleGuidePage: React.FC = () => {
             <div className="pd-actions-grid">
               {[
                 { title: 'Historial', desc: 'Ver registros' },
-                { title: 'Facturación', desc: 'Facturas y pagos' },
+                { title: 'Órdenes de Pago', desc: 'Órdenes de pago' },
                 { title: 'Nueva Cita', desc: 'Agendar sesión' },
                 { title: 'Editar', desc: 'Actualizar datos' },
               ].map(a => (
@@ -2308,7 +2308,7 @@ export const StyleGuidePage: React.FC = () => {
               </div>
               <button className="adet-pay-cta" type="button">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1" stroke="currentColor" strokeWidth="1.8"/><path d="M1 7h14" stroke="currentColor" strokeWidth="1.8"/></svg>
-                Ver Facturas del Paciente
+                Ver Órdenes de Pago del Paciente
               </button>
             </div>
           </div>
@@ -2317,44 +2317,44 @@ export const StyleGuidePage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Otras facturas + Reserva ── */}
+        {/* ── Otras órdenes de pago + Reserva ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Otras facturas — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-other-invoices</code>
+              Otras órdenes de pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-other-payment-orders</code>
             </div>
-            <div className="adet-other-invoices">
-              <div className="adet-other-invoices__header">
-                <div className="adet-other-invoices__title">
+            <div className="adet-other-payment-orders">
+              <div className="adet-other-payment-orders__header">
+                <div className="adet-other-payment-orders__title">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.8"/><path d="M7 4v3M7 9.5h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                  Otras Facturas
+                  Otras Órdenes de Pago
                 </div>
-                <span className="adet-other-invoices__count">2 facturas</span>
+                <span className="adet-other-payment-orders__count">2 órdenes de pago</span>
               </div>
-              <div className="adet-invoice-list">
+              <div className="adet-payment-order-list">
                 {[
                   { name: 'Hollywood Peel Carbon', status: 'Sin pagar', amount: 'S/. 180' },
                   { name: 'Pico Láser 532nm', status: 'Pago parcial', amount: 'S/. 150' },
                 ].map(item => (
-                  <div key={item.name} className="adet-invoice-item">
+                  <div key={item.name} className="adet-payment-order-item">
                     <div>
-                      <div className="adet-invoice-item__name">{item.name}</div>
-                      <div className="adet-invoice-item__status">{item.status}</div>
+                      <div className="adet-payment-order-item__name">{item.name}</div>
+                      <div className="adet-payment-order-item__status">{item.status}</div>
                     </div>
                     <div>
-                      <div className="adet-invoice-item__amount">{item.amount}</div>
-                      <div className="adet-invoice-item__amount-sub">pendiente</div>
+                      <div className="adet-payment-order-item__amount">{item.amount}</div>
+                      <div className="adet-payment-order-item__amount-sub">pendiente</div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="adet-other-invoices__total">
-                <span className="adet-other-invoices__total-label">Total pendiente</span>
-                <span className="adet-other-invoices__total-amount">S/. 330</span>
+              <div className="adet-other-payment-orders__total">
+                <span className="adet-other-payment-orders__total-label">Total pendiente</span>
+                <span className="adet-other-payment-orders__total-amount">S/. 330</span>
               </div>
-              <button className="adet-other-invoices__cta" type="button">Ver Todas las Facturas</button>
-              <div className="adet-other-invoices__note">Facturas de otros servicios del paciente.</div>
+              <button className="adet-other-payment-orders__cta" type="button">Ver Todas las Órdenes de Pago</button>
+              <div className="adet-other-payment-orders__note">Órdenes de pago de otros servicios del paciente.</div>
             </div>
           </div>
 
@@ -2635,34 +2635,34 @@ export const StyleGuidePage: React.FC = () => {
         </div>
 
         {/* ══════════════════════════════════════════════
-            SECCIÓN 16: FACTURAS DEL PACIENTE
+            SECCIÓN 16: ÓRDENES DE PAGO DEL PACIENTE
         ══════════════════════════════════════════════ */}
-        <SectionDivider n="16" title="Facturas del Paciente (patient-invoices.css)" />
+        <SectionDivider n="16" title="Órdenes de Pago del Paciente (patient-payment-orders.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-invoices.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-payment-orders.css</code>.
           100% design tokens — light y dark mode.
         </p>
 
         {/* ── Patient strip en header ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Header con avatar — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.invoices-patient-strip · .invoices-patient-avatar</code>
+            Header con avatar — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-orders-patient-strip · .payment-orders-patient-avatar</code>
           </div>
           <div style={{ maxWidth: 600, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-xl)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="invoices-patient-strip" style={{ marginBottom: 0 }}>
-                <div className="invoices-patient-avatar">AT</div>
+              <div className="payment-orders-patient-strip" style={{ marginBottom: 0 }}>
+                <div className="payment-orders-patient-avatar">AT</div>
                 <div>
-                  <h1 className="invoices-title" style={{ fontSize: 'var(--font-size-2xl)' }}>Facturas y Pagos</h1>
-                  <p className="invoices-patient-info">Ana Torres García · DNI 45678901</p>
+                  <h1 className="payment-orders-title" style={{ fontSize: 'var(--font-size-2xl)' }}>Órdenes de Pago</h1>
+                  <p className="payment-orders-patient-info">Ana Torres García · DNI 45678901</p>
                 </div>
               </div>
-              <button className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>+ Generar Factura</button>
+              <button className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>+ Generar Orden de Pago</button>
             </div>
           </div>
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8, fontFamily: 'monospace' }}>
-            .invoices-patient-strip · .invoices-patient-avatar (img | initials) · .invoices-title · .invoices-patient-info
+            .payment-orders-patient-strip · .payment-orders-patient-avatar (img | initials) · .payment-orders-title · .payment-orders-patient-info
           </div>
         </div>
 
@@ -2671,11 +2671,11 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
             Summary cards — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.summary-card + .summary-card-total/paid/pending</code>
           </div>
-          <div className="invoices-summary" style={{ maxWidth: 800 }}>
+          <div className="payment-orders-summary" style={{ maxWidth: 800 }}>
             <div className="summary-card summary-card-total">
-              <div className="summary-label">Total Facturado</div>
+              <div className="summary-label">Total de Órdenes de Pago</div>
               <div className="summary-amount">S/. 2,400</div>
-              <div className="summary-subtitle">3 facturas</div>
+              <div className="summary-subtitle">3 órdenes de pago</div>
             </div>
             <div className="summary-card summary-card-paid">
               <div className="summary-label">Total Pagado</div>
@@ -2685,7 +2685,7 @@ export const StyleGuidePage: React.FC = () => {
             <div className="summary-card summary-card-pending">
               <div className="summary-label">Total Pendiente</div>
               <div className="summary-amount">S/. 600</div>
-              <div className="summary-subtitle">1 factura pendiente</div>
+              <div className="summary-subtitle">1 orden de pago pendiente</div>
             </div>
           </div>
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8, fontFamily: 'monospace' }}>
@@ -2695,29 +2695,29 @@ export const StyleGuidePage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Invoice items ── */}
+        {/* ── Orden de pago items ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Invoice item — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.invoice-item · .invoice-status-badge</code>
+            Orden de pago item — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-item · .payment-order-status-badge</code>
           </div>
-          <div className="invoices-list-container" style={{ maxWidth: 640 }}>
-            <div className="invoices-list-header">
-              <h2 className="invoices-list-title">Todas las Facturas (2)</h2>
+          <div className="payment-orders-list-container" style={{ maxWidth: 640 }}>
+            <div className="payment-orders-list-header">
+              <h2 className="payment-orders-list-title">Todas las Órdenes de Pago (2)</h2>
             </div>
 
-            {/* Factura pagada */}
-            <div className="invoice-item">
-              <div className="invoice-item-header">
-                <div className="invoice-item-left">
-                  <div className="invoice-item-title-row">
-                    <h3 className="invoice-item-title">Factura #A1B2C3D4</h3>
-                    <span className="invoice-status-badge invoice-status-paid">PAGADO</span>
+            {/* Orden de pago pagada */}
+            <div className="payment-order-item">
+              <div className="payment-order-item-header">
+                <div className="payment-order-item-left">
+                  <div className="payment-order-item-title-row">
+                    <h3 className="payment-order-item-title">Orden de Pago #A1B2C3D4</h3>
+                    <span className="payment-order-status-badge payment-order-status-paid">PAGADO</span>
                   </div>
-                  <div className="invoice-orders">HIFU 12D Ultraformer • 1 sesión</div>
-                  <div className="invoice-metadata">Emisión: 15/05/2026 · 1 pago registrado</div>
+                  <div className="payment-order-orders">HIFU 12D Ultraformer • 1 sesión</div>
+                  <div className="payment-order-metadata">Emisión: 15/05/2026 · 1 pago registrado</div>
                 </div>
-                <div className="invoice-item-right">
-                  <div className="invoice-amount">S/. 1,200</div>
+                <div className="payment-order-item-right">
+                  <div className="payment-order-amount">S/. 1,200</div>
                 </div>
               </div>
               <div className="payment-progress">
@@ -2733,20 +2733,20 @@ export const StyleGuidePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Factura parcial */}
-            <div className="invoice-item">
-              <div className="invoice-item-header">
-                <div className="invoice-item-left">
-                  <div className="invoice-item-title-row">
-                    <h3 className="invoice-item-title">Factura #E5F6G7H8</h3>
-                    <span className="invoice-status-badge invoice-status-partial">PAGO PARCIAL</span>
+            {/* Orden de pago parcial */}
+            <div className="payment-order-item">
+              <div className="payment-order-item-header">
+                <div className="payment-order-item-left">
+                  <div className="payment-order-item-title-row">
+                    <h3 className="payment-order-item-title">Orden de Pago #E5F6G7H8</h3>
+                    <span className="payment-order-status-badge payment-order-status-partial">PAGO PARCIAL</span>
                   </div>
-                  <div className="invoice-orders">Pico Láser 532nm • 4 sesiones</div>
-                  <div className="invoice-metadata">Emisión: 02/06/2026 · 1 pago registrado</div>
+                  <div className="payment-order-orders">Pico Láser 532nm • 4 sesiones</div>
+                  <div className="payment-order-metadata">Emisión: 02/06/2026 · 1 pago registrado</div>
                 </div>
-                <div className="invoice-item-right">
-                  <div className="invoice-amount">S/. 1,200</div>
-                  <div className="invoice-pending">Pendiente: S/. 600</div>
+                <div className="payment-order-item-right">
+                  <div className="payment-order-amount">S/. 1,200</div>
+                  <div className="payment-order-pending">Pendiente: S/. 600</div>
                 </div>
               </div>
               <div className="payment-progress">
@@ -2759,27 +2759,27 @@ export const StyleGuidePage: React.FC = () => {
               </button>
             </div>
 
-            {/* Orden sin facturar */}
-            <div className="invoice-item invoice-item--uninvoiced">
-              <div className="invoice-item-header">
-                <div className="invoice-item-left">
-                  <div className="invoice-item-title-row">
-                    <h3 className="invoice-item-title">Orden #9A8B7C6D</h3>
-                    <span className="invoice-status-badge invoice-status-pending">SIN FACTURAR</span>
+            {/* Orden sin orden de pago */}
+            <div className="payment-order-item payment-order-item--without-payment-order">
+              <div className="payment-order-item-header">
+                <div className="payment-order-item-left">
+                  <div className="payment-order-item-title-row">
+                    <h3 className="payment-order-item-title">Orden #9A8B7C6D</h3>
+                    <span className="payment-order-status-badge payment-order-status-pending">SIN ORDEN DE PAGO</span>
                   </div>
-                  <div className="invoice-orders">Hollywood Peel Carbon • 1 sesión</div>
-                  <div className="invoice-metadata">Creada: 03/06/2026</div>
+                  <div className="payment-order-orders">Hollywood Peel Carbon • 1 sesión</div>
+                  <div className="payment-order-metadata">Creada: 03/06/2026</div>
                 </div>
-                <div className="invoice-item-right">
-                  <div className="invoice-amount">S/. 180</div>
-                  <div className="invoice-pending">Pendiente de facturar</div>
+                <div className="payment-order-item-right">
+                  <div className="payment-order-amount">S/. 180</div>
+                  <div className="payment-order-pending">Sin orden de pago</div>
                 </div>
               </div>
             </div>
           </div>
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8, fontFamily: 'monospace' }}>
-            .invoice-item / .invoice-item--uninvoiced · .invoice-status-badge + .invoice-status-paid/partial/pending/cancelled
-            · .invoice-amount · .invoice-pending · .payment-progress · .payment-history · .register-payment-button
+            .payment-order-item / .payment-order-item--without-payment-order · .payment-order-status-badge + .payment-order-status-paid/partial/pending/cancelled
+            · .payment-order-amount · .payment-order-pending · .payment-progress · .payment-history · .register-payment-button
           </div>
         </div>
 
@@ -2790,9 +2790,9 @@ export const StyleGuidePage: React.FC = () => {
           </div>
           {/* Preview estático del contenido del modal (sin el overlay) */}
           <div style={{ maxWidth: 520, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-xl)', boxShadow: 'var(--shadow-lg)' }}>
-            {/* Resumen factura */}
+            {/* Resumen orden de pago */}
             <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-tertiary)', marginBottom: 'var(--spacing-sm)' }}>Factura #1C241B4F</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-tertiary)', marginBottom: 'var(--spacing-sm)' }}>Orden de Pago #1C241B4F</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 12 }}>
                 {[['TOTAL','S/. 360.00','var(--color-text-primary)'],['PAGADO','S/. 280.00','var(--color-success-dark)'],['PENDIENTE','S/. 80.00','var(--color-error)']].map(([l,v,c]) => (
                   <div key={l} style={{ background: 'var(--color-bg-primary)', borderRadius: 'var(--radius-lg)', padding: 8 }}>
@@ -2851,7 +2851,7 @@ export const StyleGuidePage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Order selection (Create Invoice) ── */}
+        {/* ── Order selection (Create Payment Order) ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
             Selección de orden — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.cinv-order · .cinv-order--selected · .cinv-summary</code>
@@ -2886,7 +2886,7 @@ export const StyleGuidePage: React.FC = () => {
                   <div className="cinv-summary__total">Total: S/. 250.00</div>
                 </div>
                 <button style={{ padding: '10px 24px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))', color: 'var(--color-on-primary)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Generar Factura
+                  Generar Orden de Pago
                 </button>
               </div>
             </div>
@@ -2898,12 +2898,12 @@ export const StyleGuidePage: React.FC = () => {
         </div>
 
         {/* ══════════════════════════════════════════════
-            SECCIÓN 17: DETALLE DE FACTURA
+            SECCIÓN 17: DETALLE DE ORDEN DE PAGO
         ══════════════════════════════════════════════ */}
-        <SectionDivider n="17" title="Detalle de Factura (InvoiceDetailPage)" />
+        <SectionDivider n="17" title="Detalle de Orden de Pago (PaymentOrderDetailPage)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          La página <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>InvoiceDetailPage</code> compone
+          La página <code style={{ color: "var(--color-primary)", fontFamily: "var(--font-family-mono)", fontSize: 13 }}>PaymentOrderDetailPage</code> compone
           exclusivamente con clases ya documentadas en secciones anteriores. No añade CSS nuevo —
           documenta aquí la <strong>combinación</strong> específica y los patrones de uso.
         </p>
@@ -2911,34 +2911,34 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Status badges ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Status badge — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.invoice-status-badge.invoice-status-paid/partial/pending/cancelled</code>
+            Status badge — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-status-badge.payment-order-status-paid/partial/pending/cancelled</code>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-            <span className="invoice-status-badge invoice-status-paid">Pagada</span>
-            <span className="invoice-status-badge invoice-status-partial">Pago Parcial</span>
-            <span className="invoice-status-badge invoice-status-pending">Pendiente</span>
-            <span className="invoice-status-badge invoice-status-cancelled">Cancelada</span>
+            <span className="payment-order-status-badge payment-order-status-paid">Pagada</span>
+            <span className="payment-order-status-badge payment-order-status-partial">Pago Parcial</span>
+            <span className="payment-order-status-badge payment-order-status-pending">Pendiente</span>
+            <span className="payment-order-status-badge payment-order-status-cancelled">Cancelada</span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>
-            Mismo CSS que .invoice-status-badge de sección 16 · usado en el h1 del detalle junto al número de factura
+            Mismo CSS que .payment-order-status-badge de sección 16 · usado en el h1 del detalle junto al número de orden de pago
           </div>
         </div>
 
         {/* ── Vista completa ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Vista completa — preview estático del layout del Detalle de Factura
+            Vista completa — preview estático del layout del Detalle de Orden de Pago
           </div>
           <div style={{ maxWidth: 680 }}>
 
             {/* Header */}
             <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-              <button className="pd-back" style={{ pointerEvents: 'none' }}>← Volver a Facturas</button>
+              <button className="pd-back" style={{ pointerEvents: 'none' }}>← Volver a Órdenes de Pago</button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-sm)' }}>
                 <h2 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                  Factura #E9D053B6
+                  Orden de Pago #E9D053B6
                 </h2>
-                <span className="invoice-status-badge invoice-status-paid">Pagada</span>
+                <span className="payment-order-status-badge payment-order-status-paid">Pagada</span>
               </div>
               <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
                 Alan Geronimo · DNI 47157738
@@ -2946,9 +2946,9 @@ export const StyleGuidePage: React.FC = () => {
             </div>
 
             {/* Summary cards */}
-            <div className="invoices-summary" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--spacing-lg)' }}>
+            <div className="payment-orders-summary" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--spacing-lg)' }}>
               <div className="summary-card summary-card-total">
-                <div className="summary-label">Total Facturado</div>
+                <div className="summary-label">Total de Órdenes de Pago</div>
                 <div className="summary-amount">S/. 650.00</div>
                 <div className="summary-subtitle">2 órdenes</div>
               </div>
@@ -3023,7 +3023,7 @@ export const StyleGuidePage: React.FC = () => {
           </div>
 
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8, padding: '12px 16px', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border-secondary)', fontFamily: 'monospace', lineHeight: 1.8 }}>
-            Composición: .pd-back · StatusBadge (.invoice-status-badge) · .invoices-summary [3 cols summary-card-*]
+            Composición: .pd-back · StatusBadge (.payment-order-status-badge) · .payment-orders-summary [3 cols summary-card-*]
             · .payment-progress · .glass-card + .pd-info-list · .glass-card + .cinv-order · .glass-card + .adet-note-item (borderLeft=success) · &lt;RegisterPaymentModal&gt;
           </div>
         </div>

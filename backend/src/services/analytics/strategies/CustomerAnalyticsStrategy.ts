@@ -161,10 +161,10 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     lte: Date;
   }): Promise<CustomerAnalyticsData['lifetime']> {
     // Calcular CLV (Customer Lifetime Value) basado en PAGOS REALES
-    // Obtener todos los pacientes con sus facturas y pagos
+    // Obtener todos los pacientes con sus órdenes de pago y pagos
     const patientsWithPayments = await this.prisma.patient.findMany({
       include: {
-        invoices: {
+        paymentOrders: {
           include: {
             payments: true,
           },
@@ -181,8 +181,8 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
       // Sumar todos los pagos reales del paciente
       let totalPaid = 0;
 
-      patient.invoices.forEach((invoice) => {
-        invoice.payments?.forEach((payment) => {
+      patient.paymentOrders.forEach((paymentOrder) => {
+        paymentOrder.payments?.forEach((payment) => {
           totalPaid += Number(payment.amountPaid) || 0;
         });
       });
@@ -216,10 +216,10 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     gte: Date;
     lte: Date;
   }): Promise<CustomerAnalyticsData['accountsReceivable']> {
-    // Obtener todos los pacientes con sus facturas pendientes y órdenes sin facturar
+    // Obtener todos los pacientes con sus órdenes de pago pendientes y órdenes sin ODP
     const patientsWithDebts = await this.prisma.patient.findMany({
       include: {
-        invoices: {
+        paymentOrders: {
           include: {
             payments: true,
           },
@@ -230,7 +230,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
               include: {
                 serviceInstance: {
                   include: {
-                    invoice: true,
+                    paymentOrder: true,
                   },
                 },
               },
@@ -241,38 +241,38 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     });
 
     const debtorsData = patientsWithDebts.map((patient) => {
-      // 1. Calcular deuda de facturas (totalAmount - pagos)
-      let invoicesDebt = 0;
-      patient.invoices.forEach((invoice) => {
-        const totalAmount = Number(invoice.totalAmount) || 0;
-        const totalPaid = invoice.payments?.reduce((sum, p) => sum + (Number(p.amountPaid) || 0), 0) || 0;
+      // 1. Calcular deuda de órdenes de pago (totalAmount - pagos)
+      let paymentOrdersDebt = 0;
+      patient.paymentOrders.forEach((paymentOrder) => {
+        const totalAmount = Number(paymentOrder.totalAmount) || 0;
+        const totalPaid = paymentOrder.payments?.reduce((sum, p) => sum + (Number(p.amountPaid) || 0), 0) || 0;
         const pending = totalAmount - totalPaid;
         if (pending > 0) {
-          invoicesDebt += pending;
+          paymentOrdersDebt += pending;
         }
       });
 
-      // 2. Calcular deuda de órdenes sin facturar
-      const uninvoicedOrders = new Set<string>();
-      let uninvoicedDebt = 0;
+      // 2. Calcular deuda de órdenes sin orden de pago
+      const ordersWithoutPaymentOrderIds = new Set<string>();
+      let debtWithoutPaymentOrder = 0;
 
       patient.appointments.forEach((apt) => {
         apt.appointmentServices.forEach((as) => {
-          if (as.serviceInstance && as.serviceInstanceId && !as.serviceInstance.invoice && !uninvoicedOrders.has(as.serviceInstanceId)) {
-            uninvoicedOrders.add(as.serviceInstanceId);
-            uninvoicedDebt += Number(as.serviceInstance.finalPrice) || 0;
+          if (as.serviceInstance && as.serviceInstanceId && !as.serviceInstance.paymentOrder && !ordersWithoutPaymentOrderIds.has(as.serviceInstanceId)) {
+            ordersWithoutPaymentOrderIds.add(as.serviceInstanceId);
+            debtWithoutPaymentOrder += Number(as.serviceInstance.finalPrice) || 0;
           }
         });
       });
 
-      const totalDebt = invoicesDebt + uninvoicedDebt;
+      const totalDebt = paymentOrdersDebt + debtWithoutPaymentOrder;
 
       return {
         patientId: patient.id,
         patientName: `${patient.firstName} ${patient.lastName}`,
         totalDebt: parseFloat(totalDebt.toFixed(2)),
-        invoicesDebt: parseFloat(invoicesDebt.toFixed(2)),
-        uninvoicedOrders: parseFloat(uninvoicedDebt.toFixed(2)),
+        paymentOrdersDebt: parseFloat(paymentOrdersDebt.toFixed(2)),
+        ordersWithoutPaymentOrder: parseFloat(debtWithoutPaymentOrder.toFixed(2)),
       };
     });
 

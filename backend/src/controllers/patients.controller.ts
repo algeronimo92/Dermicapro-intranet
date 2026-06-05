@@ -195,7 +195,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
               },
               orderBy: { sessionNumber: 'asc' },
             },
-            invoice: {
+            paymentOrder: {
               include: {
                 payments: {
                   select: {
@@ -470,7 +470,7 @@ export const getCreditHistory = async (req: Request, res: Response): Promise<voi
       orderBy: { paymentDate: 'desc' },
       include: {
         createdBy: { select: { id: true, firstName: true, lastName: true } },
-        invoice: { select: { id: true } },
+        paymentOrder: { select: { id: true } },
       },
     });
 

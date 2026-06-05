@@ -3,16 +3,16 @@ import { createPortal } from 'react-dom';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { CameraCaptureModal } from './CameraCaptureModal';
-import { Invoice, PaymentMethod } from '../types';
-import { invoicesService } from '../services/invoices.service';
+import { PaymentOrder, PaymentMethod } from '../types';
+import { paymentOrdersService } from '../services/paymentOrders.service';
 
 interface RegisterPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  invoice: Invoice;
+  paymentOrder: PaymentOrder;
   patientId: string;
   patientBalance?: number;
-  onSuccess: (updated: Invoice) => void;
+  onSuccess: (updated: PaymentOrder) => void;
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] = [
@@ -28,13 +28,13 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 export const RegisterPaymentModal: React.FC<RegisterPaymentModalProps> = ({
   isOpen,
   onClose,
-  invoice,
+  paymentOrder,
   patientId,
   patientBalance = 0,
   onSuccess,
 }) => {
-  const totalAmount    = Number(invoice.totalAmount || 0);
-  const paidSoFar      = invoice.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
+  const totalAmount    = Number(paymentOrder.totalAmount || 0);
+  const paidSoFar      = paymentOrder.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
   const pendingAmount  = totalAmount - paidSoFar;
 
   const [amount, setAmount]           = useState('');
@@ -119,42 +119,42 @@ export const RegisterPaymentModal: React.FC<RegisterPaymentModalProps> = ({
 
       const creditAmt  = useCredit ? Math.min(parseFloat(creditAmount) || 0, maxCredit, pendingAmount) : 0;
       const regularAmt = parseFloat(amount) - creditAmt;
-      let lastInvoice  = invoice;
+      let lastPaymentOrder = paymentOrder;
       let lastPaymentId = '';
 
       // Pago 1: saldo a favor (si aplica)
       if (creditAmt > 0) {
-        const res = await invoicesService.registerPayment({
+        const res = await paymentOrdersService.registerPayment({
           patientId,
-          invoiceId: invoice.id,
+          paymentOrderId: paymentOrder.id,
           amountPaid: creditAmt,
           paymentMethod: PaymentMethod.account_credit,
           notes: notes.trim() || undefined,
         });
-        lastInvoice    = res.invoice;
-        lastPaymentId  = res.paymentId;
+        lastPaymentOrder = res.paymentOrder;
+        lastPaymentId    = res.paymentId;
       }
 
       // Pago 2: método normal (si queda saldo por pagar)
       if (regularAmt > 0.005) {
-        const res = await invoicesService.registerPayment({
+        const res = await paymentOrdersService.registerPayment({
           patientId,
-          invoiceId: invoice.id,
+          paymentOrderId: paymentOrder.id,
           amountPaid: regularAmt,
           paymentMethod: method,
           notes: notes.trim() || undefined,
         });
-        lastInvoice   = res.invoice;
-        lastPaymentId = res.paymentId;
+        lastPaymentOrder = res.paymentOrder;
+        lastPaymentId    = res.paymentId;
       }
 
       // Subir comprobante al último pago creado
       if (receiptFile && lastPaymentId) {
         setUploadStep('uploading');
-        await invoicesService.uploadReceipt(lastPaymentId, receiptFile);
+        await paymentOrdersService.uploadReceipt(lastPaymentId, receiptFile);
       }
 
-      onSuccess(lastInvoice);
+      onSuccess(lastPaymentOrder);
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al registrar el pago');
@@ -181,7 +181,7 @@ export const RegisterPaymentModal: React.FC<RegisterPaymentModalProps> = ({
 
         {error && <div className="alert alert-error">{error}</div>}
 
-        {/* ── Resumen de la factura ── */}
+        {/* ── Resumen de la orden de pago ── */}
         <div style={{
           background: 'var(--color-bg-secondary)',
           border: '1px solid var(--color-border-secondary)',
@@ -189,7 +189,7 @@ export const RegisterPaymentModal: React.FC<RegisterPaymentModalProps> = ({
           padding: 'var(--spacing-md)',
         }}>
           <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-tertiary)', marginBottom: 'var(--spacing-sm)' }}>
-            Factura #{invoice.id.slice(0, 8).toUpperCase()}
+            Orden de Pago #{paymentOrder.id.slice(0, 8).toUpperCase()}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>

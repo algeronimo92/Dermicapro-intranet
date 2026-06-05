@@ -149,7 +149,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
           <h3 className="anlx-chart-title">Top 10 Deudores (Por Cobrar)</h3>
           <div className="anlx-table-wrap">
             <table className="anlx-table">
-              <thead><tr><th>#</th><th>Paciente</th><th className="anlx-table__right">Facturas</th><th className="anlx-table__right">Sin Facturar</th><th className="anlx-table__right">Total Deuda</th></tr></thead>
+              <thead><tr><th>#</th><th>Paciente</th><th className="anlx-table__right">Órd. de Pago</th><th className="anlx-table__right">Sin Ord. de Pago</th><th className="anlx-table__right">Total Deuda</th></tr></thead>
               <tbody>
                 {data.accountsReceivable.topDebtors.length === 0 ? (
                   <tr><td colSpan={5} style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-disabled)' }}>No hay deudas pendientes</td></tr>
@@ -157,8 +157,8 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
                   <tr key={d.patientId}>
                     <td><span className="anlx-rank-badge" style={{ background: 'var(--color-error-alpha-10)', color: 'var(--color-error)' }}>{idx + 1}</span></td>
                     <td style={{ fontWeight: 500 }}>{d.patientName}</td>
-                    <td className="anlx-table__right" style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-xs)' }}>{fmt(d.invoicesDebt)}</td>
-                    <td className="anlx-table__right" style={{ color: 'var(--color-warning-dark)', fontSize: 'var(--font-size-xs)' }}>{fmt(d.uninvoicedOrders)}</td>
+                    <td className="anlx-table__right" style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-xs)' }}>{fmt(d.paymentOrdersDebt)}</td>
+                    <td className="anlx-table__right" style={{ color: 'var(--color-warning-dark)', fontSize: 'var(--font-size-xs)' }}>{fmt(d.ordersWithoutPaymentOrder)}</td>
                     <td className="anlx-table__right" style={{ fontWeight: 160, color: 'var(--color-error)' }}>{fmt(d.totalDebt)}</td>
                   </tr>
                 ))}

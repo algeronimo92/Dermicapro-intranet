@@ -374,7 +374,7 @@
   color: var(--color-text-tertiary);
 }
 
-/* ── INVOICE ITEM ── */
+/* ── PAYMENT ORDER ITEM ── */
 .pd-pending-total {
   padding: var(--spacing-md);
   background: var(--color-error-alpha-10);
@@ -400,14 +400,14 @@
   color: var(--color-error);
 }
 
-.pd-invoice-list {
+.pd-payment-order-list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
 
-.pd-invoice {
+.pd-payment-order {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -416,21 +416,21 @@
   border-radius: var(--radius-lg);
 }
 
-.pd-invoice__date {
+.pd-payment-order__date {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
 }
 
-.pd-invoice__status {
+.pd-payment-order__status {
   font-size: 11px;
   font-weight: var(--font-weight-semibold);
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }
-.pd-invoice__status--pending { background: var(--color-error-alpha-10); color: var(--color-error); }
-.pd-invoice__status--partial { background: var(--color-warning-alpha-10); color: var(--color-warning); }
+.pd-payment-order__status--pending { background: var(--color-error-alpha-10); color: var(--color-error); }
+.pd-payment-order__status--partial { background: var(--color-warning-alpha-10); color: var(--color-warning); }
 
-.pd-invoice__amount {
+.pd-payment-order__amount {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-error);

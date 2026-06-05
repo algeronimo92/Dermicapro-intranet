@@ -37,8 +37,8 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
    * Obtiene datos financieros: ingresos totales, pendientes, pagados y por mes
    */
   private async getFinancials(dateRange: { gte: Date; lte: Date }) {
-    // Aggregate de facturas agrupadas por estado
-    const invoicesByStatus = await this.prisma.invoice.groupBy({
+    // Aggregate de órdenes de pago agrupadas por estado
+    const paymentOrdersByStatus = await this.prisma.paymentOrder.groupBy({
       by: ['status'],
       _sum: { totalAmount: true },
       where: {
@@ -47,7 +47,7 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
     });
 
     // Ingresos mensuales para el gráfico
-    const monthlyInvoices = await this.prisma.invoice.groupBy({
+    const monthlyPaymentOrders = await this.prisma.paymentOrder.groupBy({
       by: ['createdAt'],
       _sum: { totalAmount: true },
       where: {
@@ -57,26 +57,26 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
     });
 
     // Calcular totales
-    const totalRevenue = invoicesByStatus.reduce(
-      (sum, invoice) => sum + this.decimalToNumber(invoice._sum.totalAmount),
+    const totalRevenue = paymentOrdersByStatus.reduce(
+      (sum, po) => sum + this.decimalToNumber(po._sum.totalAmount),
       0
     );
 
     const pendingRevenue =
       this.decimalToNumber(
-        invoicesByStatus.find((i) => i.status === 'pending')?._sum.totalAmount
+        paymentOrdersByStatus.find((i) => i.status === 'pending')?._sum.totalAmount
       ) || 0;
 
     const paidRevenue =
       this.decimalToNumber(
-        invoicesByStatus.find((i) => i.status === 'paid')?._sum.totalAmount
+        paymentOrdersByStatus.find((i) => i.status === 'paid')?._sum.totalAmount
       ) || 0;
 
     return {
       totalRevenue,
       pendingRevenue,
       paidRevenue,
-      monthlyRevenue: this.groupByMonth(monthlyInvoices),
+      monthlyRevenue: this.groupByMonth(monthlyPaymentOrders),
     };
   }
 

@@ -35,8 +35,8 @@ export interface OrderMetadata {
   serviceId?: string;
   createdAt: string;
   finalPrice?: number;
-  invoiceId?: string | null;
-  invoice?: { id?: string; status?: string } | null;
+  paymentOrderId?: string | null;
+  paymentOrder?: { id?: string; status?: string } | null;
   appointmentServices?: Array<{
     sessionNumber?: number | null;
     appointment?: {
@@ -62,8 +62,8 @@ export interface PackageGroup {
   hasNewSessions: boolean;
   orderCreatedAt?: string;
   finalPrice?: number; // Precio final del paquete completo
-  isInvoiced?: boolean;     // El paquete ya tiene factura generada
-  isInvoicePaid?: boolean;  // La factura está completamente pagada
+  hasPaymentOrder?: boolean;   // El paquete ya tiene orden de pago generada
+  isPaymentOrderPaid?: boolean; // La orden de pago está completamente pagada
 
   // Additional context for better UX
   hasPendingReservations: boolean; // Has reserved sessions in other appointments
@@ -249,9 +249,9 @@ class PackageGroupFactory {
       finalPrice = service.basePrice;
     }
 
-    // invoiceId está disponible aunque el objeto invoice no esté incluido en el query
-    const isInvoiced   = !!(order?.invoice || (order as any)?.invoiceId);
-    const isInvoicePaid = order?.invoice?.status === 'paid';
+    // paymentOrderId está disponible aunque el objeto paymentOrder no esté incluido en el query
+    const hasPaymentOrder    = !!(order?.paymentOrder || (order as any)?.paymentOrderId);
+    const isPaymentOrderPaid = order?.paymentOrder?.status === 'paid';
 
     return {
       id: packageKey,
@@ -264,8 +264,8 @@ class PackageGroupFactory {
       hasNewSessions,
       orderCreatedAt: order?.createdAt,
       finalPrice,
-      isInvoiced,
-      isInvoicePaid,
+      hasPaymentOrder,
+      isPaymentOrderPaid,
       hasPendingReservations,
       completedSessions,
       scheduledElsewhere,

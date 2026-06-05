@@ -3,11 +3,11 @@ import { Payment } from '../types';
 
 export interface CreatePaymentDto {
   patientId: string;
-  invoiceId?: string;
+  paymentOrderId?: string;
   appointmentId?: string;
   amountPaid: number;
   paymentMethod: 'cash' | 'card' | 'transfer' | 'yape' | 'plin';
-  paymentType: 'reservation' | 'invoice_payment' | 'service_payment';
+  paymentType: 'reservation' | 'payment_order_payment' | 'service_payment';
   paymentDate?: string;
   receiptUrl?: string;
   notes?: string;
@@ -27,7 +27,7 @@ export const paymentsService = {
    */
   async getPayments(filters?: {
     patientId?: string;
-    invoiceId?: string;
+    paymentOrderId?: string;
     appointmentId?: string;
     paymentType?: string;
   }): Promise<Payment[]> {

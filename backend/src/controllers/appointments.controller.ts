@@ -374,14 +374,14 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
           },
         });
 
-        // Si un serviceInstance queda sin sesiones activas Y sin factura → eliminarlo
+        // Si un serviceInstance queda sin sesiones activas Y sin orden de pago → eliminarlo
         const affectedOrderIds = [...new Set(sessionsToDelete.map(s => s.serviceInstanceId).filter(Boolean))];
         for (const orderId of affectedOrderIds) {
           const order = await tx.serviceInstance.findUnique({
             where: { id: orderId! },
             include: { appointmentServices: { where: { deletedAt: null } } },
           });
-          if (order && order.appointmentServices.length === 0 && !order.invoiceId) {
+          if (order && order.appointmentServices.length === 0 && !order.paymentOrderId) {
             // Eliminar primero TODAS las sesiones (incluidas soft-deleted) para liberar el FK
             await tx.session.deleteMany({ where: { serviceInstanceId: orderId! } });
             // Ahora eliminar el serviceInstance

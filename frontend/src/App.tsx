@@ -12,9 +12,9 @@ import { PatientsPage } from './pages/PatientsPage';
 import { PatientFormPage } from './pages/PatientFormPage';
 import { PatientDetailPage } from './pages/PatientDetailPage';
 import { PatientHistoryPage } from './pages/PatientHistoryPage';
-import { PatientInvoicesPage } from './pages/PatientInvoicesPage';
-import CreateInvoicePage from './pages/CreateInvoicePage';
-import InvoiceDetailPage from './pages/InvoiceDetailPage';
+import { PatientPaymentOrdersPage } from './pages/PatientPaymentOrdersPage';
+import CreatePaymentOrderPage from './pages/CreatePaymentOrderPage';
+import PaymentOrderDetailPage from './pages/PaymentOrderDetailPage';
 import { AppointmentsPage } from './pages/AppointmentsPage';
 import { AppointmentFormPage } from './pages/AppointmentFormPage';
 import { AppointmentDetailPage } from './pages/AppointmentDetailPage';
@@ -170,9 +170,9 @@ function DashboardLayout() {
               <Route path="/patients/:id" element={<PatientDetailPage />} />
               <Route path="/patients/:id/edit" element={<PatientFormPage />} />
               <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
-              <Route path="/patients/:id/invoices" element={<PatientInvoicesPage />} />
-              <Route path="/patients/:id/create-invoice" element={<CreateInvoicePage />} />
-              <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+              <Route path="/patients/:id/payment-orders" element={<PatientPaymentOrdersPage />} />
+              <Route path="/patients/:id/create-payment-order" element={<CreatePaymentOrderPage />} />
+              <Route path="/payment-orders/:id" element={<PaymentOrderDetailPage />} />
               <Route path="/appointments" element={<AppointmentsPage />} />
               <Route path="/appointments/new" element={<AppointmentFormPage />} />
               <Route path="/appointments/:id" element={<AppointmentDetailPage />} />

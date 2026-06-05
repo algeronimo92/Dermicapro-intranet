@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { invoicesService } from '../services/invoices.service';
+import { paymentOrdersService } from '../services/paymentOrders.service';
 import { paymentsService } from '../services/payments.service';
 import { creditsService } from '../services/credits.service';
-import { Invoice, InvoiceStatus } from '../types';
+import { PaymentOrder, PaymentOrderStatus } from '../types';
 import { formatDate } from '../utils/dateUtils';
 import { Loading } from '../components/Loading';
 import { Button } from '../components/Button';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { CameraCaptureModal } from '../components/CameraCaptureModal';
-import '../styles/patient-invoices.css';
+import '../styles/patient-payment-orders.css';
 
 const getReceiptUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -25,22 +25,22 @@ const METHOD_ICON: Record<string, string> = {
   cash: '💵', card: '💳', transfer: '🏦', yape: '📲', plin: '📱',
 };
 
-const StatusBadge: React.FC<{ status: InvoiceStatus }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: PaymentOrderStatus }> = ({ status }) => {
   const map: Record<string, { label: string; cls: string }> = {
-    paid:      { label: 'Pagada',       cls: 'invoice-status-paid' },
-    partial:   { label: 'Pago Parcial', cls: 'invoice-status-partial' },
-    pending:   { label: 'Pendiente',    cls: 'invoice-status-pending' },
-    cancelled: { label: 'Cancelada',    cls: 'invoice-status-cancelled' },
+    paid:      { label: 'Pagada',       cls: 'payment-order-status-paid' },
+    partial:   { label: 'Pago Parcial', cls: 'payment-order-status-partial' },
+    pending:   { label: 'Pendiente',    cls: 'payment-order-status-pending' },
+    cancelled: { label: 'Cancelada',    cls: 'payment-order-status-cancelled' },
   };
-  const { label, cls } = map[status] || { label: status, cls: 'invoice-status-pending' };
-  return <span className={`invoice-status-badge ${cls}`}>{label}</span>;
+  const { label, cls } = map[status] || { label: status, cls: 'payment-order-status-pending' };
+  return <span className={`payment-order-status-badge ${cls}`}>{label}</span>;
 };
 
-export const InvoiceDetailPage: React.FC = () => {
+export const PaymentOrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [paymentOrder, setPaymentOrder] = useState<PaymentOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -51,19 +51,19 @@ export const InvoiceDetailPage: React.FC = () => {
 
   useEffect(() => { if (id) load(id); }, [id]);
 
-  const load = async (invoiceId: string) => {
+  const load = async (paymentOrderId: string) => {
     try {
       setLoading(true);
       setError(null);
-      const inv = await invoicesService.getInvoiceById(invoiceId);
-      setInvoice(inv);
-      if (inv.patientId) {
-        creditsService.getCreditHistory(inv.patientId)
+      const po = await paymentOrdersService.getPaymentOrderById(paymentOrderId);
+      setPaymentOrder(po);
+      if (po.patientId) {
+        creditsService.getCreditHistory(po.patientId)
           .then(d => setPatientBalance(d.accountBalance))
           .catch(() => {});
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al cargar la factura');
+      setError(err.response?.data?.error || 'Error al cargar la orden de pago');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export const InvoiceDetailPage: React.FC = () => {
     try {
       setUploadingId(paymentId);
       await paymentsService.uploadReceipt(paymentId, file);
-      if (invoice) await load(invoice.id);
+      if (paymentOrder) await load(paymentOrder.id);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al subir el comprobante');
     } finally {
@@ -81,20 +81,20 @@ export const InvoiceDetailPage: React.FC = () => {
     }
   };
 
-  if (loading) return <Loading text="Cargando factura..." />;
+  if (loading) return <Loading text="Cargando orden de pago..." />;
 
-  if (error || !invoice) {
+  if (error || !paymentOrder) {
     return (
       <div className="page-container">
-        <div className="alert alert-error">{error || 'Factura no encontrada'}</div>
+        <div className="alert alert-error">{error || 'Orden de pago no encontrada'}</div>
         <Button onClick={() => navigate(-1)} variant="secondary">Volver</Button>
       </div>
     );
   }
 
-  const totalPaid = invoice.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
-  const balance   = Number(invoice.totalAmount) - totalPaid;
-  const pct       = Number(invoice.totalAmount) > 0 ? Math.min((totalPaid / Number(invoice.totalAmount)) * 100, 100) : 0;
+  const totalPaid = paymentOrder.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
+  const balance   = Number(paymentOrder.totalAmount) - totalPaid;
+  const pct       = Number(paymentOrder.totalAmount) > 0 ? Math.min((totalPaid / Number(paymentOrder.totalAmount)) * 100, 100) : 0;
 
   return (
     <div className="page-container" style={{ maxWidth: 760 }}>
@@ -104,21 +104,21 @@ export const InvoiceDetailPage: React.FC = () => {
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Volver a Facturas
+        Volver a Órdenes de Pago
       </button>
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
           <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
-            Factura #{invoice.id.slice(0, 8).toUpperCase()}
+            Orden de Pago #{paymentOrder.id.slice(0, 8).toUpperCase()}
           </h1>
-          <StatusBadge status={invoice.status} />
+          <StatusBadge status={paymentOrder.status} />
         </div>
-        {invoice.patient && (
+        {paymentOrder.patient && (
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
-            {invoice.patient.firstName} {invoice.patient.lastName}
-            {invoice.patient.dni && ` · DNI ${invoice.patient.dni}`}
+            {paymentOrder.patient.firstName} {paymentOrder.patient.lastName}
+            {paymentOrder.patient.dni && ` · DNI ${paymentOrder.patient.dni}`}
           </p>
         )}
       </div>
@@ -126,12 +126,12 @@ export const InvoiceDetailPage: React.FC = () => {
       {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-md)' }}>{error}</div>}
 
       {/* ── Resumen de importes ── */}
-      <div className="invoices-summary" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--spacing-xl)' }}>
+      <div className="payment-orders-summary" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 'var(--spacing-xl)' }}>
         <div className="summary-card summary-card-total">
-          <div className="summary-label">Total Facturado</div>
-          <div className="summary-amount">S/. {Number(invoice.totalAmount).toFixed(2)}</div>
+          <div className="summary-label">Total de Órdenes de Pago</div>
+          <div className="summary-amount">S/. {Number(paymentOrder.totalAmount).toFixed(2)}</div>
           <div className="summary-subtitle">
-            {invoice.orders?.length || 0} {(invoice.orders?.length || 0) === 1 ? 'orden' : 'órdenes'}
+            {paymentOrder.orders?.length || 0} {(paymentOrder.orders?.length || 0) === 1 ? 'orden' : 'órdenes'}
           </div>
         </div>
         <div className="summary-card summary-card-paid">
@@ -143,7 +143,7 @@ export const InvoiceDetailPage: React.FC = () => {
           <div className="summary-label">{balance > 0 ? 'Saldo Pendiente' : 'Sin Deuda'}</div>
           <div className="summary-amount">S/. {balance.toFixed(2)}</div>
           <div className="summary-subtitle">
-            {invoice.dueDate ? `Vence: ${formatDate(invoice.dueDate)}` : 'Sin vencimiento'}
+            {paymentOrder.dueDate ? `Vence: ${formatDate(paymentOrder.dueDate)}` : 'Sin vencimiento'}
           </div>
         </div>
       </div>
@@ -156,35 +156,35 @@ export const InvoiceDetailPage: React.FC = () => {
         </div>
         <div className="payment-progress-bar">
           <div
-            className={`payment-progress-fill ${invoice.status === 'paid' ? 'payment-progress-fill-paid' : 'payment-progress-fill-partial'}`}
+            className={`payment-progress-fill ${paymentOrder.status === 'paid' ? 'payment-progress-fill-paid' : 'payment-progress-fill-partial'}`}
             style={{ width: `${pct}%` }}
           />
         </div>
       </div>
 
-      {/* ── Información de la factura ── */}
+      {/* ── Información de la orden de pago ── */}
       <div className="glass-card">
         <div className="card-header">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="card-icon">
             <path d="M4 4h12v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke="currentColor" strokeWidth="2"/>
             <path d="M4 8h12M8 4v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
-          <h2>Información de la Factura</h2>
+          <h2>Información de la Orden de Pago</h2>
         </div>
         <div className="pd-info-list">
           <div className="pd-info-row">
             <span className="pd-info-label">Emisión</span>
-            <span className="pd-info-value">{formatDate(invoice.createdAt)}</span>
+            <span className="pd-info-value">{formatDate(paymentOrder.createdAt)}</span>
           </div>
-          {invoice.dueDate && (
+          {paymentOrder.dueDate && (
             <div className="pd-info-row">
               <span className="pd-info-label">Vencimiento</span>
-              <span className="pd-info-value">{formatDate(invoice.dueDate)}</span>
+              <span className="pd-info-value">{formatDate(paymentOrder.dueDate)}</span>
             </div>
           )}
           <div className="pd-info-row">
             <span className="pd-info-label">Estado</span>
-            <span className="pd-info-value"><StatusBadge status={invoice.status} /></span>
+            <span className="pd-info-value"><StatusBadge status={paymentOrder.status} /></span>
           </div>
         </div>
       </div>
@@ -196,12 +196,12 @@ export const InvoiceDetailPage: React.FC = () => {
             <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
             <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
-          <h2>Órdenes Incluidas ({invoice.orders?.length || 0})</h2>
+          <h2>Órdenes Incluidas ({paymentOrder.orders?.length || 0})</h2>
         </div>
 
-        {invoice.orders && invoice.orders.length > 0 ? (
+        {paymentOrder.orders && paymentOrder.orders.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-            {invoice.orders.map(order => (
+            {paymentOrder.orders.map(order => (
               <div key={order.id} className="cinv-order" style={{ cursor: 'default' }}>
                 <div style={{ flex: 1 }}>
                   <div className="cinv-order__name">{order.service?.name || 'Servicio'}</div>
@@ -214,7 +214,7 @@ export const InvoiceDetailPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <p className="pd-info-empty">No hay órdenes asociadas a esta factura</p>
+          <p className="pd-info-empty">No hay órdenes asociadas a esta orden de pago</p>
         )}
       </div>
 
@@ -226,18 +226,18 @@ export const InvoiceDetailPage: React.FC = () => {
               <rect x="1" y="4" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
               <path d="M1 8h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <h2>Pagos Registrados ({invoice.payments?.length || 0})</h2>
+            <h2>Pagos Registrados ({paymentOrder.payments?.length || 0})</h2>
           </div>
-          {balance > 0 && invoice.status !== 'cancelled' && (
+          {balance > 0 && paymentOrder.status !== 'cancelled' && (
             <Button variant="primary" size="small" onClick={() => setShowPaymentModal(true)}>
               + Registrar Pago
             </Button>
           )}
         </div>
 
-        {invoice.payments && invoice.payments.length > 0 ? (
+        {paymentOrder.payments && paymentOrder.payments.length > 0 ? (
           <div className="adet-notes-list">
-            {invoice.payments.map(payment => (
+            {paymentOrder.payments.map(payment => (
               <div key={payment.id} className="adet-note-item" style={{ borderLeftColor: 'var(--color-success)' }}>
                 <div className="adet-note-item__header">
                   <div>
@@ -383,22 +383,22 @@ export const InvoiceDetailPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <p className="adet-notes-empty">No hay pagos registrados para esta factura</p>
+          <p className="adet-notes-empty">No hay pagos registrados para esta orden de pago</p>
         )}
       </div>
 
       {/* ── Modal de pago ── */}
-      {invoice.patient && (
+      {paymentOrder.patient && (
         <RegisterPaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
-          invoice={invoice}
-          patientId={invoice.patientId}
+          paymentOrder={paymentOrder}
+          patientId={paymentOrder.patientId}
           patientBalance={patientBalance}
           onSuccess={updated => {
-            setInvoice(updated);
+            setPaymentOrder(updated);
             setShowPaymentModal(false);
-            creditsService.getCreditHistory(invoice.patientId)
+            creditsService.getCreditHistory(paymentOrder.patientId)
               .then(d => setPatientBalance(d.accountBalance))
               .catch(() => {});
           }}
@@ -454,4 +454,4 @@ export const InvoiceDetailPage: React.FC = () => {
   );
 };
 
-export default InvoiceDetailPage;
+export default PaymentOrderDetailPage;

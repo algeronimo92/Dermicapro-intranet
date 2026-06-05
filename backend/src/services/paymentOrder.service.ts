@@ -1,31 +1,31 @@
-import { Invoice, InvoiceStatus, ServiceInstance } from '@prisma/client';
+import { PaymentOrder, PaymentOrderStatus, ServiceInstance } from '@prisma/client';
 import { AppError } from '../middlewares/errorHandler';
 import prisma from '../config/database';
 
-interface CreateInvoiceDto {
+interface CreatePaymentOrderDto {
   serviceInstanceIds: string[];
   patientId: string;
   createdById: string;
   dueDate?: Date;
 }
 
-interface InvoiceWithServiceInstances extends Invoice {
+interface PaymentOrderWithServiceInstances extends PaymentOrder {
   orders?: (ServiceInstance & { service?: any })[];
   payments?: any[];
 }
 
-export class InvoicingService {
+export class PaymentOrderService {
   /**
-   * Crea una factura para una o múltiples órdenes
-   * @param dto Datos para crear la factura
-   * @returns La factura creada con sus órdenes asociadas
+   * Crea una orden de pago para una o múltiples órdenes
+   * @param dto Datos para crear la orden de pago
+   * @returns La orden de pago creada con sus órdenes asociadas
    */
-  async createInvoice(dto: CreateInvoiceDto): Promise<InvoiceWithServiceInstances> {
+  async createPaymentOrder(dto: CreatePaymentOrderDto): Promise<PaymentOrderWithServiceInstances> {
     const { serviceInstanceIds, patientId, createdById, dueDate } = dto;
 
     // Validar que se proporcionaron órdenes
     if (!serviceInstanceIds || serviceInstanceIds.length === 0) {
-      throw new AppError('Debe seleccionar al menos una orden para facturar', 400);
+      throw new AppError('Debe seleccionar al menos una orden para generar la orden de pago', 400);
     }
 
     // Obtener todas las órdenes con sus servicios
@@ -50,14 +50,14 @@ export class InvoicingService {
       throw new AppError('Todas las órdenes deben pertenecer al mismo paciente', 400);
     }
 
-    // Validar que ninguna orden ya está facturada
-    const alreadyInvoiced = orders.filter(order => order.invoiceId !== null);
-    if (alreadyInvoiced.length > 0) {
-      const invoicedServiceNames = alreadyInvoiced
+    // Validar que ninguna orden ya tiene orden de pago
+    const alreadyBilled = orders.filter(order => order.paymentOrderId !== null);
+    if (alreadyBilled.length > 0) {
+      const billedServiceNames = alreadyBilled
         .map(o => o.service?.name || `Orden ${o.id.slice(0, 8)}`)
         .join(', ');
       throw new AppError(
-        `Las siguientes órdenes ya están facturadas: ${invoicedServiceNames}`,
+        `Las siguientes órdenes ya tienen orden de pago: ${billedServiceNames}`,
         400
       );
     }
@@ -67,32 +67,32 @@ export class InvoicingService {
       return sum + Number(order.finalPrice);
     }, 0);
 
-    // Crear la factura en una transacción
-    const invoice = await prisma.$transaction(async (tx) => {
-      // Crear la factura
-      const newInvoice = await tx.invoice.create({
+    // Crear la orden de pago en una transacción
+    const paymentOrder = await prisma.$transaction(async (tx) => {
+      // Crear la orden de pago
+      const newPaymentOrder = await tx.paymentOrder.create({
         data: {
           patientId,
           totalAmount,
-          status: InvoiceStatus.pending,
+          status: PaymentOrderStatus.pending,
           dueDate: dueDate || null,
           createdById,
         },
       });
 
-      // Asociar todas las órdenes con la factura
+      // Asociar todas las órdenes con la orden de pago
       await tx.serviceInstance.updateMany({
         where: {
           id: { in: serviceInstanceIds },
         },
         data: {
-          invoiceId: newInvoice.id,
+          paymentOrderId: newPaymentOrder.id,
         },
       });
 
-      // Retornar la factura con sus órdenes
-      return await tx.invoice.findUnique({
-        where: { id: newInvoice.id },
+      // Retornar la orden de pago con sus órdenes
+      return await tx.paymentOrder.findUnique({
+        where: { id: newPaymentOrder.id },
         include: {
           orders: {
             include: {
@@ -113,19 +113,19 @@ export class InvoicingService {
       });
     });
 
-    if (!invoice) {
-      throw new AppError('Error al crear la factura', 500);
+    if (!paymentOrder) {
+      throw new AppError('Error al crear la orden de pago', 500);
     }
 
-    return invoice;
+    return paymentOrder;
   }
 
   /**
-   * Obtiene una factura por ID con todas sus órdenes y pagos
+   * Obtiene una orden de pago por ID con todas sus órdenes y pagos
    */
-  async getInvoiceById(invoiceId: string): Promise<InvoiceWithServiceInstances> {
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
+  async getPaymentOrderById(paymentOrderId: string): Promise<PaymentOrderWithServiceInstances> {
+    const paymentOrder = await prisma.paymentOrder.findUnique({
+      where: { id: paymentOrderId },
       include: {
         orders: {
           include: {
@@ -156,18 +156,18 @@ export class InvoicingService {
       },
     });
 
-    if (!invoice) {
-      throw new AppError('Factura no encontrada', 404);
+    if (!paymentOrder) {
+      throw new AppError('Orden de pago no encontrada', 404);
     }
 
-    return invoice;
+    return paymentOrder;
   }
 
   /**
-   * Obtiene todas las facturas de un paciente
+   * Obtiene todas las órdenes de pago de un paciente
    */
-  async getPatientInvoices(patientId: string): Promise<InvoiceWithServiceInstances[]> {
-    const invoices = await prisma.invoice.findMany({
+  async getPatientPaymentOrders(patientId: string): Promise<PaymentOrderWithServiceInstances[]> {
+    const paymentOrders = await prisma.paymentOrder.findMany({
       where: { patientId },
       include: {
         orders: {
@@ -201,60 +201,60 @@ export class InvoicingService {
       },
     });
 
-    return invoices;
+    return paymentOrders;
   }
 
   /**
-   * Actualiza el estado de una factura basándose en los pagos registrados
+   * Actualiza el estado de una orden de pago basándose en los pagos registrados
    */
-  async updateInvoiceStatus(invoiceId: string): Promise<Invoice> {
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
+  async updatePaymentOrderStatus(paymentOrderId: string): Promise<PaymentOrder> {
+    const paymentOrder = await prisma.paymentOrder.findUnique({
+      where: { id: paymentOrderId },
       include: {
         payments: true,
       },
     });
 
-    if (!invoice) {
-      throw new AppError('Factura no encontrada', 404);
+    if (!paymentOrder) {
+      throw new AppError('Orden de pago no encontrada', 404);
     }
 
     // Calcular total pagado
-    const totalPaid = invoice.payments.reduce((sum, payment) => {
+    const totalPaid = paymentOrder.payments.reduce((sum, payment) => {
       return sum + Number(payment.amountPaid);
     }, 0);
 
-    const totalAmount = Number(invoice.totalAmount);
+    const totalAmount = Number(paymentOrder.totalAmount);
 
     // Determinar el nuevo estado
-    let newStatus: InvoiceStatus;
+    let newStatus: PaymentOrderStatus;
     if (totalPaid === 0) {
-      newStatus = InvoiceStatus.pending;
+      newStatus = PaymentOrderStatus.pending;
     } else if (totalPaid >= totalAmount) {
-      newStatus = InvoiceStatus.paid;
+      newStatus = PaymentOrderStatus.paid;
     } else {
-      newStatus = InvoiceStatus.partial;
+      newStatus = PaymentOrderStatus.partial;
     }
 
-    // Actualizar el estado si cambió y devolver siempre el invoice completo
-    if (newStatus !== invoice.status) {
-      await prisma.invoice.update({
-        where: { id: invoiceId },
+    // Actualizar el estado si cambió y devolver siempre el paymentOrder completo
+    if (newStatus !== paymentOrder.status) {
+      await prisma.paymentOrder.update({
+        where: { id: paymentOrderId },
         data: { status: newStatus },
       });
     }
 
-    return this.getInvoiceById(invoiceId);
+    return this.getPaymentOrderById(paymentOrderId);
   }
 
   /**
-   * Obtiene las órdenes sin facturar de un paciente
+   * Obtiene las órdenes sin orden de pago de un paciente
    */
-  async getUninvoicedServiceInstances(patientId: string): Promise<ServiceInstance[]> {
+  async getOrdersWithoutPaymentOrder(patientId: string): Promise<ServiceInstance[]> {
     const orders = await prisma.serviceInstance.findMany({
       where: {
         patientId,
-        invoiceId: null, // Órdenes sin factura
+        paymentOrderId: null,
       },
       include: {
         service: true,
@@ -268,47 +268,47 @@ export class InvoicingService {
   }
 
   /**
-   * Cancela una factura (solo si no tiene pagos registrados)
+   * Cancela una orden de pago (solo si no tiene pagos registrados)
    */
-  async cancelInvoice(invoiceId: string): Promise<Invoice> {
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
+  async cancelPaymentOrder(paymentOrderId: string): Promise<PaymentOrder> {
+    const paymentOrder = await prisma.paymentOrder.findUnique({
+      where: { id: paymentOrderId },
       include: {
         payments: true,
         orders: true,
       },
     });
 
-    if (!invoice) {
-      throw new AppError('Factura no encontrada', 404);
+    if (!paymentOrder) {
+      throw new AppError('Orden de pago no encontrada', 404);
     }
 
-    if (invoice.payments.length > 0) {
+    if (paymentOrder.payments.length > 0) {
       throw new AppError(
-        'No se puede cancelar una factura con pagos registrados',
+        'No se puede cancelar una orden de pago con pagos registrados',
         400
       );
     }
 
-    // Usar transacción para cancelar factura y desasociar órdenes
+    // Usar transacción para cancelar orden de pago y desasociar órdenes
     return await prisma.$transaction(async (tx) => {
-      // Desasociar las órdenes de la factura
+      // Desasociar las órdenes de la orden de pago
       await tx.serviceInstance.updateMany({
         where: {
-          invoiceId: invoice.id,
+          paymentOrderId: paymentOrder.id,
         },
         data: {
-          invoiceId: null,
+          paymentOrderId: null,
         },
       });
 
-      // Marcar la factura como cancelada
-      return await tx.invoice.update({
-        where: { id: invoiceId },
-        data: { status: InvoiceStatus.cancelled },
+      // Marcar la orden de pago como cancelada
+      return await tx.paymentOrder.update({
+        where: { id: paymentOrderId },
+        data: { status: PaymentOrderStatus.cancelled },
       });
     });
   }
 }
 
-export const invoicingService = new InvoicingService();
+export const paymentOrderService = new PaymentOrderService();

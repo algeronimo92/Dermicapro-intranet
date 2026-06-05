@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { invoicesService } from '../services/invoices.service';
+import { paymentOrdersService } from '../services/paymentOrders.service';
 import { patientsService } from '../services/patients.service';
 import { Order, Patient } from '../types';
 import { Loading } from '../components/Loading';
 import { Button } from '../components/Button';
-import '../styles/patient-invoices.css';
+import '../styles/patient-payment-orders.css';
 
-const CreateInvoicePage: React.FC = () => {
+const CreatePaymentOrderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate  = useNavigate();
 
   const [patient, setPatient]             = useState<Patient | null>(null);
-  const [uninvoicedOrders, setOrders]     = useState<Order[]>([]);
+  const [ordersWithoutPaymentOrder, setOrders]     = useState<Order[]>([]);
   const [selectedIds, setSelectedIds]     = useState<string[]>([]);
   const [editedPrices, setEditedPrices]   = useState<Record<string, string>>({});
   const [editingId, setEditingId]         = useState<string | null>(null);
@@ -30,7 +30,7 @@ const CreateInvoicePage: React.FC = () => {
         setError(null);
         const [patientData, ordersData] = await Promise.all([
           patientsService.getPatient(id),
-          invoicesService.getUninvoicedOrders(id),
+          paymentOrdersService.getOrdersWithoutPaymentOrder(id),
         ]);
         setPatient(patientData);
         setOrders(ordersData);
@@ -59,10 +59,10 @@ const CreateInvoicePage: React.FC = () => {
 
   const toggleAll = () =>
     setSelectedIds(
-      selectedIds.length === uninvoicedOrders.length ? [] : uninvoicedOrders.map(o => o.id)
+      selectedIds.length === ordersWithoutPaymentOrder.length ? [] : ordersWithoutPaymentOrder.map(o => o.id)
     );
 
-  const total = uninvoicedOrders
+  const total = ordersWithoutPaymentOrder
     .filter(o => selectedIds.includes(o.id))
     .reduce((sum, o) => sum + getPrice(o), 0);
 
@@ -91,7 +91,7 @@ const CreateInvoicePage: React.FC = () => {
       // Solo enviar overrides donde el precio cambió
       const priceOverrides = selectedIds
         .filter(oid => {
-          const order = uninvoicedOrders.find(o => o.id === oid);
+          const order = ordersWithoutPaymentOrder.find(o => o.id === oid);
           if (!order) return false;
           const edited = editedPrices[oid];
           if (edited === undefined) return false;
@@ -99,28 +99,28 @@ const CreateInvoicePage: React.FC = () => {
         })
         .map(oid => ({ id: oid, finalPrice: parseFloat(editedPrices[oid]) }));
 
-      await invoicesService.createInvoice({
+      await paymentOrdersService.createPaymentOrder({
         serviceInstanceIds: selectedIds,
         patientId: id,
         priceOverrides: priceOverrides.length > 0 ? priceOverrides : undefined,
       });
-      navigate(`/patients/${id}/invoices`);
+      navigate(`/patients/${id}/payment-orders`);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al crear la factura');
+      setError(err.response?.data?.error || 'Error al crear la orden de pago');
     } finally {
       setCreating(false);
     }
   };
 
-  const goBack = () => navigate(`/patients/${id}/invoices`);
+  const goBack = () => navigate(`/patients/${id}/payment-orders`);
 
-  if (loading) return <Loading text="Cargando servicios sin facturar..." />;
+  if (loading) return <Loading text="Cargando servicios sin orden de pago..." />;
 
   if (error && !patient) {
     return (
       <div className="page-container">
         <div className="alert alert-error">{error}</div>
-        <Button onClick={goBack} variant="secondary">Volver a Facturas</Button>
+        <Button onClick={goBack} variant="secondary">Volver a Órdenes de Pago</Button>
       </div>
     );
   }
@@ -130,22 +130,22 @@ const CreateInvoicePage: React.FC = () => {
   return (
     <div className="page-container" style={{ maxWidth: 720 }}>
 
-      <button className="invoices-back-button" onClick={goBack}>
+      <button className="payment-orders-back-button" onClick={goBack}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Volver a Facturas
+        Volver a Órdenes de Pago
       </button>
 
-      <div className="invoices-patient-strip" style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <div className="invoices-patient-avatar">
+      <div className="payment-orders-patient-strip" style={{ marginBottom: 'var(--spacing-xl)' }}>
+        <div className="payment-orders-patient-avatar">
           {patient.photoUrl
             ? <img src={patient.photoUrl} alt={`${patient.firstName} ${patient.lastName}`} />
             : `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`.toUpperCase()}
         </div>
         <div>
           <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
-            Generar Factura
+            Generar Orden de Pago
           </h1>
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
             {patient.firstName} {patient.lastName} · DNI: {patient.dni}
@@ -155,14 +155,14 @@ const CreateInvoicePage: React.FC = () => {
 
       {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-lg)' }}>{error}</div>}
 
-      {uninvoicedOrders.length === 0 ? (
+      {ordersWithoutPaymentOrder.length === 0 ? (
         <div className="pd-empty" style={{ background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-2xl)' }}>
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
             <rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
             <path d="M14 16h20M14 22h20M14 28h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
-          <p>No hay servicios sin facturar para este paciente</p>
-          <Button onClick={goBack} variant="secondary">Volver a Facturas</Button>
+          <p>No hay servicios sin orden de pago para este paciente</p>
+          <Button onClick={goBack} variant="secondary">Volver a Órdenes de Pago</Button>
         </div>
       ) : (
         <>
@@ -174,7 +174,7 @@ const CreateInvoicePage: React.FC = () => {
                   <rect x="2" y="3" width="16" height="14" rx="1.5" stroke="currentColor" strokeWidth="2"/>
                   <path d="M2 8h16M6 1v4M14 1v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <h2>Servicios sin facturar ({uninvoicedOrders.length})</h2>
+                <h2>Servicios sin Orden de Pago ({ordersWithoutPaymentOrder.length})</h2>
               </div>
               <button
                 onClick={toggleAll}
@@ -185,7 +185,7 @@ const CreateInvoicePage: React.FC = () => {
                   color: 'var(--color-text-secondary)', fontFamily: 'inherit',
                 }}
               >
-                {selectedIds.length === uninvoicedOrders.length ? 'Deseleccionar todas' : 'Seleccionar todas'}
+                {selectedIds.length === ordersWithoutPaymentOrder.length ? 'Deseleccionar todas' : 'Seleccionar todas'}
               </button>
             </div>
 
@@ -194,11 +194,11 @@ const CreateInvoicePage: React.FC = () => {
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style={{ display: 'inline', marginRight: 4 }}>
                 <path d="M11 2.5a1.77 1.77 0 112.5 2.5L4 14.5l-3 .5.5-3L11 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
-              Haz clic en el precio para ajustarlo antes de generar la factura
+              Haz clic en el precio para ajustarlo antes de generar la orden de pago
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-              {uninvoicedOrders.map(order => {
+              {ordersWithoutPaymentOrder.map(order => {
                 const isSelected  = selectedIds.includes(order.id);
                 const isEditing   = editingId === order.id;
                 const currentPx   = getPrice(order);
@@ -312,11 +312,11 @@ const CreateInvoicePage: React.FC = () => {
                 size="large"
                 isLoading={creating}
               >
-                Generar Factura
+                Generar Orden de Pago
               </Button>
             </div>
             {selectedIds.length === 0 && (
-              <p className="cinv-summary__hint">Selecciona al menos un servicio para generar la factura</p>
+              <p className="cinv-summary__hint">Selecciona al menos un servicio para generar la orden de pago</p>
             )}
           </div>
         </>
@@ -325,4 +325,4 @@ const CreateInvoicePage: React.FC = () => {
   );
 };
 
-export default CreateInvoicePage;
+export default CreatePaymentOrderPage;

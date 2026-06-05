@@ -1,7 +1,7 @@
 import { ServiceInstance } from '@prisma/client';
 import { addDays } from '../utils/dateUtils';
 
-interface CreateInvoiceDto {
+interface CreatePaymentOrderDto {
   serviceInstanceIds: string[];
   patientId: string;
   createdById: string;
@@ -9,17 +9,17 @@ interface CreateInvoiceDto {
 }
 
 /**
- * Factory Pattern para crear diferentes tipos de facturas
+ * Factory Pattern para crear diferentes tipos de órdenes de pago
  */
-export class InvoiceFactory {
+export class PaymentOrderFactory {
   /**
-   * Crea una factura para una sola orden
+   * Crea una orden de pago para una sola orden
    */
-  static createSingleServiceInstanceInvoice(
+  static createSingleServiceInstancePaymentOrder(
     order: ServiceInstance,
     createdById: string,
     dueDate?: Date
-  ): CreateInvoiceDto {
+  ): CreatePaymentOrderDto {
     return {
       serviceInstanceIds: [order.id],
       patientId: order.patientId,
@@ -29,13 +29,13 @@ export class InvoiceFactory {
   }
 
   /**
-   * Crea una factura consolidada para múltiples órdenes del mismo paciente
+   * Crea una orden de pago consolidada para múltiples órdenes del mismo paciente
    */
-  static createConsolidatedInvoice(
+  static createConsolidatedPaymentOrder(
     orders: ServiceInstance[],
     createdById: string,
     dueDate?: Date
-  ): CreateInvoiceDto {
+  ): CreatePaymentOrderDto {
     if (orders.length === 0) {
       throw new Error('Debe proporcionar al menos una orden');
     }
@@ -57,7 +57,7 @@ export class InvoiceFactory {
   }
 
   /**
-   * Crea una factura por IDs de órdenes seleccionadas
+   * Crea una orden de pago por IDs de órdenes seleccionadas
    * (útil cuando el usuario selecciona órdenes desde la UI)
    */
   static createFromServiceInstanceIds(
@@ -65,7 +65,7 @@ export class InvoiceFactory {
     patientId: string,
     createdById: string,
     dueDate?: Date
-  ): CreateInvoiceDto {
+  ): CreatePaymentOrderDto {
     if (serviceInstanceIds.length === 0) {
       throw new Error('Debe seleccionar al menos una orden');
     }
@@ -79,15 +79,15 @@ export class InvoiceFactory {
   }
 
   /**
-   * Crea una factura con fecha de vencimiento automática
+   * Crea una orden de pago con fecha de vencimiento automática
    * (por ejemplo, 30 días desde hoy)
    */
-  static createWithAutoDueDate(
+  static createWithAutoPaymentDate(
     serviceInstanceIds: string[],
     patientId: string,
     createdById: string,
     daysUntilDue: number = 30
-  ): CreateInvoiceDto {
+  ): CreatePaymentOrderDto {
     const dueDate = addDays(new Date(), daysUntilDue);
 
     return {

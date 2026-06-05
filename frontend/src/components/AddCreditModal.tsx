@@ -5,7 +5,7 @@ import { Button } from './Button';
 import { CameraCaptureModal } from './CameraCaptureModal';
 import { PaymentMethod } from '../types';
 import { creditsService } from '../services/credits.service';
-import { invoicesService } from '../services/invoices.service';
+import { paymentOrdersService } from '../services/paymentOrders.service';
 
 interface AddCreditModalProps {
   isOpen: boolean;
@@ -85,7 +85,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
         notes: notes.trim() || undefined,
       });
       if (receiptFile) {
-        await invoicesService.uploadReceipt(paymentId, receiptFile);
+        await paymentOrdersService.uploadReceipt(paymentId, receiptFile);
       }
       onSuccess(accountBalance);
       onClose();

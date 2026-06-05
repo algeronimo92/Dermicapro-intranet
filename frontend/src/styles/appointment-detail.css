@@ -176,7 +176,7 @@
 }
 
 /* Bloque naranja: otras facturas del paciente */
-.adet-other-invoices {
+.adet-other-payment-orders {
   background: linear-gradient(135deg, var(--color-warning-alpha-10) 0%, var(--color-warning-alpha-20) 100%);
   border: 2px solid var(--color-warning);
   border-radius: var(--radius-xl);
@@ -184,14 +184,14 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.adet-other-invoices__header {
+.adet-other-payment-orders__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--spacing-md);
 }
 
-.adet-other-invoices__title {
+.adet-other-payment-orders__title {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -202,7 +202,7 @@
   letter-spacing: 0.05em;
 }
 
-.adet-other-invoices__count {
+.adet-other-payment-orders__count {
   background: var(--color-warning);
   color: var(--color-on-primary);
   padding: 3px 10px;
@@ -211,7 +211,7 @@
   font-weight: var(--font-weight-bold);
 }
 
-.adet-invoice-list {
+.adet-payment-order-list {
   background: var(--color-bg-primary);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -219,42 +219,42 @@
   border: 1px solid var(--color-warning-alpha-10);
 }
 
-.adet-invoice-item {
+.adet-payment-order-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-sm) var(--spacing-md);
   border-bottom: 1px solid var(--color-border-secondary);
 }
-.adet-invoice-item:last-child { border-bottom: none; }
+.adet-payment-order-item:last-child { border-bottom: none; }
 
-.adet-invoice-item__name {
+.adet-payment-order-item__name {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: 2px;
 }
 
-.adet-invoice-item__status {
+.adet-payment-order-item__status {
   font-size: 11px;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
   font-weight: var(--font-weight-semibold);
 }
 
-.adet-invoice-item__amount {
+.adet-payment-order-item__amount {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-error);
   text-align: right;
 }
 
-.adet-invoice-item__amount-sub {
+.adet-payment-order-item__amount-sub {
   font-size: 10px;
   color: var(--color-text-tertiary);
 }
 
-.adet-other-invoices__total {
+.adet-other-payment-orders__total {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -265,19 +265,19 @@
   border: 1px solid var(--color-border-secondary);
 }
 
-.adet-other-invoices__total-label {
+.adet-other-payment-orders__total-label {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 
-.adet-other-invoices__total-amount {
+.adet-other-payment-orders__total-amount {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-error);
 }
 
-.adet-other-invoices__cta {
+.adet-other-payment-orders__cta {
   width: 100%;
   display: flex;
   align-items: center;
@@ -294,9 +294,9 @@
   font-family: var(--font-family-base);
   transition: all var(--transition-fast);
 }
-.adet-other-invoices__cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.adet-other-payment-orders__cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
 
-.adet-other-invoices__note {
+.adet-other-payment-orders__note {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);
   background: var(--color-bg-primary);

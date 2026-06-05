@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
-import { Patient, Sex, Role, InvoiceStatus, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
+import { Patient, Sex, Role, PaymentOrderStatus, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { Modal } from '../components/Modal';
@@ -148,29 +148,29 @@ export const PatientDetailPage: React.FC = () => {
   // Bloqueo de nueva cita — el paciente ya tiene una cita activa
   const hasActivePendingApt = !!(currentInProgress || nextReserved);
 
-  const uniqueInvoices = allOrders
-    .filter(o => o.invoice)
-    .map(o => o.invoice!)
-    .filter((inv, i, arr) => arr.findIndex(x => x.id === inv.id) === i);
+  const uniquePaymentOrders = allOrders
+    .filter(o => o.paymentOrder)
+    .map(o => o.paymentOrder!)
+    .filter((po, i, arr) => arr.findIndex(x => x.id === po.id) === i);
 
-  const pendingInvoices = uniqueInvoices.filter(
-    inv => inv.status === InvoiceStatus.pending || inv.status === InvoiceStatus.partial
+  const pendingPaymentOrders = uniquePaymentOrders.filter(
+    po => po.status === PaymentOrderStatus.pending || po.status === PaymentOrderStatus.partial
   );
 
-  const totalPendingInvoiced = pendingInvoices.reduce((sum, inv) => {
-    const paid = (inv.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
-    return sum + (Number(inv.totalAmount ?? 0) - paid);
+  const totalPendingInPaymentOrders = pendingPaymentOrders.reduce((sum, po) => {
+    const paid = (po.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
+    return sum + (Number(po.totalAmount ?? 0) - paid);
   }, 0);
 
-  // Órdenes que aún no tienen factura generada
-  const uninvoicedOrders = allOrders.filter(o => !o.invoice);
-  const totalUninvoiced   = uninvoicedOrders.reduce((sum, o) => sum + Number(o.finalPrice ?? 0), 0);
+  // Órdenes que aún no tienen orden de pago generada
+  const ordersWithoutPaymentOrder = allOrders.filter(o => !o.paymentOrder);
+  const totalWithoutPaymentOrder  = ordersWithoutPaymentOrder.reduce((sum, o) => sum + Number(o.finalPrice ?? 0), 0);
 
-  // Deuda total = facturas pendientes + órdenes sin facturar
-  const totalPendingAmount = totalPendingInvoiced + totalUninvoiced;
+  // Deuda total = órdenes de pago pendientes + órdenes sin ODP
+  const totalPendingAmount = totalPendingInPaymentOrders + totalWithoutPaymentOrder;
 
-  const totalPaid = uniqueInvoices.reduce((sum, inv) => {
-    return sum + (inv.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
+  const totalPaid = uniquePaymentOrders.reduce((sum, po) => {
+    return sum + (po.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
   }, 0);
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -315,7 +315,7 @@ export const PatientDetailPage: React.FC = () => {
           cursor: totalPendingAmount > 0 ? 'pointer' : 'default',
           transition: 'box-shadow var(--transition-fast)',
         }}
-          onClick={() => totalPendingAmount > 0 && navigate(`/patients/${id}/invoices`)}
+          onClick={() => totalPendingAmount > 0 && navigate(`/patients/${id}/payment-orders`)}
           onMouseEnter={e => totalPendingAmount > 0 && (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}
         >
@@ -343,7 +343,7 @@ export const PatientDetailPage: React.FC = () => {
                 S/. {totalPendingAmount.toFixed(2)}
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-error)', marginTop: 6, fontWeight: 600 }}>
-                {pendingInvoices.length} factura{pendingInvoices.length !== 1 ? 's' : ''} · clic para gestionar →
+                {pendingPaymentOrders.length} orden{pendingPaymentOrders.length !== 1 ? 'es' : ''} de pago · clic para gestionar →
               </div>
             </>
           ) : (
@@ -381,7 +381,7 @@ export const PatientDetailPage: React.FC = () => {
             S/. {totalPaid.toFixed(2)}
           </div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', marginTop: 6 }}>
-            {uniqueInvoices.length} factura{uniqueInvoices.length !== 1 ? 's' : ''} en total
+            {uniquePaymentOrders.length} orden{uniquePaymentOrders.length !== 1 ? 'es' : ''} de pago en total
           </div>
         </div>
 
@@ -510,7 +510,7 @@ export const PatientDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* CARD — Cobros Pendientes (facturas sin pagar + órdenes sin facturar) */}
+        {/* CARD — Cobros Pendientes (órdenes de pago sin pagar + órdenes sin ODP) */}
         <div className="pd-card">
           <div className="pd-card__header">
             <h2 className="pd-card__title">
@@ -522,34 +522,34 @@ export const PatientDetailPage: React.FC = () => {
               </span>
               Cobros Pendientes
             </h2>
-            {(pendingInvoices.length + uninvoicedOrders.length) > 0 && (
-              <span className="pd-card__badge">{pendingInvoices.length + uninvoicedOrders.length}</span>
+            {(pendingPaymentOrders.length + ordersWithoutPaymentOrder.length) > 0 && (
+              <span className="pd-card__badge">{pendingPaymentOrders.length + ordersWithoutPaymentOrder.length}</span>
             )}
           </div>
           <div className="pd-card__body">
-            {(pendingInvoices.length + uninvoicedOrders.length) > 0 ? (
+            {(pendingPaymentOrders.length + ordersWithoutPaymentOrder.length) > 0 ? (
               <>
-                <div className="pd-invoice-list" style={{ marginBottom: 'var(--spacing-md)' }}>
+                <div className="pd-payment-order-list" style={{ marginBottom: 'var(--spacing-md)' }}>
 
-                  {/* Facturas creadas pero sin pagar */}
-                  {pendingInvoices.slice(0, 3).map(inv => {
-                    const paid      = (inv.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
-                    const remaining = Number(inv.totalAmount ?? 0) - paid;
-                    const pct       = Number(inv.totalAmount) > 0 ? Math.round((paid / Number(inv.totalAmount)) * 100) : 0;
+                  {/* Órdenes de pago creadas pero sin pagar */}
+                  {pendingPaymentOrders.slice(0, 3).map(po => {
+                    const paid      = (po.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
+                    const remaining = Number(po.totalAmount ?? 0) - paid;
+                    const pct       = Number(po.totalAmount) > 0 ? Math.round((paid / Number(po.totalAmount)) * 100) : 0;
                     return (
-                      <div key={inv.id} className="pd-invoice"
+                      <div key={po.id} className="pd-payment-order"
                         style={{ cursor: 'pointer', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}
-                        onClick={() => navigate(`/invoices/${inv.id}`)}>
+                        onClick={() => navigate(`/payment-orders/${po.id}`)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>
-                              Factura #{(inv.id ?? '').slice(0, 8).toUpperCase()} · {inv.createdAt ? formatDate(inv.createdAt) : ''}
+                              Orden de Pago #{(po.id ?? '').slice(0, 8).toUpperCase()} · {po.createdAt ? formatDate(po.createdAt) : ''}
                             </div>
-                            <span className={`pd-invoice__status pd-invoice__status--${inv.status}`}>
-                              {inv.status === InvoiceStatus.pending ? 'Sin pagar' : 'Pago parcial'}
+                            <span className={`pd-payment-order__status pd-payment-order__status--${po.status}`}>
+                              {po.status === PaymentOrderStatus.pending ? 'Sin pagar' : 'Pago parcial'}
                             </span>
                           </div>
-                          <span className="pd-invoice__amount">S/. {remaining.toFixed(2)}</span>
+                          <span className="pd-payment-order__amount">S/. {remaining.toFixed(2)}</span>
                         </div>
                         <div style={{ height: 4, background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--color-warning)', borderRadius: 'var(--radius-full)' }} />
@@ -558,18 +558,18 @@ export const PatientDetailPage: React.FC = () => {
                     );
                   })}
 
-                  {/* Órdenes sin facturar */}
-                  {uninvoicedOrders.slice(0, 3).map(order => (
-                    <div key={order.id} className="pd-invoice"
+                  {/* Órdenes sin orden de pago */}
+                  {ordersWithoutPaymentOrder.slice(0, 3).map(order => (
+                    <div key={order.id} className="pd-payment-order"
                       style={{ cursor: 'pointer', flexDirection: 'column', gap: 4, alignItems: 'stretch', borderLeft: '3px solid var(--color-warning)' }}
-                      onClick={() => navigate(`/patients/${id}/invoices`)}>
+                      onClick={() => navigate(`/patients/${id}/payment-orders`)}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>
                             {order.service?.name || 'Servicio'} · {order.totalSessions} sesión{order.totalSessions !== 1 ? 'es' : ''}
                           </div>
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning)' }}>
-                            Sin facturar
+                            Sin orden de pago
                           </span>
                         </div>
                         <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--color-warning-dark)' }}>
@@ -579,13 +579,13 @@ export const PatientDetailPage: React.FC = () => {
                     </div>
                   ))}
 
-                  {(pendingInvoices.length + uninvoicedOrders.length) > 6 && (
-                    <button className="pd-view-all" onClick={() => navigate(`/patients/${id}/invoices`)}>
+                  {(pendingPaymentOrders.length + ordersWithoutPaymentOrder.length) > 6 && (
+                    <button className="pd-view-all" onClick={() => navigate(`/patients/${id}/payment-orders`)}>
                       Ver todas →
                     </button>
                   )}
                 </div>
-                <Button variant="primary" size="medium" onClick={() => navigate(`/patients/${id}/invoices`)} style={{ width: '100%' }}>
+                <Button variant="primary" size="medium" onClick={() => navigate(`/patients/${id}/payment-orders`)} style={{ width: '100%' }}>
                   Gestionar Cobros
                 </Button>
               </>
@@ -724,7 +724,7 @@ export const PatientDetailPage: React.FC = () => {
                       <span style={{ fontSize: 15, flexShrink: 0 }}>{isCredit ? '💰' : '💳'}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {isCredit ? 'Abono' : `Usado en factura${tx.invoiceId ? ` #${tx.invoiceId.slice(0,6).toUpperCase()}` : ''}`}
+                          {isCredit ? 'Abono' : `Usado en orden de pago${tx.paymentOrderId ? ` #${tx.paymentOrderId.slice(0,6).toUpperCase()}` : ''}`}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
                           {formatDate(tx.paymentDate)}
@@ -956,9 +956,9 @@ export const PatientDetailPage: React.FC = () => {
             },
             {
               icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
-              label: 'Facturación',
-              desc: 'Facturas y pagos',
-              action: () => navigate(`/patients/${id}/invoices`),
+              label: 'Órdenes de Pago',
+              desc: 'Órdenes de pago',
+              action: () => navigate(`/patients/${id}/payment-orders`),
               color: 'amber',
             },
             {

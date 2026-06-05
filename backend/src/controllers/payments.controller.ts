@@ -5,7 +5,7 @@ import { parseStartOfDay } from '../utils/dateUtils';
 
 export const getAllPayments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '10', patientId, invoiceId, appointmentId, paymentType } = req.query;
+    const { page = '1', limit = '10', patientId, paymentOrderId, appointmentId, paymentType } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
@@ -16,8 +16,8 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
       where.patientId = patientId;
     }
 
-    if (invoiceId) {
-      where.invoiceId = invoiceId;
+    if (paymentOrderId) {
+      where.paymentOrderId = paymentOrderId;
     }
 
     if (appointmentId) {
@@ -43,7 +43,7 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
               dni: true,
             },
           },
-          invoice: {
+          paymentOrder: {
             select: {
               id: true,
               totalAmount: true,
@@ -100,7 +100,7 @@ export const getPaymentById = async (req: Request, res: Response): Promise<void>
       where: { id },
       include: {
         patient: true,
-        invoice: {
+        paymentOrder: {
           include: {
             orders: {
               include: {
@@ -142,7 +142,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
   try {
     const {
       patientId,
-      invoiceId,
+      paymentOrderId,
       appointmentId,
       amountPaid,
       paymentMethod,
@@ -159,8 +159,8 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
     const amount = parseFloat(amountPaid);
     if (amount <= 0) throw new AppError('Amount paid must be greater than 0', 400);
 
-    if (paymentType === 'invoice_payment' && !invoiceId) {
-      throw new AppError('invoiceId is required for invoice_payment type', 400);
+    if (paymentType === 'payment_order_payment' && !paymentOrderId) {
+      throw new AppError('paymentOrderId es requerido para pagos de orden de pago', 400);
     }
     if ((paymentType === 'reservation' || paymentType === 'service_payment') && !appointmentId) {
       throw new AppError('appointmentId is required for reservation or service_payment type', 400);
@@ -182,7 +182,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
       const payment = await tx.payment.create({
         data: {
           patientId,
-          invoiceId: invoiceId || null,
+          paymentOrderId: paymentOrderId || null,
           appointmentId: appointmentId || null,
           amountPaid: amount,
           paymentMethod,
@@ -194,7 +194,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
         },
         include: {
           patient: true,
-          invoice: true,
+          paymentOrder: true,
           appointment: true,
           createdBy: { select: { id: true, firstName: true, lastName: true } },
         },
@@ -216,19 +216,19 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
         });
       }
 
-      // Actualizar status de factura si corresponde
-      if (invoiceId) {
-        const invoice = await tx.invoice.findUnique({
-          where: { id: invoiceId },
+      // Actualizar status de orden de pago si corresponde
+      if (paymentOrderId) {
+        const paymentOrder = await tx.paymentOrder.findUnique({
+          where: { id: paymentOrderId },
           include: { payments: true },
         });
-        if (invoice) {
-          const totalPaid = invoice.payments.reduce((sum, p) => sum + parseFloat(p.amountPaid.toString()), 0);
-          let newStatus = invoice.status;
-          if (totalPaid >= parseFloat(invoice.totalAmount.toString())) newStatus = 'paid';
+        if (paymentOrder) {
+          const totalPaid = paymentOrder.payments.reduce((sum, p) => sum + parseFloat(p.amountPaid.toString()), 0);
+          let newStatus = paymentOrder.status;
+          if (totalPaid >= parseFloat(paymentOrder.totalAmount.toString())) newStatus = 'paid';
           else if (totalPaid > 0) newStatus = 'partial';
-          if (newStatus !== invoice.status) {
-            await tx.invoice.update({ where: { id: invoiceId }, data: { status: newStatus } });
+          if (newStatus !== paymentOrder.status) {
+            await tx.paymentOrder.update({ where: { id: paymentOrderId }, data: { status: newStatus } });
           }
         }
       }
@@ -314,7 +314,7 @@ export const updatePayment = async (req: Request, res: Response): Promise<void> 
       },
       include: {
         patient: true,
-        invoice: true,
+        paymentOrder: true,
         appointment: true,
       },
     });
@@ -329,10 +329,10 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
 
-    // Obtener el pago antes de eliminarlo para saber si tiene factura asociada
+    // Obtener el pago antes de eliminarlo para saber si tiene orden de pago asociada
     const payment = await prisma.payment.findUnique({
       where: { id },
-      select: { invoiceId: true, amountPaid: true },
+      select: { paymentOrderId: true, amountPaid: true },
     });
 
     if (!payment) {
@@ -345,33 +345,33 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
         where: { id },
       });
 
-      // Si tenía factura asociada, recalcular el status
-      if (payment.invoiceId) {
-        const invoice = await tx.invoice.findUnique({
-          where: { id: payment.invoiceId },
+      // Si tenía orden de pago asociada, recalcular el status
+      if (payment.paymentOrderId) {
+        const paymentOrder = await tx.paymentOrder.findUnique({
+          where: { id: payment.paymentOrderId },
           include: {
             payments: true,
           },
         });
 
-        if (invoice) {
+        if (paymentOrder) {
           // Calcular total pagado (sin incluir el pago eliminado)
-          const totalPaid = invoice.payments.reduce(
+          const totalPaid = paymentOrder.payments.reduce(
             (sum, p) => sum + parseFloat(p.amountPaid.toString()),
             0
           );
 
           // Determinar nuevo status
           let newStatus: 'pending' | 'partial' | 'paid' = 'pending';
-          if (totalPaid >= parseFloat(invoice.totalAmount.toString())) {
+          if (totalPaid >= parseFloat(paymentOrder.totalAmount.toString())) {
             newStatus = 'paid';
           } else if (totalPaid > 0) {
             newStatus = 'partial';
           }
 
           // Actualizar status
-          await tx.invoice.update({
-            where: { id: payment.invoiceId },
+          await tx.paymentOrder.update({
+            where: { id: payment.paymentOrderId },
             data: { status: newStatus },
           });
         }
@@ -405,7 +405,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       data: { receiptUrl },
       include: {
         patient: true,
-        invoice: true,
+        paymentOrder: true,
         appointment: true,
         createdBy: {
           select: {

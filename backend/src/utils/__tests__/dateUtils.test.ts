@@ -634,7 +634,7 @@ describe('DateUtils - Backend', () => {
         expect(result.getUTCDate()).toBe(1);
       });
 
-      it('should handle adding 30 days (invoice due date scenario)', () => {
+      it('should handle adding 30 days (payment order due date scenario)', () => {
         // Arrange
         const date = new Date(Date.UTC(2025, 11, 6));
 
@@ -685,7 +685,7 @@ describe('DateUtils - Backend', () => {
     });
 
     describe('Real-World Scenarios', () => {
-      it('should calculate invoice due date (30 days from now)', () => {
+      it('should calculate payment order due date (30 days from now)', () => {
         // Arrange
         const issueDate = new Date(); // Now
         const daysUntilDue = 30;

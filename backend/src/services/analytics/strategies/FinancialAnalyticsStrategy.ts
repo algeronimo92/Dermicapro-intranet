@@ -131,7 +131,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
 
   // ==================== ACCOUNTS RECEIVABLE ====================
   private async getAccountsReceivable() {
-    const invoices = await this.prisma.invoice.findMany({
+    const paymentOrders = await this.prisma.paymentOrder.findMany({
       where: {
         status: { in: ['pending', 'partial'] }
       },
@@ -141,9 +141,9 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
       }
     });
 
-    const total = invoices.reduce((sum, inv) => {
-      const paid = inv.payments.reduce((s, p) => s + this.decimalToNumber(p.amountPaid), 0);
-      const remaining = this.decimalToNumber(inv.totalAmount) - paid;
+    const total = paymentOrders.reduce((sum, po) => {
+      const paid = po.payments.reduce((s, p) => s + this.decimalToNumber(p.amountPaid), 0);
+      const remaining = this.decimalToNumber(po.totalAmount) - paid;
       return sum + remaining;
     }, 0);
 
@@ -156,12 +156,12 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
       { range: '90+ días', amount: 0, count: 0 }
     ];
 
-    invoices.forEach((inv) => {
+    paymentOrders.forEach((po) => {
       const daysOld = Math.floor(
-        (now.getTime() - inv.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - po.createdAt.getTime()) / (1000 * 60 * 60 * 24)
       );
-      const paid = inv.payments.reduce((s, p) => s + this.decimalToNumber(p.amountPaid), 0);
-      const remaining = this.decimalToNumber(inv.totalAmount) - paid;
+      const paid = po.payments.reduce((s, p) => s + this.decimalToNumber(p.amountPaid), 0);
+      const remaining = this.decimalToNumber(po.totalAmount) - paid;
 
       if (daysOld <= 30) {
         aging[0].amount += remaining;
@@ -179,13 +179,13 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
     });
 
     // Top debtors
-    const topDebtors = invoices
-      .map((inv) => {
-        const paid = inv.payments.reduce((s, p) => s + this.decimalToNumber(p.amountPaid), 0);
-        const remaining = this.decimalToNumber(inv.totalAmount) - paid;
+    const topDebtors = paymentOrders
+      .map((po) => {
+        const paid = po.payments.reduce((s, p) => s + this.decimalToNumber(p.amountPaid), 0);
+        const remaining = this.decimalToNumber(po.totalAmount) - paid;
         return {
-          patientId: inv.patientId,
-          patientName: `${inv.patient.firstName} ${inv.patient.lastName}`,
+          patientId: po.patientId,
+          patientName: `${po.patient.firstName} ${po.patient.lastName}`,
           amount: remaining
         };
       })

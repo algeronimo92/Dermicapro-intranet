@@ -5,5 +5,5 @@
     "noUnusedParameters": false,
     "noImplicitReturns": false
   },
-  "exclude": ["node_modules", "dist", "src/scripts/**/*"]
+  "exclude": ["node_modules", "dist", "src/scripts/**/*", "src/**/__tests__/**", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }

@@ -50,7 +50,7 @@ export function LoginPage() {
           <ul className="login-brand-features">
             <li><span className="login-feature-dot" />Historial clínico y seguimiento de pacientes</li>
             <li><span className="login-feature-dot" />Agenda y gestión de citas en tiempo real</li>
-            <li><span className="login-feature-dot" />Facturación y comisiones automáticas</li>
+            <li><span className="login-feature-dot" />Órdenes de pago y comisiones automáticas</li>
             <li><span className="login-feature-dot" />Analíticas y reportes ejecutivos</li>
           </ul>
         </div>

@@ -40,16 +40,16 @@ enum CommissionStatus {
   rejected     // Rechazada
 }
 
-enum InvoiceStatus {
-  pending // No ha pagado nada
+enum PaymentOrderStatus {
+  pending // La orden de pago no ha recibido pagos
   partial // Ha pagado algo pero no todo
   paid // Pagado completamente
   cancelled // Cancelado/anulado
 }
 
 enum PaymentType {
-  invoice_payment // Pago de factura (tiene invoiceId)
-  reservation // Adelanto/reserva de cita (tiene appointmentId, no invoiceId)
+  payment_order_payment // Pago de orden de pago (tiene paymentOrderId)
+  reservation // Adelanto/reserva de cita (tiene appointmentId, no paymentOrderId)
   service_payment // Pago directo de servicio (tiene appointmentId)
   account_credit // Abono a cuenta del paciente (solo patientId)
   penalty // Multa o penalidad
@@ -95,7 +95,7 @@ model User {
   commissions                Commission[]         @relation("SalesPersonCommissions")
   commissionsApproved        Commission[]         @relation("CommissionApprovals")
   commissionsPaid            Commission[]         @relation("CommissionPayments")
-  invoicesCreated            Invoice[]            @relation("InvoiceCreatedBy")
+  paymentOrdersCreated       PaymentOrder[]       @relation("PaymentOrderCreatedBy")
   paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
   appointmentServicesDeleted Session[] @relation("AppointmentSessionDeletedBy")
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
@@ -133,7 +133,7 @@ model Patient {
   orders             ServiceInstance[]
   appointments       Appointment[]
   patientRecords     PatientRecord[]
-  invoices           Invoice[]
+  paymentOrders      PaymentOrder[]
   payments           Payment[]
 
   @@map("patients")
@@ -174,7 +174,7 @@ model ServiceInstance {
   discount          Decimal  @default(0) @map("discount") @db.Decimal(10, 2)
   finalPrice        Decimal  @map("final_price") @db.Decimal(10, 2)
   notes             String?
-  invoiceId         String?   @map("invoice_id")
+  paymentOrderId    String?   @map("payment_order_id")
   concludedAt       DateTime? @map("concluded_at")   // Tratamiento concluido antes de completar todas las sesiones
   concludedById     String?   @map("concluded_by_id")
   concludeReason    String?   @map("conclude_reason")
@@ -187,7 +187,7 @@ model ServiceInstance {
   service             ServiceTemplate      @relation(fields: [serviceTemplateId], references: [id])
   createdBy           User                 @relation("OrderCreatedBy", fields: [createdById], references: [id])
   concludedBy         User?                @relation("OrderConcludedBy", fields: [concludedById], references: [id])
-  invoice             Invoice?             @relation(fields: [invoiceId], references: [id])
+  paymentOrder        PaymentOrder?        @relation(fields: [paymentOrderId], references: [id])
   appointmentServices Session[]
   commissions         Commission[]
 
@@ -311,11 +311,11 @@ model Session {
   @@map("sessions")
 }
 
-model Invoice {
+model PaymentOrder {
   id          String        @id @default(uuid())
   patientId   String        @map("patient_id")
   totalAmount Decimal       @map("total_amount") @db.Decimal(10, 2)
-  status      InvoiceStatus @default(pending)
+  status      PaymentOrderStatus @default(pending)
   dueDate     DateTime?     @map("due_date")
   createdById String        @map("created_by_id")
   createdAt   DateTime      @default(now()) @map("created_at")
@@ -323,17 +323,17 @@ model Invoice {
 
   // Relations
   orders    ServiceInstance[]
-  patient   Patient   @relation(fields: [patientId], references: [id])
-  createdBy User      @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  patient   Patient      @relation(fields: [patientId], references: [id])
+  createdBy User         @relation("PaymentOrderCreatedBy", fields: [createdById], references: [id])
   payments  Payment[]
 
-  @@map("invoices")
+  @@map("ordenes_de_pago")
 }
 
 model Payment {
   id            String        @id @default(uuid())
   patientId     String        @map("patient_id")
-  invoiceId     String?       @map("invoice_id")
+  paymentOrderId String?      @map("payment_order_id")
   appointmentId String?       @map("appointment_id")
   amountPaid    Decimal       @map("amount_paid") @db.Decimal(10, 2)
   paymentMethod PaymentMethod @map("payment_method")
@@ -346,7 +346,7 @@ model Payment {
 
   // Relations
   patient     Patient      @relation(fields: [patientId], references: [id])
-  invoice     Invoice?     @relation(fields: [invoiceId], references: [id])
+  paymentOrder PaymentOrder? @relation(fields: [paymentOrderId], references: [id])
   appointment Appointment? @relation(fields: [appointmentId], references: [id])
   createdBy   User         @relation("PaymentCreatedBy", fields: [createdById], references: [id])
 

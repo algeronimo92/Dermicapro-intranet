@@ -200,8 +200,8 @@ export interface CustomerAnalyticsData {
       patientId: string;
       patientName: string;
       totalDebt: number;
-      invoicesDebt: number;
-      uninvoicedOrders: number;
+      paymentOrdersDebt: number;
+      ordersWithoutPaymentOrder: number;
     }[];
   };
   retention: {

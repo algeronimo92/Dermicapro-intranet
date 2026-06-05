@@ -91,7 +91,7 @@ const PatientDashboardPage: React.FC = () => {
           </button>
           <button className="patient-dashboard-nav-item disabled">
             <span className="patient-dashboard-nav-item-icon">💰</span>
-            Facturas y Pagos
+            Órdenes de Pago
             <span className="patient-dashboard-nav-item-badge">Pronto</span>
           </button>
           <button
