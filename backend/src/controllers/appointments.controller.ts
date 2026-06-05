@@ -332,7 +332,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
       // PASO FINAL: Registrar pago de reserva y acreditar al paciente
       // ============================================
       const parsedReservation = reservationAmount ? parseFloat(reservationAmount) : 0;
-      if (parsedReservation > 0 && reservationPaymentMethod) {
+      if (parsedReservation > 0 && reservationPaymentMethod && fullAppointment) {
         await tx.payment.create({
           data: {
             patientId,
