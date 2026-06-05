@@ -1,0 +1,494 @@
+/* ============================================
+   EMPLOYEE DETAIL PAGE — v2
+   ============================================ */
+
+/* Top bar: breadcrumb + action buttons */
+.employee-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.employee-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.employee-breadcrumb__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.employee-breadcrumb__back:hover {
+  color: var(--color-primary);
+}
+
+.employee-breadcrumb__separator {
+  color: var(--color-text-disabled);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+.employee-breadcrumb__current {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-top-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   PROFILE HERO CARD
+   ============================================ */
+
+.employee-hero {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Avatar wrapper — relative container for the camera badge */
+.employee-avatar-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  min-width: 80px;
+  min-height: 80px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Avatar circle with initials or photo */
+.employee-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  overflow: hidden;
+  letter-spacing: 1px;
+}
+
+.employee-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+.employee-avatar--admin     { background: var(--color-error-alpha-10);   color: var(--color-error); }
+.employee-avatar--medical   { background: var(--color-info-alpha-10);    color: var(--color-info); }
+.employee-avatar--assistant { background: var(--color-warning-alpha-10); color: var(--color-warning); }
+.employee-avatar--sales     { background: var(--color-success-alpha-10); color: var(--color-success); }
+.employee-avatar--default   { background: var(--color-bg-tertiary);      color: var(--color-text-secondary); }
+
+/* Camera badge button — WhatsApp / LinkedIn pattern */
+.employee-avatar-camera-btn {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  border: 2.5px solid var(--color-bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-on-primary);
+  padding: 0;
+  box-shadow: var(--shadow-md);
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.employee-avatar-camera-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: scale(1.12);
+  box-shadow: var(--shadow-lg);
+}
+
+.employee-avatar-camera-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.employee-avatar-camera-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Spinner inside camera badge while uploading */
+.employee-avatar-camera-btn .spinner-xs {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+/* ============================================
+   PHOTO ACTION SHEET
+   ============================================ */
+
+.photo-action-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal) - 1);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-overlay);
+  animation: sheet-backdrop-in 180ms ease-out;
+}
+
+@keyframes sheet-backdrop-in {
+  from { background: transparent; }
+  to   { background: var(--color-bg-overlay); }
+}
+
+.photo-action-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
+  animation: sheet-slide-up 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.photo-action-sheet__header {
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.photo-action-sheet__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.photo-action-sheet__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin: var(--spacing-xs) 0 0;
+}
+
+.photo-action-sheet__options {
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.photo-action-sheet__option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+  color: var(--color-text-primary);
+}
+
+.photo-action-sheet__option:hover {
+  background: var(--color-bg-hover);
+}
+
+.photo-action-sheet__option:active {
+  background: var(--color-bg-active);
+}
+
+.photo-action-sheet__option-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.photo-action-sheet__option-icon--camera {
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+}
+
+.photo-action-sheet__option-icon--gallery {
+  background: var(--color-info-alpha-10);
+  color: var(--color-info);
+}
+
+.photo-action-sheet__option-text {
+  flex: 1;
+}
+
+.photo-action-sheet__option-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  display: block;
+}
+
+.photo-action-sheet__option-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  display: block;
+}
+
+.photo-action-sheet__cancel {
+  margin: 0 var(--spacing-sm) var(--spacing-sm);
+  width: calc(100% - var(--spacing-md));
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.photo-action-sheet__cancel:hover {
+  background: var(--color-bg-hover);
+}
+
+.employee-hero__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.employee-hero__name {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+  line-height: var(--line-height-tight);
+}
+
+.employee-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.employee-hero__email {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================
+   ROLE & STATUS BADGES
+   ============================================ */
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.3px;
+}
+
+.role-badge--admin     { background: var(--color-error-alpha-10);   color: var(--color-error); }
+.role-badge--medical   { background: var(--color-info-alpha-10);    color: var(--color-info); }
+.role-badge--assistant { background: var(--color-warning-alpha-10); color: var(--color-warning); }
+.role-badge--sales     { background: var(--color-success-alpha-10); color: var(--color-success); }
+.role-badge--default   { background: var(--color-bg-tertiary);      color: var(--color-text-secondary); }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.status-badge--active   { background: var(--color-success-alpha-10); color: var(--color-success); }
+.status-badge--inactive { background: var(--color-bg-disabled);      color: var(--color-text-disabled); }
+
+.status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   SECTION CARDS (info + stats)
+   ============================================ */
+
+.employee-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.employee-card:last-child {
+  margin-bottom: 0;
+}
+
+.employee-card__header {
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.employee-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.employee-card__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin: var(--spacing-xs) 0 0 0;
+}
+
+/* ============================================
+   PERSONAL INFO GRID
+   ============================================ */
+
+.employee-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.employee-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.employee-info-item__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.employee-info-item__value {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ============================================
+   STATS GRID
+   ============================================ */
+
+.employee-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .employee-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+  }
+
+  .employee-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: var(--font-size-xl);
+  }
+
+  .employee-hero__name {
+    font-size: var(--font-size-xl);
+  }
+
+  .employee-card {
+    padding: var(--spacing-lg);
+  }
+
+  .employee-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .employee-info-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .employee-top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 400px) {
+  .employee-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

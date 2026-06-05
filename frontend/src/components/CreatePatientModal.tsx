@@ -6,6 +6,7 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { Select } from './Select';
 import { DatePicker } from './DatePicker';
+import { CameraCapture } from './CameraCapture'; // portal-based
 import { utcToLocalDate } from '../utils/dateUtils';
 
 interface CreatePatientModalProps {
@@ -73,13 +74,9 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
-  // Cargar datos del paciente en modo edición
   useEffect(() => {
     if (isOpen && isEditMode && patientId) {
       loadPatient(patientId);
@@ -114,22 +111,8 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
     }
   };
 
-  // Conectar stream al video element
-  useEffect(() => {
-    if (showCamera && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-    }
-  }, [showCamera]);
-
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-    setShowCamera(false);
-    setCameraError(null);
-  };
-
   const handleClose = () => {
-    stopCamera();
+    setShowCamera(false);
     setForm(EMPTY_FORM);
     setErrors({});
     setSaveError(null);
@@ -169,25 +152,14 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
     e.target.value = '';
   };
 
-  const handleOpenCamera = async () => {
-    setCameraError(null);
+  const handleCameraCapture = async (file: File) => {
+    setShowCamera(false);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
-      });
-      streamRef.current = stream;
-      setShowCamera(true);
+      const base64 = await resizeToBase64(file);
+      setForm(prev => ({ ...prev, photoUrl: base64 }));
     } catch {
-      setCameraError('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+      setSaveError('Error al procesar la imagen capturada');
     }
-  };
-
-  const handleCapture = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    const base64 = cropAndResize(video, video.videoWidth, video.videoHeight);
-    setForm(prev => ({ ...prev, photoUrl: base64 }));
-    stopCamera();
   };
 
   const handleRemovePhoto = () => setForm(prev => ({ ...prev, photoUrl: null }));
@@ -229,133 +201,53 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
           {/* ── SECCIÓN FOTO ── */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
 
-            {showCamera ? (
-              <div style={{ width: '100%', maxWidth: '320px' }}>
-                <div style={{
-                  position: 'relative',
-                  width: '100%',
-                  paddingBottom: '100%',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  background: '#000',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-                }}>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transform: 'scaleX(-1)',
-                    }}
-                  />
-                  {/* Guía circular */}
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                  }}>
-                    <div style={{
-                      width: '70%',
-                      paddingBottom: '70%',
-                      borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.6)',
-                      boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)',
-                    }} />
-                  </div>
+            <div
+              onClick={() => !form.photoUrl && fileInputRef.current?.click()}
+              style={{
+                width: '96px', height: '96px', borderRadius: '50%', overflow: 'hidden',
+                border: form.photoUrl ? '3px solid var(--color-primary)' : '2px dashed var(--color-border-primary)',
+                background: form.photoUrl ? 'transparent' : 'var(--color-bg-secondary)',
+                cursor: form.photoUrl ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}
+            >
+              {form.photoUrl ? (
+                <img src={form.photoUrl} alt="Foto del paciente" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', color: 'var(--color-text-tertiary)' }}>
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <path d="M14 18a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" strokeWidth="1.8"/>
+                    <path d="M24 21.333A2.667 2.667 0 0021.333 24H6.667A2.667 2.667 0 014 21.333V11.333a2.667 2.667 0 012.667-2.666h2l1.666-2.334h7.334L19.333 8.667h2A2.667 2.667 0 0124 11.333v10z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.3px' }}>FOTO</span>
                 </div>
+              )}
+            </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                  <button type="button" onClick={stopCamera} style={cancelBtnStyle}>
-                    Cancelar
-                  </button>
-                  <button type="button" onClick={handleCapture} style={captureBtnStyle}>
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                      <circle cx="9" cy="9" r="7" stroke="white" strokeWidth="1.8"/>
-                      <circle cx="9" cy="9" r="3.5" fill="white"/>
-                    </svg>
-                    Capturar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div
-                  onClick={() => !form.photoUrl && fileInputRef.current?.click()}
-                  style={{
-                    width: '96px',
-                    height: '96px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: form.photoUrl
-                      ? '3px solid var(--color-primary, #3b82f6)'
-                      : '2px dashed #d1d5db',
-                    background: form.photoUrl ? 'transparent' : '#f9fafb',
-                    cursor: form.photoUrl ? 'default' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    transition: 'border-color 0.2s',
-                  }}
-                >
-                  {form.photoUrl ? (
-                    <img
-                      src={form.photoUrl}
-                      alt="Foto del paciente"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', color: '#9ca3af' }}>
-                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                        <path d="M14 18a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" strokeWidth="1.8"/>
-                        <path d="M24 21.333A2.667 2.667 0 0021.333 24H6.667A2.667 2.667 0 014 21.333V11.333a2.667 2.667 0 012.667-2.666h2l1.666-2.334h7.334L19.333 8.667h2A2.667 2.667 0 0124 11.333v10z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.3px' }}>FOTO</span>
-                    </div>
-                  )}
-                </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button type="button" onClick={() => fileInputRef.current?.click()} style={linkBtnStyle('var(--color-primary)')}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M12.25 8.75v2.333A1.167 1.167 0 0111.083 12.25H2.917A1.167 1.167 0 011.75 11.083V8.75M9.917 4.667L7 1.75m0 0L4.083 4.667M7 1.75v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {form.photoUrl ? 'Cambiar foto' : 'Subir foto'}
+              </button>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button type="button" onClick={() => fileInputRef.current?.click()} style={linkBtnStyle('#3b82f6')}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M12.25 8.75v2.333A1.167 1.167 0 0111.083 12.25H2.917A1.167 1.167 0 011.75 11.083V8.75M9.917 4.667L7 1.75m0 0L4.083 4.667M7 1.75v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    {form.photoUrl ? 'Cambiar foto' : 'Subir foto'}
-                  </button>
+              <button type="button" onClick={() => setShowCamera(true)} style={linkBtnStyle('var(--color-info)')}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 9a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M12 10.667A1.333 1.333 0 0110.667 12H3.333A1.333 1.333 0 012 10.667V5.667a1.333 1.333 0 011.333-1.334h1l.834-1.166h3.666L9.667 4.333h1A1.333 1.333 0 0112 5.667v5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Tomar foto
+              </button>
 
-                  <button type="button" onClick={handleOpenCamera} style={linkBtnStyle('#6366f1')}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M7 9a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.4"/>
-                      <path d="M12 10.667A1.333 1.333 0 0110.667 12H3.333A1.333 1.333 0 012 10.667V5.667a1.333 1.333 0 011.333-1.334h1l.834-1.166h3.666L9.667 4.333h1A1.333 1.333 0 0112 5.667v5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Tomar foto
-                  </button>
+              {form.photoUrl && (
+                <button type="button" onClick={handleRemovePhoto} style={linkBtnStyle('var(--color-error)')}>
+                  Quitar
+                </button>
+              )}
+            </div>
 
-                  {form.photoUrl && (
-                    <button type="button" onClick={handleRemovePhoto} style={linkBtnStyle('#dc2626')}>
-                      Quitar
-                    </button>
-                  )}
-                </div>
-
-                {cameraError && (
-                  <p style={{ fontSize: '12px', color: '#dc2626', margin: 0, textAlign: 'center' }}>
-                    {cameraError}
-                  </p>
-                )}
-
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>Opcional · JPG, PNG o WebP</span>
-              </>
-            )}
+            <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>Opcional · JPG, PNG o WebP</span>
           </div>
 
           <input
@@ -403,6 +295,12 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
           {submitLabel}
         </Button>
       </div>
+      {showCamera && (
+        <CameraCapture
+          onClose={() => setShowCamera(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
     </Modal>
   );
 };
@@ -422,32 +320,3 @@ const linkBtnStyle = (color: string): React.CSSProperties => ({
   fontFamily: 'inherit',
 });
 
-const cancelBtnStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '10px',
-  borderRadius: '10px',
-  border: '1.5px solid #e5e7eb',
-  background: 'white',
-  color: '#6b7280',
-  fontWeight: '600',
-  fontSize: '13px',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-};
-
-const captureBtnStyle: React.CSSProperties = {
-  flex: 2,
-  padding: '10px',
-  borderRadius: '10px',
-  border: 'none',
-  background: 'linear-gradient(135deg, #10b981, #059669)',
-  color: 'white',
-  fontWeight: '700',
-  fontSize: '14px',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '8px',
-};

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { Input } from './Input';
+import { CameraCapture } from './CameraCapture'; // portal-based
 import { appointmentsService, AttendAppointmentDto } from '../services/appointments.service';
 import { servicesService } from '../services/services.service';
 import { Appointment, Service } from '../types';
@@ -79,6 +80,7 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
 
   const beforeInputRef = useRef<HTMLInputElement>(null);
   const afterInputRef = useRef<HTMLInputElement>(null);
+  const [cameraTarget, setCameraTarget] = useState<'before' | 'after' | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -86,6 +88,31 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const addPhotoFile = (file: File, target: 'before' | 'after') => {
+    const limit = target === 'before' ? 5 : 5;
+    const current = target === 'before' ? beforePhotos : afterPhotos;
+    if (current.length >= limit) { setError(`Máximo ${limit} fotos`); return; }
+    if (!file.type.startsWith('image/')) { setError('Solo se permiten imágenes'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('Cada imagen debe ser menor a 5MB'); return; }
+    setError(null);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (target === 'before') {
+        setBeforePhotos(prev => [...prev, file]);
+        setBeforePreviews(prev => [...prev, reader.result as string]);
+      } else {
+        setAfterPhotos(prev => [...prev, file]);
+        setAfterPreviews(prev => [...prev, reader.result as string]);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = (file: File) => {
+    if (cameraTarget) addPhotoFile(file, cameraTarget);
+    setCameraTarget(null);
   };
 
   const handleBeforePhotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -511,9 +538,17 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
               type="button"
               variant="secondary"
               onClick={() => beforeInputRef.current?.click()}
+              style={{ width: '100%', marginBottom: '6px' }}
+            >
+              📁 Subir de galería
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setCameraTarget('before')}
               style={{ width: '100%', marginBottom: '10px' }}
             >
-              📷 Agregar Fotos de Antes
+              📷 Tomar foto
             </Button>
             <input
               ref={beforeInputRef}
@@ -574,9 +609,17 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
               type="button"
               variant="secondary"
               onClick={() => afterInputRef.current?.click()}
+              style={{ width: '100%', marginBottom: '6px' }}
+            >
+              📁 Subir de galería
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setCameraTarget('after')}
               style={{ width: '100%', marginBottom: '10px' }}
             >
-              📷 Agregar Fotos de Después
+              📷 Tomar foto
             </Button>
             <input
               ref={afterInputRef}
@@ -669,6 +712,12 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
           </div>
         )}
       </form>
+      {cameraTarget && (
+        <CameraCapture
+          onClose={() => setCameraTarget(null)}
+          onCapture={handleCameraCapture}
+        />
+      )}
     </Modal>
   );
 };

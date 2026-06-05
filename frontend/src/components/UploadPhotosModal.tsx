@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { CameraCaptureModal } from './CameraCaptureModal';
+import { CameraCapture } from './CameraCapture';
 
 interface UploadPhotosModalProps {
   isOpen: boolean;
@@ -186,12 +186,12 @@ export const UploadPhotosModal: React.FC<UploadPhotosModalProps> = ({
         </form>
       </Modal>
 
-      {/* Cámara */}
-      <CameraCaptureModal
-        isOpen={showCamera}
-        onClose={() => setShowCamera(false)}
-        onCapture={handleCameraCapture}
-      />
+      {showCamera && (
+        <CameraCapture
+          onClose={() => setShowCamera(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
     </>
   );
 };

@@ -120,6 +120,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
       sex: user.sex,
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
+      photoUrl: user.photoUrl,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       counts: user._count,
@@ -249,6 +250,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      photoUrl: user.photoUrl,
       role: user.role ? {
         id: user.role.id,
         name: user.role.name,
@@ -413,6 +415,51 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
       res.status(error.statusCode).json({ error: error.message });
     } else {
       res.status(500).json({ error: 'Failed to fetch user stats' });
+    }
+  }
+};
+
+export const uploadUserPhoto = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
+      return;
+    }
+
+    const photoUrl = `/uploads/${req.file.filename}`;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { photoUrl },
+      include: { role: true },
+    });
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoUrl: user.photoUrl,
+      role: user.role ? {
+        id: user.role.id,
+        name: user.role.name,
+        displayName: user.role.displayName,
+        description: user.role.description,
+      } : null,
+      sex: user.sex,
+      dateOfBirth: user.dateOfBirth,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      console.error('Error uploading user photo:', error);
+      res.status(500).json({ error: 'Failed to upload photo' });
     }
   }
 };

@@ -91,4 +91,13 @@ export const usersService = {
     const response = await api.get<UserStats>(`/users/${id}/stats`);
     return response.data;
   },
+
+  async uploadPhoto(id: string, file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const response = await api.post<User>(`/users/${id}/photo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
