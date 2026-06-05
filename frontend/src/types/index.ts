@@ -25,6 +25,7 @@ export enum PaymentMethod {
   transfer = 'transfer',
   yape = 'yape',
   plin = 'plin',
+  account_credit = 'account_credit',
 }
 
 export enum InvoiceStatus {
@@ -76,12 +77,28 @@ export interface Patient {
   email?: string;
   address?: string;
   photoUrl?: string | null;
+  accountBalance?: number;
   createdAt: string;
   createdBy?: Partial<User>;
   lastAttendedDate?: string | null;
   lastAttendedBy?: Partial<User> | null;
   orders?: Order[];
   appointments?: Appointment[];
+}
+
+export interface CreditTransaction {
+  id: string;
+  patientId: string;
+  amountPaid: number;
+  paymentMethod: PaymentMethod;
+  paymentType: PaymentType;
+  paymentDate: string;
+  notes?: string;
+  receiptUrl?: string;
+  invoiceId?: string;
+  invoice?: { id: string } | null;
+  createdBy?: Partial<User>;
+  createdAt: string;
 }
 
 export interface Service {
@@ -102,12 +119,16 @@ export interface Order {
   id: string;
   patientId: string;
   serviceTemplateId: string;
+  serviceId?: string;
   totalSessions: number;
   completedSessions: number;
   originalPrice: number;
   discount: number;
   finalPrice: number;
   notes?: string;
+  concludedAt?: string | null;
+  concludeReason?: string | null;
+  concludedBy?: Partial<User> | null;
   createdAt: string;
   patient?: Patient;
   service?: Service;

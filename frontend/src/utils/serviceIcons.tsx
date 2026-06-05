@@ -7,7 +7,7 @@
  * 3. Default icon if no match found
  */
 
-import React from 'react';
+import React, { type JSX } from 'react';
 
 export interface ServiceIconProps {
   serviceName: string;

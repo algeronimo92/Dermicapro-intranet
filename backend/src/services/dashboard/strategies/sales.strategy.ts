@@ -3,7 +3,8 @@ import {
   SalesDashboardData,
   DashboardFilters,
 } from '../../../types/dashboard.types';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
+type Decimal = Prisma.Decimal;
 
 /**
  * Estrategia para el dashboard de Ventas
@@ -17,11 +18,12 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
     const dateRange = this.getDateRange(filters?.period);
 
     // Ejecutar queries en paralelo
-    const [sales, commissions, patients, goals] = await Promise.all([
+    const [sales, commissions, patients, goals, todayAttendance] = await Promise.all([
       this.getSales(userId, dateRange),
       this.getCommissions(userId, dateRange),
       this.getPatients(userId),
       this.getGoals(userId, dateRange),
+      this.getTodayAttendance(userId),
     ]);
 
     return {
@@ -29,6 +31,7 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
       commissions,
       patients,
       goals,
+      todayAttendance,
     };
   }
 
@@ -189,6 +192,54 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
       monthly: monthlyGoal,
       achieved: achievedAmount,
       percentage,
+    };
+  }
+
+  /**
+   * Citas de hoy creadas por este vendedor — ¿llegaron los pacientes?
+   */
+  private async getTodayAttendance(userId: string) {
+    const today = this.getToday();
+    const tomorrow = this.getTomorrow();
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        createdById: userId,
+        scheduledDate: { gte: today, lt: tomorrow },
+        status: { not: 'cancelled' },
+      },
+      include: {
+        patient: { select: { firstName: true, lastName: true } },
+        appointmentServices: {
+          where: { deletedAt: null },
+          include: {
+            serviceInstance: {
+              include: { service: { select: { name: true } } },
+            },
+          },
+        },
+      },
+      orderBy: { scheduledDate: 'asc' },
+    });
+
+    const arrived  = appointments.filter((a) => ['attended', 'in_progress'].includes(a.status)).length;
+    const waiting  = appointments.filter((a) => a.status === 'reserved').length;
+    const noShow   = appointments.filter((a) => a.status === 'no_show').length;
+
+    return {
+      total: appointments.length,
+      arrived,
+      waiting,
+      noShow,
+      queue: appointments.map((a) => ({
+        id: a.id,
+        scheduledDate: a.scheduledDate.toISOString(),
+        status: a.status,
+        patient: { firstName: a.patient.firstName, lastName: a.patient.lastName },
+        services: a.appointmentServices
+          .map((as: any) => as.serviceInstance?.service?.name)
+          .filter(Boolean),
+      })),
     };
   }
 

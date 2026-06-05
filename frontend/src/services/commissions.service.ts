@@ -58,6 +58,11 @@ export interface Commission {
     firstName: string;
     lastName: string;
   };
+  service?: {
+    id?: string;
+    name?: string;
+    basePrice?: number;
+  };
 }
 
 export interface CommissionsResponse {

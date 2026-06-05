@@ -35,7 +35,7 @@ export const PatientAuthProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { accessToken, refreshToken, patient: patientData } = await patientAuthService.login(email, password);
+    const { accessToken, refreshToken, patient: _patientData } = await patientAuthService.login(email, password);
     localStorage.setItem('patientAccessToken', accessToken);
     localStorage.setItem('patientRefreshToken', refreshToken);
 

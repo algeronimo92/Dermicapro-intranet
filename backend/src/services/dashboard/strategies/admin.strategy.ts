@@ -3,7 +3,8 @@ import {
   AdminDashboardData,
   DashboardFilters,
 } from '../../../types/dashboard.types';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
+type Decimal = Prisma.Decimal;
 
 /**
  * Estrategia para el dashboard del Administrador

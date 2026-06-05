@@ -56,4 +56,12 @@ export const patientsService = {
     const response = await api.get<Patient>(`/patients/${id}`);
     return response.data;
   },
+
+  async concludeOrder(patientId: string, orderId: string, reason?: string): Promise<void> {
+    await api.patch(`/patients/${patientId}/orders/${orderId}/conclude`, { reason });
+  },
+
+  async reopenOrder(patientId: string, orderId: string): Promise<void> {
+    await api.patch(`/patients/${patientId}/orders/${orderId}/reopen`);
+  },
 };

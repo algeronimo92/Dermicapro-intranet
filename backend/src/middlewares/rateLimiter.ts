@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
  */
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Límite flexible para desarrollo
+  limit: process.env.NODE_ENV === 'production' ? 100 : 1000, // Límite flexible para desarrollo
   message: {
     error: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
     retryAfter: '15 minutos'
@@ -15,7 +15,7 @@ export const generalLimiter = rateLimit({
   standardHeaders: true, // Retorna info de rate limit en headers `RateLimit-*`
   legacyHeaders: false, // Deshabilita headers `X-RateLimit-*`
   // Handler cuando se excede el límite
-  handler: (req, res) => {
+  handler: (_req, res) => {
     res.status(429).json({
       error: 'Demasiadas peticiones desde esta IP',
       message: 'Has excedido el límite de peticiones. Por favor intenta de nuevo más tarde.',
@@ -32,7 +32,7 @@ export const generalLimiter = rateLimit({
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: process.env.NODE_ENV === 'production' ? 5 : 200, // Límite flexible para desarrollo
+  limit: process.env.NODE_ENV === 'production' ? 5 : 200, // Límite flexible para desarrollo
   skipSuccessfulRequests: true, // No cuenta peticiones exitosas
   message: {
     error: 'Demasiados intentos de autenticación fallidos',
@@ -40,7 +40,7 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res) => {
+  handler: (_req, res) => {
     res.status(429).json({
       error: 'Demasiados intentos de autenticación',
       message: 'Has excedido el límite de intentos de inicio de sesión. Por favor intenta de nuevo en 15 minutos.',
@@ -56,14 +56,14 @@ export const authLimiter = rateLimit({
  */
 export const createLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 30, // Límite de 30 creaciones por hora
+  limit: 30, // Límite de 30 creaciones por hora
   message: {
     error: 'Demasiadas operaciones de creación',
     retryAfter: '1 hora'
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res) => {
+  handler: (_req, res) => {
     res.status(429).json({
       error: 'Límite de creación excedido',
       message: 'Has excedido el límite de creación de registros. Por favor intenta de nuevo más tarde.',
@@ -79,14 +79,14 @@ export const createLimiter = rateLimit({
  */
 export const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 10, // Límite de 10 uploads por hora
+  limit: 10, // Límite de 10 uploads por hora
   message: {
     error: 'Demasiadas subidas de archivos',
     retryAfter: '1 hora'
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res) => {
+  handler: (_req, res) => {
     res.status(429).json({
       error: 'Límite de subida de archivos excedido',
       message: 'Has excedido el límite de subida de archivos. Por favor intenta de nuevo más tarde.',

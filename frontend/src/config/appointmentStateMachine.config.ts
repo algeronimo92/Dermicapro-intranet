@@ -3,87 +3,62 @@ import { AppointmentStatus, Role } from '../types';
 /**
  * State Machine Configuration for Appointment Status Transitions
  *
- * Implementa el patrón State Machine + Guard Conditions
- * Permite definir transiciones válidas con guards basados en roles y condiciones
+ * Matriz de transiciones por rol (basada en diagramas de negocio):
+ *
+ *  Asistente:     reserved ↔ in_progress → attended
+ *  Médico:        reserved ↔ in_progress ↔ attended (puede deshacer)
+ *  Ventas:        reserved ↔ in_progress → attended | cancelled | no_show
+ *  Admin:         todos los movimientos
  */
 
-// ============================================
-// TIPOS Y INTERFACES
-// ============================================
-
 export interface TransitionGuard {
-  /** Roles permitidos para realizar esta transición */
   allowedRoles: Role[];
-
-  /** Condición adicional que debe cumplirse (opcional) */
   condition?: (context: TransitionContext) => boolean;
-
-  /** Mensaje de error si la transición no es permitida */
   errorMessage?: string;
-
-  /** Requiere confirmación del usuario */
   requiresConfirmation?: boolean;
-
-  /** Mensaje de confirmación */
   confirmationMessage?: string;
 }
 
 export interface TransitionContext {
-  /** Cita actual */
   appointment?: any;
-
-  /** Usuario actual */
   user?: any;
-
-  /** Datos adicionales */
   metadata?: Record<string, any>;
 }
 
 export interface StateTransition {
-  /** Estado origen */
   from: AppointmentStatus;
-
-  /** Estado destino */
   to: AppointmentStatus;
-
-  /** Guards que validan si la transición es permitida */
   guards: TransitionGuard;
-
-  /** Label para mostrar en UI */
   label: string;
-
-  /** Descripción de la transición */
   description: string;
-
-  /** Icono para la transición */
   icon?: string;
-
-  /** Acciones a ejecutar antes de la transición */
   beforeTransition?: (context: TransitionContext) => Promise<void>;
-
-  /** Acciones a ejecutar después de la transición */
   afterTransition?: (context: TransitionContext) => Promise<void>;
 }
 
+// Helper para extraer el nombre del rol (string | RoleInfo)
+const resolveRole = (userRole: any): Role | undefined => {
+  if (!userRole) return undefined;
+  if (typeof userRole === 'string') return userRole as Role;
+  if (typeof userRole === 'object' && userRole.name) return userRole.name as Role;
+  return undefined;
+};
+
 // ============================================
-// CONFIGURACIÓN DE TRANSICIONES
+// TRANSICIONES
 // ============================================
 
-/**
- * Mapa completo de todas las transiciones válidas en el sistema
- * Cada transición define:
- * - Quién puede hacerla (roles)
- * - Bajo qué condiciones
- * - Qué validaciones requiere
- */
 export const STATE_TRANSITIONS: StateTransition[] = [
-  // ==================== DESDE RESERVED ====================
+
+  // ══════════════════════════ DESDE RESERVED ══════════════════════════
+
   {
     from: AppointmentStatus.reserved,
     to: AppointmentStatus.in_progress,
     guards: {
-      allowedRoles: [Role.admin, Role.medical_staff],
-      errorMessage: 'Solo administradores y enfermeras pueden iniciar la atención',
+      // Todos los roles pueden iniciar la atención
+      allowedRoles: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      errorMessage: 'No tienes permiso para iniciar la atención',
     },
     label: 'Iniciar Atención',
     description: 'El paciente llegó y comienza la atención',
@@ -95,7 +70,7 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     guards: {
       allowedRoles: [Role.admin, Role.sales],
       requiresConfirmation: true,
-      confirmationMessage: '¿Estás seguro de cancelar esta cita? Esta acción puede afectar las comisiones.',
+      confirmationMessage: '¿Cancelar esta cita? Esta acción puede afectar las comisiones.',
       errorMessage: 'Solo administradores y ventas pueden cancelar citas',
     },
     label: 'Cancelar Cita',
@@ -108,7 +83,7 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     guards: {
       allowedRoles: [Role.admin, Role.sales],
       requiresConfirmation: true,
-      confirmationMessage: '¿Confirmas que el paciente no se presentó a la cita?',
+      confirmationMessage: '¿Confirmas que el paciente no se presentó?',
       errorMessage: 'Solo administradores y ventas pueden marcar como no asistió',
     },
     label: 'Paciente no Asistió',
@@ -116,15 +91,15 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     icon: 'user-x',
   },
 
-  // ==================== DESDE IN_PROGRESS ====================
+  // ══════════════════════════ DESDE IN_PROGRESS ══════════════════════════
+
   {
     from: AppointmentStatus.in_progress,
     to: AppointmentStatus.attended,
     guards: {
-      allowedRoles: [Role.admin, Role.medical_staff],
-      // NO validamos en condition para que el botón siempre aparezca
-      // La validación se hace al hacer click y se muestra el error
-      errorMessage: 'Debes subir al menos fotos de ANTES para finalizar la atención',
+      // Todos los roles pueden finalizar la atención
+      allowedRoles: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      errorMessage: 'No tienes permiso para finalizar la atención',
     },
     label: 'Finalizar Atención',
     description: 'Marcar como atendida y completar el tratamiento',
@@ -134,10 +109,11 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     from: AppointmentStatus.in_progress,
     to: AppointmentStatus.reserved,
     guards: {
-      allowedRoles: [Role.admin, Role.medical_staff],
+      // Todos los roles pueden revertir a reservada (para corregir errores)
+      allowedRoles: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       requiresConfirmation: true,
-      confirmationMessage: '¿Regresar a estado Reservada? Se perderá el progreso de la atención.',
-      errorMessage: 'Solo administradores y enfermeras pueden revertir el estado de atención',
+      confirmationMessage: '¿Revertir a Reservada? Se mantendrán los datos ingresados.',
+      errorMessage: 'No tienes permiso para revertir el estado',
     },
     label: 'Revertir a Reservada',
     description: 'Regresar al estado reservada',
@@ -149,30 +125,46 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     guards: {
       allowedRoles: [Role.admin, Role.sales],
       requiresConfirmation: true,
-      confirmationMessage: '¿Cancelar la cita durante la atención? Esto es inusual.',
+      confirmationMessage: '¿Cancelar la cita durante la atención?',
       errorMessage: 'Solo administradores y ventas pueden cancelar durante la atención',
     },
     label: 'Cancelar',
     description: 'Cancelar la atención en curso',
     icon: 'x',
   },
+  {
+    from: AppointmentStatus.in_progress,
+    to: AppointmentStatus.no_show,
+    guards: {
+      allowedRoles: [Role.admin, Role.sales],
+      requiresConfirmation: true,
+      confirmationMessage: '¿Marcar como no asistió? El paciente estaba en atención.',
+      errorMessage: 'Solo administradores y ventas pueden marcar como no asistió',
+    },
+    label: 'Paciente no Asistió',
+    description: 'El paciente se fue antes de finalizar',
+    icon: 'user-x',
+  },
 
-  // ==================== DESDE ATTENDED ====================
+  // ══════════════════════════ DESDE ATTENDED ══════════════════════════
+
   {
     from: AppointmentStatus.attended,
     to: AppointmentStatus.in_progress,
     guards: {
-      allowedRoles: [Role.admin],
+      // Solo médico y admin pueden deshacer una atención finalizada
+      allowedRoles: [Role.admin, Role.medical_staff],
       requiresConfirmation: true,
-      confirmationMessage: '¿Regresar a estado En Atención? Esto es inusual para una cita ya atendida.',
-      errorMessage: 'Solo administradores pueden revertir citas atendidas',
+      confirmationMessage: '¿Reabrir la atención? Se podrá agregar más información.',
+      errorMessage: 'Solo administradores y personal médico pueden reabrir una atención',
     },
     label: 'Reabrir Atención',
-    description: 'Volver a atención para agregar información',
+    description: 'Volver a En Atención para agregar información',
     icon: 'refresh',
   },
 
-  // ==================== DESDE CANCELLED ====================
+  // ══════════════════════════ DESDE CANCELLED ══════════════════════════
+
   {
     from: AppointmentStatus.cancelled,
     to: AppointmentStatus.reserved,
@@ -187,15 +179,16 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     icon: 'refresh',
   },
 
-  // ==================== DESDE NO_SHOW ====================
+  // ══════════════════════════ DESDE NO_SHOW ══════════════════════════
+
   {
     from: AppointmentStatus.no_show,
     to: AppointmentStatus.reserved,
     guards: {
       allowedRoles: [Role.admin, Role.sales],
       requiresConfirmation: true,
-      confirmationMessage: '¿Cambiar a Reservada? El paciente sí asistió?',
-      errorMessage: 'Solo administradores y ventas pueden corregir el estado',
+      confirmationMessage: '¿Corregir a Reservada? ¿El estado fue un error?',
+      errorMessage: 'Solo administradores y ventas pueden corregir este estado',
     },
     label: 'Corregir a Reservada',
     description: 'El estado "no asistió" fue un error',
@@ -217,22 +210,27 @@ export const STATE_TRANSITIONS: StateTransition[] = [
 ];
 
 // ============================================
-// HELPER FUNCTIONS
+// HELPERS — ahora SÍ filtran por rol
 // ============================================
 
 /**
- * Obtiene todas las transiciones válidas desde un estado específico
+ * Devuelve las transiciones disponibles PARA EL ROL DEL USUARIO
  */
 export const getAvailableTransitions = (
   fromStatus: AppointmentStatus,
-  _userRole?: any,
+  userRole?: any,
   context?: TransitionContext
 ): StateTransition[] => {
-  return STATE_TRANSITIONS.filter(transition => {
-    if (transition.from !== fromStatus) return false;
+  const role = resolveRole(userRole);
 
-    if (transition.guards.condition && context) {
-      return transition.guards.condition(context);
+  return STATE_TRANSITIONS.filter(t => {
+    if (t.from !== fromStatus) return false;
+
+    // Filtrar por rol — si no hay rol, no se muestra ninguna transición
+    if (role && !t.guards.allowedRoles.includes(role)) return false;
+
+    if (t.guards.condition && context) {
+      return t.guards.condition(context);
     }
 
     return true;
@@ -240,12 +238,12 @@ export const getAvailableTransitions = (
 };
 
 /**
- * Valida si una transición específica es permitida
+ * Verifica si la transición está permitida para el rol actual
  */
 export const canTransition = (
   from: AppointmentStatus,
   to: AppointmentStatus,
-  _userRole?: any,
+  userRole?: any,
   context?: TransitionContext
 ): { allowed: boolean; reason?: string } => {
   const transition = STATE_TRANSITIONS.find(t => t.from === from && t.to === to);
@@ -254,11 +252,19 @@ export const canTransition = (
     return { allowed: false, reason: 'Transición no definida en el sistema' };
   }
 
+  const role = resolveRole(userRole);
+  if (role && !transition.guards.allowedRoles.includes(role)) {
+    return {
+      allowed: false,
+      reason: transition.guards.errorMessage || 'No tienes permiso para este cambio de estado',
+    };
+  }
+
   if (transition.guards.condition && context) {
     if (!transition.guards.condition(context)) {
       return {
         allowed: false,
-        reason: transition.guards.errorMessage || 'No se cumplen las condiciones para esta transición'
+        reason: transition.guards.errorMessage || 'No se cumplen las condiciones',
       };
     }
   }
@@ -266,53 +272,24 @@ export const canTransition = (
   return { allowed: true };
 };
 
-/**
- * Obtiene la configuración de una transición específica
- */
 export const getTransition = (
   from: AppointmentStatus,
   to: AppointmentStatus
-): StateTransition | undefined => {
-  return STATE_TRANSITIONS.find(t => t.from === from && t.to === to);
-};
+): StateTransition | undefined =>
+  STATE_TRANSITIONS.find(t => t.from === from && t.to === to);
 
-/**
- * Obtiene todos los estados a los que se puede transicionar desde un estado dado
- */
 export const getNextStates = (
   currentStatus: AppointmentStatus,
   userRole?: Role,
   context?: TransitionContext
-): AppointmentStatus[] => {
-  const transitions = getAvailableTransitions(currentStatus, userRole, context);
-  return transitions.map(t => t.to);
-};
+): AppointmentStatus[] =>
+  getAvailableTransitions(currentStatus, userRole, context).map(t => t.to);
 
-/**
- * Verifica si una transición requiere confirmación
- */
-export const requiresConfirmation = (
-  from: AppointmentStatus,
-  to: AppointmentStatus
-): boolean => {
-  const transition = getTransition(from, to);
-  return transition?.guards.requiresConfirmation || false;
-};
+export const requiresConfirmation = (from: AppointmentStatus, to: AppointmentStatus): boolean =>
+  getTransition(from, to)?.guards.requiresConfirmation || false;
 
-/**
- * Obtiene el mensaje de confirmación para una transición
- */
-export const getConfirmationMessage = (
-  from: AppointmentStatus,
-  to: AppointmentStatus
-): string | undefined => {
-  const transition = getTransition(from, to);
-  return transition?.guards.confirmationMessage;
-};
-
-// ============================================
-// AUDIT LOG
-// ============================================
+export const getConfirmationMessage = (from: AppointmentStatus, to: AppointmentStatus): string | undefined =>
+  getTransition(from, to)?.guards.confirmationMessage;
 
 export interface StateTransitionLog {
   appointmentId: string;
@@ -321,24 +298,10 @@ export interface StateTransitionLog {
   userId: string;
   timestamp: Date;
   reason?: string;
-  metadata?: Record<string, any>;
 }
 
-/**
- * Crea un log de auditoría para una transición de estado
- * (Esta función se puede extender para persistir en backend)
- */
 export const createTransitionLog = (log: StateTransitionLog): void => {
-  console.log('[State Transition]', {
-    ...log,
-    timestamp: log.timestamp.toISOString(),
-  });
-
-  // TODO: Enviar al backend para auditoría
-  // await fetch('/api/audit/state-transitions', {
-  //   method: 'POST',
-  //   body: JSON.stringify(log),
-  // });
+  console.log('[State Transition]', { ...log, timestamp: log.timestamp.toISOString() });
 };
 
 export default STATE_TRANSITIONS;

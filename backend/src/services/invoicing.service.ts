@@ -1,7 +1,6 @@
-import { PrismaClient, Invoice, InvoiceStatus, ServiceInstance } from '@prisma/client';
+import { Invoice, InvoiceStatus, ServiceInstance } from '@prisma/client';
 import { AppError } from '../middlewares/errorHandler';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
 
 interface CreateInvoiceDto {
   serviceInstanceIds: string[];
@@ -237,15 +236,15 @@ export class InvoicingService {
       newStatus = InvoiceStatus.partial;
     }
 
-    // Actualizar el estado si cambió
+    // Actualizar el estado si cambió y devolver siempre el invoice completo
     if (newStatus !== invoice.status) {
-      return await prisma.invoice.update({
+      await prisma.invoice.update({
         where: { id: invoiceId },
         data: { status: newStatus },
       });
     }
 
-    return invoice;
+    return this.getInvoiceById(invoiceId);
   }
 
   /**

@@ -240,7 +240,7 @@ export const getInvoiceSummary = async (req: Request, res: Response): Promise<vo
  */
 export const createInvoice = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { serviceInstanceIds, patientId, dueDate } = req.body;
+    const { serviceInstanceIds, patientId, dueDate, priceOverrides } = req.body;
 
     if (!serviceInstanceIds || !Array.isArray(serviceInstanceIds) || serviceInstanceIds.length === 0) {
       throw new AppError('serviceInstanceIds es requerido y debe ser un array no vacío', 400);
@@ -248,6 +248,18 @@ export const createInvoice = async (req: Request, res: Response): Promise<void> 
 
     if (!patientId) {
       throw new AppError('patientId es requerido', 400);
+    }
+
+    // Actualizar precios si el usuario los modificó antes de facturar
+    if (priceOverrides && Array.isArray(priceOverrides) && priceOverrides.length > 0) {
+      await Promise.all(
+        (priceOverrides as { id: string; finalPrice: number }[]).map(override =>
+          prisma.serviceInstance.update({
+            where: { id: override.id },
+            data: { finalPrice: override.finalPrice },
+          })
+        )
+      );
     }
 
     const invoiceDto = InvoiceFactory.createFromServiceInstanceIds(

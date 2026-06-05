@@ -133,7 +133,7 @@ export const EmployeeDetailPage: React.FC = () => {
           <Button variant="secondary" onClick={handleEdit}>
             Editar
           </Button>
-          {employee.id !== currentUser.id && (
+          {employee.id !== currentUser?.id && (
             <Button
               variant={employee.isActive ? 'danger' : 'primary'}
               onClick={() => setShowDeactivateModal(true)}

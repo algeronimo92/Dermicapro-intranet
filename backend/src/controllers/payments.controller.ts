@@ -152,35 +152,41 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
       notes,
     } = req.body;
 
-    // Validaciones básicas
     if (!patientId || !amountPaid || !paymentMethod || !paymentType) {
       throw new AppError('Missing required fields: patientId, amountPaid, paymentMethod, paymentType', 400);
     }
 
-    if (parseFloat(amountPaid) <= 0) {
-      throw new AppError('Amount paid must be greater than 0', 400);
-    }
+    const amount = parseFloat(amountPaid);
+    if (amount <= 0) throw new AppError('Amount paid must be greater than 0', 400);
 
-    // Validar que el payment type sea consistente con los IDs proporcionados
     if (paymentType === 'invoice_payment' && !invoiceId) {
       throw new AppError('invoiceId is required for invoice_payment type', 400);
     }
-
     if ((paymentType === 'reservation' || paymentType === 'service_payment') && !appointmentId) {
       throw new AppError('appointmentId is required for reservation or service_payment type', 400);
     }
 
+    // Si se usa saldo a favor, validar que el paciente tenga suficiente balance
+    if (paymentMethod === 'account_credit') {
+      const patient = await prisma.patient.findUnique({ where: { id: patientId }, select: { accountBalance: true } });
+      if (!patient) throw new AppError('Patient not found', 404);
+      if (parseFloat(patient.accountBalance.toString()) < amount) {
+        throw new AppError(
+          `Saldo insuficiente. Disponible: S/. ${parseFloat(patient.accountBalance.toString()).toFixed(2)}`,
+          400
+        );
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      // Crear el pago
       const payment = await tx.payment.create({
         data: {
           patientId,
           invoiceId: invoiceId || null,
           appointmentId: appointmentId || null,
-          amountPaid: parseFloat(amountPaid),
+          amountPaid: amount,
           paymentMethod,
           paymentType,
-          // ✅ Parsear fecha correctamente usando dateUtils
           paymentDate: paymentDate ? parseStartOfDay(paymentDate) : new Date(),
           receiptUrl,
           notes,
@@ -190,46 +196,39 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
           patient: true,
           invoice: true,
           appointment: true,
-          createdBy: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
         },
       });
 
-      // Si el pago es para una factura, actualizar el status de la factura
+      // Agregar saldo a favor: incrementar accountBalance del paciente
+      if (paymentType === 'account_credit') {
+        await tx.patient.update({
+          where: { id: patientId },
+          data: { accountBalance: { increment: amount } },
+        });
+      }
+
+      // Usar saldo a favor: decrementar accountBalance del paciente
+      if (paymentMethod === 'account_credit') {
+        await tx.patient.update({
+          where: { id: patientId },
+          data: { accountBalance: { decrement: amount } },
+        });
+      }
+
+      // Actualizar status de factura si corresponde
       if (invoiceId) {
         const invoice = await tx.invoice.findUnique({
           where: { id: invoiceId },
-          include: {
-            payments: true,
-          },
+          include: { payments: true },
         });
-
         if (invoice) {
-          // Calcular total pagado
-          const totalPaid = invoice.payments.reduce(
-            (sum, p) => sum + parseFloat(p.amountPaid.toString()),
-            0
-          );
-
-          // Determinar nuevo status
+          const totalPaid = invoice.payments.reduce((sum, p) => sum + parseFloat(p.amountPaid.toString()), 0);
           let newStatus = invoice.status;
-          if (totalPaid >= parseFloat(invoice.totalAmount.toString())) {
-            newStatus = 'paid';
-          } else if (totalPaid > 0) {
-            newStatus = 'partial';
-          }
-
-          // Actualizar status si cambió
+          if (totalPaid >= parseFloat(invoice.totalAmount.toString())) newStatus = 'paid';
+          else if (totalPaid > 0) newStatus = 'partial';
           if (newStatus !== invoice.status) {
-            await tx.invoice.update({
-              where: { id: invoiceId },
-              data: { status: newStatus },
-            });
+            await tx.invoice.update({ where: { id: invoiceId }, data: { status: newStatus } });
           }
         }
       }
@@ -244,6 +243,60 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
     } else {
       console.error('Error creating payment:', error);
       res.status(500).json({ error: 'Failed to create payment' });
+    }
+  }
+};
+
+export const addCredit = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id: patientId } = req.params;
+    const { amount, paymentMethod, notes, receiptUrl } = req.body;
+
+    if (!amount || !paymentMethod) {
+      throw new AppError('amount y paymentMethod son requeridos', 400);
+    }
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed <= 0) throw new AppError('El monto debe ser mayor a 0', 400);
+    if (paymentMethod === 'account_credit') {
+      throw new AppError('No se puede usar saldo a favor para cargar saldo a favor', 400);
+    }
+
+    const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+    if (!patient) throw new AppError('Paciente no encontrado', 404);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          patientId,
+          amountPaid: parsed,
+          paymentMethod,
+          paymentType: 'account_credit',
+          paymentDate: new Date(),
+          notes,
+          receiptUrl,
+          createdById: req.user!.id,
+        },
+        include: {
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+
+      const updatedPatient = await tx.patient.update({
+        where: { id: patientId },
+        data: { accountBalance: { increment: parsed } },
+        select: { id: true, accountBalance: true },
+      });
+
+      return { payment, accountBalance: updatedPatient.accountBalance };
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      console.error('Error adding credit:', error);
+      res.status(500).json({ error: 'Failed to add credit' });
     }
   }
 };

@@ -32,9 +32,11 @@ export interface ServiceMetadata {
 export interface OrderMetadata {
   id: string;
   totalSessions: number;
-  serviceId: string;
+  serviceId?: string;
   createdAt: string;
   finalPrice?: number;
+  invoiceId?: string | null;
+  invoice?: { id?: string; status?: string } | null;
   appointmentServices?: Array<{
     sessionNumber?: number | null;
     appointment?: {
@@ -60,10 +62,13 @@ export interface PackageGroup {
   hasNewSessions: boolean;
   orderCreatedAt?: string;
   finalPrice?: number; // Precio final del paquete completo
+  isInvoiced?: boolean;     // El paquete ya tiene factura generada
+  isInvoicePaid?: boolean;  // La factura está completamente pagada
 
   // Additional context for better UX
   hasPendingReservations: boolean; // Has reserved sessions in other appointments
-  completedSessions: number; // Number of attended sessions
+  completedSessions: number;     // Attended sessions (for "X atendidas" label)
+  scheduledElsewhere: number;    // Active sessions in OTHER appointments (attended+reserved+in_progress, for counter)
   cancelledSessions: number; // Number of cancelled sessions
   isComplete: boolean; // All sessions are scheduled/attended
 }
@@ -190,22 +195,38 @@ class PackageGroupFactory {
     let cancelledSessions = 0;
     let isComplete = false;
 
+    let scheduledElsewhere = 0;
+
     if (order) {
       const appointmentServices = order.appointmentServices || [];
 
-      // Count completed sessions (attended status)
-      completedSessions = appointmentServices.filter(
-        (as) => as.appointment?.status === 'attended'
-      ).length;
+      // IDs de sesiones ya incluidas en este formulario (evita doble conteo en modo edición)
+      const sessionsInFormIds = new Set(
+        sessionsWithNumbers
+          .filter(s => s.appointmentServiceId)
+          .map(s => s.appointmentServiceId!)
+      );
+
+      // Sesiones atendidas en otras citas (para el label "X atendidas")
+      completedSessions = appointmentServices.filter((as) => {
+        return as.appointment?.status === 'attended' && !sessionsInFormIds.has((as as any).id);
+      }).length;
+
+      // Todas las sesiones activas en OTRAS citas (para el counter del header)
+      scheduledElsewhere = appointmentServices.filter((as) => {
+        const s = as.appointment?.status;
+        const isActive = s === 'attended' || s === 'reserved' || s === 'in_progress';
+        return isActive && !sessionsInFormIds.has((as as any).id);
+      }).length;
 
       // Count cancelled sessions
       cancelledSessions = appointmentServices.filter(
         (as) => as.appointment?.status === 'cancelled'
       ).length;
 
-      // Check for pending reservations
+      // Check for pending reservations (en otras citas, no en este form)
       hasPendingReservations = appointmentServices.some(
-        (as) => as.appointment?.status === 'reserved'
+        (as) => as.appointment?.status === 'reserved' && !sessionsInFormIds.has((as as any).id)
       );
 
       // Check if package is complete (all sessions scheduled, excluding cancelled)
@@ -228,6 +249,10 @@ class PackageGroupFactory {
       finalPrice = service.basePrice;
     }
 
+    // invoiceId está disponible aunque el objeto invoice no esté incluido en el query
+    const isInvoiced   = !!(order?.invoice || (order as any)?.invoiceId);
+    const isInvoicePaid = order?.invoice?.status === 'paid';
+
     return {
       id: packageKey,
       type: isExistingPackage ? 'existing' : 'new',
@@ -239,8 +264,11 @@ class PackageGroupFactory {
       hasNewSessions,
       orderCreatedAt: order?.createdAt,
       finalPrice,
+      isInvoiced,
+      isInvoicePaid,
       hasPendingReservations,
       completedSessions,
+      scheduledElsewhere,
       cancelledSessions,
       isComplete,
     };

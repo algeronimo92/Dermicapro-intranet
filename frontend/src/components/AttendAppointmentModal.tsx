@@ -29,7 +29,7 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
   appointment,
   onSuccess,
 }) => {
-  const [services, setServices] = useState<Service[]>([]);
+  const [_services, setServices] = useState<Service[]>([]);
   const [confirmedServices, setConfirmedServices] = useState<ConfirmedService[]>([]);
 
   const [formData, setFormData] = useState({

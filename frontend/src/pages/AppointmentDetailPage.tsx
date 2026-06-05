@@ -180,12 +180,17 @@ export const AppointmentDetailPage: React.FC = () => {
       setIsSubmittingNote(true);
       setError(null);
 
-      await appointmentsService.createAppointmentNote(id, newNote.trim());
+      const createdNote = await appointmentsService.createAppointmentNote(id, newNote.trim());
 
-      // Reload appointment to show new note
-      await loadAppointment(id);
+      // Actualizar notas en estado local sin recargar la página (evita scroll to top)
+      setAppointment(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          appointmentNotes: [createdNote, ...(prev.appointmentNotes || [])],
+        };
+      });
 
-      // Clear input
       setNewNote('');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al agregar nota');
@@ -361,13 +366,28 @@ export const AppointmentDetailPage: React.FC = () => {
         <h1 className="detail-title">Detalle de Cita</h1>
 
         <div className="detail-actions-mobile">
-          {canEdit && (
-            <button className="btn-icon btn-primary" onClick={handleEdit} title="Editar">
+          {canEdit ? (
+            <button className="btn-icon btn-primary" onClick={handleEdit} title="Editar cita">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M14.167 2.5a1.768 1.768 0 012.5 2.5L5.833 15.833l-3.333.834.833-3.334L14.167 2.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-          )}
+          ) : stateConfig.visibility.showActionButtons.edit ? (
+            /* Estado final — usuario no es admin */
+            <div title="Solo los administradores pueden editar citas en estado final" style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 'var(--radius-lg)',
+              background: 'var(--color-bg-secondary)',
+              border: '1.5px solid var(--color-border-secondary)',
+              color: 'var(--color-text-disabled)',
+              cursor: 'not-allowed', opacity: 0.6,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -480,12 +500,6 @@ export const AppointmentDetailPage: React.FC = () => {
             </span>
           </div>
 
-          {appointment.notes && (
-            <div className="info-item full-width">
-              <span className="info-label">Notas</span>
-              <span className="info-value">{appointment.notes}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -547,6 +561,17 @@ export const AppointmentDetailPage: React.FC = () => {
           false // No es modo edición, es solo vista
         );
 
+        // Enriquecer con datos reales de factura desde paymentData (que sí los tiene)
+        const enrichedGroups = packageGroups.map(pg => {
+          if (!pg.orderId) return pg;
+          const pdata = paymentData.packages.find(p => p.serviceInstanceId === pg.orderId);
+          return {
+            ...pg,
+            isInvoiced:    !!pdata?.invoiceId,
+            isInvoicePaid: pdata?.status === 'paid',
+          };
+        });
+
         return (
           <div className="glass-card">
             <div className="card-header">
@@ -561,18 +586,28 @@ export const AppointmentDetailPage: React.FC = () => {
               {appointment.appointmentServices.length} sesión{appointment.appointmentServices.length > 1 ? 'es' : ''} incluida{appointment.appointmentServices.length > 1 ? 's' : ''}
             </p>
 
-            {/* Usar PackageGroupView para mostrar paquetes agrupados */}
+            {/* Usar PackageGroupView con estado de factura correcto */}
             <PackageGroupView
-              packageGroups={packageGroups}
+              packageGroups={enrichedGroups}
               services={uniqueServices}
-              onRemoveSession={() => {}} // Vista de detalle, sin acciones
-              readOnly={true} // Modo solo lectura: sin botones ni badges de edición
+              onRemoveSession={() => {}}
+              readOnly={true}
             />
 
-            {/* Total */}
+            {/* Total: mostrar estado real según si está pagado o pendiente */}
             <div className="services-total">
               <span className="total-label">Total de Servicios</span>
-              <span className="total-amount">S/. {paymentData.packagesTotal.toFixed(2)}</span>
+              {paymentData.packagesPending <= 0 && paymentData.packagesTotal > 0 ? (
+                <span style={{ fontWeight: 700, color: 'var(--color-success-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.8"/>
+                    <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Pagado
+                </span>
+              ) : (
+                <span className="total-amount">S/. {paymentData.packagesPending.toFixed(2)} pendiente</span>
+              )}
             </div>
           </div>
         );

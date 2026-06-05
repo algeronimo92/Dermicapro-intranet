@@ -19,7 +19,7 @@ export class SessionManagerService {
     serviceId: string,
     orderId: string | undefined,
     patientOrders: Order[],
-    services: Service[],
+    _services: Service[],
     tempPackageCounter: number
   ): { sessions: SessionItem[]; newCounter: number } {
     let sessionNumber: number | undefined = undefined;

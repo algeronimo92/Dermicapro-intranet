@@ -6,7 +6,6 @@ import { Button } from '../components/Button';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { Loading } from '../components/Loading';
-import { Input } from '../components/Input';
 import { DatePicker } from '../components/DatePicker';
 import { Calendar } from '../components/Calendar';
 import { KanbanBoard } from '../components/KanbanBoard';

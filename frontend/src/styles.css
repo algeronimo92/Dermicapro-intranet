@@ -1154,8 +1154,9 @@ body {
 
 .calendar-container-v2 {
   background: var(--color-bg-primary);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
@@ -1178,18 +1179,19 @@ body {
 .btn-today {
   padding: 8px 16px;
   border: 1px solid var(--color-border-primary);
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
 }
 
 .btn-today:hover {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border-secondary);
+  background: var(--color-primary-alpha-10);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .nav-buttons {
@@ -1218,43 +1220,43 @@ body {
 
 .calendar-title-v2 {
   font-size: 22px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
-/* View Switcher */
+/* View Switcher — calendar internal (day/week/month) */
 .view-switcher {
-  display: flex;
+  display: inline-flex;
   gap: 0;
-  border: 1px solid var(--color-border-primary);
-  border-radius: 4px;
-  overflow: hidden;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  padding: 4px;
+  border: 1px solid var(--color-border-secondary);
 }
 
-.view-btn {
-  padding: 8px 16px;
+.view-switcher .view-btn {
+  padding: 7px 16px;
   border: none;
-  background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-right: 1px solid var(--color-border-primary);
-}
-
-.view-btn:last-child {
   border-right: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border-radius: var(--radius-lg);
 }
 
-.view-btn.active {
-  background: var(--color-bg-secondary);
-  color: var(--color-info);
+.view-switcher .view-btn.active {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-sm);
 }
 
-.view-btn:hover:not(.active) {
-  background: var(--color-bg-secondary);
+.view-switcher .view-btn:hover:not(.active) {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .calendar-content {
@@ -1343,12 +1345,12 @@ body {
 
 .appointment-item {
   padding: 4px 6px;
-  border-left: 3px solid;
-  border-radius: 2px;
-  background: var(--color-bg-secondary);
+  border-left: 3px solid var(--apt-color, var(--color-primary));
+  border-radius: var(--radius-sm);
+  background: var(--apt-bg, var(--color-bg-secondary));
   font-size: 11px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-base);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1406,6 +1408,12 @@ body {
   padding: 10px;
   text-align: center;
   border-right: 1px solid var(--color-border-primary);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.week-day-header:hover {
+  background: var(--color-bg-secondary);
 }
 
 .week-day-header:last-child {
@@ -1470,7 +1478,7 @@ body {
 }
 
 .day-column.today {
-  background: var(--color-warning-alpha-10);
+  background: var(--color-primary-alpha-10);
 }
 
 .hour-slot {
@@ -1486,17 +1494,25 @@ body {
   background-repeat: no-repeat;
 }
 
+/* Status color tokens — used by both appointment-block and appointment-item */
+.apt-status-reserved    { --apt-color: var(--color-status-scheduled);   --apt-bg: var(--color-status-scheduled-bg); }
+.apt-status-in-progress { --apt-color: var(--color-status-in-progress); --apt-bg: var(--color-status-in-progress-bg); }
+.apt-status-attended    { --apt-color: var(--color-status-completed);   --apt-bg: var(--color-status-completed-bg); }
+.apt-status-cancelled   { --apt-color: var(--color-status-cancelled);   --apt-bg: var(--color-status-cancelled-bg); }
+.apt-status-no-show     { --apt-color: var(--color-status-no-show);     --apt-bg: var(--color-status-no-show-bg); }
+
 .appointment-block {
   position: absolute;
   left: 4px;
   right: 4px;
-  min-height: 30px; /* Minimum duration is 30 minutes (1px = 1 minute) */
-  padding: 3px 6px;
-  border-radius: 4px;
-  color: var(--color-bg-primary);
+  min-height: 30px;
+  padding: 4px 8px 4px 10px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--apt-color, var(--color-primary));
+  background: var(--apt-bg, var(--color-primary-alpha-10));
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
   z-index: 5;
   display: flex;
@@ -1505,119 +1521,62 @@ body {
 }
 
 .appointment-block:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   transform: scale(1.02);
   z-index: 10;
+  filter: brightness(0.97);
 }
 
 .appointment-block .apt-time {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   margin-bottom: 1px;
-  color: var(--color-bg-primary);
+  color: var(--apt-color, var(--color-primary));
   line-height: 1.2;
 }
 
 .appointment-block .apt-title {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--font-weight-semibold);
   margin-bottom: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+  color: var(--color-text-primary);
 }
 
 .appointment-block .apt-service {
   font-size: 9px;
-  opacity: 0.9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+  color: var(--color-text-secondary);
 }
 
-/* For small appointments (30-45 minutes), hide service name and use inline layout */
-.appointment-block[style*="height: 30px"],
-.appointment-block[style*="height: 31px"],
-.appointment-block[style*="height: 32px"],
-.appointment-block[style*="height: 33px"],
-.appointment-block[style*="height: 34px"],
-.appointment-block[style*="height: 35px"],
-.appointment-block[style*="height: 36px"],
-.appointment-block[style*="height: 37px"],
-.appointment-block[style*="height: 38px"],
-.appointment-block[style*="height: 39px"],
-.appointment-block[style*="height: 40px"],
-.appointment-block[style*="height: 41px"],
-.appointment-block[style*="height: 42px"],
-.appointment-block[style*="height: 43px"],
-.appointment-block[style*="height: 44px"],
-.appointment-block[style*="height: 45px"] {
-  padding: 2px 4px;
+/* Compact appointments (≤ 45 min) — inline layout, service hidden */
+.appointment-block.apt-compact {
   flex-direction: row;
   align-items: center;
   gap: 4px;
+  padding: 2px 6px 2px 8px;
 }
 
-.appointment-block[style*="height: 30px"] .apt-service,
-.appointment-block[style*="height: 31px"] .apt-service,
-.appointment-block[style*="height: 32px"] .apt-service,
-.appointment-block[style*="height: 33px"] .apt-service,
-.appointment-block[style*="height: 34px"] .apt-service,
-.appointment-block[style*="height: 35px"] .apt-service,
-.appointment-block[style*="height: 36px"] .apt-service,
-.appointment-block[style*="height: 37px"] .apt-service,
-.appointment-block[style*="height: 38px"] .apt-service,
-.appointment-block[style*="height: 39px"] .apt-service,
-.appointment-block[style*="height: 40px"] .apt-service,
-.appointment-block[style*="height: 41px"] .apt-service,
-.appointment-block[style*="height: 42px"] .apt-service,
-.appointment-block[style*="height: 43px"] .apt-service,
-.appointment-block[style*="height: 44px"] .apt-service,
-.appointment-block[style*="height: 45px"] .apt-service {
-  display: none;
-}
-
-.appointment-block[style*="height: 30px"] .apt-time,
-.appointment-block[style*="height: 31px"] .apt-time,
-.appointment-block[style*="height: 32px"] .apt-time,
-.appointment-block[style*="height: 33px"] .apt-time,
-.appointment-block[style*="height: 34px"] .apt-time,
-.appointment-block[style*="height: 35px"] .apt-time,
-.appointment-block[style*="height: 36px"] .apt-time,
-.appointment-block[style*="height: 37px"] .apt-time,
-.appointment-block[style*="height: 38px"] .apt-time,
-.appointment-block[style*="height: 39px"] .apt-time,
-.appointment-block[style*="height: 40px"] .apt-time,
-.appointment-block[style*="height: 41px"] .apt-time,
-.appointment-block[style*="height: 42px"] .apt-time,
-.appointment-block[style*="height: 43px"] .apt-time,
-.appointment-block[style*="height: 44px"] .apt-time,
-.appointment-block[style*="height: 45px"] .apt-time {
+.appointment-block.apt-compact .apt-time {
   margin-bottom: 0;
   font-size: 9px;
+  flex-shrink: 0;
 }
 
-.appointment-block[style*="height: 30px"] .apt-title,
-.appointment-block[style*="height: 31px"] .apt-title,
-.appointment-block[style*="height: 32px"] .apt-title,
-.appointment-block[style*="height: 33px"] .apt-title,
-.appointment-block[style*="height: 34px"] .apt-title,
-.appointment-block[style*="height: 35px"] .apt-title,
-.appointment-block[style*="height: 36px"] .apt-title,
-.appointment-block[style*="height: 37px"] .apt-title,
-.appointment-block[style*="height: 38px"] .apt-title,
-.appointment-block[style*="height: 39px"] .apt-title,
-.appointment-block[style*="height: 40px"] .apt-title,
-.appointment-block[style*="height: 41px"] .apt-title,
-.appointment-block[style*="height: 42px"] .apt-title,
-.appointment-block[style*="height: 43px"] .apt-title,
-.appointment-block[style*="height: 44px"] .apt-title,
-.appointment-block[style*="height: 45px"] .apt-title {
+.appointment-block.apt-compact .apt-title {
   margin-bottom: 0;
   font-size: 10px;
   flex: 1;
+}
+
+.appointment-block.apt-compact .apt-service {
+  display: none;
 }
 
 /* Drag & Drop Styles */
@@ -1731,7 +1690,8 @@ body {
 }
 
 .resize-handle:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--apt-color, var(--color-primary));
+  opacity: 0.25;
 }
 
 .resize-handle-top {
@@ -1740,7 +1700,8 @@ body {
 }
 
 .resize-handle-top:hover {
-  border-top-color: rgba(255, 255, 255, 0.8);
+  border-top-color: var(--apt-color, var(--color-primary));
+  opacity: 0.6;
 }
 
 .resize-handle-bottom {
@@ -1749,7 +1710,8 @@ body {
 }
 
 .resize-handle-bottom:hover {
-  border-bottom-color: rgba(255, 255, 255, 0.8);
+  border-bottom-color: var(--apt-color, var(--color-primary));
+  opacity: 0.6;
 }
 
 .appointment-block.resizing {
@@ -1761,17 +1723,18 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 4px;
+  border: 2px dashed var(--apt-color, var(--color-primary));
+  border-radius: var(--radius-md);
+  background: var(--apt-bg, var(--color-primary-alpha-10));
   pointer-events: none;
   z-index: 100;
-  opacity: 0.6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  opacity: 0.75;
+  box-shadow: var(--shadow-sm);
 }
 
 .resize-preview-indicator .preview-time-label {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: var(--color-bg-primary);
+  background-color: var(--apt-color, var(--color-primary));
+  color: var(--color-on-primary);
 }
 
 /* ========================================
@@ -1968,8 +1931,9 @@ body {
     width: 100%;
   }
 
-  .view-btn {
+  .view-switcher .view-btn {
     flex: 1;
+    justify-content: center;
   }
 
   .calendar-title-v2 {

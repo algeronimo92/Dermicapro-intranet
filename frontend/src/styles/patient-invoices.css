@@ -484,3 +484,11 @@
     margin-top: var(--spacing-md);
   }
 }
+
+/* ── CREATE INVOICE: Price edit area ── */
+.cinv-price-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}

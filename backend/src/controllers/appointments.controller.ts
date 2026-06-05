@@ -6,7 +6,7 @@ import { ROLES } from '../constants/roles';
 
 export const getAllAppointments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '10', status, date, dateFrom, dateTo, userId, showCancelled } = req.query;
+    const { page = '1', limit = '10', status, date, dateFrom, dateTo, userId, showCancelled, patientId } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
@@ -31,6 +31,10 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
       if (dateRange.gte || dateRange.lte) {
         where.scheduledDate = dateRange;
       }
+    }
+
+    if (patientId) {
+      where.patientId = patientId;
     }
 
     if (req.user?.roleName === ROLES.SALES) {
@@ -133,6 +137,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
           orderBy: { createdAt: 'desc' },
         },
         appointmentServices: {
+          where: { deletedAt: null },   // excluir sesiones soft-deleted
           include: {
             serviceInstance: {
               include: {
@@ -351,10 +356,16 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
       // PASO 1: Soft delete de sesiones marcadas
       // ============================================
       if (sessionOperations?.toDelete && sessionOperations.toDelete.length > 0) {
+        // Obtener las sesiones a eliminar para saber a qué orders pertenecen
+        const sessionsToDelete = await tx.session.findMany({
+          where: { id: { in: sessionOperations.toDelete }, appointmentId: id },
+          select: { id: true, serviceInstanceId: true },
+        });
+
         await tx.session.updateMany({
           where: {
             id: { in: sessionOperations.toDelete },
-            appointmentId: id,  // Seguridad: solo de esta cita
+            appointmentId: id,
           },
           data: {
             deletedAt: new Date(),
@@ -362,6 +373,21 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
             deleteReason: 'Eliminado por usuario desde simulación',
           },
         });
+
+        // Si un serviceInstance queda sin sesiones activas Y sin factura → eliminarlo
+        const affectedOrderIds = [...new Set(sessionsToDelete.map(s => s.serviceInstanceId).filter(Boolean))];
+        for (const orderId of affectedOrderIds) {
+          const order = await tx.serviceInstance.findUnique({
+            where: { id: orderId! },
+            include: { appointmentServices: { where: { deletedAt: null } } },
+          });
+          if (order && order.appointmentServices.length === 0 && !order.invoiceId) {
+            // Eliminar primero TODAS las sesiones (incluidas soft-deleted) para liberar el FK
+            await tx.session.deleteMany({ where: { serviceInstanceId: orderId! } });
+            // Ahora eliminar el serviceInstance
+            await tx.serviceInstance.delete({ where: { id: orderId! } });
+          }
+        }
       }
 
       // ============================================

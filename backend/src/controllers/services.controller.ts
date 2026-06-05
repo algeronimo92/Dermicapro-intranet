@@ -15,7 +15,7 @@ export const getServices = async (req: Request, res: Response) => {
   }
 };
 
-export const getActiveServices = async (req: Request, res: Response) => {
+export const getActiveServices = async (_req: Request, res: Response) => {
   try {
     const services = await prisma.serviceTemplate.findMany({
       where: {

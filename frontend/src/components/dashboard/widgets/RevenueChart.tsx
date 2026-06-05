@@ -65,8 +65,8 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
             style={{ fontSize: '12px' }}
           />
           <Tooltip
-            formatter={(value: number) => [formatCurrency(value), 'Ingresos']}
-            labelFormatter={formatMonth}
+            formatter={(value: unknown) => [formatCurrency(typeof value === 'number' ? value : 0), 'Ingresos']}
+            labelFormatter={(label: unknown) => typeof label === 'string' ? formatMonth(label) : ''}
             contentStyle={{
               backgroundColor: '#ffffff',
               border: '1px solid #e5e7eb',

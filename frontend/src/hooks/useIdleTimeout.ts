@@ -34,10 +34,10 @@ export function useIdleTimeout({ timeout, warningBefore, onTimeout }: Options): 
   const onTimeoutRef = useRef(onTimeout);
   useEffect(() => { onTimeoutRef.current = onTimeout; }, [onTimeout]);
 
-  const logoutTimerRef  = useRef<ReturnType<typeof setTimeout>>();
-  const warningTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const countdownRef    = useRef<ReturnType<typeof setInterval>>();
-  const renderTickRef   = useRef<ReturnType<typeof setInterval>>();
+  const logoutTimerRef  = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const countdownRef    = useRef<ReturnType<typeof setInterval>>(undefined);
+  const renderTickRef   = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const clearAllTimers = useCallback(() => {
     clearTimeout(logoutTimerRef.current);

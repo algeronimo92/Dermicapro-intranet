@@ -33,7 +33,7 @@ router.use('/analytics', analyticsRoutes);
 router.use('/roles', rolesRoutes);
 router.use('/settings', settingsRoutes);
 
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 

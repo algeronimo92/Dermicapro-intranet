@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { AnalyticsFilters } from '../../types/analytics.types';
+import prismaClient from '../../config/database';
 import { ExecutiveSummaryStrategy } from './strategies/ExecutiveSummaryStrategy';
 import { FinancialAnalyticsStrategy } from './strategies/FinancialAnalyticsStrategy';
 import { OperationsAnalyticsStrategy } from './strategies/OperationsAnalyticsStrategy';
@@ -11,7 +12,7 @@ class AnalyticsService {
   private prisma: PrismaClient;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = prismaClient;
   }
 
   async getExecutiveSummary(filters?: AnalyticsFilters) {

@@ -139,12 +139,14 @@ export const useAppointmentForm = () => {
       const minutes = String(scheduledDate.getMinutes()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
 
+      const latestNote = appointment.appointmentNotes?.[0]?.note || '';
+
       setFormData({
         patientId: appointment.patientId,
         scheduledDate: formattedDate,
         durationMinutes: appointment.durationMinutes,
         reservationAmount: appointment.reservationAmount,
-        notes: appointment.notes || '',
+        notes: latestNote,
         services: []
       });
 

@@ -15,7 +15,6 @@
 // CONSTANTES
 // ============================================
 
-const PERU_TIMEZONE = 'America/Lima'; // GMT-5
 const LOCALE_ES_PE = 'es-PE';
 
 // ============================================

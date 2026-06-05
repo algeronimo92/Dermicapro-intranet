@@ -95,7 +95,7 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
   const [error, setError] = useState<string | null>(null);
 
   const context: TransitionContext = { appointment, user, metadata: {} };
-  const availableTransitions = getAvailableTransitions(currentStatus, undefined, context);
+  const availableTransitions = getAvailableTransitions(currentStatus, user?.role, context);
 
   const primaryTransitions = availableTransitions.filter(t => isPrimary(currentStatus, t.to));
   const secondaryTransitions = availableTransitions.filter(t => !isPrimary(currentStatus, t.to));
@@ -105,7 +105,7 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
   const handleClick = async (newStatus: AppointmentStatus) => {
     setError(null);
 
-    const validation = canTransition(currentStatus, newStatus, undefined, context);
+    const validation = canTransition(currentStatus, newStatus, user?.role, context);
     if (!validation.allowed) {
       setError(validation.reason || 'Transición no permitida');
       return;

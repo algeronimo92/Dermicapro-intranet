@@ -22,6 +22,12 @@ interface ColumnConfig {
   colorClass: string;
 }
 
+const FINAL_STATES: AppointmentStatus[] = [
+  AppointmentStatus.attended,
+  AppointmentStatus.cancelled,
+  AppointmentStatus.no_show,
+];
+
 const COLUMNS: ColumnConfig[] = [
   { status: AppointmentStatus.reserved,    label: 'Reservada',   icon: '📅', colorClass: 'kanban-col-reserved'   },
   { status: AppointmentStatus.in_progress, label: 'En Atención', icon: '⏳', colorClass: 'kanban-col-progress'   },
@@ -69,6 +75,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent, appointmentId: string) => {
+    const apt = appointments.find(a => a.id === appointmentId);
+    if (apt && FINAL_STATES.includes(apt.status)) {
+      e.preventDefault();
+      return;
+    }
     setDraggingId(appointmentId);
     setErrorMsg(null);
     e.dataTransfer.effectAllowed = 'move';
@@ -202,16 +213,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   const services = apt.appointmentServices
                     ?.map(as => as.serviceInstance?.service?.name)
                     .filter(Boolean) || [];
-                  const isDragging = apt.id === draggingId;
+                  const isDragging  = apt.id === draggingId;
+                  const isFinal    = FINAL_STATES.includes(apt.status);
 
                   return (
                     <div
                       key={apt.id}
-                      className={`kanban-card ${isDragging ? 'is-dragging' : ''}`}
-                      draggable
+                      className={`kanban-card ${isDragging ? 'is-dragging' : ''} ${isFinal ? 'kanban-card--final' : ''}`}
+                      draggable={!isFinal}
                       onDragStart={e => handleDragStart(e, apt.id)}
                       onDragEnd={handleDragEnd}
                       onClick={() => !draggingId && navigate(`/appointments/${apt.id}`)}
+                      title={isFinal ? 'Las citas en estado final no se pueden mover' : undefined}
                     >
                       <div className="kanban-card-top">
                         <div className="kanban-card-patient">

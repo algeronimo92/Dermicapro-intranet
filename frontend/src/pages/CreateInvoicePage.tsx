@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { invoicesService } from '../services/invoices.service';
 import { patientsService } from '../services/patients.service';
@@ -9,18 +9,22 @@ import '../styles/patient-invoices.css';
 
 const CreateInvoicePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [uninvoicedOrders, setUninvoicedOrders] = useState<Order[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [patient, setPatient]             = useState<Patient | null>(null);
+  const [uninvoicedOrders, setOrders]     = useState<Order[]>([]);
+  const [selectedIds, setSelectedIds]     = useState<string[]>([]);
+  const [editedPrices, setEditedPrices]   = useState<Record<string, string>>({});
+  const [editingId, setEditingId]         = useState<string | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+  const [creating, setCreating]           = useState(false);
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
-    const fetch = async () => {
+    (async () => {
       try {
         setLoading(true);
         setError(null);
@@ -29,15 +33,24 @@ const CreateInvoicePage: React.FC = () => {
           invoicesService.getUninvoicedOrders(id),
         ]);
         setPatient(patientData);
-        setUninvoicedOrders(ordersData);
+        setOrders(ordersData);
+        setSelectedIds(ordersData.map(o => o.id)); // seleccionar todo por defecto
       } catch (err: any) {
         setError(err.response?.data?.error || 'Error al cargar los datos');
       } finally {
         setLoading(false);
       }
-    };
-    fetch();
+    })();
   }, [id]);
+
+  useEffect(() => {
+    if (editingId && inputRef.current) inputRef.current.focus();
+  }, [editingId]);
+
+  const getPrice = (order: Order) =>
+    editedPrices[order.id] !== undefined
+      ? parseFloat(editedPrices[order.id]) || 0
+      : Number(order.finalPrice);
 
   const toggleOrder = (orderId: string) =>
     setSelectedIds(prev =>
@@ -51,14 +64,46 @@ const CreateInvoicePage: React.FC = () => {
 
   const total = uninvoicedOrders
     .filter(o => selectedIds.includes(o.id))
-    .reduce((sum, o) => sum + Number(o.finalPrice), 0);
+    .reduce((sum, o) => sum + getPrice(o), 0);
+
+  const handlePriceEdit = (orderId: string, val: string) =>
+    setEditedPrices(prev => ({ ...prev, [orderId]: val }));
+
+  const commitPrice = (order: Order) => {
+    const raw = editedPrices[order.id];
+    if (raw === undefined) return;
+    const num = parseFloat(raw);
+    if (isNaN(num) || num < 0) {
+      // Revertir al precio original
+      setEditedPrices(prev => { const next = { ...prev }; delete next[order.id]; return next; });
+    } else {
+      setEditedPrices(prev => ({ ...prev, [order.id]: num.toFixed(2) }));
+    }
+    setEditingId(null);
+  };
 
   const handleCreate = async () => {
     if (!id || selectedIds.length === 0) return;
     try {
       setCreating(true);
       setError(null);
-      await invoicesService.createInvoice({ serviceInstanceIds: selectedIds, patientId: id });
+
+      // Solo enviar overrides donde el precio cambió
+      const priceOverrides = selectedIds
+        .filter(oid => {
+          const order = uninvoicedOrders.find(o => o.id === oid);
+          if (!order) return false;
+          const edited = editedPrices[oid];
+          if (edited === undefined) return false;
+          return parseFloat(edited) !== Number(order.finalPrice);
+        })
+        .map(oid => ({ id: oid, finalPrice: parseFloat(editedPrices[oid]) }));
+
+      await invoicesService.createInvoice({
+        serviceInstanceIds: selectedIds,
+        patientId: id,
+        priceOverrides: priceOverrides.length > 0 ? priceOverrides : undefined,
+      });
       navigate(`/patients/${id}/invoices`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al crear la factura');
@@ -80,18 +125,11 @@ const CreateInvoicePage: React.FC = () => {
     );
   }
 
-  if (!patient) {
-    return (
-      <div className="page-container">
-        <p style={{ color: 'var(--color-text-tertiary)' }}>Paciente no encontrado</p>
-      </div>
-    );
-  }
+  if (!patient) return <div className="page-container"><p>Paciente no encontrado</p></div>;
 
   return (
     <div className="page-container" style={{ maxWidth: 720 }}>
 
-      {/* ── Back ── */}
       <button className="invoices-back-button" onClick={goBack}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -99,7 +137,6 @@ const CreateInvoicePage: React.FC = () => {
         Volver a Facturas
       </button>
 
-      {/* ── Header con avatar ── */}
       <div className="invoices-patient-strip" style={{ marginBottom: 'var(--spacing-xl)' }}>
         <div className="invoices-patient-avatar">
           {patient.photoUrl
@@ -142,52 +179,115 @@ const CreateInvoicePage: React.FC = () => {
               <button
                 onClick={toggleAll}
                 style={{
-                  background: 'transparent',
-                  border: '1.5px solid var(--color-border-primary)',
-                  padding: '5px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 'var(--font-weight-semibold)',
-                  color: 'var(--color-text-secondary)',
-                  fontFamily: 'inherit',
-                  transition: 'all var(--transition-fast)',
-                }}
-                onMouseEnter={e => {
-                  (e.target as HTMLElement).style.borderColor = 'var(--color-primary)';
-                  (e.target as HTMLElement).style.color = 'var(--color-primary)';
-                }}
-                onMouseLeave={e => {
-                  (e.target as HTMLElement).style.borderColor = 'var(--color-border-primary)';
-                  (e.target as HTMLElement).style.color = 'var(--color-text-secondary)';
+                  background: 'transparent', border: '1.5px solid var(--color-border-primary)',
+                  padding: '5px 12px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                  fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)',
+                  color: 'var(--color-text-secondary)', fontFamily: 'inherit',
                 }}
               >
                 {selectedIds.length === uninvoicedOrders.length ? 'Deseleccionar todas' : 'Seleccionar todas'}
               </button>
             </div>
 
+            {/* Hint de edición */}
+            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', margin: '0 0 var(--spacing-md)', padding: '0 var(--spacing-lg)' }}>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style={{ display: 'inline', marginRight: 4 }}>
+                <path d="M11 2.5a1.77 1.77 0 112.5 2.5L4 14.5l-3 .5.5-3L11 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              Haz clic en el precio para ajustarlo antes de generar la factura
+            </p>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
               {uninvoicedOrders.map(order => {
-                const isSelected = selectedIds.includes(order.id);
+                const isSelected  = selectedIds.includes(order.id);
+                const isEditing   = editingId === order.id;
+                const currentPx   = getPrice(order);
+                const originalPx  = Number(order.finalPrice);
+                const hasDiscount = editedPrices[order.id] !== undefined && currentPx !== originalPx;
+                const discountPct = originalPx > 0 ? Math.round((1 - currentPx / originalPx) * 100) : 0;
+
                 return (
                   <div
                     key={order.id}
                     className={`cinv-order${isSelected ? ' cinv-order--selected' : ''}`}
-                    onClick={() => toggleOrder(order.id)}
+                    onClick={e => {
+                      // No togglear si hicieron clic en el precio (input area)
+                      const target = e.target as HTMLElement;
+                      if (target.closest('.cinv-price-edit')) return;
+                      toggleOrder(order.id);
+                    }}
                   >
-                    <input
-                      type="checkbox"
-                      className="cinv-order__checkbox"
-                      checked={isSelected}
-                      readOnly
-                    />
+                    <input type="checkbox" className="cinv-order__checkbox" checked={isSelected} readOnly />
+
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="cinv-order__name">{order.service?.name || 'Servicio'}</div>
                       <div className="cinv-order__meta">
                         {order.totalSessions} {order.totalSessions === 1 ? 'sesión' : 'sesiones'} · {order.completedSessions} completadas
                       </div>
                     </div>
-                    <div className="cinv-order__price">S/. {Number(order.finalPrice).toFixed(2)}</div>
+
+                    {/* ── Precio editable ── */}
+                    <div className="cinv-price-edit" onClick={e => e.stopPropagation()}>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', fontWeight: 600 }}>S/.</span>
+                          <input
+                            ref={inputRef}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editedPrices[order.id] ?? originalPx.toFixed(2)}
+                            onChange={e => handlePriceEdit(order.id, e.target.value)}
+                            onBlur={() => commitPrice(order)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') commitPrice(order);
+                              if (e.key === 'Escape') { setEditedPrices(prev => { const n = { ...prev }; delete n[order.id]; return n; }); setEditingId(null); }
+                            }}
+                            style={{
+                              width: 90, padding: '4px 8px', textAlign: 'right',
+                              border: '2px solid var(--color-primary)', borderRadius: 'var(--radius-md)',
+                              background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)',
+                              fontSize: 'var(--font-size-sm)', fontWeight: 700, fontFamily: 'inherit',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(order.id)}
+                          title="Editar precio"
+                          style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2,
+                            background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+                            borderRadius: 'var(--radius-md)',
+                            transition: 'background var(--transition-fast)',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-alpha-10)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: hasDiscount ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                            S/. {currentPx.toFixed(2)}
+                          </span>
+                          {hasDiscount && (
+                            <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textDecoration: 'line-through' }}>
+                              S/. {originalPx.toFixed(2)}
+                            </span>
+                          )}
+                          {hasDiscount && discountPct > 0 && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-success-dark)', background: 'var(--color-success-alpha-10)', padding: '1px 5px', borderRadius: 'var(--radius-full)' }}>
+                              −{discountPct}%
+                            </span>
+                          )}
+                        </button>
+                      )}
+                      {/* Icono lápiz */}
+                      {!isEditing && (
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--color-text-tertiary)', flexShrink: 0 }}>
+                          <path d="M11 2.5a1.77 1.77 0 112.5 2.5L4 14.5l-3 .5.5-3L11 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
                   </div>
                 );
               })}

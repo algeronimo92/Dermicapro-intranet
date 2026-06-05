@@ -6,6 +6,7 @@ import {
   updatePayment,
   deletePayment,
   uploadReceipt,
+  addCredit,
 } from '../controllers/payments.controller';
 import { authenticate } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';

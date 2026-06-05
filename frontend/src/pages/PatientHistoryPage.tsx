@@ -26,6 +26,17 @@ interface PatientHistory {
     lastAttendedDate: string | null;
     lastAppointmentDate: string | null;
   };
+  concludedOrders?: Array<{
+    id: string;
+    concludedAt: string;
+    concludeReason: string | null;
+    totalSessions: number;
+    service: { id: string; name: string } | null;
+    concludedBy: { id: string; firstName: string; lastName: string } | null;
+    appointmentServices: Array<{
+      appointment?: { status: string } | null;
+    }>;
+  }>;
   appointments: Array<{
     id: string;
     scheduledDate: string;
@@ -71,7 +82,8 @@ const statusLabels: Record<AppointmentStatus, string> = {
   no_show: 'No asistió',
 };
 
-const photoBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+// URL relativa — el proxy de Vite enruta /uploads al backend
+const photoBase = '';
 
 export const PatientHistoryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -196,17 +208,91 @@ export const PatientHistoryPage: React.FC = () => {
           {showAll ? 'Historial de Citas' : 'Historial de Procedimientos'}
         </h2>
 
-        {displayList.length === 0 ? (
-          <div className="phist-empty">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ margin: '0 auto var(--spacing-md)', display: 'block' }}>
-              <rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
-              <path d="M14 16h20M14 22h20M14 28h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            {showAll ? 'No hay citas registradas para este paciente' : 'No hay registros médicos para este paciente'}
-          </div>
-        ) : (
+        {(() => {
+          // Eventos de citas
+          const aptEvents = displayList.map(apt => ({
+            type: 'appointment' as const,
+            date: apt.scheduledDate,
+            apt,
+          }));
+
+          // Eventos de tratamientos concluidos (siempre visibles, independiente del tab)
+          const concludedEvents = (history.concludedOrders || []).map(order => ({
+            type: 'concluded' as const,
+            date: order.concludedAt,
+            order,
+          }));
+
+          // Mezclar y ordenar por fecha descendente
+          const allEvents = [...aptEvents, ...concludedEvents].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+
+          if (allEvents.length === 0) return (
+            <div className="phist-empty">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ margin: '0 auto var(--spacing-md)', display: 'block' }}>
+                <rect x="8" y="6" width="32" height="36" rx="3" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>
+                <path d="M14 16h20M14 22h20M14 28h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              {showAll ? 'No hay citas registradas para este paciente' : 'No hay registros médicos para este paciente'}
+            </div>
+          );
+
+          return (
           <div className="timeline">
-            {displayList.map(apt => (
+            {allEvents.map((event) => {
+              /* ── Evento: Tratamiento Concluido ── */
+              if (event.type === 'concluded') {
+                const order = event.order;
+                const attended = order.appointmentServices.filter(as => as.appointment?.status === 'attended').length;
+                const remaining = order.totalSessions - attended;
+                return (
+                  <div key={`concluded-${order.id}`} className="timeline-item">
+                    <div className="timeline-marker" style={{ background: 'var(--color-warning)', color: '#fff', fontSize: 13, fontWeight: 700 }}>
+                      ■
+                    </div>
+                    <div className="timeline-content" style={{ borderLeft: '3px solid var(--color-warning)', paddingLeft: 'var(--spacing-md)' }}>
+                      <div className="timeline-header">
+                        <div>
+                          <p className="phist-apt-date" style={{ color: 'var(--color-warning)', fontSize: 'var(--font-size-base)' }}>
+                            Tratamiento concluido anticipadamente
+                          </p>
+                          <p className="phist-apt-meta">
+                            {formatDate(order.concludedAt)}
+                            {order.concludedBy && ` · por ${order.concludedBy.firstName} ${order.concludedBy.lastName}`}
+                          </p>
+                        </div>
+                        <span className="phist-status-badge" style={{ background: 'var(--color-warning)', color: '#fff' }}>
+                          Concluido
+                        </span>
+                      </div>
+
+                      {/* Detalle del tratamiento */}
+                      <div style={{ marginTop: 'var(--spacing-sm)', padding: 'var(--spacing-sm) var(--spacing-md)', background: 'var(--color-warning-alpha-10)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-warning)' }}>
+                        <div style={{ fontWeight: 700, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-primary)', marginBottom: 4 }}>
+                          {order.service?.name || 'Servicio'}
+                        </div>
+                        <div style={{ fontSize: 'var(--font-size-xs)', display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+                          <span style={{ color: 'var(--color-success-dark)', fontWeight: 600 }}>✓ {attended} completada{attended !== 1 ? 's' : ''}</span>
+                          {remaining > 0 && (
+                            <span style={{ color: 'var(--color-error)', fontWeight: 600 }}>✕ {remaining} sin completar</span>
+                          )}
+                          <span style={{ color: 'var(--color-text-tertiary)' }}>de {order.totalSessions} totales</span>
+                        </div>
+                        {order.concludeReason && (
+                          <div style={{ marginTop: 6, fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', fontStyle: 'italic', borderTop: '1px solid var(--color-border-secondary)', paddingTop: 6 }}>
+                            Motivo: "{order.concludeReason}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              /* ── Evento: Cita ── */
+              const apt = event.apt;
+              return (
               <div key={apt.id} className="timeline-item">
 
                 {/* Marker con color de estado */}
@@ -359,9 +445,11 @@ export const PatientHistoryPage: React.FC = () => {
                   )}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

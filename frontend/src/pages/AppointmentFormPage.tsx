@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { appointmentsService, CreateAppointmentDto } from '../services/appointments.service';
 import { servicesService } from '../services/services.service';
 import { patientsService } from '../services/patients.service';
-import { Service, Order } from '../types';
+import { Service, Order, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
@@ -14,12 +14,13 @@ import { UploadReservationModal } from '../components/UploadReservationModal';
 import { PackageGroupView } from '../components/PackageGroupView';
 import { DateTimePicker } from '../components/DateTimePicker';
 import { packageSimulator } from '../utils/packageSimulation';
+import { formatDate } from '../utils/dateUtils';
+import PendingSessionsPicker from '../components/PendingSessionsPicker';
 import {
   utcToLocal,
   localToUTC,
   getLocalDateTimeString,
   addMinutes,
-  parseLocalDateTime,
   isDateTimeInPast
 } from '../utils/dateUtils';
 
@@ -47,6 +48,11 @@ export const AppointmentFormPage: React.FC = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [patientOrders, setPatientOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [patientBlockedByApt, setPatientBlockedByApt] = useState<{
+    status: 'reserved' | 'in_progress';
+    service: string;
+    date: string;
+  } | null>(null);
 
   // Upload receipt modal
   const [showUploadReceiptModal, setShowUploadReceiptModal] = useState(false);
@@ -95,7 +101,9 @@ export const AppointmentFormPage: React.FC = () => {
     return 30;
   };
 
-  const [formData, setFormData] = useState<CreateAppointmentDto>({
+  type AppointmentFormData = CreateAppointmentDto & { notes: string };
+
+  const [formData, setFormData] = useState<AppointmentFormData>({
     patientId: preselectedPatientId || '',
     serviceId: preselectedServiceId || '',
     scheduledDate: getDefaultScheduledDate(),
@@ -105,6 +113,7 @@ export const AppointmentFormPage: React.FC = () => {
     orderId: preselectedOrderId || undefined,
     services: []
   });
+
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -181,8 +190,8 @@ export const AppointmentFormPage: React.FC = () => {
         scheduledDate: formattedDate,
         durationMinutes: appointment.durationMinutes,
         reservationAmount: appointment.reservationAmount,
-        notes: appointment.notes || '',
-        services: [] // Services are managed separately in edit mode
+        notes: '',
+        services: []
       });
 
       // Load reservation receipt if exists
@@ -241,19 +250,43 @@ export const AppointmentFormPage: React.FC = () => {
 
       // Filter orders that have pending sessions (not fully completed)
       const activeOrders = patient.orders?.filter(order => {
+        // Excluir órdenes concluidas anticipadamente
+        if (order.concludedAt) return false;
         const appointmentServices = order.appointmentServices || [];
-        // Only count non-cancelled appointments
         const nonCancelledAppointments = appointmentServices.filter((a: any) => a.appointment?.status !== 'cancelled');
         const completedSessions = nonCancelledAppointments.filter((a: any) => a.appointment?.status === 'attended').length;
-
-        // Only show orders that have pending sessions
         return completedSessions < order.totalSessions;
       }) || [];
 
       setPatientOrders(activeOrders);
+
+      // Verificar si el paciente ya tiene una cita activa (reserved o in_progress)
+      // En modo edición se excluye la cita que se está editando
+      const [reservedRes, inProgressRes] = await Promise.all([
+        appointmentsService.getAppointments({ patientId, status: AppointmentStatus.reserved, limit: 5 }),
+        appointmentsService.getAppointments({ patientId, status: AppointmentStatus.in_progress, limit: 5 }),
+      ]);
+
+      const allActive = [
+        ...reservedRes.data.map(a => ({ ...a, status: 'reserved' as const })),
+        ...inProgressRes.data.map(a => ({ ...a, status: 'in_progress' as const })),
+      ].filter(a => !isEditMode || a.id !== id); // excluir la cita actual en modo edición
+
+      if (allActive.length > 0) {
+        const apt = allActive[0];
+        const service = apt.appointmentServices?.[0]?.serviceInstance?.service?.name ?? 'Cita';
+        setPatientBlockedByApt({
+          status: apt.status,
+          service,
+          date: apt.scheduledDate,
+        });
+      } else {
+        setPatientBlockedByApt(null);
+      }
     } catch (err: any) {
       console.error('Error loading patient orders:', err);
       setPatientOrders([]);
+      setPatientBlockedByApt(null);
     } finally {
       setLoadingOrders(false);
     }
@@ -263,9 +296,11 @@ export const AppointmentFormPage: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       patientId,
-      orderId: undefined, // Reset order selection when patient changes
-      serviceId: preselectedServiceId || '' // Reset service unless pre-selected
+      orderId: undefined,
+      serviceId: preselectedServiceId || ''
     }));
+    if (!patientId) setPatientBlockedByApt(null);
+
     if (errors.patientId) {
       setErrors(prev => ({ ...prev, patientId: '' }));
     }
@@ -343,6 +378,24 @@ export const AppointmentFormPage: React.FC = () => {
     // Reset selectors
     setSelectedSessionServiceId('');
     setSelectedSessionOrderId('');
+  };
+
+  const handleQuickAddFromOrder = (order: Order) => {
+    const appointmentServices = order.appointmentServices || [];
+    // Solo occupied: attended + reserved + in_progress (cancelled y no_show liberan el slot)
+    const active = appointmentServices.filter((a: any) => {
+      const s = a.appointment?.status;
+      return s === 'attended' || s === 'reserved' || s === 'in_progress';
+    });
+    const occupiedNumbers = new Set(active.map((a: any) => a.sessionNumber).filter(Boolean));
+    const sessionsInForm = allSessions.filter(s => s.orderId === order.id);
+    sessionsInForm.forEach(s => { if (s.sessionNumber) occupiedNumbers.add(s.sessionNumber); });
+    let sessionNumber = 1;
+    while (occupiedNumbers.has(sessionNumber)) sessionNumber++;
+
+    const serviceId = order.serviceId ?? order.serviceTemplateId;
+    setAllSessions(prev => [...prev, { serviceId, orderId: order.id, sessionNumber }]);
+    if (errors.sessions) setErrors(prev => ({ ...prev, sessions: '' }));
   };
 
   const handleRemoveSession = (index: number) => {
@@ -609,17 +662,23 @@ export const AppointmentFormPage: React.FC = () => {
 
     if (!formData.patientId) {
       newErrors.patientId = 'Debe seleccionar un paciente';
+    } else if (!isEditMode && patientBlockedByApt) {
+      newErrors.patientId = patientBlockedByApt.status === 'in_progress'
+        ? 'Este paciente ya tiene una cita en atención actualmente'
+        : 'Este paciente ya tiene una cita reservada. Atiende o cancela la cita existente antes de crear una nueva.';
     }
-    if (allSessions.length === 0) {
+    const activeSessions = allSessions.filter(s => !s.markedForDeletion);
+    if (!isEditMode && allSessions.length === 0) {
       newErrors.sessions = 'Debe agregar al menos una sesión a realizar';
+    } else if (isEditMode && activeSessions.length === 0 && allSessions.every(s => s.markedForDeletion)) {
+      // En edición, si todas las sesiones se van a eliminar, advertir pero no bloquear
+      // (el backend lo maneja con soft-delete)
     }
     if (!formData.scheduledDate) {
       newErrors.scheduledDate = 'La fecha y hora son requeridas';
-    } else {
-      // ✅ Validar correctamente usando dateUtils
-      if (isDateTimeInPast(formData.scheduledDate)) {
-        newErrors.scheduledDate = 'La fecha no puede ser en el pasado';
-      }
+    } else if (!isEditMode && isDateTimeInPast(formData.scheduledDate)) {
+      // Solo validar fecha pasada al CREAR — al editar se permite cambiar sin restricción
+      newErrors.scheduledDate = 'La fecha no puede ser en el pasado';
     }
     if (!formData.durationMinutes || formData.durationMinutes < 30) {
       newErrors.durationMinutes = 'La duración mínima es 30 minutos';
@@ -660,17 +719,15 @@ export const AppointmentFormPage: React.FC = () => {
 
         const submissionData: import('../types').UpdateAppointmentDto = {
           patientId: formData.patientId,
-          scheduledDate: localToUTC(formData.scheduledDate), // ✅ Convertir a UTC para backend
+          scheduledDate: localToUTC(formData.scheduledDate),
           durationMinutes: formData.durationMinutes,
           reservationAmount: formData.reservationAmount,
-          notes: formData.notes,
           sessionOperations,
         };
 
         await appointmentsService.updateAppointment(id, submissionData);
       } else {
         // MODO CREATE: Crear cita y luego subir recibo si existe
-        // Agregar precios personalizados a las sesiones
         const sessionsWithPrices = allSessions.map(session => ({
           ...session,
           customPrice: session.tempPackageId ? packageCustomPrices[session.tempPackageId] : undefined
@@ -678,16 +735,18 @@ export const AppointmentFormPage: React.FC = () => {
 
         const submissionData: import('../types').CreateAppointmentDto = {
           patientId: formData.patientId,
-          scheduledDate: localToUTC(formData.scheduledDate), // ✅ Convertir a UTC para backend
+          scheduledDate: localToUTC(formData.scheduledDate),
           durationMinutes: formData.durationMinutes || 30,
           reservationAmount: formData.reservationAmount,
-          notes: formData.notes,
           services: sessionsWithPrices,
         };
 
         const createdAppointment = await appointmentsService.createAppointment(submissionData);
 
-        // Si hay un archivo de recibo pendiente, subirlo ahora
+        if (formData.notes.trim()) {
+          await appointmentsService.createAppointmentNote(createdAppointment.id, formData.notes.trim());
+        }
+
         if (pendingReceiptFile && createdAppointment.id) {
           try {
             await appointmentsService.uploadReceipt(
@@ -697,7 +756,6 @@ export const AppointmentFormPage: React.FC = () => {
             );
           } catch (uploadError) {
             console.error('Error uploading receipt after creation:', uploadError);
-            // No fallar la creación si el recibo no se pudo subir
           }
         }
       }
@@ -796,7 +854,47 @@ export const AppointmentFormPage: React.FC = () => {
             error={errors.patientId}
             disabled={isSaving || !!preselectedOrderId}
           />
+
+          {/* ── Banner bloqueante: paciente con cita activa ── */}
+          {!isEditMode && patientBlockedByApt && (
+            <div style={{
+              marginTop: 'var(--spacing-md)',
+              background: 'var(--color-error-alpha-10)',
+              border: '2px solid var(--color-error)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--spacing-md)',
+              display: 'flex', gap: 12, alignItems: 'flex-start',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: 'var(--color-error)', marginTop: 1 }}>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <div>
+                <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--color-error)', marginBottom: 4 }}>
+                  {patientBlockedByApt.status === 'in_progress'
+                    ? '⚠ Este paciente ya tiene una cita en atención'
+                    : '⚠ Este paciente ya tiene una cita reservada'}
+                </div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                  <strong>{patientBlockedByApt.service}</strong> · {formatDate(patientBlockedByApt.date)}
+                </div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                  Atiende, cancela o reagenda la cita existente antes de crear una nueva.
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
+
+        {/* ── Paquetes con sesiones pendientes ── */}
+        {formData.patientId && (
+          <PendingSessionsPicker
+            orders={patientOrders}
+            sessionsInForm={allSessions}
+            onAdd={handleQuickAddFromOrder}
+          />
+        )}
 
         {/* Sessions Card - Unified interface for both create and edit modes */}
         {formData.patientId && (
@@ -1171,19 +1269,21 @@ export const AppointmentFormPage: React.FC = () => {
                 )}
             </div>
 
-            <div>
-              <label className="field-label">
-                Notas
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Observaciones adicionales..."
-                rows={4}
-                className="notes-textarea"
-              />
-            </div>
+            {!isEditMode && (
+              <div>
+                <label className="field-label">
+                  Nota inicial (opcional)
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Observaciones sobre esta cita..."
+                  rows={3}
+                  className="notes-textarea"
+                />
+              </div>
+            )}
           </div>
         </div>
 

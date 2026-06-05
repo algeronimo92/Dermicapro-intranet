@@ -2,9 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { verifyAccessToken } from '../utils/jwt';
 import { PatientJwtPayload } from '../types/auth.types';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database';
 
 /**
  * Middleware para autenticar pacientes

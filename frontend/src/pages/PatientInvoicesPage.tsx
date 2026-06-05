@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
 import { invoicesService } from '../services/invoices.service';
-import { Patient, Invoice, InvoiceStatus, Order } from '../types';
+import { creditsService } from '../services/credits.service';
+import { Patient, Invoice, InvoiceStatus, Order, CreditTransaction, PaymentType, PaymentMethod } from '../types';
 import { Loading } from '../components/Loading';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
+import { AddCreditModal } from '../components/AddCreditModal';
 import { formatDate } from '../utils/dateUtils';
 import '../styles/patient-invoices.css';
 
@@ -18,6 +20,9 @@ export const PatientInvoicesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [patientBalance, setPatientBalance] = useState(0);
+  const [creditHistory, setCreditHistory]   = useState<CreditTransaction[]>([]);
+  const [showAddCreditModal, setShowAddCreditModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -31,15 +36,18 @@ export const PatientInvoicesPage: React.FC = () => {
       setError(null);
 
       // Cargar paciente, invoices y órdenes sin facturar en paralelo
-      const [patientData, invoicesData, uninvoicedData] = await Promise.all([
+      const [patientData, invoicesData, uninvoicedData, creditData] = await Promise.all([
         patientsService.getPatient(patientId),
         invoicesService.getPatientInvoices(patientId),
-        invoicesService.getUninvoicedOrders(patientId)
+        invoicesService.getUninvoicedOrders(patientId),
+        creditsService.getCreditHistory(patientId),
       ]);
 
       setPatient(patientData);
       setInvoices(invoicesData);
       setUninvoicedOrders(uninvoicedData);
+      setPatientBalance(creditData.accountBalance);
+      setCreditHistory(creditData.credits);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar datos');
     } finally {
@@ -85,7 +93,7 @@ export const PatientInvoicesPage: React.FC = () => {
       case 'cancelled':
         return 'CANCELADO';
       default:
-        return status.toUpperCase();
+        return (status as string).toUpperCase();
     }
   };
 
@@ -191,6 +199,37 @@ export const PatientInvoicesPage: React.FC = () => {
           <div className="summary-subtitle">
             {pendingInvoices.length} {pendingInvoices.length === 1 ? 'factura' : 'facturas'} pendiente(s)
           </div>
+        </div>
+
+        {/* ── Saldo a Favor ── */}
+        <div className="summary-card" style={{
+          background: patientBalance > 0 ? 'var(--color-primary-alpha-10)' : 'var(--color-bg-primary)',
+          border: `1px solid ${patientBalance > 0 ? 'var(--color-primary)' : 'var(--color-border-secondary)'}`,
+          position: 'relative',
+        }}>
+          <div className="summary-label" style={{ color: patientBalance > 0 ? 'var(--color-primary)' : undefined }}>
+            SALDO A FAVOR
+          </div>
+          <div className="summary-amount" style={{ color: patientBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-disabled)' }}>
+            S/. {patientBalance.toFixed(2)}
+          </div>
+          <button
+            onClick={() => setShowAddCreditModal(true)}
+            style={{
+              marginTop: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 'var(--radius-md)',
+              background: 'var(--color-primary-alpha-10)',
+              border: '1.5px solid var(--color-primary)',
+              color: 'var(--color-primary)',
+              fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            {patientBalance > 0 ? 'Agregar más' : 'Agregar saldo'}
+          </button>
         </div>
       </div>
 
@@ -400,6 +439,67 @@ export const PatientInvoicesPage: React.FC = () => {
         )}
       </div>
 
+      {/* ── Historial de movimientos de saldo ── */}
+      {creditHistory.length > 0 && (
+        <div className="invoices-list-container" style={{ marginTop: 'var(--spacing-xl)' }}>
+          <div className="invoices-list-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 className="invoices-list-title">Movimientos de Saldo a Favor</h3>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-primary)' }}>
+              Balance actual: S/. {patientBalance.toFixed(2)}
+            </span>
+          </div>
+          <div style={{ padding: 'var(--spacing-sm) 0' }}>
+            {creditHistory.map(tx => {
+              const isCredit   = tx.paymentType === PaymentType.account_credit;
+              const isUsed     = tx.paymentMethod === PaymentMethod.account_credit;
+              // isRefund: !isCredit && !isUsed
+              const amount     = Number(tx.amountPaid);
+              const sign       = isCredit ? '+' : '−';
+              const color      = isCredit ? 'var(--color-success-dark)' : 'var(--color-error)';
+              const label      = isCredit
+                ? 'Abono de saldo'
+                : isUsed
+                  ? `Aplicado a factura${tx.invoiceId ? ` #${tx.invoiceId.slice(0,6).toUpperCase()}` : ''}`
+                  : 'Devolución';
+              const methodLabels: Record<string, string> = {
+                yape: 'Yape', plin: 'Plin', cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia',
+              };
+              const methodLabel = methodLabels[tx.paymentMethod] || tx.paymentMethod;
+
+              return (
+                <div key={tx.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: 'var(--spacing-sm) var(--spacing-xl)',
+                  borderBottom: '1px solid var(--color-border-secondary)',
+                  gap: 'var(--spacing-md)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flex: 1, minWidth: 0 }}>
+                    {/* Ícono */}
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: isCredit ? 'var(--color-success-alpha-10)' : 'var(--color-error-alpha-10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 15 }}>{isCredit ? '💰' : '💳'}</span>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        {label}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                        {formatDate(tx.paymentDate)}
+                        {isCredit && ` · via ${methodLabel}`}
+                        {tx.notes && ` · ${tx.notes}`}
+                        {tx.createdBy && ` · ${tx.createdBy.firstName} ${tx.createdBy.lastName}`}
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: 'var(--font-size-base)', color, flexShrink: 0 }}>
+                    {sign}S/. {amount.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Modal de registro de pago ── */}
       {paymentInvoice && patient && (
         <RegisterPaymentModal
@@ -407,9 +507,30 @@ export const PatientInvoicesPage: React.FC = () => {
           onClose={() => setPaymentInvoice(null)}
           invoice={paymentInvoice}
           patientId={patient.id}
+          patientBalance={patientBalance}
           onSuccess={(updated) => {
             setInvoices(prev => prev.map(inv => inv.id === updated.id ? updated : inv));
             setPaymentInvoice(null);
+            creditsService.getCreditHistory(patient.id)
+              .then(d => { setPatientBalance(d.accountBalance); setCreditHistory(d.credits); })
+              .catch(() => {});
+          }}
+        />
+      )}
+
+      {/* ── Modal agregar saldo a favor ── */}
+      {patient && (
+        <AddCreditModal
+          isOpen={showAddCreditModal}
+          onClose={() => setShowAddCreditModal(false)}
+          patientId={patient.id}
+          patientName={`${patient.firstName} ${patient.lastName}`}
+          currentBalance={patientBalance}
+          onSuccess={(newBalance) => {
+            setPatientBalance(newBalance);
+            if (patient) creditsService.getCreditHistory(patient.id)
+              .then(d => setCreditHistory(d.credits)).catch(() => {});
+            setShowAddCreditModal(false);
           }}
         />
       )}

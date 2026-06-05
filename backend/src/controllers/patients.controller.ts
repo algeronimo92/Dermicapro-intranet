@@ -125,6 +125,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
         appointments: {
           include: {
             appointmentServices: {
+              where: { deletedAt: null },
               include: {
                 serviceInstance: {
                   include: {
@@ -182,6 +183,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
           include: {
             service: true,
             appointmentServices: {
+              where: { deletedAt: null },   // excluir sesiones soft-deleted
               include: {
                 appointment: {
                   select: {
@@ -204,6 +206,9 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
                   },
                 },
               },
+            },
+            concludedBy: {
+              select: { id: true, firstName: true, lastName: true },
             },
           },
           orderBy: { createdAt: 'desc' },
@@ -346,6 +351,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
       where: { patientId: id },
       include: {
         appointmentServices: {
+          where: { deletedAt: null },
           include: {
             serviceInstance: {
               select: {
@@ -407,6 +413,20 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
     const lastAttended = appointments.find(a => a.status === 'attended' && a.attendedAt);
     const lastAppointment = appointments[0];
 
+    // Tratamientos concluidos anticipadamente
+    const concludedOrders = await prisma.serviceInstance.findMany({
+      where: { patientId: id, concludedAt: { not: null } },
+      include: {
+        service: { select: { id: true, name: true } },
+        concludedBy: { select: { id: true, firstName: true, lastName: true } },
+        appointmentServices: {
+          where: { deletedAt: null },
+          include: { appointment: { select: { status: true } } },
+        },
+      },
+      orderBy: { concludedAt: 'desc' },
+    });
+
     const history = {
       patient,
       statistics: {
@@ -419,11 +439,98 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
         lastAppointmentDate: lastAppointment?.scheduledDate || null,
       },
       appointments,
+      concludedOrders,
     };
 
     res.json(history);
   } catch (error) {
     console.error('Error fetching patient history:', error);
     res.status(500).json({ error: 'Failed to fetch patient history' });
+  }
+};
+
+export const getCreditHistory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+      select: { id: true, accountBalance: true },
+    });
+    if (!patient) { res.status(404).json({ error: 'Paciente no encontrado' }); return; }
+
+    const credits = await prisma.payment.findMany({
+      where: {
+        patientId: id,
+        OR: [
+          { paymentType: 'account_credit' },
+          { paymentMethod: 'account_credit' },
+        ],
+      },
+      orderBy: { paymentDate: 'desc' },
+      include: {
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+        invoice: { select: { id: true } },
+      },
+    });
+
+    res.json({ accountBalance: patient.accountBalance, credits });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch credit history' });
+  }
+};
+
+export const closeServiceInstance = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id: patientId, orderId } = req.params;
+    const { reason } = req.body;
+
+    const order = await prisma.serviceInstance.findFirst({
+      where: { id: orderId, patientId },
+    });
+
+    if (!order) {
+      res.status(404).json({ error: 'Servicio no encontrado para este paciente' });
+      return;
+    }
+    if (order.concludedAt) {
+      res.status(400).json({ error: 'Este tratamiento ya fue concluido' });
+      return;
+    }
+
+    const updated = await prisma.serviceInstance.update({
+      where: { id: orderId },
+      data: {
+        concludedAt: new Date(),
+        concludedById: req.user!.id,
+        concludeReason: reason || 'Concluido anticipadamente',
+      },
+      include: { service: { select: { name: true } } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to close service instance' });
+  }
+};
+
+export const reopenServiceInstance = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id: patientId, orderId } = req.params;
+
+    const order = await prisma.serviceInstance.findFirst({
+      where: { id: orderId, patientId },
+    });
+
+    if (!order) { res.status(404).json({ error: 'Servicio no encontrado' }); return; }
+
+    const updated = await prisma.serviceInstance.update({
+      where: { id: orderId },
+      data: { concludedAt: null, concludedById: null, concludeReason: null },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to reopen service instance' });
   }
 };

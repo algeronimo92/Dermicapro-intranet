@@ -54,13 +54,15 @@ const PackageGroupCard: React.FC<{
         sessionCount={packageGroup.sessions.length}
         totalSessions={packageGroup.totalSessions}
         completedSessions={packageGroup.completedSessions}
+        scheduledElsewhere={packageGroup.scheduledElsewhere}
         hasPendingReservations={packageGroup.hasPendingReservations}
         orderCreatedAt={packageGroup.orderCreatedAt}
         finalPrice={packageGroup.finalPrice}
         basePrice={service?.basePrice}
         tempPackageId={packageGroup.id}
         onUpdatePrice={onUpdatePackagePrice}
-        readOnly={readOnly}
+        readOnly={readOnly || !!packageGroup.isInvoiced}
+        isInvoicePaid={packageGroup.isInvoicePaid}
       />
       <div className="pkg-sessions">
         {packageGroup.sessions.map((session, idx) => (
@@ -86,6 +88,7 @@ const PackageHeader: React.FC<{
   sessionCount: number;
   totalSessions: number;
   completedSessions?: number;
+  scheduledElsewhere?: number;
   hasPendingReservations?: boolean;
   orderCreatedAt?: string;
   finalPrice?: number;
@@ -93,10 +96,13 @@ const PackageHeader: React.FC<{
   tempPackageId?: string;
   onUpdatePrice?: (tempPackageId: string, newPrice: number) => void;
   readOnly?: boolean;
+  isInvoicePaid?: boolean;
 }> = ({
   serviceName, isNewPackage, sessionCount, totalSessions,
-  completedSessions = 0, hasPendingReservations = false,
-  orderCreatedAt, finalPrice, basePrice, tempPackageId, onUpdatePrice, readOnly = false,
+  completedSessions = 0, scheduledElsewhere,
+  hasPendingReservations = false,
+  orderCreatedAt, finalPrice, basePrice, tempPackageId, onUpdatePrice,
+  readOnly = false, isInvoicePaid = false,
 }) => {
   const [isEditingPrice, setIsEditingPrice] = React.useState(false);
   const [editedPrice, setEditedPrice] = React.useState(
@@ -152,6 +158,7 @@ const PackageHeader: React.FC<{
             <span className="pkg-header__price">
               S/. {Number(finalPrice ?? basePrice).toFixed(2)}
             </span>
+            {/* Botones de edición — solo si no está facturado */}
             {!readOnly && onUpdatePrice && (
               <>
                 <button className="pkg-price-btn pkg-price-btn--edit" onClick={() => setIsEditingPrice(true)} title="Editar precio">✎</button>
@@ -172,6 +179,17 @@ const PackageHeader: React.FC<{
             {hasDiscount && (
               <span className={`pkg-header__badge ${discount > 0 ? 'pkg-header__badge--discount' : 'pkg-header__badge--increase'}`}>
                 {discount > 0 ? `${discount.toFixed(0)}% OFF` : `+${Math.abs(discount).toFixed(0)}%`}
+              </span>
+            )}
+            {/* Badge de estado de factura */}
+            {isInvoicePaid && (
+              <span className="pkg-header__badge" style={{ background: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)', fontSize: 10 }}>
+                ✓ Facturado
+              </span>
+            )}
+            {readOnly && !isInvoicePaid && !isNewPackage && (
+              <span className="pkg-header__badge" style={{ background: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning)', fontSize: 10 }}>
+                Factura pendiente
               </span>
             )}
           </div>
@@ -204,7 +222,9 @@ const PackageHeader: React.FC<{
             ✓ {completedSessions} atendida{completedSessions > 1 ? 's' : ''}
           </span>
         )}
-        <span className="pkg-header__counter">{sessionCount} de {totalSessions}</span>
+        <span className="pkg-header__counter">
+          {(scheduledElsewhere ?? completedSessions) + sessionCount} de {totalSessions}
+        </span>
       </div>
     </div>
   );

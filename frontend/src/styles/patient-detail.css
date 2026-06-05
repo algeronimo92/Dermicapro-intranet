@@ -3,6 +3,12 @@
    Compatible con light y dark mode automáticamente
    ============================================================ */
 
+/* ── ANIMACIÓN EN ATENCIÓN ── */
+@keyframes pulse-bar {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
 /* ── BACK BUTTON ── */
 .pd-back {
   display: inline-flex;

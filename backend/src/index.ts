@@ -29,7 +29,7 @@ if (!fs.existsSync(config.upload.directory)) {
 app.use('/uploads', express.static(path.resolve(config.upload.directory)));
 
 // Health check endpoint for Docker
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({

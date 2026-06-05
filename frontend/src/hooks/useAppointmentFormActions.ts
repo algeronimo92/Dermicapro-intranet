@@ -73,12 +73,10 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
               name === 'durationMinutes' ? (value ? parseInt(value) : 30) : value
     }));
 
-    if (props.setErrors) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
+    setErrors(prev => ({
+      ...prev,
+      [name]: ''
+    }));
   };
 
   const handlePatientChange = (patientId: string) => {
@@ -161,11 +159,14 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
           scheduledDate: formData.scheduledDate,
           durationMinutes: formData.durationMinutes || 30,
           reservationAmount: formData.reservationAmount,
-          notes: formData.notes,
           sessionOperations,
         };
 
         await appointmentsService.updateAppointment(id, submissionData);
+
+        if (formData.notes?.trim()) {
+          await appointmentsService.createAppointmentNote(id, formData.notes.trim());
+        }
       } else {
         // MODO CREATE: Usar services array
         const submissionData: import('../types').CreateAppointmentDto = {
@@ -173,11 +174,14 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
           scheduledDate: formData.scheduledDate,
           durationMinutes: formData.durationMinutes || 30,
           reservationAmount: formData.reservationAmount,
-          notes: formData.notes,
           services: allSessions,
         };
 
-        await appointmentsService.createAppointment(submissionData);
+        const created = await appointmentsService.createAppointment(submissionData);
+
+        if (formData.notes?.trim()) {
+          await appointmentsService.createAppointmentNote(created.id, formData.notes.trim());
+        }
       }
 
       navigate('/appointments');

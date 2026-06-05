@@ -50,7 +50,7 @@ CMD ["nginx", "-g", "daemon off;"]
 # ----------------
 # Stage 3: Development
 # ----------------
-FROM node:18-alpine AS development
+FROM node:22-alpine AS development
 
 WORKDIR /app
 

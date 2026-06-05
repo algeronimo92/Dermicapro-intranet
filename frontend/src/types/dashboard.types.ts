@@ -1,8 +1,5 @@
 // DTOs y tipos para los dashboards específicos por rol
 
-// ============================================
-// Filtros comunes para dashboards
-// ============================================
 export interface DashboardFilters {
   dateFrom?: string;
   dateTo?: string;
@@ -10,7 +7,7 @@ export interface DashboardFilters {
 }
 
 // ============================================
-// Admin Dashboard Data
+// Admin Dashboard — visión global del negocio
 // ============================================
 export interface AdminDashboardData {
   financials: {
@@ -44,28 +41,71 @@ export interface AdminDashboardData {
 }
 
 // ============================================
-// Nurse Dashboard Data
+// Medical Staff Dashboard — médico, clínica personal
 // ============================================
-export interface NurseDashboardData {
-  appointments: {
-    today: any[]; // AppointmentWithRelations - tipo completo en runtime
-    upcoming: any[]; // AppointmentWithRelations
+export interface MedicalDashboardData {
+  today: {
+    scheduledForClinic: number;
+    attendedByMe: number;
+    pendingToday: any[];
   };
-  patients: {
-    attendedToday: number;
-    scheduledToday: number;
-  };
-  services: {
-    topPerformed: Array<{
+  personal: {
+    attendedThisWeek: number;
+    attendedThisMonth: number;
+    myTopServices: Array<{
       serviceTemplateId: string;
       name: string;
       count: number;
     }>;
   };
+  upcoming: any[];
+}
+
+// Alias de compatibilidad
+export type NurseDashboardData = MedicalDashboardData;
+
+// ============================================
+// Assistant Dashboard — asistente, cola clínica
+// ============================================
+export interface AssistantDashboardData {
+  today: {
+    total: number;
+    waiting: number;
+    inProgress: number;
+    attended: number;
+    noShow: number;
+    attendanceRate: number;
+  };
+  queue: Array<{
+    id: string;
+    scheduledDate: string;
+    status: string;
+    durationMinutes: number;
+    patient: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      phone: string;
+    };
+    services: string[];
+  }>;
+  nextUp: Array<{
+    id: string;
+    scheduledDate: string;
+    minutesUntil: number;
+    patient: { firstName: string; lastName: string };
+    services: string[];
+  }>;
+  week: {
+    total: number;
+    attended: number;
+    noShow: number;
+    noShowRate: number;
+  };
 }
 
 // ============================================
-// Sales Dashboard Data
+// Sales Dashboard — ventas + asistencia de sus pacientes
 // ============================================
 export interface SalesDashboardData {
   sales: {
@@ -78,20 +118,34 @@ export interface SalesDashboardData {
     approved: number;
     paid: number;
     totalEarned: number;
-    history: any[]; // Commission with relations
+    history: any[];
   };
   patients: {
     total: number;
-    recentAppointments: any[]; // Appointment with relations
+    recentAppointments: any[];
   };
   goals: {
     monthly: number;
     achieved: number;
     percentage: number;
   };
+  todayAttendance: {
+    total: number;
+    arrived: number;
+    waiting: number;
+    noShow: number;
+    queue: Array<{
+      id: string;
+      scheduledDate: string;
+      status: string;
+      patient: { firstName: string; lastName: string };
+      services: string[];
+    }>;
+  };
 }
 
-// ============================================
-// Union type para respuesta genérica
-// ============================================
-export type DashboardData = AdminDashboardData | NurseDashboardData | SalesDashboardData;
+export type DashboardData =
+  | AdminDashboardData
+  | MedicalDashboardData
+  | AssistantDashboardData
+  | SalesDashboardData;

@@ -20,23 +20,23 @@ export const generateGoogleCalendarLink = (appointment: Appointment): string => 
   };
 
   const startDate = new Date(appointment.scheduledDate);
-  // Asumimos 1 hora de duración por defecto
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
   const patientName = appointment.patient
     ? `${appointment.patient.firstName} ${appointment.patient.lastName}`
     : 'Paciente';
 
-  const serviceName = appointment.service?.name || 'Servicio';
+  const firstService = appointment.appointmentServices?.[0]?.serviceInstance?.service;
+  const serviceName = firstService?.name || 'Servicio';
 
   const title = `${serviceName} - ${patientName}`;
 
+  const firstNote = appointment.appointmentNotes?.[0]?.note;
   const details = [
     `Paciente: ${patientName}`,
     `Servicio: ${serviceName}`,
-    appointment.service?.basePrice ? `Precio: S/. ${appointment.service.basePrice}` : '',
     appointment.reservationAmount ? `Reserva: S/. ${appointment.reservationAmount}` : '',
-    appointment.notes ? `Notas: ${appointment.notes}` : ''
+    firstNote ? `Notas: ${firstNote}` : ''
   ].filter(Boolean).join('\\n');
 
   const location = 'DermicaPro - Clínica';
@@ -47,7 +47,7 @@ export const generateGoogleCalendarLink = (appointment: Appointment): string => 
     dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
     details: details,
     location: location,
-    trp: 'false' // No mostrar la pantalla de confirmación
+    trp: 'false'
   });
 
   return `${baseUrl}?${params.toString()}`;
@@ -84,15 +84,16 @@ export const downloadICSFile = (appointment: Appointment): void => {
     ? `${appointment.patient.firstName} ${appointment.patient.lastName}`
     : 'Paciente';
 
-  const serviceName = appointment.service?.name || 'Servicio';
+  const firstService = appointment.appointmentServices?.[0]?.serviceInstance?.service;
+  const serviceName = firstService?.name || 'Servicio';
   const title = `${serviceName} - ${patientName}`;
 
+  const firstNote = appointment.appointmentNotes?.[0]?.note;
   const description = [
     `Paciente: ${patientName}`,
     `Servicio: ${serviceName}`,
-    appointment.service?.basePrice ? `Precio: S/. ${appointment.service.basePrice}` : '',
     appointment.reservationAmount ? `Reserva: S/. ${appointment.reservationAmount}` : '',
-    appointment.notes ? `Notas: ${appointment.notes}` : ''
+    firstNote ? `Notas: ${firstNote}` : ''
   ].filter(Boolean).join('\\n');
 
   const icsContent = [

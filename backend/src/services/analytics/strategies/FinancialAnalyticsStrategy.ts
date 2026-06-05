@@ -9,7 +9,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
 
   protected async fetchData(
     dateRange: { gte: Date; lte: Date },
-    filters?: AnalyticsFilters
+    _filters?: AnalyticsFilters
   ): Promise<any> {
     const [revenue, cashFlow, accountsReceivable] = await Promise.all([
       this.getRevenue(dateRange),

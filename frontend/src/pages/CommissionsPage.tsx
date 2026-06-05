@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Role } from '../types';
 import { DatePicker } from '../components/DatePicker';
-import { useNavigate } from 'react-router-dom';
 import commissionsService, { Commission, CommissionsFilters } from '../services/commissions.service';
 import { usersService } from '../services/users.service';
 import '../styles/commissions-page.css';
 
 const CommissionsPage = () => {
-  const navigate = useNavigate();
+  
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

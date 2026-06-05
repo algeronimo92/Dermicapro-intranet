@@ -31,7 +31,7 @@ RUN npm run build
 # ----------------
 # Stage 2: Production
 # ----------------
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
@@ -70,7 +70,7 @@ CMD ["node", "dist/index.js"]
 # ----------------
 # Stage 3: Development
 # ----------------
-FROM node:18-alpine AS development
+FROM node:22-alpine AS development
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl

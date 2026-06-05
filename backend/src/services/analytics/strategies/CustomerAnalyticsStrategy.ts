@@ -156,7 +156,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     };
   }
 
-  private async getLifetimeData(dateRange: {
+  private async getLifetimeData(_dateRange: {
     gte: Date;
     lte: Date;
   }): Promise<CustomerAnalyticsData['lifetime']> {
@@ -212,7 +212,7 @@ export class CustomerAnalyticsStrategy extends BaseAnalyticsStrategy<CustomerAna
     };
   }
 
-  private async getAccountsReceivable(dateRange: {
+  private async getAccountsReceivable(_dateRange: {
     gte: Date;
     lte: Date;
   }): Promise<CustomerAnalyticsData['accountsReceivable']> {

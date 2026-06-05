@@ -9,7 +9,7 @@ export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSum
 
   protected async fetchData(
     dateRange: { gte: Date; lte: Date },
-    filters?: AnalyticsFilters
+    _filters?: AnalyticsFilters
   ): Promise<any> {
     // Execute queries in parallel for better performance
     const [kpis, revenueTrend, topServices, appointmentsByStatus] = await Promise.all([

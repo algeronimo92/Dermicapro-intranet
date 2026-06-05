@@ -5,13 +5,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator dbml {
-  provider = "prisma-dbml-generator"
-}
-
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Sex {
@@ -34,6 +29,7 @@ enum PaymentMethod {
   transfer
   yape
   plin
+  account_credit // Pago usando saldo a favor del paciente
 }
 
 enum CommissionStatus {
@@ -92,6 +88,7 @@ model User {
   patientsCreated            Patient[]            @relation("PatientCreatedBy")
   patientPasswordsSet        Patient[]            @relation("PatientPasswordSetByStaff")
   ordersCreated              ServiceInstance[]            @relation("OrderCreatedBy")
+  ordersConcluded            ServiceInstance[]            @relation("OrderConcludedBy")
   appointmentsCreated        Appointment[]        @relation("AppointmentCreatedBy")
   appointmentsAttended       Appointment[]        @relation("AppointmentAttendedBy")
   patientRecords             PatientRecord[]
@@ -121,6 +118,7 @@ model Patient {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   photoUrl             String?   @map("photo_url")
+  accountBalance       Decimal   @default(0.00) @map("account_balance") @db.Decimal(10, 2)
 
   // Portal de Pacientes - Campos de Autenticación
   passwordHash         String?   @map("password_hash") // Bcrypt hash (creado por staff)
@@ -176,15 +174,19 @@ model ServiceInstance {
   discount          Decimal  @default(0) @map("discount") @db.Decimal(10, 2)
   finalPrice        Decimal  @map("final_price") @db.Decimal(10, 2)
   notes             String?
-  invoiceId         String?  @map("invoice_id")
-  createdById       String   @map("created_by_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  invoiceId         String?   @map("invoice_id")
+  concludedAt       DateTime? @map("concluded_at")   // Tratamiento concluido antes de completar todas las sesiones
+  concludedById     String?   @map("concluded_by_id")
+  concludeReason    String?   @map("conclude_reason")
+  createdById       String    @map("created_by_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
   patient             Patient              @relation(fields: [patientId], references: [id])
-  service             ServiceTemplate @relation(fields: [serviceTemplateId], references: [id])
+  service             ServiceTemplate      @relation(fields: [serviceTemplateId], references: [id])
   createdBy           User                 @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  concludedBy         User?                @relation("OrderConcludedBy", fields: [concludedById], references: [id])
   invoice             Invoice?             @relation(fields: [invoiceId], references: [id])
   appointmentServices Session[]
   commissions         Commission[]

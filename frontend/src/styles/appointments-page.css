@@ -1003,6 +1003,19 @@
   transform: none;
 }
 
+/* Citas en estado final — no se pueden mover ni redimensionar */
+.kanban-card--final {
+  cursor: default;
+  opacity: 0.85;
+}
+.kanban-card--final:hover {
+  transform: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+}
+.kanban-card--final:active {
+  cursor: default;
+}
+
 /* Card Top Row */
 .kanban-card-top {
   display: flex;

@@ -13,6 +13,7 @@ export interface CreateInvoiceDto {
   serviceInstanceIds: string[];
   patientId: string;
   dueDate?: string;
+  priceOverrides?: { id: string; finalPrice: number }[];
 }
 
 export const invoicesService = {
@@ -49,10 +50,11 @@ export const invoicesService = {
   },
 
   /**
-   * Registra un pago para una factura y actualiza su estado automáticamente
+   * Registra un pago y actualiza el estado de la factura.
+   * Retorna { paymentId, invoice } para poder subir el comprobante después.
    */
-  async registerPayment(data: RegisterPaymentDto): Promise<Invoice> {
-    await api.post('/payments', {
+  async registerPayment(data: RegisterPaymentDto): Promise<{ paymentId: string; invoice: Invoice }> {
+    const paymentRes = await api.post<{ id: string }>('/payments', {
       patientId: data.patientId,
       invoiceId: data.invoiceId,
       amountPaid: data.amountPaid,
@@ -60,9 +62,16 @@ export const invoicesService = {
       paymentType: 'invoice_payment',
       notes: data.notes || undefined,
     });
-    // Recalcular estado de la factura (pagado/parcial/pendiente)
     const updated = await api.post<Invoice>(`/invoices/${data.invoiceId}/auto-update-status`);
-    return updated.data;
+    return { paymentId: paymentRes.data.id, invoice: updated.data };
+  },
+
+  async uploadReceipt(paymentId: string, file: File): Promise<void> {
+    const form = new FormData();
+    form.append('receipt', file);
+    await api.post(`/payments/${paymentId}/upload-receipt`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 
   /**

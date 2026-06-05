@@ -78,13 +78,15 @@ export const Calendar: React.FC<CalendarProps> = ({
   const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-  const statusColors: Record<AppointmentStatus, string> = {
-    reserved: '#3498db',
-    in_progress: '#f39c12',
-    attended: '#27ae60',
-    cancelled: '#e74c3c',
-    no_show: '#95a5a6'
-  };
+  const FINAL_STATES: AppointmentStatus[] = [
+    AppointmentStatus.attended,
+    AppointmentStatus.cancelled,
+    AppointmentStatus.no_show,
+  ];
+  const isFinalState = (apt: Appointment) => FINAL_STATES.includes(apt.status);
+
+  const getStatusClass = (status: AppointmentStatus): string =>
+    `apt-status-${status.replace(/_/g, '-')}`;
 
   // Helper function to get all services for an appointment
   const getAppointmentServices = (apt: Appointment): string => {
@@ -315,6 +317,12 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   // Drag & Drop handlers
   const handleDragStart = (e: React.DragEvent, apt: Appointment) => {
+    // No permitir mover citas en estados finales
+    if (isFinalState(apt)) {
+      e.preventDefault();
+      return;
+    }
+
     const appointmentDate = new Date(apt.scheduledDate);
 
     // No permitir arrastrar eventos de días pasados
@@ -571,6 +579,11 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   // Resize handlers
   const handleResizeStart = (e: React.MouseEvent, apt: Appointment, edge: 'top' | 'bottom') => {
+    // No permitir redimensionar citas en estados finales
+    if (isFinalState(apt)) {
+      e.stopPropagation();
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
     setResizingAppointment(apt);
@@ -623,7 +636,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     setResizePreviewHeight(newHeight);
   };
 
-  const handleResizeEnd = (e: MouseEvent) => {
+  const handleResizeEnd = (_e: MouseEvent) => {
     if (!resizingAppointment || !onAppointmentUpdate || !resizeEdge) {
       setResizingAppointment(null);
       setResizeEdge(null);
@@ -716,8 +729,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                     return (
                       <div
                         key={apt.id}
-                        className="appointment-item"
-                        style={{ borderLeftColor: statusColors[apt.status] }}
+                        className={`appointment-item ${getStatusClass(apt.status)}`}
                         onClick={() => onAppointmentClick(apt)}
                       >
                         <span className="apt-time">{time}</span>
@@ -756,13 +768,15 @@ export const Calendar: React.FC<CalendarProps> = ({
     return (
       <div className="calendar-week-view">
         <div className="week-header">
-          <div className="time-gutter">GMT-5</div>
+          <div className="time-gutter"></div>
           {weekDays.map(date => (
             <div
               key={date.toISOString()}
               className={`week-day-header ${isToday(date) ? 'today' : ''}`}
+              onClick={() => { setView('day'); onDateChange(date); }}
+              title="Ver vista de día"
             >
-              <div className="day-name">{dayNames[date.getDay()]}</div>
+              <div className="day-name">{dayNamesShort[date.getDay()]}</div>
               <div className="day-date">{date.getDate()}</div>
             </div>
           ))}
@@ -854,11 +868,10 @@ export const Calendar: React.FC<CalendarProps> = ({
                 {/* Resize preview indicator */}
                 {resizingAppointment && isSameDay(new Date(resizingAppointment.scheduledDate), date) && resizePreviewTop !== null && resizePreviewHeight !== null && (
                   <div
-                    className="resize-preview-indicator"
+                    className={`resize-preview-indicator ${getStatusClass(resizingAppointment.status)}`}
                     style={{
                       top: `${resizePreviewTop}px`,
                       height: `${resizePreviewHeight}px`,
-                      backgroundColor: statusColors[resizingAppointment.status],
                     }}
                   >
                     <div className="preview-time-label">
@@ -891,12 +904,12 @@ export const Calendar: React.FC<CalendarProps> = ({
                     const aptTotalMinutes = hour * 60 + minute;
                     const isInPastDay = isPastDay(aptDate);
                     const isInPastTime = isPastTimeToday(aptDate, aptTotalMinutes);
-                    const isBlocked = isInPastDay || isInPastTime;
+                    const isBlocked = isInPastDay || isInPastTime || isFinalState(apt);
 
                     return (
                       <div
                         key={apt.id}
-                        className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''} ${isBlocked ? 'blocked-appointment' : ''}`}
+                        className={`appointment-block ${getStatusClass(apt.status)} ${height <= 45 ? 'apt-compact' : ''} ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''} ${isBlocked ? 'blocked-appointment' : ''}`}
                         draggable={!!onAppointmentUpdate && !isResizing && !isBlocked}
                         onDragStart={(e) => handleDragStart(e, apt)}
                         onDragEnd={handleDragEnd}
@@ -906,15 +919,14 @@ export const Calendar: React.FC<CalendarProps> = ({
                           left: layout.left,
                           width: layout.width,
                           right: 'auto',
-                          backgroundColor: statusColors[apt.status],
                           cursor: isBlocked ? 'pointer' : (onAppointmentUpdate && !isResizing ? 'move' : 'pointer'),
                           opacity: isResizing ? 0.3 : undefined,
                           zIndex: layout.zIndex,
                         }}
                       onClick={() => !isResizing && onAppointmentClick(apt)}
                     >
-                      {/* Resize handle - top */}
-                      {onAppointmentUpdate && !isResizing && (
+                      {/* Resize handle - top (solo estados no finales) */}
+                      {onAppointmentUpdate && !isResizing && !isFinalState(apt) && (
                         <div
                           className="resize-handle resize-handle-top"
                           onMouseDown={(e) => {
@@ -943,8 +955,8 @@ export const Calendar: React.FC<CalendarProps> = ({
                         {getAppointmentServices(apt)}
                       </div>
 
-                      {/* Resize handle - bottom */}
-                      {onAppointmentUpdate && !isResizing && (
+                      {/* Resize handle - bottom (solo estados no finales) */}
+                      {onAppointmentUpdate && !isResizing && !isFinalState(apt) && (
                         <div
                           className="resize-handle resize-handle-bottom"
                           onMouseDown={(e) => {
@@ -1004,7 +1016,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     return (
       <div className="calendar-day-view">
         <div className="day-header">
-          <div className="time-gutter">GMT-5</div>
+          <div className="time-gutter"></div>
           <div className="day-header-info">
             <div className="day-name">{dayNames[currentDate.getDay()]}</div>
             <div className="day-date">{currentDate.getDate()}</div>
@@ -1087,11 +1099,10 @@ export const Calendar: React.FC<CalendarProps> = ({
             {/* Resize preview indicator */}
             {resizingAppointment && isSameDay(new Date(resizingAppointment.scheduledDate), currentDate) && resizePreviewTop !== null && resizePreviewHeight !== null && (
               <div
-                className="resize-preview-indicator"
+                className={`resize-preview-indicator ${getStatusClass(resizingAppointment.status)}`}
                 style={{
                   top: `${resizePreviewTop}px`,
                   height: `${resizePreviewHeight}px`,
-                  backgroundColor: statusColors[resizingAppointment.status],
                 }}
               >
                 <div className="preview-time-label">
@@ -1129,7 +1140,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                 return (
                   <div
                     key={apt.id}
-                    className={`appointment-block ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''} ${isBlocked ? 'blocked-appointment' : ''}`}
+                    className={`appointment-block ${getStatusClass(apt.status)} ${height <= 45 ? 'apt-compact' : ''} ${isResizing ? 'resizing' : ''} ${isDraggingThis ? 'dragging-block' : ''} ${isBlocked ? 'blocked-appointment' : ''}`}
                     draggable={!!onAppointmentUpdate && !isResizing && !isBlocked}
                     onDragStart={(e) => handleDragStart(e, apt)}
                     onDragEnd={handleDragEnd}
@@ -1139,7 +1150,6 @@ export const Calendar: React.FC<CalendarProps> = ({
                       left: layout.left,
                       width: layout.width,
                       right: 'auto',
-                      backgroundColor: statusColors[apt.status],
                       cursor: isBlocked ? 'pointer' : (onAppointmentUpdate && !isResizing ? 'move' : 'pointer'),
                       opacity: isResizing ? 0.3 : undefined,
                       zIndex: layout.zIndex,
