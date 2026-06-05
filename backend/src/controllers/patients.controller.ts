@@ -47,6 +47,7 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
           sex: true,
           phone: true,
           email: true,
+          photoUrl: true,
           createdAt: true,
           createdBy: {
             select: {
