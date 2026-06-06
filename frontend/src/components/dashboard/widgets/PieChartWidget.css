@@ -1,0 +1,10 @@
+.pie-chart-widget {
+  padding: var(--spacing-md) 0;
+}
+
+.pie-chart-widget__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}

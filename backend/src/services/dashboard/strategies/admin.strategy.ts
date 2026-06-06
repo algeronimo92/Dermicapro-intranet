@@ -18,11 +18,12 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
     const dateRange = this.getDateRange(filters?.period);
 
     // Ejecutar todas las queries en paralelo para mejor performance
-    const [financials, appointments, sales, commissions] = await Promise.all([
+    const [financials, appointments, sales, commissions, patients] = await Promise.all([
       this.getFinancials(dateRange),
       this.getAppointments(dateRange),
       this.getSales(dateRange),
       this.getCommissions(dateRange),
+      this.getPatients(dateRange, filters?.period),
     ]);
 
     return {
@@ -30,6 +31,7 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
       appointments,
       sales,
       commissions,
+      patients,
     };
   }
 
@@ -72,11 +74,24 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
         paymentOrdersByStatus.find((i) => i.status === 'paid')?._sum.totalAmount
       ) || 0;
 
+    // Ingresos agrupados por método de pago
+    const rawPaymentsByMethod = await this.prisma.payment.groupBy({
+      by: ['paymentMethod'],
+      _sum: { amountPaid: true },
+      where: { createdAt: dateRange },
+    });
+
+    const paymentsByMethod = rawPaymentsByMethod.map((p) => ({
+      method: p.paymentMethod,
+      amount: this.decimalToNumber(p._sum.amountPaid),
+    }));
+
     return {
       totalRevenue,
       pendingRevenue,
       paidRevenue,
       monthlyRevenue: this.groupByMonth(monthlyPaymentOrders),
+      paymentsByMethod,
     };
   }
 
@@ -208,6 +223,66 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
         0
       ),
     };
+  }
+
+  /**
+   * Obtiene estadísticas de nuevos pacientes: total y agrupados según el período
+   * - today/week/month → agrupa por día (YYYY-MM-DD)
+   * - year            → agrupa por mes (YYYY-MM)
+   */
+  private async getPatients(
+    dateRange: { gte: Date; lte: Date },
+    period?: string
+  ) {
+    const [total, byDate] = await Promise.all([
+      this.prisma.patient.count({
+        where: { createdAt: dateRange },
+      }),
+      this.prisma.patient.groupBy({
+        by: ['createdAt'],
+        _count: true,
+        where: { createdAt: dateRange },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    const useMonthly = period === 'year';
+    const granularity: 'day' | 'month' = useMonthly ? 'month' : 'day';
+
+    // Datos reales agrupados
+    const actual = new Map<string, number>();
+    byDate.forEach((item) => {
+      const key = useMonthly
+        ? new Date(item.createdAt).toISOString().slice(0, 7)
+        : new Date(item.createdAt).toISOString().slice(0, 10);
+      actual.set(key, (actual.get(key) || 0) + item._count);
+    });
+
+    // Llenar rango completo con ceros para que el gráfico siempre se muestre
+    const filled = new Map<string, number>();
+    const cursor = new Date(dateRange.gte);
+    const end = new Date(dateRange.lte);
+
+    if (useMonthly) {
+      cursor.setDate(1);
+      while (cursor <= end) {
+        const key = cursor.toISOString().slice(0, 7);
+        filled.set(key, actual.get(key) ?? 0);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    } else {
+      while (cursor <= end) {
+        const key = cursor.toISOString().slice(0, 10);
+        filled.set(key, actual.get(key) ?? 0);
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    }
+
+    const byPeriod = Array.from(filled.entries())
+      .map(([p, count]) => ({ period: p, count }))
+      .sort((a, b) => a.period.localeCompare(b.period));
+
+    return { total, byPeriod, granularity };
   }
 
   /**

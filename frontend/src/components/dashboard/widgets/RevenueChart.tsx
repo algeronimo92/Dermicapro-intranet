@@ -83,6 +83,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
             strokeWidth={2}
             dot={{ fill: color, r: 4 }}
             activeDot={{ r: 6 }}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -7,6 +7,8 @@ import {
 import { AdminDashboardData } from '../../types/dashboard.types';
 import { StatCard } from './widgets/StatCard';
 import { RevenueChart } from './widgets/RevenueChart';
+import { PieChartWidget } from './widgets/PieChartWidget';
+import { NewPatientsChart } from './widgets/NewPatientsChart';
 
 const STATUS_LABELS: Record<string, string> = {
   reserved:    'Reservada',
@@ -16,12 +18,18 @@ const STATUS_LABELS: Record<string, string> = {
   no_show:     'No Asistió',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  reserved:    'var(--color-status-scheduled)',
-  in_progress: 'var(--color-status-in-progress)',
-  attended:    'var(--color-status-completed)',
-  cancelled:   'var(--color-status-cancelled)',
-  no_show:     'var(--color-status-no-show)',
+const STATUS_COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#6b7280'];
+const STATUS_ORDER  = ['reserved', 'in_progress', 'attended', 'cancelled', 'no_show'];
+
+const SERVICE_COLORS  = ['#0F766E', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6'];
+const PAYMENT_COLORS  = ['#10b981', '#6366f1', '#3b82f6', '#8b5cf6', '#06b6d4'];
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash:     'Efectivo',
+  card:     'Tarjeta',
+  transfer: 'Transferencia',
+  yape:     'Yape',
+  plin:     'Plin',
 };
 
 interface AdminDashboardProps {
@@ -32,7 +40,7 @@ interface AdminDashboardProps {
 const computeRevenueTrend = (monthly: Array<{ month: string; amount: number }>) => {
   if (!monthly || monthly.length < 2) return undefined;
   const sorted = [...monthly].sort((a, b) => a.month.localeCompare(b.month));
-  const current = sorted[sorted.length - 1].amount;
+  const current  = sorted[sorted.length - 1].amount;
   const previous = sorted[sorted.length - 2].amount;
   if (previous === 0) return undefined;
   const change = Math.round(((current - previous) / previous) * 100);
@@ -66,12 +74,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
 
   const revenueTrend = computeRevenueTrend(data.financials.monthlyRevenue);
 
-  const totalAppointments = data.appointments.byStatus.reduce((s, i) => s + i.count, 0);
+  // Pie: citas por estado (orden fijo)
+  const appointmentStatusPieData = STATUS_ORDER
+    .map((status, i) => {
+      const found = data.appointments.byStatus.find((s) => s.status === status);
+      return found
+        ? { name: STATUS_LABELS[status] ?? status, value: found.count, color: STATUS_COLORS[i] }
+        : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null && x.value > 0);
+
+  // Pie: top servicios por revenue
+  const topServicesPieData = data.sales.topServices.map((s) => ({
+    name: s.name,
+    value: s.revenue,
+  }));
+
+  // Pie: ingresos por método de pago
+  const paymentMethodPieData = (data.financials.paymentsByMethod ?? []).map((p) => ({
+    name: PAYMENT_METHOD_LABELS[p.method] ?? p.method,
+    value: p.amount,
+  }));
 
   return (
     <div className="admin-dashboard">
 
-      {/* Financial Stats */}
+      {/* ── Finanzas ── */}
       <section className="dashboard__section">
         <h2 className="dashboard__section-title">Finanzas</h2>
         <div className="stats-grid stats-grid--4">
@@ -108,18 +136,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           />
         </div>
 
-        {data.financials.monthlyRevenue?.length > 0 && (
-          <div className="dashboard__chart-container">
-            <RevenueChart
-              data={data.financials.monthlyRevenue}
-              title="Tendencia de Ingresos (Últimos 6 meses)"
-              color="#0F766E"
-            />
-          </div>
-        )}
+        {/* Tendencia ingresos + Métodos de pago */}
+        <div className={`dashboard__charts-row${paymentMethodPieData.length === 0 ? ' dashboard__charts-row--full' : ''}`}>
+          <RevenueChart
+            data={data.financials.monthlyRevenue}
+            title="Tendencia de Ingresos"
+            color="#0F766E"
+            height={260}
+          />
+          {paymentMethodPieData.length > 0 && (
+            <div className="dashboard__card dashboard__card--no-margin">
+              <PieChartWidget
+                data={paymentMethodPieData}
+                title="Ingresos por Método de Pago"
+                colors={PAYMENT_COLORS}
+                formatter={formatCurrency}
+                height={220}
+              />
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* Appointments Stats */}
+      {/* ── Citas ── */}
       <section className="dashboard__section">
         <h2 className="dashboard__section-title">Citas</h2>
         <div className="stats-grid stats-grid--3">
@@ -146,43 +185,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           />
         </div>
 
-        {data.appointments.byStatus?.length > 0 && (
-          <div className="dashboard__card">
-            <h3 className="dashboard__card-title">Estado de Citas</h3>
-            <div className="status-list">
-              {data.appointments.byStatus.map((item) => {
-                const pct = totalAppointments > 0
-                  ? Math.round((item.count / totalAppointments) * 100)
-                  : 0;
-                return (
-                  <div key={item.status} className="status-item">
-                    <span
-                      className="status-item__dot"
-                      style={{ backgroundColor: STATUS_COLORS[item.status] ?? 'var(--color-text-tertiary)' }}
-                    />
-                    <span className="status-item__label">
-                      {STATUS_LABELS[item.status] ?? item.status}
-                    </span>
-                    <div className="status-item__bar-track">
-                      <div
-                        className="status-item__bar-fill"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: STATUS_COLORS[item.status] ?? 'var(--color-text-tertiary)',
-                        }}
-                      />
-                    </div>
-                    <span className="status-item__count">{item.count}</span>
-                    <span className="status-item__pct">{pct}%</span>
-                  </div>
-                );
-              })}
-            </div>
+        {appointmentStatusPieData.length > 0 && (
+          <div className="dashboard__card dashboard__card--centered dashboard__card--no-margin">
+            <PieChartWidget
+              data={appointmentStatusPieData}
+              title="Distribución de Citas por Estado"
+              colors={appointmentStatusPieData.map((d) => d.color)}
+              donut
+              height={280}
+            />
           </div>
         )}
       </section>
 
-      {/* Sales Stats */}
+      {/* ── Pacientes ── */}
+      <section className="dashboard__section">
+        <h2 className="dashboard__section-title">Pacientes</h2>
+        {/* NewPatientsChart ya tiene estilos de card y KPI header integrados */}
+        <NewPatientsChart
+          data={data.patients?.byPeriod ?? []}
+          granularity={data.patients?.granularity ?? 'day'}
+          total={data.patients?.total ?? 0}
+          color="#6366f1"
+          height={240}
+        />
+      </section>
+
+      {/* ── Ventas ── */}
       <section className="dashboard__section">
         <h2 className="dashboard__section-title">Ventas</h2>
         <div className="stats-grid stats-grid--2">
@@ -202,28 +231,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           />
         </div>
 
-        {data.sales.topServices?.length > 0 && (
-          <div className="dashboard__card">
-            <h3 className="dashboard__card-title">Servicios Más Vendidos</h3>
-            <div className="services-list">
-              {data.sales.topServices.map((service, index) => (
-                <div key={service.serviceTemplateId} className="service-item">
-                  <div className="service-item__rank">#{index + 1}</div>
-                  <div className="service-item__info">
-                    <div className="service-item__name">{service.name}</div>
-                    <div className="service-item__count">{service.count} sesiones</div>
-                  </div>
-                  <div className="service-item__revenue">
-                    {formatCurrency(service.revenue)}
-                  </div>
-                </div>
-              ))}
-            </div>
+        {topServicesPieData.length > 0 && (
+          <div className="dashboard__card dashboard__card--centered dashboard__card--no-margin">
+            <PieChartWidget
+              data={topServicesPieData}
+              title="Servicios Más Vendidos"
+              colors={SERVICE_COLORS}
+              formatter={formatCurrency}
+              height={280}
+            />
           </div>
         )}
       </section>
 
-      {/* Commissions Stats */}
+      {/* ── Comisiones ── */}
       <section className="dashboard__section">
         <h2 className="dashboard__section-title">Comisiones</h2>
         <div className="stats-grid stats-grid--4">
@@ -236,21 +257,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           />
           <StatCard
             title="Pendientes"
-            value={formatCurrency(data.commissions.pending)}
+            value={data.commissions.pending}
             icon={<Clock size={20} />}
             color="warning"
             variant="soft"
           />
           <StatCard
             title="Aprobadas"
-            value={formatCurrency(data.commissions.approved)}
+            value={data.commissions.approved}
             icon={<Users size={20} />}
             color="info"
             variant="soft"
           />
           <StatCard
             title="Pagadas"
-            value={formatCurrency(data.commissions.paid)}
+            value={data.commissions.paid}
             icon={<CreditCard size={20} />}
             color="success"
             variant="soft"

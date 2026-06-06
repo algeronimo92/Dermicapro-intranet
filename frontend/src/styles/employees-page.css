@@ -1,0 +1,213 @@
+/* ========================================
+   EMPLOYEES PAGE
+   ======================================== */
+
+.employees-page .page-header h1 {
+  margin-bottom: var(--spacing-xs);
+}
+
+.employees-page__subtitle {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* ── Filters ────────────────────────────────────────────────────────────────── */
+
+.employees-page__filters-grid {
+  display: grid;
+  grid-template-columns: 1fr 200px 160px auto;
+  gap: var(--spacing-md);
+  align-items: end;
+}
+
+.employees-page__filter-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* ── Results bar ─────────────────────────────────────────────────────────────── */
+
+.employees-page__filter-tag {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: var(--color-primary-alpha-10);
+  border: 1px solid var(--color-primary-alpha-20);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────────── */
+
+.employees-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────────── */
+
+.employee-card {
+  position: relative;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-primary);
+  transform: translateY(-2px);
+}
+
+/* top strip shows active/inactive state */
+.employee-card__strip {
+  height: 4px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.employee-card__strip--active {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+}
+
+.employee-card__strip--inactive {
+  background: var(--color-border-primary);
+}
+
+/* Body */
+.employee-card__body {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-lg);
+}
+
+/* Avatar */
+.employee-card__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* Info — 4 fixed rows, each on its own line */
+.employee-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-card__name {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-card__email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  align-self: flex-start;
+}
+
+/* Row 4: status badge + sex label side by side */
+.employee-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: 2px;
+}
+
+.employee-card__sex {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────────── */
+
+.employees-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.employees-page__empty-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.employees-page__empty p {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .employees-page__filters-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .employees-page__filter-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .employees-page__filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employees-grid {
+    grid-template-columns: 1fr;
+  }
+}

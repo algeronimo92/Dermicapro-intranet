@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usersService, GetUsersParams } from '../services/users.service';
 import { User } from '../types';
-import { Table, Column } from '../components/Table';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { Loading } from '../components/Loading';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
-import { formatDate } from '../utils/dateUtils';
+import '../styles/employees-page.css';
 
 interface RoleOption {
   id: string;
@@ -17,31 +16,130 @@ interface RoleOption {
   displayName: string;
 }
 
+// ── Avatar helpers ─────────────────────────────────────────────────────────────
+
+const AVATAR_PALETTES = [
+  'linear-gradient(135deg,var(--color-primary-light),var(--color-primary-dark))',
+  'linear-gradient(135deg,var(--color-accent-light),var(--color-accent-dark))',
+  'linear-gradient(135deg,var(--color-info-light),var(--color-info-dark))',
+  'linear-gradient(135deg,var(--color-warning-light),var(--color-warning-dark))',
+  'linear-gradient(135deg,var(--color-success-light),var(--color-success-dark))',
+  'linear-gradient(135deg,#a78bfa,#7c3aed)',
+];
+
+const avatarPalette = (name: string): string => {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return AVATAR_PALETTES[Math.abs(h) % AVATAR_PALETTES.length];
+};
+
+// ── Role config ────────────────────────────────────────────────────────────────
+
+const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+  admin:         { label: 'Administrador',     color: 'var(--color-error-dark)',   bg: 'var(--color-error-alpha-10)',   icon: '🔑' },
+  medical_staff: { label: 'Personal Médico',   color: 'var(--color-info-dark)',    bg: 'var(--color-info-alpha-10)',    icon: '🩺' },
+  assistant:     { label: 'Personal Asistente',color: 'var(--color-warning-dark)', bg: 'var(--color-warning-alpha-10)', icon: '📋' },
+  sales:         { label: 'Vendedor',          color: 'var(--color-success-dark)', bg: 'var(--color-success-alpha-10)', icon: '💼' },
+};
+
+const getRoleConfig = (roleName: string) =>
+  ROLE_CONFIG[roleName] ?? { label: roleName, color: 'var(--color-text-secondary)', bg: 'var(--color-bg-tertiary)', icon: '👤' };
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+const getUserRoleName = (user: User): string => {
+  if (!user.role) return '';
+  if (typeof user.role === 'string') return user.role;
+  return user.role.name;
+};
+
+const getUserRoleDisplay = (user: User): string => {
+  if (!user.role) return 'Sin rol';
+  if (typeof user.role === 'string') return getRoleConfig(user.role).label;
+  return user.role.displayName;
+};
+
+// ── Employee Card ──────────────────────────────────────────────────────────────
+
+const SEX_LABELS: Record<string, string> = { M: 'Masculino', F: 'Femenino', Other: 'Otro' };
+
+const EmployeeCard: React.FC<{ user: User; onClick: () => void }> = ({ user, onClick }) => {
+  const roleName = getUserRoleName(user);
+  const role     = getRoleConfig(roleName);
+  const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
+  const palette  = avatarPalette(`${user.firstName}${user.lastName}`);
+
+  return (
+    <div className="employee-card" onClick={onClick}>
+      {/* Status strip */}
+      <div className={`employee-card__strip ${user.isActive ? 'employee-card__strip--active' : 'employee-card__strip--inactive'}`} />
+
+      <div className="employee-card__body">
+        {/* Avatar */}
+        <div
+          className="employee-card__avatar"
+          style={{ background: user.photoUrl ? 'transparent' : palette }}
+        >
+          {user.photoUrl
+            ? <img src={user.photoUrl} alt={initials} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : initials}
+        </div>
+
+        {/* Info — fixed 3-row structure so all cards align */}
+        <div className="employee-card__info">
+          {/* Row 1: name */}
+          <div className="employee-card__name">{user.firstName} {user.lastName}</div>
+
+          {/* Row 2: email */}
+          <div className="employee-card__email">{user.email}</div>
+
+          {/* Row 3: role badge (always its own line) */}
+          <span
+            className="employee-card__badge"
+            style={{ color: role.color, background: role.bg }}
+          >
+            {role.icon} {getUserRoleDisplay(user)}
+          </span>
+
+          {/* Row 4: status + sex on the same line */}
+          <div className="employee-card__meta-row">
+            <span className={`badge ${user.isActive ? 'badge-success' : 'badge-error'}`}>
+              {user.isActive ? 'Activo' : 'Inactivo'}
+            </span>
+            {user.sex && (
+              <span className="employee-card__sex">{SEX_LABELS[user.sex] ?? user.sex}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
+
 export const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [users, setUsers]               = useState<User[]>([]);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [error, setError]               = useState<string | null>(null);
   const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Filtros y paginación
-  const [search, setSearch] = useState('');
+  const [search, setSearch]           = useState('');
   const [activeSearch, setActiveSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>(''); // Ahora guarda ID del rol
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [roleFilter, setRoleFilter]   = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages]   = useState(1);
+  const [total, setTotal]             = useState(0);
 
-  const limit = 10;
+  const limit = 12;
 
   const loadRoles = async () => {
     try {
       const response = await fetch('http://localhost:5001/api/roles', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        },
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
       });
       const data = await response.json();
       setAvailableRoles(data);
@@ -74,211 +172,97 @@ export const EmployeesPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    loadRoles();
-  }, []);
+  useEffect(() => { loadRoles(); }, []);
+  useEffect(() => { loadUsers(); }, [currentPage, roleFilter, statusFilter, activeSearch]);
 
-  useEffect(() => {
-    loadUsers();
-  }, [currentPage, roleFilter, statusFilter, activeSearch]);
-
-  const handleSearch = () => {
-    setActiveSearch(search);
-    setCurrentPage(1);
-  };
-
-  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
+  const handleSearch = () => { setActiveSearch(search); setCurrentPage(1); };
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => { if (e.key === 'Enter') handleSearch(); };
   const handleClearFilters = () => {
-    setSearch('');
-    setActiveSearch('');
-    setRoleFilter('');
-    setStatusFilter('');
-    setCurrentPage(1);
+    setSearch(''); setActiveSearch(''); setRoleFilter(''); setStatusFilter(''); setCurrentPage(1);
   };
 
-  const handleCreateEmployee = () => setShowCreateModal(true);
-
-  const handleRowClick = (user: User) => {
-    navigate(`/employees/${user.id}`);
-  };
-
-  const getRoleBadgeStyle = (roleName: string): React.CSSProperties => {
-    const map: Record<string, { bg: string; color: string }> = {
-      admin:         { bg: 'var(--color-error-alpha-10)',   color: 'var(--color-error-dark)' },
-      medical_staff: { bg: 'var(--color-info-alpha-10)',    color: 'var(--color-info-dark)' },
-      assistant:     { bg: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)' },
-      sales:         { bg: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)' },
-    };
-    const s = map[roleName] ?? { bg: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' };
-    return {
-      padding: 'var(--spacing-xs) var(--spacing-sm)',
-      borderRadius: 'var(--radius-full)',
-      backgroundColor: s.bg,
-      color: s.color,
-      fontSize: 'var(--font-size-xs)',
-      fontWeight: 'var(--font-weight-semibold)',
-    };
-  };
-
-  const getRoleLabel = (roleName: string): string => {
-    const roleLabels: Record<string, string> = {
-      admin:         'Administrador',
-      medical_staff: 'Personal Médico',
-      assistant:     'Personal Asistente',
-      sales:         'Vendedor',
-    };
-    return roleLabels[roleName] || roleName;
-  };
-
-  const getUserRoleName = (user: User): string => {
-    if (!user.role) return 'Sin rol';
-    if (typeof user.role === 'string') return user.role;
-    return user.role.name;
-  };
-
-  const getUserRoleDisplay = (user: User): string => {
-    if (!user.role) return 'Sin rol';
-    if (typeof user.role === 'string') return getRoleLabel(user.role);
-    return user.role.displayName;
-  };
-
-  const columns: Column<User>[] = [
-    {
-      key: 'firstName',
-      header: 'Nombres',
-    },
-    {
-      key: 'lastName',
-      header: 'Apellidos',
-    },
-    {
-      key: 'email',
-      header: 'Correo Electrónico',
-    },
-    {
-      key: 'role',
-      header: 'Rol',
-      render: (user) => (
-        <span style={getRoleBadgeStyle(getUserRoleName(user))}>
-          {getUserRoleDisplay(user)}
-        </span>
-      ),
-    },
-    {
-      key: 'sex',
-      header: 'Sexo',
-      render: (user) => {
-        if (!user.sex) return '-';
-        const sexLabels = {
-          M: 'Masculino',
-          F: 'Femenino',
-          Other: 'Otro',
-        };
-        return sexLabels[user.sex];
-      },
-    },
-    {
-      key: 'dateOfBirth',
-      header: 'Fecha de Nacimiento',
-      render: (user) =>
-        user.dateOfBirth
-          ? formatDate(user.dateOfBirth)
-          : '-',
-    },
-    {
-      key: 'isActive',
-      header: 'Estado',
-      render: (user) => (
-        <span className={user.isActive ? 'badge badge-success' : 'badge badge-error'}>
-          {user.isActive ? 'Activo' : 'Inactivo'}
-        </span>
-      ),
-    },
-    {
-      key: 'createdAt',
-      header: 'Fecha de Registro',
-      render: (user) => formatDate(user.createdAt),
-    },
-  ];
-
+  const hasActiveFilters = !!(search || activeSearch || roleFilter || statusFilter);
 
   return (
-    <div className="page-container">
+    <div className="page-container employees-page">
+      {/* Header */}
       <div className="page-header">
-        <h1>Gestión de Empleados</h1>
-        <Button variant="primary" onClick={handleCreateEmployee}>
+        <div>
+          <h1>Gestión de Empleados</h1>
+          <p className="employees-page__subtitle">Administra el equipo de la clínica</p>
+        </div>
+        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
           + Nuevo Empleado
         </Button>
       </div>
 
-      <div className="filters-container">
-        <div className="filters-row">
+      {/* Filters */}
+      <div className="filters employees-page__filters">
+        <div className="employees-page__filters-grid">
           <Input
             type="text"
             placeholder="Buscar por nombre o correo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyPress={handleSearchKeyPress}
-            className="search-input"
           />
-
           <Select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            options={availableRoles.map(role => ({
-              value: role.id,
-              label: role.displayName,
-            }))}
-            className="filter-select"
+            options={availableRoles.map(r => ({ value: r.id, label: r.displayName }))}
           />
-
           <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
-              { value: 'true', label: 'Activos' },
+              { value: 'true',  label: 'Activos' },
               { value: 'false', label: 'Inactivos' },
             ]}
-            className="filter-select"
           />
-
-          <Button variant="primary" onClick={handleSearch}>
-            Buscar
-          </Button>
-
-          {(search || activeSearch || roleFilter || statusFilter) && (
-            <Button variant="secondary" onClick={handleClearFilters}>
-              Limpiar filtros
-            </Button>
-          )}
+          <div className="employees-page__filter-actions">
+            <Button variant="primary" onClick={handleSearch}>Buscar</Button>
+            {hasActiveFilters && (
+              <Button variant="secondary" onClick={handleClearFilters}>Limpiar</Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
 
+      {/* Results bar */}
       <div className="results-info-modern">
         <div className="results-count">
           <span className="count-number">{total}</span>
           <span className="count-label">empleados</span>
         </div>
+        {hasActiveFilters && (
+          <span className="employees-page__filter-tag">Filtros activos</span>
+        )}
       </div>
 
+      {/* Grid / Loading / Empty */}
       {isLoading ? (
         <Loading text="Cargando empleados..." />
+      ) : users.length === 0 ? (
+        <div className="employees-page__empty">
+          <div className="employees-page__empty-icon">👥</div>
+          <p>No se encontraron empleados</p>
+          {hasActiveFilters && (
+            <Button variant="secondary" onClick={handleClearFilters}>Limpiar filtros</Button>
+          )}
+        </div>
       ) : (
         <>
-          <Table
-            columns={columns}
-            data={users}
-            onRowClick={handleRowClick}
-            emptyMessage="No se encontraron empleados"
-          />
-
+          <div className="employees-grid">
+            {users.map(user => (
+              <EmployeeCard
+                key={user.id}
+                user={user}
+                onClick={() => navigate(`/employees/${user.id}`)}
+              />
+            ))}
+          </div>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

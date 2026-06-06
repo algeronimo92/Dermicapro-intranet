@@ -32,6 +32,37 @@
   opacity: 0.5;
 }
 
+/* KPI header encima del gráfico (usado en NewPatientsChart) */
+.revenue-chart__kpi-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.revenue-chart__kpi-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+  margin: 0 0 4px 0;
+}
+
+.revenue-chart__kpi-value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1;
+}
+
+.revenue-chart__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .revenue-chart {

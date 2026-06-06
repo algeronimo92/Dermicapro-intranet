@@ -15,6 +15,7 @@ export interface AdminDashboardData {
     pendingRevenue: number;
     paidRevenue: number;
     monthlyRevenue: Array<{ month: string; amount: number }>;
+    paymentsByMethod: Array<{ method: string; amount: number }>;
   };
   appointments: {
     total: number;
@@ -37,6 +38,11 @@ export interface AdminDashboardData {
     approved: number;
     paid: number;
     totalAmount: number;
+  };
+  patients: {
+    total: number;
+    byPeriod: Array<{ period: string; count: number }>;
+    granularity: 'day' | 'month';
   };
 }
 
