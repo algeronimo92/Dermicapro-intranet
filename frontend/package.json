@@ -4,6 +4,8 @@
   "description": "Frontend for DermicaPro clinic management system",
   "type": "module",
   "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
     "dev": "vite",
     "build": "vite build",
     "build:check": "tsc -p tsconfig.build.json --noEmit && vite build",
@@ -39,6 +41,7 @@
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.60.1",
     "@vitejs/plugin-react": "^6.0.2",
+    "cypress": "^15.16.0",
     "eslint": "^9.30.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
