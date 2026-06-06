@@ -224,21 +224,6 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     }
 
     setSelectedDate(dateStr);
-
-    // If selecting today, auto-set minimum allowed time
-    const today = new Date();
-    const isToday = (
-      day === today.getDate() &&
-      currentMonth === today.getMonth() &&
-      currentYear === today.getFullYear()
-    );
-
-    if (isToday) {
-      const minTime = calculateMinimumTime();
-      setSelectedTime(minTime);
-      setTimeError('');
-    }
-
     setShowCalendar(false);
   };
 
@@ -307,15 +292,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
    * Handle time change with validation
    */
   const handleTimeChange = (newTime: string) => {
-    // Validate if time is allowed for selected date
-    if (!isTimeValid(newTime)) {
-      const minTime = calculateMinimumTime();
-      setTimeError(`Para citas de hoy, la hora debe ser al menos ${formatDisplayTime(minTime)}`);
-      setSelectedTime(minTime);
-    } else {
-      setTimeError('');
-      setSelectedTime(newTime);
-    }
+    setTimeError('');
+    setSelectedTime(newTime);
   };
 
   return (

@@ -23,15 +23,10 @@ import {
 import '../styles/appointment-detail.css';
 import '../styles/state-transitions.css';
 
-// Helper function to get full URL for receipt
 const getReceiptUrl = (path: string | null | undefined): string | null => {
   if (!path) return null;
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-  const serverUrl = baseUrl.replace('/api', '');
-  return `${serverUrl}${path}`;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return path; // relative path — proxied by Vite (dev) or nginx (prod)
 };
 
 export const AppointmentDetailPage: React.FC = () => {
@@ -761,30 +756,43 @@ export const AppointmentDetailPage: React.FC = () => {
                 </svg>
               </div>
 
-              {appointment.reservationReceiptUrl && (
+              {appointment.reservationReceiptUrl && (() => {
+                const receiptUrl = getReceiptUrl(appointment.reservationReceiptUrl) || '';
+                const isPdf = receiptUrl.toLowerCase().includes('.pdf');
+                const isImage = /\.(jpg|jpeg|png|webp)$/i.test(receiptUrl);
+                const handleView = () => isPdf
+                  ? window.open(receiptUrl, '_blank')
+                  : openViewer([receiptUrl]);
+                return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-bg-primary)', padding: '10px 12px', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--spacing-sm)', border: '1px solid var(--color-border-secondary)' }}>
-                  {(appointment.reservationReceiptUrl.toLowerCase().endsWith('.jpg') ||
-                    appointment.reservationReceiptUrl.toLowerCase().endsWith('.jpeg') ||
-                    appointment.reservationReceiptUrl.toLowerCase().endsWith('.png')) && (
+                  {isImage && (
                     <img
-                      src={getReceiptUrl(appointment.reservationReceiptUrl) || ''}
+                      src={receiptUrl}
                       alt="Recibo de reserva"
                       style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-md)', cursor: 'zoom-in', flexShrink: 0 }}
-                      onClick={() => openViewer([getReceiptUrl(appointment.reservationReceiptUrl) || ''])}
+                      onClick={handleView}
                     />
+                  )}
+                  {isPdf && (
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }}>
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <text x="6" y="19" fontSize="5" fill="currentColor" fontWeight="bold">PDF</text>
+                    </svg>
                   )}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                       Comprobante de Reserva
                     </div>
                     <button
-                      onClick={() => openViewer([getReceiptUrl(appointment.reservationReceiptUrl) || ''])}
+                      onClick={handleView}
                       style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 'var(--font-weight-semibold)', fontFamily: 'inherit' }}>
                       Ver recibo completo →
                     </button>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {appointment.status === 'reserved' && !appointment.reservationReceiptUrl && (
                 <button onClick={handleUploadReceipt} className="adet-reservation__upload-btn">

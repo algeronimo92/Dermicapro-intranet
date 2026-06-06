@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ModalProps {
@@ -16,6 +16,8 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   size = 'medium'
 }) => {
+  const mouseDownOnOverlay = useRef(false);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -25,10 +27,14 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   const modalContent = (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="modal-overlay"
+      onMouseDown={(e) => { mouseDownOnOverlay.current = e.target === e.currentTarget; }}
+      onMouseUp={(e) => { if (mouseDownOnOverlay.current && e.target === e.currentTarget) onClose(); }}
+    >
       <div
         className={`modal-content ${sizeClasses[size]}`}
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
           <h2>{title}</h2>

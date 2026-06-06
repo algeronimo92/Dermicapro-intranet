@@ -22,7 +22,6 @@ import {
   localToUTC,
   getLocalDateTimeString,
   addMinutes,
-  isDateTimeInPast
 } from '../utils/dateUtils';
 
 export const AppointmentFormPage: React.FC = () => {
@@ -679,9 +678,15 @@ export const AppointmentFormPage: React.FC = () => {
     }
     if (!formData.scheduledDate) {
       newErrors.scheduledDate = 'La fecha y hora son requeridas';
-    } else if (!isEditMode && isDateTimeInPast(formData.scheduledDate)) {
-      // Solo validar fecha pasada al CREAR — al editar se permite cambiar sin restricción
-      newErrors.scheduledDate = 'La fecha no puede ser en el pasado';
+    } else if (!isEditMode) {
+      // Solo bloquear días anteriores completos, no horas pasadas del mismo día
+      const selectedDate = new Date(formData.scheduledDate);
+      selectedDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.scheduledDate = 'La fecha no puede ser anterior a hoy';
+      }
     }
     if (!formData.durationMinutes || formData.durationMinutes < 30) {
       newErrors.durationMinutes = 'La duración mínima es 30 minutos';
@@ -1238,18 +1243,28 @@ export const AppointmentFormPage: React.FC = () => {
                 Comprobante de Reserva
               </label>
 
-              {currentReceipt ? (
+              {currentReceipt ? (() => {
+                const isPdf = currentReceipt.toLowerCase().includes('.pdf');
+                return (
                 <div className="receipt-container">
-                  {/* Miniatura de la imagen */}
                   <div className="receipt-image-wrapper">
-                    <img
-                      src={currentReceipt.startsWith('blob:') ? currentReceipt : `http://localhost:3000${currentReceipt}`}
-                      alt="Recibo de reserva"
-                      className="receipt-image"
-                    />
+                    {isPdf ? (
+                      <div className="receipt-pdf-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-secondary)' }}>
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <text x="6" y="19" fontSize="5" fill="currentColor" fontWeight="bold">PDF</text>
+                        </svg>
+                      </div>
+                    ) : (
+                      <img
+                        src={currentReceipt}
+                        alt="Recibo de reserva"
+                        className="receipt-image"
+                      />
+                    )}
                   </div>
 
-                    {/* Información y acciones */}
                     <div className="receipt-info">
                       <div className="receipt-status">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ color: 'var(--color-success)', flexShrink: 0 }}>
@@ -1264,7 +1279,7 @@ export const AppointmentFormPage: React.FC = () => {
                         <button
                           type="button"
                           className="receipt-view-btn"
-                          onClick={() => setViewerUrl(currentReceipt.startsWith('blob:') ? currentReceipt : `http://localhost:3000${currentReceipt}`)}
+                          onClick={() => isPdf ? window.open(currentReceipt, '_blank') : setViewerUrl(currentReceipt)}
                         >
                           Ver
                         </button>
@@ -1278,7 +1293,8 @@ export const AppointmentFormPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ) : (
+                );
+              })() : (
                   <button
                     type="button"
                     onClick={() => setShowUploadReceiptModal(true)}

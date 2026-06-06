@@ -111,17 +111,6 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
       return;
     }
 
-    if (currentStatus === AppointmentStatus.in_progress && newStatus === AppointmentStatus.attended) {
-      const hasBeforePhotos = appointment?.patientRecords?.some((record: any) => {
-        const photos = record.beforePhotoUrls as string[] | null;
-        return photos && photos.length > 0;
-      });
-      if (!hasBeforePhotos) {
-        setError('Sube al menos una foto de ANTES en la sección "Fotos del Tratamiento" para finalizar la atención.');
-        return;
-      }
-    }
-
     if (requiresConfirmation(currentStatus, newStatus)) {
       setPendingTransition(newStatus);
       setShowConfirmModal(true);

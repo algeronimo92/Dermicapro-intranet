@@ -331,16 +331,6 @@ export const Calendar: React.FC<CalendarProps> = ({
       return;
     }
 
-    // No permitir arrastrar eventos de horas pasadas del día actual
-    const aptHours = appointmentDate.getHours();
-    const aptMinutes = appointmentDate.getMinutes();
-    const aptTotalMinutes = aptHours * 60 + aptMinutes;
-
-    if (isPastTimeToday(appointmentDate, aptTotalMinutes)) {
-      e.preventDefault();
-      return;
-    }
-
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', apt.id);
 
@@ -384,13 +374,6 @@ export const Calendar: React.FC<CalendarProps> = ({
     // Convert pixel position to minutes, round to 15-minute intervals
     const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
 
-    // No permitir arrastrar a horas pasadas del día actual
-    if (isPastTimeToday(date, totalMinutes)) {
-      setDragOverDate(null);
-      setDragPreviewPosition(null);
-      return;
-    }
-
     setDragOverDate(date);
     setDragPreviewPosition(totalMinutes);
   };
@@ -418,16 +401,6 @@ export const Calendar: React.FC<CalendarProps> = ({
 
     // Convert pixel position to minutes and round to 15-minute intervals
     const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
-
-    // No permitir soltar en horas pasadas del día actual
-    if (isPastTimeToday(date, totalMinutes)) {
-      setDraggedAppointment(null);
-      setDragOverDate(null);
-      setDragPreviewPosition(null);
-      setIsDragging(false);
-      setDragOffsetY(0);
-      return;
-    }
 
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -472,46 +445,6 @@ export const Calendar: React.FC<CalendarProps> = ({
     // Convert pixel position to minutes, redondear hacia abajo a intervalos de 15 minutos
     const totalMinutes = Math.max(0, Math.floor(mouseY / 15) * 15);
 
-    // Validar hora mínima si es el día actual
-    const today = new Date();
-    const isToday = (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-
-    if (isToday) {
-      // Calcular hora mínima: hora actual + 1 hora, redondeada a siguiente intervalo de 30 min
-      const currentHours = today.getHours();
-      const currentMinutes = today.getMinutes();
-
-      let minHours = currentHours + 1;
-      let minMinutes = currentMinutes;
-
-      // Redondear al siguiente intervalo de 30 minutos
-      if (minMinutes > 0 && minMinutes <= 30) {
-        minMinutes = 30;
-      } else if (minMinutes > 30) {
-        minMinutes = 0;
-        minHours += 1;
-      }
-
-      // Manejar overflow de 24 horas
-      if (minHours >= 24) {
-        minHours = 23;
-        minMinutes = 30;
-      }
-
-      const minTotalMinutes = minHours * 60 + minMinutes;
-
-      // No mostrar helper si la hora es menor a la mínima permitida
-      if (totalMinutes < minTotalMinutes) {
-        setHoverDate(null);
-        setHoverPosition(null);
-        return;
-      }
-    }
-
     setHoverDate(date);
     setHoverPosition(totalMinutes);
   };
@@ -529,50 +462,10 @@ export const Calendar: React.FC<CalendarProps> = ({
       return;
     }
 
-    let finalMinutes = minutes;
-    let hours = Math.floor(finalMinutes / 60);
-    let mins = finalMinutes % 60;
+    const finalMinutes = minutes;
+    const hours = Math.floor(finalMinutes / 60);
+    const mins = finalMinutes % 60;
     const durationMinutes = 60; // Duración del helper (1 hora)
-
-    // Validar hora mínima si es el día actual
-    const today = new Date();
-    const isToday = (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-
-    if (isToday) {
-      // Calcular hora mínima: hora actual + 1 hora, redondeada a siguiente intervalo de 30 min
-      const currentHours = today.getHours();
-      const currentMinutes = today.getMinutes();
-
-      let minHours = currentHours + 1;
-      let minMinutes = currentMinutes;
-
-      // Redondear al siguiente intervalo de 30 minutos
-      if (minMinutes > 0 && minMinutes <= 30) {
-        minMinutes = 30;
-      } else if (minMinutes > 30) {
-        minMinutes = 0;
-        minHours += 1;
-      }
-
-      // Manejar overflow de 24 horas
-      if (minHours >= 24) {
-        minHours = 23;
-        minMinutes = 30;
-      }
-
-      const minTotalMinutes = minHours * 60 + minMinutes;
-
-      // Si la hora seleccionada es menor a la mínima, usar la mínima
-      if (finalMinutes < minTotalMinutes) {
-        finalMinutes = minTotalMinutes;
-        hours = Math.floor(finalMinutes / 60);
-        mins = finalMinutes % 60;
-      }
-    }
 
     onTimeSlotClick(date, hours, mins, durationMinutes);
   };
@@ -901,10 +794,8 @@ export const Calendar: React.FC<CalendarProps> = ({
                     const layout = appointmentLayout.get(apt.id) || { left: '4px', width: 'calc(100% - 8px)', zIndex: 5 };
 
                     // Check if appointment is in blocked time zone
-                    const aptTotalMinutes = hour * 60 + minute;
                     const isInPastDay = isPastDay(aptDate);
-                    const isInPastTime = isPastTimeToday(aptDate, aptTotalMinutes);
-                    const isBlocked = isInPastDay || isInPastTime || isFinalState(apt);
+                    const isBlocked = isInPastDay || isFinalState(apt);
 
                     return (
                       <div
@@ -970,16 +861,6 @@ export const Calendar: React.FC<CalendarProps> = ({
                   );
                   });
                 })()}
-
-                {/* Blocked past time overlay */}
-                {shouldShowTimeIndicator(date) && getBlockedPastHeight() > 0 && (
-                  <div
-                    className="blocked-past-overlay"
-                    style={{
-                      height: `${getBlockedPastHeight()}px`,
-                    }}
-                  />
-                )}
 
                 {/* Current time indicator */}
                 {shouldShowTimeIndicator(date) && (
@@ -1132,10 +1013,8 @@ export const Calendar: React.FC<CalendarProps> = ({
                 const layout = appointmentLayout.get(apt.id) || { left: '4px', width: 'calc(100% - 8px)', zIndex: 5 };
 
                 // Check if appointment is in blocked time zone
-                const aptTotalMinutes = hour * 60 + minute;
                 const isInPastDay = isPastDay(aptDate);
-                const isInPastTime = isPastTimeToday(aptDate, aptTotalMinutes);
-                const isBlocked = isInPastDay || isInPastTime;
+                const isBlocked = isInPastDay;
 
                 return (
                   <div
@@ -1201,16 +1080,6 @@ export const Calendar: React.FC<CalendarProps> = ({
                 );
               });
             })()}
-
-            {/* Blocked past time overlay */}
-            {shouldShowTimeIndicator(currentDate) && getBlockedPastHeight() > 0 && (
-              <div
-                className="blocked-past-overlay"
-                style={{
-                  height: `${getBlockedPastHeight()}px`,
-                }}
-              />
-            )}
 
             {/* Current time indicator */}
             {shouldShowTimeIndicator(currentDate) && (
