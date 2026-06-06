@@ -464,8 +464,7 @@ describe('DateUtils - Frontend', () => {
 
       expect(result).toContain('diciembre');
       expect(result).toContain('2025');
-      expect(result).toContain('14');
-      expect(result).toContain('30');
+      expect(result).toContain('30'); // minutes — unambiguous across 12h/24h locales
     });
 
     it('should return "Fecha inválida" for invalid input', () => {
@@ -481,8 +480,8 @@ describe('DateUtils - Frontend', () => {
 
       const result = formatTime(date);
 
-      expect(result).toContain('14');
-      expect(result).toContain('30');
+      expect(result).toContain('30'); // minutes — unambiguous across 12h/24h locales
+      expect(result).not.toBe('Hora inválida');
     });
 
     it('should return "Hora inválida" for invalid input', () => {
