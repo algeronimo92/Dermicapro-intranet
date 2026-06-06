@@ -380,106 +380,73 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       {/* Modal: selección de asistentes antes de marcar como atendida */}
       {pendingAttend && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
-          }}
+          className="kanban-attend-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setPendingAttend(null); }}
         >
-          <div style={{
-            background: 'var(--bg-card, #1e1e2e)', borderRadius: '16px',
-            padding: '24px', maxWidth: '420px', width: '100%',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
-            border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-          }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--success-color, #4ade80)', flexShrink: 0 }}>
-                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Finalizar Atención</h3>
+          <div className="kanban-attend-modal">
+            <div className="kanban-attend-header">
+              <div className="kanban-attend-header-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="kanban-attend-header-text">
+                <h3 className="kanban-attend-title">Finalizar Atención</h3>
+                <p className="kanban-attend-subtitle">
+                  {pendingAttend.patient
+                    ? `${pendingAttend.patient.firstName} ${pendingAttend.patient.lastName}`
+                    : 'Paciente'}{' · '}
+                  {new Date(pendingAttend.scheduledDate).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
             </div>
-            <p style={{ margin: '0 0 20px 30px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-              {pendingAttend.patient
-                ? `${pendingAttend.patient.firstName} ${pendingAttend.patient.lastName}`
-                : 'Paciente'} · {new Date(pendingAttend.scheduledDate).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
-            </p>
 
-            {/* Selección de profesionales */}
-            <p style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
-              ¿Quiénes atendieron esta cita?
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
-              {staffUsers.map(u => {
-                const checked = selectedAttendees.has(u.id);
-                return (
-                  <button
-                    key={u.id}
-                    onClick={() => toggleAttendee(u.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '10px 12px', borderRadius: '8px', border: 'none',
-                      background: checked
-                        ? 'var(--primary-color-alpha, rgba(99,102,241,0.15))'
-                        : 'var(--bg-secondary, rgba(255,255,255,0.05))',
-                      cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                      outline: checked ? '1.5px solid var(--primary-color, #6366f1)' : 'none',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{
-                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                      background: checked ? 'var(--primary-color, #6366f1)' : 'var(--bg-tertiary, rgba(255,255,255,0.1))',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '12px', fontWeight: 600, color: checked ? '#fff' : 'var(--text-secondary)',
-                      transition: 'all 0.15s',
-                    }}>
-                      {u.firstName[0]}{u.lastName[0]}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>{u.firstName} {u.lastName}</p>
-                    </div>
-                    {checked && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--primary-color, #6366f1)', flexShrink: 0 }}>
+            <div className="kanban-attend-body">
+              <span className="kanban-attend-label">¿Quiénes atendieron esta cita?</span>
+              <div className="kanban-attend-list">
+                {staffUsers.map(u => {
+                  const checked = selectedAttendees.has(u.id);
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => toggleAttendee(u.id)}
+                      className={`kanban-attend-user${checked ? ' is-selected' : ''}`}
+                    >
+                      <div className="kanban-attend-avatar">
+                        {u.firstName[0]}{u.lastName[0]}
+                      </div>
+                      <p className="kanban-attend-user-name">{u.firstName} {u.lastName}</p>
+                      <svg className="kanban-attend-check" width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                    )}
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {attendModalError && (
+                <p className="kanban-attend-error">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M8 5v3M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  {attendModalError}
+                </p>
+              )}
             </div>
 
-            {attendModalError && (
-              <p style={{ margin: '12px 0 0', fontSize: '13px', color: 'var(--error-color, #f87171)', fontWeight: 500 }}>
-                {attendModalError}
-              </p>
-            )}
-
-            {/* Acciones */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+            <div className="kanban-attend-footer">
               <button
+                className="btn btn-secondary btn-sm"
                 onClick={() => setPendingAttend(null)}
                 disabled={isSubmittingAttend}
-                style={{
-                  padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px',
-                }}
               >
                 Cancelar
               </button>
               <button
+                className="btn btn-success btn-sm"
                 onClick={handleAttendConfirm}
                 disabled={isSubmittingAttend || selectedAttendees.size === 0}
-                style={{
-                  padding: '9px 20px', borderRadius: '8px', border: 'none',
-                  background: selectedAttendees.size === 0 ? 'var(--bg-secondary, rgba(255,255,255,0.1))' : 'var(--primary-color, #6366f1)',
-                  cursor: selectedAttendees.size === 0 ? 'not-allowed' : 'pointer',
-                  color: selectedAttendees.size === 0 ? 'var(--text-secondary)' : '#fff',
-                  fontSize: '14px', fontWeight: 600,
-                  opacity: isSubmittingAttend ? 0.6 : 1,
-                  transition: 'all 0.15s',
-                }}
               >
                 {isSubmittingAttend ? 'Guardando...' : 'Confirmar Atención'}
               </button>
