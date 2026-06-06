@@ -37,10 +37,6 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
       where.patientId = patientId;
     }
 
-    if (req.user?.roleName === ROLES.SALES) {
-      where.createdById = req.user.id;
-    }
-
     if (userId && req.user?.roleName === ROLES.ADMIN) {
       where.createdById = userId;
     }

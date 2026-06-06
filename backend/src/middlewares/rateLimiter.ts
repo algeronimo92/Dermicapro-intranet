@@ -1,43 +1,46 @@
 import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
+import jwt from 'jsonwebtoken';
 
-/**
- * Rate limiter general para toda la API
- * Límite: 100 peticiones por 15 minutos por IP (producción)
- * Límite: 1000 peticiones por 15 minutos por IP (desarrollo)
- */
+// Decodifica el JWT sin verificarlo solo para extraer el user ID como clave del rate limiter.
+// La verificación real sigue ocurriendo en el middleware de autenticación.
+function getUserKey(req: Request): string {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith('Bearer ')) {
+    try {
+      const decoded = jwt.decode(auth.split(' ')[1]) as { id?: string } | null;
+      if (decoded?.id) return `user:${decoded.id}`;
+    } catch {
+      // fall through to IP
+    }
+  }
+  return `ip:${req.ip ?? 'unknown'}`;
+}
+
+// 500 requests por usuario por 15 minutos en producción.
+// Cada usuario tiene su propio contador, así toda la clínica en la misma WiFi no comparte el límite.
 export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  limit: process.env.NODE_ENV === 'production' ? 100 : 1000, // Límite flexible para desarrollo
-  message: {
-    error: 'Demasiadas peticiones desde esta IP, por favor intenta de nuevo más tarde.',
-    retryAfter: '15 minutos'
-  },
-  standardHeaders: true, // Retorna info de rate limit en headers `RateLimit-*`
-  legacyHeaders: false, // Deshabilita headers `X-RateLimit-*`
-  // Handler cuando se excede el límite
+  windowMs: 15 * 60 * 1000,
+  limit: 500,
+  skip: () => process.env.NODE_ENV !== 'production',
+  keyGenerator: getUserKey,
+  standardHeaders: true,
+  legacyHeaders: false,
   handler: (_req, res) => {
     res.status(429).json({
-      error: 'Demasiadas peticiones desde esta IP',
+      error: 'Demasiadas peticiones',
       message: 'Has excedido el límite de peticiones. Por favor intenta de nuevo más tarde.',
       retryAfter: '15 minutos'
     });
   }
 });
 
-/**
- * Rate limiter estricto para endpoints de autenticación
- * Límite: 50 intentos por 15 minutos por IP (desarrollo)
- * En producción debería ser más estricto (5 intentos)
- * Previene ataques de fuerza bruta
- */
+// Rate limiter estricto para endpoints de autenticación (por IP, no por usuario).
+// Previene fuerza bruta en login.
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  limit: process.env.NODE_ENV === 'production' ? 5 : 200, // Límite flexible para desarrollo
-  skipSuccessfulRequests: true, // No cuenta peticiones exitosas
-  message: {
-    error: 'Demasiados intentos de autenticación fallidos',
-    retryAfter: '15 minutos'
-  },
+  windowMs: 15 * 60 * 1000,
+  limit: process.env.NODE_ENV === 'production' ? 20 : 200,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -49,18 +52,12 @@ export const authLimiter = rateLimit({
   }
 });
 
-/**
- * Rate limiter para creación de recursos
- * Límite: 30 peticiones por hora por IP
- * Previene spam y creación masiva de registros
- */
+// Rate limiter para creación de recursos — por usuario autenticado.
 export const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
-  limit: 30, // Límite de 30 creaciones por hora
-  message: {
-    error: 'Demasiadas operaciones de creación',
-    retryAfter: '1 hora'
-  },
+  windowMs: 60 * 60 * 1000,
+  limit: 100,
+  skip: () => process.env.NODE_ENV !== 'production',
+  keyGenerator: getUserKey,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -72,18 +69,12 @@ export const createLimiter = rateLimit({
   }
 });
 
-/**
- * Rate limiter para uploads de archivos
- * Límite: 10 uploads por hora por IP
- * Previene saturación del servidor con archivos
- */
+// Rate limiter para uploads — por usuario autenticado.
 export const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
-  limit: 10, // Límite de 10 uploads por hora
-  message: {
-    error: 'Demasiadas subidas de archivos',
-    retryAfter: '1 hora'
-  },
+  windowMs: 60 * 60 * 1000,
+  limit: 30,
+  skip: () => process.env.NODE_ENV !== 'production',
+  keyGenerator: getUserKey,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
