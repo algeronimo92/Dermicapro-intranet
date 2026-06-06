@@ -1,12 +1,31 @@
 /**
- * Unit Tests for Date Utilities (Frontend)
+ * Unit Tests — Frontend Date Utilities (dateUtils.ts)
  *
  * Testing strategy:
  * - AAA Pattern (Arrange, Act, Assert)
  * - Mock system time for deterministic tests
- * - Test positive cases, edge cases, and negative cases
+ * - Timezone-agnostic: expected UTC values computed dynamically,
+ *   never hardcoded to GMT-5, so tests pass on any CI runner timezone
  * - Target: >90% code coverage
  */
+
+// Helper: build "YYYY-MM-DDTHH:mm" from a Date using LOCAL time methods.
+// Mirrors what utcToLocal() returns, so it can be used as the expected value.
+function formatLocalDateTime(date: Date): string {
+  const y = date.getFullYear();
+  const mo = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${mo}-${d}T${h}:${m}`;
+}
+
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear();
+  const mo = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${d}`;
+}
 
 import {
   getLocalDateString,
@@ -155,42 +174,43 @@ describe('DateUtils - Frontend', () => {
   // ============================================
 
   describe('localToUTC', () => {
-    it('should convert local datetime to UTC ISO string', () => {
+    it('should return a valid UTC ISO string representing the same moment as the local input', () => {
       const localDateTime = '2025-12-06T14:30';
 
       const result = localToUTC(localDateTime);
 
       expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-      const parsed = new Date(result);
-      expect(parsed.getUTCHours()).toBe(19); // 14:30 local = 19:30 UTC (GMT-5)
+      // new Date(localDateTime) interprets the string as local time — same as localToUTC does
+      expect(new Date(result).getTime()).toBe(new Date(localDateTime).getTime());
     });
 
-    it('should handle local midnight correctly', () => {
+    it('should correctly convert local midnight to its UTC equivalent', () => {
       const localDateTime = '2025-12-06T00:00';
 
       const result = localToUTC(localDateTime);
 
-      const parsed = new Date(result);
-      expect(parsed.getUTCHours()).toBe(5); // 00:00 local = 05:00 UTC
+      expect(new Date(result).getTime()).toBe(new Date(localDateTime).getTime());
     });
 
-    it('should handle day boundary crossing', () => {
+    it('should produce a UTC date that matches the local moment even when crossing midnight', () => {
       const localDateTime = '2025-12-06T23:00';
 
       const result = localToUTC(localDateTime);
 
-      const parsed = new Date(result);
-      expect(parsed.getUTCDate()).toBe(7); // Crosses to next day in UTC
+      const expected = new Date(localDateTime);
+      expect(new Date(result).getUTCDate()).toBe(expected.getUTCDate());
+      expect(new Date(result).getTime()).toBe(expected.getTime());
     });
   });
 
   describe('utcToLocal', () => {
-    it('should convert UTC to local datetime format', () => {
+    it('should convert a UTC ISO string to a local datetime string in YYYY-MM-DDTHH:mm format', () => {
       const utcString = '2025-12-06T19:30:00.000Z';
 
       const result = utcToLocal(utcString);
 
-      expect(result).toBe('2025-12-06T14:30'); // 19:30 UTC = 14:30 local (GMT-5)
+      // Compute expected using local Date methods — timezone-agnostic
+      expect(result).toBe(formatLocalDateTime(new Date(utcString)));
     });
 
     it('should return empty string for empty input', () => {
@@ -213,22 +233,22 @@ describe('DateUtils - Frontend', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    it('should handle day boundary crossing backwards', () => {
+    it('should correctly handle UTC times that shift to the previous day in local time', () => {
       const utcString = '2025-12-07T04:00:00.000Z';
 
       const result = utcToLocal(utcString);
 
-      expect(result).toBe('2025-12-06T23:00'); // Crosses back to previous day
+      expect(result).toBe(formatLocalDateTime(new Date(utcString)));
     });
   });
 
   describe('utcToLocalDate', () => {
-    it('should convert UTC to local date only', () => {
+    it('should return only the local date part (YYYY-MM-DD) of a UTC ISO string', () => {
       const utcString = '2025-12-06T19:30:00.000Z';
 
       const result = utcToLocalDate(utcString);
 
-      expect(result).toBe('2025-12-06');
+      expect(result).toBe(formatLocalDate(new Date(utcString)));
     });
 
     it('should return empty string for empty input', () => {
@@ -954,14 +974,13 @@ describe('DateUtils - Frontend', () => {
   });
 
   describe('prepareDateTimeForAPI', () => {
-    it('should convert local datetime to UTC', () => {
+    it('should return a UTC ISO string representing the same moment as the local input', () => {
       const localDateTime = '2025-12-06T14:30';
 
       const result = prepareDateTimeForAPI(localDateTime);
 
       expect(result).toMatch(/Z$/);
-      const parsed = new Date(result);
-      expect(parsed.getUTCHours()).toBe(19);
+      expect(new Date(result).getTime()).toBe(new Date(localDateTime).getTime());
     });
   });
 
@@ -971,13 +990,16 @@ describe('DateUtils - Frontend', () => {
 
   describe('Edge Cases', () => {
     describe('Timezone Boundaries', () => {
-      it('should handle local datetime at 23:59 crossing to next day in UTC', () => {
+      it('should produce a UTC date consistent with the local input near midnight', () => {
         const local = '2025-12-06T23:59';
 
         const utc = localToUTC(local);
         const parsed = new Date(utc);
+        const expected = new Date(local);
 
-        expect(parsed.getUTCDate()).toBe(7); // Next day in UTC
+        // UTC date depends on timezone — compare moment in time, not hardcoded date
+        expect(parsed.getTime()).toBe(expected.getTime());
+        expect(parsed.getUTCDate()).toBe(expected.getUTCDate());
       });
     });
 
