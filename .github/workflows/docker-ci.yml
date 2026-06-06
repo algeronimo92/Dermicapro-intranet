@@ -246,7 +246,7 @@ jobs:
       - name: Wait for backend to be ready
         run: |
           timeout 90 bash -c \
-            'until docker compose exec -T backend curl -sf http://localhost:5000/health 2>/dev/null; do
+            'until curl -sf http://localhost:5000/health 2>/dev/null; do
               echo "Waiting for backend..."; sleep 3
             done'
 
