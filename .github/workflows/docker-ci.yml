@@ -12,9 +12,9 @@ env:
 
 jobs:
   # ================================
-  # Test Backend
+  # Unit Tests — Backend
   # ================================
-  test-backend:
+  unit-tests-backend:
     runs-on: ubuntu-latest
 
     services:
@@ -71,9 +71,9 @@ jobs:
           flags: backend
 
   # ================================
-  # Test Frontend
+  # Unit Tests — Frontend
   # ================================
-  test-frontend:
+  unit-tests-frontend:
     runs-on: ubuntu-latest
 
     steps:
@@ -106,7 +106,7 @@ jobs:
   # ================================
   build-backend:
     runs-on: ubuntu-latest
-    needs: test-backend
+    needs: unit-tests-backend
 
     steps:
       - name: Checkout code
@@ -150,7 +150,7 @@ jobs:
   # ================================
   build-frontend:
     runs-on: ubuntu-latest
-    needs: test-frontend
+    needs: unit-tests-frontend
 
     steps:
       - name: Checkout code
@@ -221,11 +221,11 @@ jobs:
           sarif_file: "."
 
   # ================================
-  # E2E Tests (Cypress)
+  # E2E Tests — Cypress (full stack)
   # ================================
-  test-e2e:
+  e2e-tests-cypress:
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend]
+    needs: [unit-tests-backend, unit-tests-frontend]
 
     steps:
       - name: Checkout code
