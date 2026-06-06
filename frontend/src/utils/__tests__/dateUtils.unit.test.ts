@@ -27,6 +27,7 @@ function formatLocalDate(date: Date): string {
   return `${y}-${mo}-${d}`;
 }
 
+import { jest } from '@jest/globals';
 import {
   getLocalDateString,
   getLocalDateTimeString,
@@ -63,6 +64,8 @@ import {
   addMinutes,
   prepareDateRangeForAPI,
   prepareDateTimeForAPI,
+  getTodayString,
+  getDateTimeInputValue,
 } from '../dateUtils';
 
 describe('DateUtils - Frontend', () => {
@@ -1050,6 +1053,30 @@ describe('DateUtils - Frontend', () => {
 
         expect(formatted).toBe('1960-01-01');
       });
+    });
+  });
+
+  // ============================================
+  // DEPRECATED HELPERS (kept for coverage)
+  // ============================================
+
+  describe('getTodayString (deprecated)', () => {
+    it('should return today in YYYY-MM-DD format', () => {
+      const result = getTodayString();
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+
+  describe('getDateTimeInputValue (deprecated)', () => {
+    it('should return current datetime in YYYY-MM-DDTHH:mm format when called without argument', () => {
+      const result = getDateTimeInputValue();
+      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    });
+
+    it('should format the given date in YYYY-MM-DDTHH:mm format', () => {
+      const date = new Date(2025, 11, 6, 14, 30);
+      const result = getDateTimeInputValue(date);
+      expect(result).toBe('2025-12-06T14:30');
     });
   });
 });
