@@ -115,26 +115,27 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
       include: {
         patient: true,
         createdBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { id: true, firstName: true, lastName: true, email: true, photoUrl: true },
         },
         attendedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+          select: { id: true, firstName: true, lastName: true, email: true, photoUrl: true },
+        },
+        attendees: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true, photoUrl: true },
+            },
+            addedBy: {
+              select: { id: true, firstName: true, lastName: true },
+            },
           },
+          orderBy: { addedAt: 'asc' },
         },
         patientRecords: {
           orderBy: { createdAt: 'desc' },
         },
         appointmentServices: {
-          where: { deletedAt: null },   // excluir sesiones soft-deleted
+          where: { deletedAt: null },
           include: {
             serviceInstance: {
               include: {
@@ -147,12 +148,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
           orderBy: { createdAt: 'desc' },
           include: {
             createdBy: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
+              select: { id: true, firstName: true, lastName: true, email: true },
             },
           },
         },
@@ -577,25 +573,44 @@ export const deleteAppointment = async (req: Request, res: Response): Promise<vo
   }
 };
 
+const APPOINTMENT_INCLUDE_WITH_ATTENDEES = {
+  patient: true,
+  createdBy: {
+    select: { id: true, firstName: true, lastName: true, email: true, photoUrl: true },
+  },
+  attendedBy: {
+    select: { id: true, firstName: true, lastName: true, email: true, photoUrl: true },
+  },
+  attendees: {
+    include: {
+      user: {
+        select: { id: true, firstName: true, lastName: true, email: true, photoUrl: true },
+      },
+      addedBy: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+    orderBy: { addedAt: 'asc' as const },
+  },
+  patientRecords: { orderBy: { createdAt: 'desc' as const } },
+  appointmentServices: {
+    where: { deletedAt: null },
+    include: { serviceInstance: { include: { service: true } } },
+  },
+};
+
 export const markAsAttended = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
-    // Usar transacción para marcar como attended y generar comisiones
     const appointment = await prisma.$transaction(async (tx) => {
-      // Obtener la cita con sus servicios antes de actualizar
       const existingAppointment = await tx.appointment.findUnique({
         where: { id },
         include: {
           createdBy: true,
           appointmentServices: {
-            include: {
-              serviceInstance: {
-                include: {
-                  service: true,
-                },
-              },
-            },
+            where: { deletedAt: null },
+            include: { serviceInstance: { include: { service: true } } },
           },
         },
       });
@@ -604,7 +619,19 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
         throw new AppError('Appointment not found', 404);
       }
 
-      // Marcar como attended
+      if (existingAppointment.status === 'attended') {
+        throw new AppError('Appointment is already attended', 400);
+      }
+
+      // Exigir al menos un asistente registrado antes de marcar como attended
+      const attendeeCount = await tx.appointmentAttendee.count({
+        where: { appointmentId: id },
+      });
+      if (attendeeCount === 0) {
+        throw new AppError('Debe agregar al menos un profesional antes de marcar como atendida', 400);
+      }
+
+      // Marcar como attended — attendedById es audit trail inmutable de quién presionó el botón
       const updatedAppointment = await tx.appointment.update({
         where: { id },
         data: {
@@ -612,42 +639,10 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
           attendedById: req.user!.id,
           attendedAt: new Date(),
         },
-        include: {
-          patient: true,
-          createdBy: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-          attendedBy: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-          patientRecords: {
-            orderBy: { createdAt: 'desc' },
-          },
-          appointmentServices: {
-            include: {
-              serviceInstance: {
-                include: {
-                  service: true,
-                },
-              },
-            },
-          },
-        },
+        include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
       });
 
-      // ============================================
       // Generar comisiones por cada orden única
-      // ============================================
       const serviceInstanceIds = [...new Set(
         existingAppointment.appointmentServices
           .map(as => as.serviceInstanceId)
@@ -663,28 +658,20 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
 
         const order = appointmentService.serviceInstance;
 
-        // Verificar si ya existe una comisión para este appointment y serviceInstance
         const existingCommission = await tx.commission.findFirst({
-          where: {
-            appointmentId: id,
-            serviceInstanceId: serviceInstanceId,
-          },
+          where: { appointmentId: id, serviceInstanceId },
         });
 
-        // Solo crear comisión si no existe
         if (!existingCommission) {
           const baseAmount = order.finalPrice;
           let commissionAmount = 0;
           let commissionRate = null;
-          let commissionType = order.service.commissionType || 'percentage';
+          const commissionType = order.service.commissionType || 'percentage';
 
-          // Calcular comisión según el tipo
           if (commissionType === 'percentage') {
-            // Comisión por porcentaje (0.05 = 5%)
-            commissionRate = order.service.commissionRate || 0.05; // 5% por defecto
+            commissionRate = order.service.commissionRate || 0.05;
             commissionAmount = Number(baseAmount) * Number(commissionRate);
           } else if (commissionType === 'fixed') {
-            // Comisión por monto fijo
             commissionAmount = Number(order.service.commissionFixedAmount || 0);
           }
 
@@ -692,7 +679,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
             data: {
               salesPersonId: existingAppointment.createdBy.id,
               appointmentId: id,
-              serviceInstanceId: serviceInstanceId,
+              serviceInstanceId,
               serviceTemplateId: order.serviceTemplateId,
               commissionRate: commissionRate || 0,
               baseAmount,
@@ -712,8 +699,96 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
+      console.error('Error marking appointment as attended:', error);
       res.status(500).json({ error: 'Failed to mark appointment as attended' });
     }
+  }
+};
+
+export const addAttendee = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      res.status(400).json({ error: 'userId is required' });
+      return;
+    }
+
+    const appointment = await prisma.appointment.findUnique({ where: { id } });
+    if (!appointment) {
+      res.status(404).json({ error: 'Appointment not found' });
+      return;
+    }
+
+    const canManagePostAttended = ['admin', 'sales'].includes(req.user!.roleName ?? '');
+    if (appointment.status === 'attended' && !canManagePostAttended) {
+      res.status(403).json({ error: 'Solo administradores o vendedores pueden modificar los asistentes de una cita ya atendida' });
+      return;
+    }
+
+    const userExists = await prisma.user.findUnique({ where: { id: userId } });
+    if (!userExists) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    await prisma.appointmentAttendee.upsert({
+      where: { appointmentId_userId: { appointmentId: id, userId } },
+      create: { appointmentId: id, userId, addedById: req.user!.id },
+      update: {},
+    });
+
+    const updated = await prisma.appointment.findUnique({
+      where: { id },
+      include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error adding attendee:', error);
+    res.status(500).json({ error: 'Failed to add attendee' });
+  }
+};
+
+export const removeAttendee = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, userId } = req.params;
+
+    const appointment = await prisma.appointment.findUnique({ where: { id } });
+    if (!appointment) {
+      res.status(404).json({ error: 'Appointment not found' });
+      return;
+    }
+
+    const canManagePostAttended = ['admin', 'sales'].includes(req.user!.roleName ?? '');
+    if (appointment.status === 'attended' && !canManagePostAttended) {
+      res.status(403).json({ error: 'Solo administradores o vendedores pueden modificar los asistentes de una cita ya atendida' });
+      return;
+    }
+
+    const attendee = await prisma.appointmentAttendee.findUnique({
+      where: { appointmentId_userId: { appointmentId: id, userId } },
+    });
+
+    if (!attendee) {
+      res.status(404).json({ error: 'Attendee not found' });
+      return;
+    }
+
+    await prisma.appointmentAttendee.delete({
+      where: { appointmentId_userId: { appointmentId: id, userId } },
+    });
+
+    const updated = await prisma.appointment.findUnique({
+      where: { id },
+      include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error removing attendee:', error);
+    res.status(500).json({ error: 'Failed to remove attendee' });
   }
 };
 

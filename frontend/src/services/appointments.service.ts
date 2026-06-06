@@ -75,6 +75,16 @@ export const appointmentsService = {
     return response.data;
   },
 
+  async addAttendee(appointmentId: string, userId: string): Promise<Appointment> {
+    const response = await api.post<Appointment>(`/appointments/${appointmentId}/attendees`, { userId });
+    return response.data;
+  },
+
+  async removeAttendee(appointmentId: string, userId: string): Promise<Appointment> {
+    const response = await api.delete<Appointment>(`/appointments/${appointmentId}/attendees/${userId}`);
+    return response.data;
+  },
+
   async uploadReceipt(id: string, file: File, amount: number, paymentMethod: string = 'cash'): Promise<Appointment> {
     const formData = new FormData();
     formData.append('receipt', file);

@@ -157,6 +157,16 @@ export interface AppointmentNote {
   createdBy?: Partial<User>;
 }
 
+export interface AppointmentAttendee {
+  id: string;
+  appointmentId: string;
+  userId: string;
+  addedAt: string;
+  addedById: string;
+  user?: Partial<User>;
+  addedBy?: Partial<User>;
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -170,6 +180,7 @@ export interface Appointment {
   patient?: Patient;
   createdBy?: Partial<User>;
   attendedBy?: Partial<User>;
+  attendees?: AppointmentAttendee[];
   appointmentServices?: AppointmentService[]; // TODAS las sesiones de esta cita
   patientRecords?: PatientRecord[]; // Registros médicos de esta cita
   appointmentNotes?: AppointmentNote[]; // Notas de atención

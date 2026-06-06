@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentsService } from '../services/appointments.service';
 import { patientsService } from '../services/patients.service';
-import { Appointment, Patient, Role } from '../types';
+import { usersService } from '../services/users.service';
+import { Appointment, Patient, Role, User } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { AttendAppointmentModal } from '../components/AttendAppointmentModal';
@@ -50,6 +51,14 @@ export const AppointmentDetailPage: React.FC = () => {
   const [viewerImages, setViewerImages] = useState<string[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
 
+  // Attendees state
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [showAttendeeSelector, setShowAttendeeSelector] = useState(false);
+  const [attendeeSearchQuery, setAttendeeSearchQuery] = useState('');
+  const [isAddingAttendee, setIsAddingAttendee] = useState(false);
+  const [removingAttendeeId, setRemovingAttendeeId] = useState<string | null>(null);
+  const [attendeeRequiredError, setAttendeeRequiredError] = useState(false);
+
   const openViewer = (images: string[], index = 0) => {
     setViewerImages(images);
     setViewerIndex(index);
@@ -73,6 +82,9 @@ export const AppointmentDetailPage: React.FC = () => {
     if (appointment) {
       const isFinalState = ['attended', 'cancelled', 'no_show'].includes(appointment.status);
       setSystemInfoExpanded(isFinalState);
+      if (appointment.status === 'attended') {
+        setAttendeeRequiredError(false);
+      }
     }
   }, [appointment?.status]);
 
@@ -82,6 +94,11 @@ export const AppointmentDetailPage: React.FC = () => {
       loadPatientData(appointment.patientId);
     }
   }, [appointment?.patientId]);
+
+  // Load staff users once for attendee picker
+  useEffect(() => {
+    usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+  }, []);
 
   const loadAppointment = async (appointmentId: string) => {
     try {
@@ -102,6 +119,35 @@ export const AppointmentDetailPage: React.FC = () => {
       setPatientData(data);
     } catch (err: any) {
       console.error('Error loading patient data:', err);
+    }
+  };
+
+  const handleAddAttendee = async (userId: string) => {
+    if (!appointment) return;
+    setIsAddingAttendee(true);
+    try {
+      const updated = await appointmentsService.addAttendee(appointment.id, userId);
+      setAppointment(updated);
+      setShowAttendeeSelector(false);
+      setAttendeeSearchQuery('');
+      setAttendeeRequiredError(false);
+    } catch (err: any) {
+      console.error('Error adding attendee:', err);
+    } finally {
+      setIsAddingAttendee(false);
+    }
+  };
+
+  const handleRemoveAttendee = async (userId: string) => {
+    if (!appointment) return;
+    setRemovingAttendeeId(userId);
+    try {
+      const updated = await appointmentsService.removeAttendee(appointment.id, userId);
+      setAppointment(updated);
+    } catch (err: any) {
+      console.error('Error removing attendee:', err);
+    } finally {
+      setRemovingAttendeeId(null);
     }
   };
 
@@ -253,6 +299,7 @@ export const AppointmentDetailPage: React.FC = () => {
   // Permisos derivados de la configuración
   const canEdit = hasPermission(appointment.status, 'canEdit', userRole);
   const canMarkAttended = hasPermission(appointment.status, 'canMarkAttended', userRole);
+  const canEditAttendees = hasPermission(appointment.status, 'canManageAttendees', userRole);
 
   // Calcular datos de pago - Sistema dual de pagos
   // INCLUYE TODAS LAS ÓRDENES DEL PACIENTE, NO SOLO LAS DE ESTA CITA
@@ -444,17 +491,186 @@ export const AppointmentDetailPage: React.FC = () => {
 
       {/* State Machine Transition Selector - Control Centralizado de Estados */}
       <StateTransitionSelector
+        key={appointment.attendees?.length ?? 0}
         currentStatus={appointment.status}
         appointmentId={appointment.id}
         appointment={appointment}
         onTransition={async (newStatus) => {
-          await appointmentsService.updateAppointment(appointment.id, {
-            status: newStatus
-          });
+          if (newStatus === 'attended') {
+            if (!appointment.attendees || appointment.attendees.length === 0) {
+              setAttendeeRequiredError(true);
+              throw new Error('Debe agregar al menos un profesional');
+            }
+            setAttendeeRequiredError(false);
+            await appointmentsService.markAsAttended(appointment.id);
+          } else {
+            await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
+          }
           await loadAppointment(appointment.id);
         }}
         disabled={false}
       />
+
+      {/* Attendees Card — visible en todos los estados excepto cancelled/no_show */}
+      {!['cancelled', 'no_show'].includes(appointment.status) && (
+        <div className="glass-card">
+          <div className="card-header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <h2>Profesionales que Atendieron</h2>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {attendeeRequiredError && (
+              <p style={{ color: 'var(--error-color, #f87171)', fontSize: '13px', margin: 0, fontWeight: 500 }}>
+                Debe agregar al menos un profesional antes de marcar la cita como atendida.
+              </p>
+            )}
+            {(!appointment.attendees || appointment.attendees.length === 0) && !attendeeRequiredError && (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
+                Ningún profesional registrado aún.
+              </p>
+            )}
+
+            {appointment.attendees?.map((att) => (
+              <div
+                key={att.userId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: 'var(--bg-secondary, rgba(255,255,255,0.05))',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {att.user?.photoUrl ? (
+                    <img
+                      src={att.user.photoUrl}
+                      alt=""
+                      style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      background: 'var(--primary-color, #6366f1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontSize: '13px', fontWeight: 600,
+                    }}>
+                      {att.user?.firstName?.[0]}{att.user?.lastName?.[0]}
+                    </div>
+                  )}
+                  <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                    {att.user?.firstName} {att.user?.lastName}
+                  </span>
+                </div>
+                {canEditAttendees && (
+                  <button
+                    onClick={() => handleRemoveAttendee(att.userId)}
+                    disabled={removingAttendeeId === att.userId}
+                    title="Quitar"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--text-secondary)', padding: '4px', borderRadius: '4px',
+                      opacity: removingAttendeeId === att.userId ? 0.5 : 1,
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Picker de usuario — solo si se puede editar */}
+            {canEditAttendees && showAttendeeSelector ? (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar profesional..."
+                  value={attendeeSearchQuery}
+                  onChange={(e) => setAttendeeSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    padding: '8px 12px', borderRadius: '8px', fontSize: '14px',
+                    border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+                    background: 'var(--bg-input, rgba(255,255,255,0.08))',
+                    color: 'inherit', outline: 'none',
+                  }}
+                />
+                <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {staffUsers
+                    .filter((u) => {
+                      const alreadyAdded = appointment.attendees?.some((a) => a.userId === u.id);
+                      const matchesSearch = `${u.firstName} ${u.lastName}`.toLowerCase().includes(attendeeSearchQuery.toLowerCase());
+                      return !alreadyAdded && matchesSearch;
+                    })
+                    .map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleAddAttendee(u.id)}
+                        disabled={isAddingAttendee}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '8px 10px', borderRadius: '6px',
+                          border: 'none', background: 'var(--bg-secondary, rgba(255,255,255,0.05))',
+                          cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                          opacity: isAddingAttendee ? 0.5 : 1,
+                        }}
+                      >
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          background: 'var(--primary-color, #6366f1)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#fff', fontSize: '11px', fontWeight: 600, flexShrink: 0,
+                        }}>
+                          {u.firstName[0]}{u.lastName[0]}
+                        </div>
+                        <span style={{ fontSize: '14px' }}>{u.firstName} {u.lastName}</span>
+                      </button>
+                    ))}
+                </div>
+                <button
+                  onClick={() => { setShowAttendeeSelector(false); setAttendeeSearchQuery(''); }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-secondary)', fontSize: '13px', padding: '4px',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : canEditAttendees ? (
+              <button
+                onClick={() => setShowAttendeeSelector(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 12px', borderRadius: '8px', marginTop: '4px',
+                  border: `1px dashed ${attendeeRequiredError ? 'var(--error-color, #f87171)' : 'var(--border-color, rgba(255,255,255,0.2))'}`,
+                  background: 'none', cursor: 'pointer',
+                  color: attendeeRequiredError ? 'var(--error-color, #f87171)' : 'var(--text-secondary)',
+                  fontSize: '14px',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Agregar profesional
+              </button>
+            ) : (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, fontStyle: 'italic' }}>
+                Solo administradores pueden modificar los asistentes de una cita atendida.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Info Card - Glass Morphism */}
       <div className="glass-card">
@@ -1329,7 +1545,7 @@ export const AppointmentDetailPage: React.FC = () => {
           </div>
           {appointment.attendedBy && (
             <div className="system-item">
-              <span className="system-label">Atendido por</span>
+              <span className="system-label">Estado cambiado por</span>
               <span className="system-value">
                 {`${appointment.attendedBy.firstName} ${appointment.attendedBy.lastName}`}
               </span>
