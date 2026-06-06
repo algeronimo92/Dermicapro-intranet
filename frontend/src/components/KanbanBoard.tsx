@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Appointment, AppointmentStatus } from '../types';
+import { Appointment, AppointmentStatus, User } from '../types';
 import {
   canTransition,
   requiresConfirmation as needsConfirmation,
   getConfirmationMessage,
 } from '../config/appointmentStateMachine.config';
 import { useAuth } from '../contexts/AuthContext';
+import { appointmentsService } from '../services/appointments.service';
+import { usersService } from '../services/users.service';
 
 interface KanbanBoardProps {
   appointments: Appointment[];
   onStatusChange: (appointmentId: string, newStatus: AppointmentStatus) => Promise<void>;
+  onAttended: (appointmentId: string) => Promise<void>;
   showCancelled: boolean;
   isLoading?: boolean;
 }
@@ -39,6 +42,7 @@ const COLUMNS: ColumnConfig[] = [
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   appointments,
   onStatusChange,
+  onAttended,
   showCancelled,
   isLoading,
 }) => {
@@ -48,6 +52,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<AppointmentStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Attend modal state
+  const [pendingAttend, setPendingAttend] = useState<Appointment | null>(null);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [selectedAttendees, setSelectedAttendees] = useState<Set<string>>(new Set());
+  const [isSubmittingAttend, setIsSubmittingAttend] = useState(false);
+  const [attendModalError, setAttendModalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+  }, []);
 
   const draggingAppointment = appointments.find(a => a.id === draggingId);
 
@@ -133,11 +148,48 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     const idToUpdate = draggingAppointment.id;
     setDraggingId(null);
 
+    // Attended requiere seleccionar asistentes — abre el modal
+    if (targetStatus === AppointmentStatus.attended) {
+      setSelectedAttendees(new Set());
+      setAttendModalError(null);
+      setPendingAttend(draggingAppointment);
+      return;
+    }
+
     try {
       await onStatusChange(idToUpdate, targetStatus);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || err.message || 'Error al cambiar el estado');
     }
+  };
+
+  const handleAttendConfirm = async () => {
+    if (!pendingAttend) return;
+    if (selectedAttendees.size === 0) {
+      setAttendModalError('Selecciona al menos un profesional');
+      return;
+    }
+    setIsSubmittingAttend(true);
+    setAttendModalError(null);
+    try {
+      for (const userId of selectedAttendees) {
+        await appointmentsService.addAttendee(pendingAttend.id, userId);
+      }
+      await onAttended(pendingAttend.id);
+      setPendingAttend(null);
+    } catch (err: any) {
+      setAttendModalError(err.response?.data?.error || err.message || 'Error al finalizar la atención');
+    } finally {
+      setIsSubmittingAttend(false);
+    }
+  };
+
+  const toggleAttendee = (userId: string) => {
+    setSelectedAttendees(prev => {
+      const next = new Set(prev);
+      next.has(userId) ? next.delete(userId) : next.add(userId);
+      return next;
+    });
   };
 
   if (isLoading) {
@@ -324,6 +376,117 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           );
         })}
       </div>
+
+      {/* Modal: selección de asistentes antes de marcar como atendida */}
+      {pendingAttend && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setPendingAttend(null); }}
+        >
+          <div style={{
+            background: 'var(--bg-card, #1e1e2e)', borderRadius: '16px',
+            padding: '24px', maxWidth: '420px', width: '100%',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+            border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--success-color, #4ade80)', flexShrink: 0 }}>
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Finalizar Atención</h3>
+            </div>
+            <p style={{ margin: '0 0 20px 30px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              {pendingAttend.patient
+                ? `${pendingAttend.patient.firstName} ${pendingAttend.patient.lastName}`
+                : 'Paciente'} · {new Date(pendingAttend.scheduledDate).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+
+            {/* Selección de profesionales */}
+            <p style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+              ¿Quiénes atendieron esta cita?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
+              {staffUsers.map(u => {
+                const checked = selectedAttendees.has(u.id);
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => toggleAttendee(u.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 12px', borderRadius: '8px', border: 'none',
+                      background: checked
+                        ? 'var(--primary-color-alpha, rgba(99,102,241,0.15))'
+                        : 'var(--bg-secondary, rgba(255,255,255,0.05))',
+                      cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                      outline: checked ? '1.5px solid var(--primary-color, #6366f1)' : 'none',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                      background: checked ? 'var(--primary-color, #6366f1)' : 'var(--bg-tertiary, rgba(255,255,255,0.1))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: 600, color: checked ? '#fff' : 'var(--text-secondary)',
+                      transition: 'all 0.15s',
+                    }}>
+                      {u.firstName[0]}{u.lastName[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>{u.firstName} {u.lastName}</p>
+                    </div>
+                    {checked && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--primary-color, #6366f1)', flexShrink: 0 }}>
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {attendModalError && (
+              <p style={{ margin: '12px 0 0', fontSize: '13px', color: 'var(--error-color, #f87171)', fontWeight: 500 }}>
+                {attendModalError}
+              </p>
+            )}
+
+            {/* Acciones */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setPendingAttend(null)}
+                disabled={isSubmittingAttend}
+                style={{
+                  padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+                  background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAttendConfirm}
+                disabled={isSubmittingAttend || selectedAttendees.size === 0}
+                style={{
+                  padding: '9px 20px', borderRadius: '8px', border: 'none',
+                  background: selectedAttendees.size === 0 ? 'var(--bg-secondary, rgba(255,255,255,0.1))' : 'var(--primary-color, #6366f1)',
+                  cursor: selectedAttendees.size === 0 ? 'not-allowed' : 'pointer',
+                  color: selectedAttendees.size === 0 ? 'var(--text-secondary)' : '#fff',
+                  fontSize: '14px', fontWeight: 600,
+                  opacity: isSubmittingAttend ? 0.6 : 1,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {isSubmittingAttend ? 'Guardando...' : 'Confirmar Atención'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
