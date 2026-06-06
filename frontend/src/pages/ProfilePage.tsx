@@ -55,8 +55,8 @@ export const ProfilePage: React.FC = () => {
     try {
       const updated = await usersService.uploadPhoto(user.id, file);
       updateUser({ ...user, photoUrl: updated.photoUrl });
-    } catch {
-      setPhotoError('No se pudo subir la foto. Intenta de nuevo.');
+    } catch (err: any) {
+      setPhotoError(err.response?.data?.error || 'No se pudo subir la foto. Intenta de nuevo.');
     } finally {
       setPhotoLoading(false);
       setShowCamera(false);

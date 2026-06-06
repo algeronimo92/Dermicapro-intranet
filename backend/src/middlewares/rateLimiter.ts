@@ -24,6 +24,7 @@ export const generalLimiter = rateLimit({
   limit: 500,
   skip: () => process.env.NODE_ENV !== 'production',
   keyGenerator: getUserKey,
+  validate: { keyGeneratorIpFallback: false },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -58,6 +59,7 @@ export const createLimiter = rateLimit({
   limit: 100,
   skip: () => process.env.NODE_ENV !== 'production',
   keyGenerator: getUserKey,
+  validate: { keyGeneratorIpFallback: false },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -70,11 +72,13 @@ export const createLimiter = rateLimit({
 });
 
 // Rate limiter para uploads — por usuario autenticado.
+// validate.keyGeneratorIpFallback=false: el keyGenerator usa user ID (no IP) en rutas autenticadas.
 export const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 30,
   skip: () => process.env.NODE_ENV !== 'production',
   keyGenerator: getUserKey,
+  validate: { keyGeneratorIpFallback: false },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {

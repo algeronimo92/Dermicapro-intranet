@@ -10,7 +10,8 @@ import {
   uploadUserPhoto,
 } from '../controllers/users.controller';
 import { authenticate } from '../middlewares/auth';
-import { upload } from '../middlewares/upload';
+import { upload, processUpload } from '../middlewares/upload';
+import { uploadLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.get('/:id', getUserById);
 router.get('/:id/stats', getUserStats);
 router.post('/', createUser);
 router.put('/:id', updateUser);
-router.post('/:id/photo', upload.single('photo'), uploadUserPhoto);
+router.post('/:id/photo', uploadLimiter, upload.single('photo'), processUpload, uploadUserPhoto);
 router.post('/:id/deactivate', deactivateUser);
 router.post('/:id/activate', activateUser);
 

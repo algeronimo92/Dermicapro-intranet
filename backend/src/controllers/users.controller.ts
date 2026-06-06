@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
@@ -456,6 +457,9 @@ export const uploadUserPhoto = async (req: Request, res: Response): Promise<void
       updatedAt: user.updatedAt,
     });
   } catch (error) {
+    if (req.file?.path) {
+      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
+    }
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

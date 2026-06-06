@@ -13,7 +13,8 @@ import {
   createAppointmentNote,
 } from '../controllers/appointments.controller';
 import { authenticate } from '../middlewares/auth';
-import { upload } from '../middlewares/upload';
+import { upload, receiptUpload, processUpload } from '../middlewares/upload';
+import { uploadLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
@@ -25,8 +26,8 @@ router.post('/', createAppointment);
 router.put('/:id', updateAppointment);
 router.delete('/:id', deleteAppointment);
 router.post('/:id/attend', markAsAttended);
-router.post('/:id/upload-receipt', upload.single('receipt'), uploadReceipt);
-router.post('/upload-photos', upload.array('photos', 10), uploadTreatmentPhotos);
+router.post('/:id/upload-receipt', uploadLimiter, receiptUpload.single('receipt'), processUpload, uploadReceipt);
+router.post('/upload-photos', uploadLimiter, upload.array('photos', 10), processUpload, uploadTreatmentPhotos);
 router.post('/:id/add-photos', addPhotosToAppointment);
 router.put('/:id/body-measurements', updateBodyMeasurements);
 router.post('/:id/notes', createAppointmentNote);

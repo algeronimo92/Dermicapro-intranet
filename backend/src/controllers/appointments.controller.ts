@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { prepareDateRange } from '../utils/dateUtils';
@@ -728,13 +729,14 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
     const appointment = await prisma.appointment.update({
       where: { id },
-      data: {
-        reservationReceiptUrl: receiptUrl,
-      },
+      data: { reservationReceiptUrl: receiptUrl },
     });
 
     res.json({ url: receiptUrl, appointment });
   } catch (error) {
+    if (req.file?.path) {
+      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
+    }
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

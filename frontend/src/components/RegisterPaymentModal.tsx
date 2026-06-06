@@ -92,8 +92,9 @@ export const RegisterPaymentModal: React.FC<RegisterPaymentModalProps> = ({
     setFileError('');
     if (!file) { setReceiptFile(null); setReceiptPreview(null); return; }
 
-    if (!file.type.startsWith('image/')) {
-      setFileError('Solo se permiten imágenes (JPG, PNG, WebP, HEIC…)');
+    const allowed = file.type.startsWith('image/') || file.type === 'application/pdf';
+    if (!allowed) {
+      setFileError('Solo se permiten imágenes (JPG, PNG, WebP) o PDF');
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
@@ -102,9 +103,13 @@ export const RegisterPaymentModal: React.FC<RegisterPaymentModalProps> = ({
     }
 
     setReceiptFile(file);
-    const reader = new FileReader();
-    reader.onload = e => setReceiptPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => setReceiptPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setReceiptPreview(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
@@ -399,16 +404,26 @@ const [showPartial, setShowPartial] = React.useState(false);
               <span style={{ color: 'var(--color-text-disabled)', fontWeight: 400, textTransform: 'none' }}>(opcional)</span>
             </label>
 
-            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
               onChange={e => handleFileChange(e.target.files?.[0] ?? null)} />
 
-            {receiptPreview ? (
+            {receiptFile ? (
               <div style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', border: '2px solid var(--color-primary)', background: '#111' }}>
-                <button type="button" onClick={() => setLightbox(true)}
-                  style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }}>
-                  <img src={receiptPreview} alt="Comprobante"
-                    style={{ width: '100%', maxHeight: 280, objectFit: 'contain', display: 'block', background: '#111' }} />
-                </button>
+                {receiptPreview ? (
+                  <button type="button" onClick={() => setLightbox(true)}
+                    style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }}>
+                    <img src={receiptPreview} alt="Comprobante"
+                      style={{ width: '100%', maxHeight: 280, objectFit: 'contain', display: 'block', background: '#111' }} />
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 'var(--spacing-lg)', minHeight: 100 }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M14 2v6h6" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 'var(--font-size-sm)' }}>PDF seleccionado</span>
+                  </div>
+                )}
                 <div style={{ background: 'rgba(4,47,46,0.92)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button type="button" onClick={() => setLightbox(true)}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>

@@ -93,7 +93,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
       await onSubmit(effectiveAmount, file);
       handleClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al subir recibo');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Error al subir recibo');
     } finally {
       setIsSubmitting(false);
     }
@@ -255,7 +255,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
             type="submit"
             variant="primary"
             isLoading={isSubmitting}
-            disabled={isSubmitting || !file || !amount}
+            disabled={isSubmitting || !file || (!fixedAmount && !amount)}
           >
             {isSubmitting ? 'Subiendo...' : 'Subir Recibo'}
           </Button>
