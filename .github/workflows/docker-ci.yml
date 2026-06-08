@@ -207,17 +207,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Compute lowercase image names
+        id: images
+        run: |
+          BASE=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "backend=${BASE}-backend:${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "frontend=${BASE}-frontend:${{ github.ref_name }}" >> $GITHUB_OUTPUT
+
       - name: Run Trivy vulnerability scanner (Backend)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.ref_name }}
+          image-ref: ${{ steps.images.outputs.backend }}
           format: "sarif"
           output: "trivy-backend-results.sarif"
 
       - name: Run Trivy vulnerability scanner (Frontend)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.ref_name }}
+          image-ref: ${{ steps.images.outputs.frontend }}
           format: "sarif"
           output: "trivy-frontend-results.sarif"
 
