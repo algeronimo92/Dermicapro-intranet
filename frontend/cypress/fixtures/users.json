@@ -1,0 +1,44 @@
+{
+  "admin": {
+    "email": "admin@dermicapro.com",
+    "password": "admin123",
+    "firstName": "Admin",
+    "role": "admin",
+    "mustChangePassword": false
+  },
+  "medicalStaff": {
+    "email": "daguilar@dermicapro.com",
+    "password": "1234567890",
+    "firstName": "Diego",
+    "role": "medical_staff",
+    "mustChangePassword": true
+  },
+  "assistant": {
+    "email": "emurga@dermicapro.com",
+    "password": "1234567890",
+    "firstName": "Estefany",
+    "role": "assistant",
+    "mustChangePassword": true
+  },
+  "assistant2": {
+    "email": "aterres@dermicapro.com",
+    "password": "1234567890",
+    "firstName": "Astrid",
+    "role": "assistant",
+    "mustChangePassword": true
+  },
+  "sales": {
+    "email": "ggeronimo@dermicapro.com",
+    "password": "1234567890",
+    "firstName": "Grecia",
+    "role": "sales",
+    "mustChangePassword": true
+  },
+  "sales2": {
+    "email": "ageronimo@dermicapro.com",
+    "password": "1234567890",
+    "firstName": "Antonella",
+    "role": "sales",
+    "mustChangePassword": true
+  }
+}
