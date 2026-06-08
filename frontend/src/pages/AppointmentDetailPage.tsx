@@ -100,16 +100,16 @@ export const AppointmentDetailPage: React.FC = () => {
     usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
   }, []);
 
-  const loadAppointment = async (appointmentId: string) => {
+  const loadAppointment = async (appointmentId: string, silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const data = await appointmentsService.getAppointment(appointmentId);
       setAppointment(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al cargar cita');
+      if (!silent) setError(err.response?.data?.message || 'Error al cargar cita');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -197,23 +197,9 @@ export const AppointmentDetailPage: React.FC = () => {
 
     try {
       setError(null);
-
-      // Upload photos
-      const response = await appointmentsService.uploadTreatmentPhotos(files);
-
-      // Update patient record with new photos
-      // Note: We need to create a backend endpoint for this
-      const photoUrls = response.urls;
-
-      // For now, we'll need to create an endpoint that adds photos to existing patient records
-      // TODO: Implement backend endpoint to add photos to patient record
-      await appointmentsService.addPhotosToAppointment(id, {
-        photoUrls,
-        type: photoUploadType
-      });
-
-      // Reload appointment to show new photos
-      await loadAppointment(id);
+      const { urls } = await appointmentsService.uploadTreatmentPhotos(files);
+      await appointmentsService.addPhotosToAppointment(id, { photoUrls: urls, type: photoUploadType });
+      await loadAppointment(id, true);
 
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
@@ -249,6 +235,17 @@ export const AppointmentDetailPage: React.FC = () => {
     }
   };
 
+  const handleRemovePhoto = async (photoUrl: string, type: 'before' | 'after') => {
+    if (!id) return;
+    try {
+      setError(null);
+      const updated = await appointmentsService.removePhotoFromAppointment(id, { type, photoUrl });
+      setAppointment(updated);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al eliminar la foto');
+    }
+  };
+
   const handleSaveBodyMeasurements = async (data: {
     weight?: number | null;
     bodyMeasurement?: any;
@@ -260,8 +257,7 @@ export const AppointmentDetailPage: React.FC = () => {
       setError(null);
       await appointmentsService.updateBodyMeasurements(id, data);
 
-      // Reload appointment to show new measurements
-      await loadAppointment(id);
+      await loadAppointment(id, true);
 
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
@@ -392,6 +388,13 @@ export const AppointmentDetailPage: React.FC = () => {
 
   const hasPendingPayment = paymentData.packagesPending > 0;
 
+  const beforeCount = appointment.patientRecords?.reduce(
+    (sum, r) => sum + (((r.beforePhotoUrls as string[] | null)?.length) || 0), 0
+  ) ?? 0;
+  const afterCount = appointment.patientRecords?.reduce(
+    (sum, r) => sum + (((r.afterPhotoUrls as string[] | null)?.length) || 0), 0
+  ) ?? 0;
+
   // Obtener urgencia de pago basada en estado
   const paymentUrgency = getPaymentUrgency(
     appointment.status,
@@ -506,7 +509,7 @@ export const AppointmentDetailPage: React.FC = () => {
           } else {
             await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
           }
-          await loadAppointment(appointment.id);
+          await loadAppointment(appointment.id, true);
         }}
         disabled={false}
       />
@@ -1069,13 +1072,34 @@ export const AppointmentDetailPage: React.FC = () => {
           return (
         <div className="glass-card">
           <div className="card-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
-                <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <h2>Fotos del Tratamiento</h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
+              <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <h2>Fotos del Tratamiento</h2>
+          </div>
+
+          {/* Resumen de slots */}
+          <div className="apt-detail__photo-summary">
+            <div className="apt-detail__photo-summary-item apt-detail__photo-summary-item--before">
+              <span className="apt-detail__photo-badge apt-detail__photo-badge--before">ANTES</span>
+              <div className="apt-detail__slot-chips">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--before${i < beforeCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                ))}
+              </div>
+              <span className="apt-detail__photo-summary-count">{beforeCount}/6</span>
+            </div>
+            <div className="apt-detail__photo-summary-sep" />
+            <div className="apt-detail__photo-summary-item apt-detail__photo-summary-item--after">
+              <span className="apt-detail__photo-badge apt-detail__photo-badge--after">DESPUÉS</span>
+              <div className="apt-detail__slot-chips">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--after${i < afterCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                ))}
+              </div>
+              <span className="apt-detail__photo-summary-count">{afterCount}/6</span>
             </div>
 
             {/* View Mode Switcher */}
@@ -1084,7 +1108,7 @@ export const AppointmentDetailPage: React.FC = () => {
               const afterPhotos = record.afterPhotoUrls as string[] | null;
               return (beforePhotos && beforePhotos.length > 0) && (afterPhotos && afterPhotos.length > 0);
             }) && (
-              <div className="apt-detail__view-switcher">
+              <div className="apt-detail__view-switcher" style={{ marginLeft: 'auto' }}>
                 <button
                   className={`apt-detail__view-btn ${photoViewMode === 'list' ? 'apt-detail__view-btn--active' : ''}`}
                   onClick={() => setPhotoViewMode('list')}
@@ -1134,19 +1158,15 @@ export const AppointmentDetailPage: React.FC = () => {
                       </h3>
                       <div className="apt-detail__photo-grid">
                         {beforePhotos.map((url, index) => (
-                          <div
-                            key={index}
-                            className="apt-detail__photo-card"
-                            onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}
-                          >
-                            <img
-                              src={getReceiptUrl(url) || ''}
-                              alt={`Antes ${index + 1}`}
-                              className="apt-detail__photo-img"
-                            />
-                            <div className="apt-detail__photo-overlay">
-                              Foto {index + 1}
-                            </div>
+                          <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}>
+                            <img src={getReceiptUrl(url) || ''} alt={`Antes ${index + 1}`} className="apt-detail__photo-img" />
+                            <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                            {canMarkAttended && (
+                              <button className="apt-detail__photo-delete" title="Eliminar foto"
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'before'); }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1162,19 +1182,15 @@ export const AppointmentDetailPage: React.FC = () => {
                       </h3>
                       <div className="apt-detail__photo-grid">
                         {afterPhotos.map((url, index) => (
-                          <div
-                            key={index}
-                            className="apt-detail__photo-card"
-                            onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}
-                          >
-                            <img
-                              src={getReceiptUrl(url) || ''}
-                              alt={`Después ${index + 1}`}
-                              className="apt-detail__photo-img"
-                            />
-                            <div className="apt-detail__photo-overlay">
-                              Foto {index + 1}
-                            </div>
+                          <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}>
+                            <img src={getReceiptUrl(url) || ''} alt={`Después ${index + 1}`} className="apt-detail__photo-img" />
+                            <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                            {canMarkAttended && (
+                              <button className="apt-detail__photo-delete" title="Eliminar foto"
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'after'); }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1195,19 +1211,15 @@ export const AppointmentDetailPage: React.FC = () => {
                     </div>
                     <div className="apt-detail__photo-grid">
                       {beforePhotos.map((url, index) => (
-                        <div
-                          key={index}
-                          className="apt-detail__photo-card"
-                          onClick={() => window.open(getReceiptUrl(url) || '', '_blank')}
-                        >
-                          <img
-                            src={getReceiptUrl(url) || ''}
-                            alt={`Antes ${index + 1}`}
-                            className="apt-detail__photo-img"
-                          />
-                          <div className="apt-detail__photo-overlay">
-                            Foto {index + 1}
-                          </div>
+                        <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}>
+                          <img src={getReceiptUrl(url) || ''} alt={`Antes ${index + 1}`} className="apt-detail__photo-img" />
+                          <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                          {canMarkAttended && (
+                            <button className="apt-detail__photo-delete" title="Eliminar foto"
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'before'); }}>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1227,19 +1239,15 @@ export const AppointmentDetailPage: React.FC = () => {
                     </div>
                     <div className="apt-detail__photo-grid">
                       {afterPhotos.map((url, index) => (
-                        <div
-                          key={index}
-                          className="apt-detail__photo-card"
-                          onClick={() => window.open(getReceiptUrl(url) || '', '_blank')}
-                        >
-                          <img
-                            src={getReceiptUrl(url) || ''}
-                            alt={`Después ${index + 1}`}
-                            className="apt-detail__photo-img"
-                          />
-                          <div className="apt-detail__photo-overlay">
-                            Foto {index + 1}
-                          </div>
+                        <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}>
+                          <img src={getReceiptUrl(url) || ''} alt={`Después ${index + 1}`} className="apt-detail__photo-img" />
+                          <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                          {canMarkAttended && (
+                            <button className="apt-detail__photo-delete" title="Eliminar foto"
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'after'); }}>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1275,11 +1283,22 @@ export const AppointmentDetailPage: React.FC = () => {
                   setPhotoUploadType('before');
                   setShowPhotoUploadModal(true);
                 }}
+                disabled={beforeCount >= 6}
               >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Agregar Fotos de Antes
+                <div className="apt-detail__upload-btn-content">
+                  <div className="apt-detail__upload-btn-label">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                      <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {beforeCount >= 6 ? 'Antes · Completo' : 'Agregar · Antes'}
+                  </div>
+                  <div className="apt-detail__upload-btn-slots">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--before${i < beforeCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                    ))}
+                    <span className="apt-detail__slot-label">{beforeCount}/6</span>
+                  </div>
+                </div>
               </button>
               <button
                 className="apt-detail__upload-btn apt-detail__upload-btn--after"
@@ -1287,11 +1306,22 @@ export const AppointmentDetailPage: React.FC = () => {
                   setPhotoUploadType('after');
                   setShowPhotoUploadModal(true);
                 }}
+                disabled={afterCount >= 6}
               >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Agregar Fotos de Después
+                <div className="apt-detail__upload-btn-content">
+                  <div className="apt-detail__upload-btn-label">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                      <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {afterCount >= 6 ? 'Después · Completo' : 'Agregar · Después'}
+                  </div>
+                  <div className="apt-detail__upload-btn-slots">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--after${i < afterCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                    ))}
+                    <span className="apt-detail__slot-label">{afterCount}/6</span>
+                  </div>
+                </div>
               </button>
             </div>
           )}
@@ -1619,6 +1649,7 @@ export const AppointmentDetailPage: React.FC = () => {
           onSubmit={handlePhotoUpload}
           type={photoUploadType}
           appointmentId={appointment.id}
+          existingCount={photoUploadType === 'before' ? beforeCount : afterCount}
         />
       )}
 

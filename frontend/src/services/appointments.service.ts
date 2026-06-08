@@ -125,6 +125,11 @@ export const appointmentsService = {
     return response.data;
   },
 
+  async removePhotoFromAppointment(appointmentId: string, data: { type: 'before' | 'after', photoUrl: string }): Promise<Appointment> {
+    const response = await api.delete<Appointment>(`/appointments/${appointmentId}/photos`, { data });
+    return response.data;
+  },
+
   async createAppointmentNote(appointmentId: string, note: string): Promise<any> {
     const response = await api.post(`/appointments/${appointmentId}/notes`, { note });
     return response.data;
