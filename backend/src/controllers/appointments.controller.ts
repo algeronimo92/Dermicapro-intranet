@@ -945,6 +945,72 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
   }
 };
 
+export const removePhotoFromAppointment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { type, photoUrl } = req.body;
+
+    if (!photoUrl || typeof photoUrl !== 'string') {
+      throw new AppError('photoUrl is required', 400);
+    }
+    if (type !== 'before' && type !== 'after') {
+      throw new AppError('type must be "before" or "after"', 400);
+    }
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        patientRecords: {
+          orderBy: { createdAt: 'desc' as const },
+          take: 1,
+        },
+      },
+    });
+
+    if (!appointment) throw new AppError('Appointment not found', 404);
+
+    const patientRecord = appointment.patientRecords[0];
+    if (!patientRecord) throw new AppError('No patient record found', 404);
+
+    const currentBefore = (patientRecord.beforePhotoUrls as string[]) || [];
+    const currentAfter  = (patientRecord.afterPhotoUrls  as string[]) || [];
+
+    await prisma.patientRecord.update({
+      where: { id: patientRecord.id },
+      data: {
+        beforePhotoUrls: type === 'before' ? currentBefore.filter(u => u !== photoUrl) : currentBefore,
+        afterPhotoUrls:  type === 'after'  ? currentAfter.filter(u => u !== photoUrl)  : currentAfter,
+      },
+    });
+
+    // Delete file from disk (best-effort)
+    const filename = photoUrl.replace(/^\/uploads\//, '');
+    const filePath = `${process.env.UPLOAD_DIR || './uploads'}/${filename}`;
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* ignore */ }
+
+    const updatedAppointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        patient: true,
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        attendedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        patientRecords: { orderBy: { createdAt: 'desc' as const } },
+        appointmentServices: {
+          include: { serviceInstance: { include: { service: true } } },
+        },
+      },
+    });
+
+    res.json(updatedAppointment);
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to remove photo' });
+    }
+  }
+};
+
 export const updateBodyMeasurements = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
