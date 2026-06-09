@@ -6,9 +6,12 @@ import {
   updateAppointment,
   deleteAppointment,
   markAsAttended,
+  addAttendee,
+  removeAttendee,
   uploadReceipt,
   uploadTreatmentPhotos,
   addPhotosToAppointment,
+  removePhotoFromAppointment,
   updateBodyMeasurements,
   createAppointmentNote,
 } from '../controllers/appointments.controller';
@@ -26,9 +29,12 @@ router.post('/', createAppointment);
 router.put('/:id', updateAppointment);
 router.delete('/:id', deleteAppointment);
 router.post('/:id/attend', markAsAttended);
+router.post('/:id/attendees', addAttendee);
+router.delete('/:id/attendees/:userId', removeAttendee);
 router.post('/:id/upload-receipt', uploadLimiter, receiptUpload.single('receipt'), processUpload, uploadReceipt);
 router.post('/upload-photos', uploadLimiter, upload.array('photos', 10), processUpload, uploadTreatmentPhotos);
 router.post('/:id/add-photos', addPhotosToAppointment);
+router.delete('/:id/photos', removePhotoFromAppointment);
 router.put('/:id/body-measurements', updateBodyMeasurements);
 router.post('/:id/notes', createAppointmentNote);
 

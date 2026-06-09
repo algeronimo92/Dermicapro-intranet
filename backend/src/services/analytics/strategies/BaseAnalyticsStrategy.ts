@@ -31,10 +31,10 @@ export abstract class BaseAnalyticsStrategy<T> implements IAnalyticsStrategy<T> 
   validateFilters(filters?: AnalyticsFilters): void {
     if (filters?.period === 'custom') {
       if (!filters.startDate || !filters.endDate) {
-        throw new Error('Custom period requires startDate and endDate');
+        throw new Error('El período personalizado requiere startDate y endDate');
       }
       if (filters.startDate > filters.endDate) {
-        throw new Error('startDate must be before endDate');
+        throw new Error('startDate debe ser anterior a endDate');
       }
     }
   }

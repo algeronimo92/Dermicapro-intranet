@@ -179,7 +179,7 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
         onCreated?.(created);
       }
     } catch (err: any) {
-      setSaveError(err.response?.data?.message || 'Error al guardar paciente');
+      setSaveError(err.response?.data?.error || err.response?.data?.message || 'Error al guardar paciente');
     } finally {
       setIsSaving(false);
     }
@@ -260,7 +260,7 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
 
           <Input label="Nombre *" name="firstName" value={form.firstName} onChange={handleChange} error={errors.firstName} placeholder="Ingrese el nombre" />
           <Input label="Apellido *" name="lastName" value={form.lastName} onChange={handleChange} error={errors.lastName} placeholder="Ingrese el apellido" />
-          <Input label="DNI *" name="dni" value={form.dni} onChange={handleChange} error={errors.dni} placeholder="12345678" maxLength={8} disabled={isEditMode} />
+          <Input label="DNI *" name="dni" value={form.dni} onChange={handleChange} error={errors.dni} placeholder="12345678" maxLength={8} />
           <DatePicker
             label="Fecha de Nacimiento *"
             value={form.dateOfBirth}

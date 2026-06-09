@@ -75,6 +75,16 @@ export const appointmentsService = {
     return response.data;
   },
 
+  async addAttendee(appointmentId: string, userId: string): Promise<Appointment> {
+    const response = await api.post<Appointment>(`/appointments/${appointmentId}/attendees`, { userId });
+    return response.data;
+  },
+
+  async removeAttendee(appointmentId: string, userId: string): Promise<Appointment> {
+    const response = await api.delete<Appointment>(`/appointments/${appointmentId}/attendees/${userId}`);
+    return response.data;
+  },
+
   async uploadReceipt(id: string, file: File, amount: number, paymentMethod: string = 'cash'): Promise<Appointment> {
     const formData = new FormData();
     formData.append('receipt', file);
@@ -112,6 +122,11 @@ export const appointmentsService = {
 
   async addPhotosToAppointment(appointmentId: string, data: { photoUrls: string[], type: 'before' | 'after' }): Promise<Appointment> {
     const response = await api.post<Appointment>(`/appointments/${appointmentId}/add-photos`, data);
+    return response.data;
+  },
+
+  async removePhotoFromAppointment(appointmentId: string, data: { type: 'before' | 'after', photoUrl: string }): Promise<Appointment> {
+    const response = await api.delete<Appointment>(`/appointments/${appointmentId}/photos`, { data });
     return response.data;
   },
 

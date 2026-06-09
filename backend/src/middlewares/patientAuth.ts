@@ -18,7 +18,7 @@ export const authenticatePatient = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'No token provided' });
+      res.status(401).json({ error: 'Token no proporcionado' });
       return;
     }
 
@@ -27,7 +27,7 @@ export const authenticatePatient = async (
 
     // Validar que el token es de tipo paciente
     if (decoded.type !== 'patient') {
-      res.status(403).json({ error: 'Invalid token type' });
+      res.status(403).json({ error: 'Tipo de token inválido' });
       return;
     }
 
@@ -46,7 +46,7 @@ export const authenticatePatient = async (
 
     // Validar que el paciente existe y tiene acceso al portal
     if (!patient || !patient.hasPortalAccess) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ error: 'No autorizado' });
       return;
     }
 
@@ -55,10 +55,10 @@ export const authenticatePatient = async (
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({ error: 'Invalid or expired token' });
+      res.status(401).json({ error: 'Token inválido o expirado' });
     } else {
       console.error('Error in authenticatePatient middleware:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Error interno del servidor' });
     }
   }
 };

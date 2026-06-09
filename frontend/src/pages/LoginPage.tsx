@@ -36,7 +36,14 @@ export function LoginPage() {
       const loginEmail = view === 'quick' && selectedUser ? selectedUser.email : email;
       await login(loginEmail, password);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Credenciales incorrectas. Intenta de nuevo.');
+      const status = err.response?.status;
+      if (!err.response || status === 0) {
+        setError('No se pudo conectar con el servidor. Verifica tu conexión.');
+      } else if (status === 404 || status >= 500) {
+        setError('El servicio no está disponible en este momento. Intenta más tarde.');
+      } else {
+        setError(err.response?.data?.error || 'Credenciales incorrectas. Intenta de nuevo.');
+      }
     } finally {
       setIsLoading(false);
     }

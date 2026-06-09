@@ -79,6 +79,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, idle
     return () => { document.body.style.overflow = ''; };
   }, [isMobileOpen]);
 
+  // Sincronizar ancho del sidebar como CSS variable para barras fijas
+  useEffect(() => {
+    const width = isMobile ? '0px' : isCollapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width)';
+    document.documentElement.style.setProperty('--sidebar-current-width', width);
+    return () => { document.documentElement.style.removeProperty('--sidebar-current-width'); };
+  }, [isCollapsed, isMobile]);
+
   const toggle = () => {
     setIsCollapsed(prev => {
       const next = !prev;

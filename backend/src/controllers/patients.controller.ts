@@ -113,7 +113,7 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch patients' });
+    res.status(500).json({ error: 'Error al obtener pacientes' });
   }
 };
 
@@ -219,7 +219,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
     });
 
     if (!patient) {
-      throw new AppError('Patient not found', 404);
+      throw new AppError('Paciente no encontrado', 404);
     }
 
     res.json(patient);
@@ -227,7 +227,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch patient' });
+      res.status(500).json({ error: 'Error al obtener paciente' });
     }
   }
 };
@@ -237,7 +237,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
     const { firstName, lastName, dni, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
 
     if (!firstName || !lastName || !dni || !dateOfBirth || !sex) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError('Faltan campos requeridos', 400);
     }
 
     const existingPatient = await prisma.patient.findUnique({
@@ -245,7 +245,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
     });
 
     if (existingPatient) {
-      throw new AppError('Patient with this DNI already exists', 409);
+      throw new AppError('Ya existe un paciente con este DNI', 409);
     }
 
     // Hash del DNI para usarlo como contraseña inicial
@@ -275,7 +275,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to create patient' });
+      res.status(500).json({ error: 'Error al crear paciente' });
     }
   }
 };
@@ -283,13 +283,19 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
 export const updatePatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
+    const { firstName, lastName, dni, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
+
+    if (dni) {
+      const existing = await prisma.patient.findFirst({ where: { dni, NOT: { id } } });
+      if (existing) throw new AppError('Ya existe un paciente con este DNI', 409);
+    }
 
     const patient = await prisma.patient.update({
       where: { id },
       data: {
         firstName,
         lastName,
+        ...(dni && { dni }),
         dateOfBirth: dateOfBirth ? parseStartOfDay(dateOfBirth) : undefined,
         sex,
         phone,
@@ -301,7 +307,44 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
 
     res.json(patient);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update patient' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al actualizar paciente' });
+    }
+  }
+};
+
+export const resetPatientPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new AppError('La nueva contraseña debe tener al menos 6 caracteres', 400);
+    }
+
+    const patient = await prisma.patient.findUnique({ where: { id } });
+    if (!patient) throw new AppError('Paciente no encontrado', 404);
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.patient.update({
+      where: { id },
+      data: {
+        passwordHash,
+        passwordSetByStaffId: req.user!.id,
+        passwordSetAt: new Date(),
+      },
+    });
+
+    res.json({ message: 'Contraseña del paciente actualizada correctamente' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al restablecer contraseña del paciente' });
+    }
   }
 };
 
@@ -313,9 +356,9 @@ export const deletePatient = async (req: Request, res: Response): Promise<void> 
       where: { id },
     });
 
-    res.json({ message: 'Patient deleted successfully' });
+    res.json({ message: 'Paciente eliminado correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete patient' });
+    res.status(500).json({ error: 'Error al eliminar paciente' });
   }
 };
 
@@ -345,7 +388,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
     });
 
     if (!patient) {
-      res.status(404).json({ error: 'Patient not found' });
+      res.status(404).json({ error: 'Paciente no encontrado' });
       return;
     }
 
@@ -448,7 +491,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
     res.json(history);
   } catch (error) {
     console.error('Error fetching patient history:', error);
-    res.status(500).json({ error: 'Failed to fetch patient history' });
+    res.status(500).json({ error: 'Error al obtener historial del paciente' });
   }
 };
 
@@ -479,7 +522,7 @@ export const getCreditHistory = async (req: Request, res: Response): Promise<voi
 
     res.json({ accountBalance: patient.accountBalance, credits });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch credit history' });
+    res.status(500).json({ error: 'Error al obtener historial de crédito' });
   }
 };
 
@@ -513,7 +556,7 @@ export const closeServiceInstance = async (req: Request, res: Response): Promise
 
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to close service instance' });
+    res.status(500).json({ error: 'Error al concluir tratamiento' });
   }
 };
 
@@ -534,6 +577,6 @@ export const reopenServiceInstance = async (req: Request, res: Response): Promis
 
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to reopen service instance' });
+    res.status(500).json({ error: 'Error al reabrir tratamiento' });
   }
 };

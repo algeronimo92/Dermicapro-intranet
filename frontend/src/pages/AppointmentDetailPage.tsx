@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentsService } from '../services/appointments.service';
 import { patientsService } from '../services/patients.service';
-import { Appointment, Patient, Role } from '../types';
+import { usersService } from '../services/users.service';
+import { Appointment, Patient, Role, User } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { AttendAppointmentModal } from '../components/AttendAppointmentModal';
@@ -50,6 +51,23 @@ export const AppointmentDetailPage: React.FC = () => {
   const [viewerImages, setViewerImages] = useState<string[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
 
+  // Attendees state
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [showAttendeeSelector, setShowAttendeeSelector] = useState(false);
+  const [attendeeSearchQuery, setAttendeeSearchQuery] = useState('');
+  const [isAddingAttendee, setIsAddingAttendee] = useState(false);
+  const [removingAttendeeId, setRemovingAttendeeId] = useState<string | null>(null);
+  const [attendeeRequiredError, setAttendeeRequiredError] = useState(false);
+
+  const errorBannerRef = useRef<HTMLDivElement>(null);
+  const attendeeErrorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (error && errorBannerRef.current) {
+      errorBannerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
+
   const openViewer = (images: string[], index = 0) => {
     setViewerImages(images);
     setViewerIndex(index);
@@ -73,6 +91,9 @@ export const AppointmentDetailPage: React.FC = () => {
     if (appointment) {
       const isFinalState = ['attended', 'cancelled', 'no_show'].includes(appointment.status);
       setSystemInfoExpanded(isFinalState);
+      if (appointment.status === 'attended') {
+        setAttendeeRequiredError(false);
+      }
     }
   }, [appointment?.status]);
 
@@ -83,16 +104,21 @@ export const AppointmentDetailPage: React.FC = () => {
     }
   }, [appointment?.patientId]);
 
-  const loadAppointment = async (appointmentId: string) => {
+  // Load staff users once for attendee picker
+  useEffect(() => {
+    usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+  }, []);
+
+  const loadAppointment = async (appointmentId: string, silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       setError(null);
       const data = await appointmentsService.getAppointment(appointmentId);
       setAppointment(data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al cargar cita');
+      if (!silent) setError(err.response?.data?.message || 'Error al cargar cita');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -102,6 +128,35 @@ export const AppointmentDetailPage: React.FC = () => {
       setPatientData(data);
     } catch (err: any) {
       console.error('Error loading patient data:', err);
+    }
+  };
+
+  const handleAddAttendee = async (userId: string) => {
+    if (!appointment) return;
+    setIsAddingAttendee(true);
+    try {
+      const updated = await appointmentsService.addAttendee(appointment.id, userId);
+      setAppointment(updated);
+      setShowAttendeeSelector(false);
+      setAttendeeSearchQuery('');
+      setAttendeeRequiredError(false);
+    } catch (err: any) {
+      console.error('Error adding attendee:', err);
+    } finally {
+      setIsAddingAttendee(false);
+    }
+  };
+
+  const handleRemoveAttendee = async (userId: string) => {
+    if (!appointment) return;
+    setRemovingAttendeeId(userId);
+    try {
+      const updated = await appointmentsService.removeAttendee(appointment.id, userId);
+      setAppointment(updated);
+    } catch (err: any) {
+      console.error('Error removing attendee:', err);
+    } finally {
+      setRemovingAttendeeId(null);
     }
   };
 
@@ -151,23 +206,9 @@ export const AppointmentDetailPage: React.FC = () => {
 
     try {
       setError(null);
-
-      // Upload photos
-      const response = await appointmentsService.uploadTreatmentPhotos(files);
-
-      // Update patient record with new photos
-      // Note: We need to create a backend endpoint for this
-      const photoUrls = response.urls;
-
-      // For now, we'll need to create an endpoint that adds photos to existing patient records
-      // TODO: Implement backend endpoint to add photos to patient record
-      await appointmentsService.addPhotosToAppointment(id, {
-        photoUrls,
-        type: photoUploadType
-      });
-
-      // Reload appointment to show new photos
-      await loadAppointment(id);
+      const { urls } = await appointmentsService.uploadTreatmentPhotos(files);
+      await appointmentsService.addPhotosToAppointment(id, { photoUrls: urls, type: photoUploadType });
+      await loadAppointment(id, true);
 
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
@@ -203,6 +244,17 @@ export const AppointmentDetailPage: React.FC = () => {
     }
   };
 
+  const handleRemovePhoto = async (photoUrl: string, type: 'before' | 'after') => {
+    if (!id) return;
+    try {
+      setError(null);
+      const updated = await appointmentsService.removePhotoFromAppointment(id, { type, photoUrl });
+      setAppointment(updated);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al eliminar la foto');
+    }
+  };
+
   const handleSaveBodyMeasurements = async (data: {
     weight?: number | null;
     bodyMeasurement?: any;
@@ -214,8 +266,7 @@ export const AppointmentDetailPage: React.FC = () => {
       setError(null);
       await appointmentsService.updateBodyMeasurements(id, data);
 
-      // Reload appointment to show new measurements
-      await loadAppointment(id);
+      await loadAppointment(id, true);
 
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
@@ -253,6 +304,7 @@ export const AppointmentDetailPage: React.FC = () => {
   // Permisos derivados de la configuración
   const canEdit = hasPermission(appointment.status, 'canEdit', userRole);
   const canMarkAttended = hasPermission(appointment.status, 'canMarkAttended', userRole);
+  const canEditAttendees = hasPermission(appointment.status, 'canManageAttendees', userRole);
 
   // Calcular datos de pago - Sistema dual de pagos
   // INCLUYE TODAS LAS ÓRDENES DEL PACIENTE, NO SOLO LAS DE ESTA CITA
@@ -345,6 +397,13 @@ export const AppointmentDetailPage: React.FC = () => {
 
   const hasPendingPayment = paymentData.packagesPending > 0;
 
+  const beforeCount = appointment.patientRecords?.reduce(
+    (sum, r) => sum + (((r.beforePhotoUrls as string[] | null)?.length) || 0), 0
+  ) ?? 0;
+  const afterCount = appointment.patientRecords?.reduce(
+    (sum, r) => sum + (((r.afterPhotoUrls as string[] | null)?.length) || 0), 0
+  ) ?? 0;
+
   // Obtener urgencia de pago basada en estado
   const paymentUrgency = getPaymentUrgency(
     appointment.status,
@@ -396,7 +455,7 @@ export const AppointmentDetailPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="alert alert-error">
+        <div ref={errorBannerRef} className="alert alert-error">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 6v4M10 14h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -442,19 +501,166 @@ export const AppointmentDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* State Machine Transition Selector - Control Centralizado de Estados */}
-      <StateTransitionSelector
-        currentStatus={appointment.status}
-        appointmentId={appointment.id}
-        appointment={appointment}
-        onTransition={async (newStatus) => {
-          await appointmentsService.updateAppointment(appointment.id, {
-            status: newStatus
-          });
-          await loadAppointment(appointment.id);
-        }}
-        disabled={false}
-      />
+      {/* Attendees Card — visible en todos los estados excepto cancelled/no_show */}
+      {!['cancelled', 'no_show'].includes(appointment.status) && (
+        <div className="glass-card">
+          <div className="card-header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <h2>Profesionales que Atendieron</h2>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {attendeeRequiredError && (
+              <p ref={attendeeErrorRef} style={{ color: 'var(--error-color, #f87171)', fontSize: '13px', margin: 0, fontWeight: 500 }}>
+                Debe agregar al menos un profesional antes de marcar la cita como atendida.
+              </p>
+            )}
+            {(!appointment.attendees || appointment.attendees.length === 0) && !attendeeRequiredError && (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
+                Ningún profesional registrado aún.
+              </p>
+            )}
+
+            {appointment.attendees?.map((att) => (
+              <div
+                key={att.userId}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: 'var(--bg-secondary, rgba(255,255,255,0.05))',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {att.user?.photoUrl ? (
+                    <img
+                      src={att.user.photoUrl}
+                      alt=""
+                      style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      background: 'var(--primary-color, #6366f1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', fontSize: '13px', fontWeight: 600,
+                    }}>
+                      {att.user?.firstName?.[0]}{att.user?.lastName?.[0]}
+                    </div>
+                  )}
+                  <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                    {att.user?.firstName} {att.user?.lastName}
+                  </span>
+                </div>
+                {canEditAttendees && (
+                  <button
+                    onClick={() => handleRemoveAttendee(att.userId)}
+                    disabled={removingAttendeeId === att.userId}
+                    title="Quitar"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--text-secondary)', padding: '4px', borderRadius: '4px',
+                      opacity: removingAttendeeId === att.userId ? 0.5 : 1,
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Picker de usuario — solo si se puede editar */}
+            {canEditAttendees && showAttendeeSelector ? (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar profesional..."
+                  value={attendeeSearchQuery}
+                  onChange={(e) => setAttendeeSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    padding: '8px 12px', borderRadius: '8px', fontSize: '14px',
+                    border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+                    background: 'var(--bg-input, rgba(255,255,255,0.08))',
+                    color: 'inherit', outline: 'none',
+                  }}
+                />
+                <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {staffUsers
+                    .filter((u) => {
+                      const alreadyAdded = appointment.attendees?.some((a) => a.userId === u.id);
+                      const matchesSearch = `${u.firstName} ${u.lastName}`.toLowerCase().includes(attendeeSearchQuery.toLowerCase());
+                      return !alreadyAdded && matchesSearch;
+                    })
+                    .map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleAddAttendee(u.id)}
+                        disabled={isAddingAttendee}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '8px 10px', borderRadius: '6px',
+                          border: 'none', background: 'var(--bg-secondary, rgba(255,255,255,0.05))',
+                          cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                          opacity: isAddingAttendee ? 0.5 : 1,
+                        }}
+                      >
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          background: 'var(--primary-color, #6366f1)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#fff', fontSize: '11px', fontWeight: 600, flexShrink: 0,
+                        }}>
+                          {u.firstName[0]}{u.lastName[0]}
+                        </div>
+                        <span style={{ fontSize: '14px' }}>{u.firstName} {u.lastName}</span>
+                      </button>
+                    ))}
+                </div>
+                <button
+                  onClick={() => { setShowAttendeeSelector(false); setAttendeeSearchQuery(''); }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-secondary)', fontSize: '13px', padding: '4px',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : canEditAttendees ? (
+              <button
+                onClick={() => setShowAttendeeSelector(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 12px', borderRadius: '8px', marginTop: '4px',
+                  border: `1px dashed ${attendeeRequiredError ? 'var(--error-color, #f87171)' : 'var(--border-color, rgba(255,255,255,0.2))'}`,
+                  background: 'none', cursor: 'pointer',
+                  color: attendeeRequiredError ? 'var(--error-color, #f87171)' : 'var(--text-secondary)',
+                  fontSize: '14px',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                Agregar profesional
+              </button>
+            ) : (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, fontStyle: 'italic' }}>
+                Solo administradores pueden modificar los asistentes de una cita atendida.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Info Card - Glass Morphism */}
       <div className="glass-card">
@@ -853,13 +1059,34 @@ export const AppointmentDetailPage: React.FC = () => {
           return (
         <div className="glass-card">
           <div className="card-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
-                <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <h2>Fotos del Tratamiento</h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="card-icon">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
+              <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <h2>Fotos del Tratamiento</h2>
+          </div>
+
+          {/* Resumen de slots */}
+          <div className="apt-detail__photo-summary">
+            <div className="apt-detail__photo-summary-item apt-detail__photo-summary-item--before">
+              <span className="apt-detail__photo-badge apt-detail__photo-badge--before">ANTES</span>
+              <div className="apt-detail__slot-chips">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--before${i < beforeCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                ))}
+              </div>
+              <span className="apt-detail__photo-summary-count">{beforeCount}/6</span>
+            </div>
+            <div className="apt-detail__photo-summary-sep" />
+            <div className="apt-detail__photo-summary-item apt-detail__photo-summary-item--after">
+              <span className="apt-detail__photo-badge apt-detail__photo-badge--after">DESPUÉS</span>
+              <div className="apt-detail__slot-chips">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--after${i < afterCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                ))}
+              </div>
+              <span className="apt-detail__photo-summary-count">{afterCount}/6</span>
             </div>
 
             {/* View Mode Switcher */}
@@ -868,7 +1095,7 @@ export const AppointmentDetailPage: React.FC = () => {
               const afterPhotos = record.afterPhotoUrls as string[] | null;
               return (beforePhotos && beforePhotos.length > 0) && (afterPhotos && afterPhotos.length > 0);
             }) && (
-              <div className="apt-detail__view-switcher">
+              <div className="apt-detail__view-switcher" style={{ marginLeft: 'auto' }}>
                 <button
                   className={`apt-detail__view-btn ${photoViewMode === 'list' ? 'apt-detail__view-btn--active' : ''}`}
                   onClick={() => setPhotoViewMode('list')}
@@ -918,19 +1145,15 @@ export const AppointmentDetailPage: React.FC = () => {
                       </h3>
                       <div className="apt-detail__photo-grid">
                         {beforePhotos.map((url, index) => (
-                          <div
-                            key={index}
-                            className="apt-detail__photo-card"
-                            onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}
-                          >
-                            <img
-                              src={getReceiptUrl(url) || ''}
-                              alt={`Antes ${index + 1}`}
-                              className="apt-detail__photo-img"
-                            />
-                            <div className="apt-detail__photo-overlay">
-                              Foto {index + 1}
-                            </div>
+                          <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}>
+                            <img src={getReceiptUrl(url) || ''} alt={`Antes ${index + 1}`} className="apt-detail__photo-img" />
+                            <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                            {canMarkAttended && (
+                              <button className="apt-detail__photo-delete" title="Eliminar foto"
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'before'); }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -946,19 +1169,15 @@ export const AppointmentDetailPage: React.FC = () => {
                       </h3>
                       <div className="apt-detail__photo-grid">
                         {afterPhotos.map((url, index) => (
-                          <div
-                            key={index}
-                            className="apt-detail__photo-card"
-                            onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}
-                          >
-                            <img
-                              src={getReceiptUrl(url) || ''}
-                              alt={`Después ${index + 1}`}
-                              className="apt-detail__photo-img"
-                            />
-                            <div className="apt-detail__photo-overlay">
-                              Foto {index + 1}
-                            </div>
+                          <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}>
+                            <img src={getReceiptUrl(url) || ''} alt={`Después ${index + 1}`} className="apt-detail__photo-img" />
+                            <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                            {canMarkAttended && (
+                              <button className="apt-detail__photo-delete" title="Eliminar foto"
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'after'); }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -979,19 +1198,15 @@ export const AppointmentDetailPage: React.FC = () => {
                     </div>
                     <div className="apt-detail__photo-grid">
                       {beforePhotos.map((url, index) => (
-                        <div
-                          key={index}
-                          className="apt-detail__photo-card"
-                          onClick={() => window.open(getReceiptUrl(url) || '', '_blank')}
-                        >
-                          <img
-                            src={getReceiptUrl(url) || ''}
-                            alt={`Antes ${index + 1}`}
-                            className="apt-detail__photo-img"
-                          />
-                          <div className="apt-detail__photo-overlay">
-                            Foto {index + 1}
-                          </div>
+                        <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}>
+                          <img src={getReceiptUrl(url) || ''} alt={`Antes ${index + 1}`} className="apt-detail__photo-img" />
+                          <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                          {canMarkAttended && (
+                            <button className="apt-detail__photo-delete" title="Eliminar foto"
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'before'); }}>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1011,19 +1226,15 @@ export const AppointmentDetailPage: React.FC = () => {
                     </div>
                     <div className="apt-detail__photo-grid">
                       {afterPhotos.map((url, index) => (
-                        <div
-                          key={index}
-                          className="apt-detail__photo-card"
-                          onClick={() => window.open(getReceiptUrl(url) || '', '_blank')}
-                        >
-                          <img
-                            src={getReceiptUrl(url) || ''}
-                            alt={`Después ${index + 1}`}
-                            className="apt-detail__photo-img"
-                          />
-                          <div className="apt-detail__photo-overlay">
-                            Foto {index + 1}
-                          </div>
+                        <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}>
+                          <img src={getReceiptUrl(url) || ''} alt={`Después ${index + 1}`} className="apt-detail__photo-img" />
+                          <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                          {canMarkAttended && (
+                            <button className="apt-detail__photo-delete" title="Eliminar foto"
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'after'); }}>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1059,11 +1270,22 @@ export const AppointmentDetailPage: React.FC = () => {
                   setPhotoUploadType('before');
                   setShowPhotoUploadModal(true);
                 }}
+                disabled={beforeCount >= 6}
               >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Agregar Fotos de Antes
+                <div className="apt-detail__upload-btn-content">
+                  <div className="apt-detail__upload-btn-label">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                      <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {beforeCount >= 6 ? 'Antes · Completo' : 'Agregar · Antes'}
+                  </div>
+                  <div className="apt-detail__upload-btn-slots">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--before${i < beforeCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                    ))}
+                    <span className="apt-detail__slot-label">{beforeCount}/6</span>
+                  </div>
+                </div>
               </button>
               <button
                 className="apt-detail__upload-btn apt-detail__upload-btn--after"
@@ -1071,11 +1293,22 @@ export const AppointmentDetailPage: React.FC = () => {
                   setPhotoUploadType('after');
                   setShowPhotoUploadModal(true);
                 }}
+                disabled={afterCount >= 6}
               >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Agregar Fotos de Después
+                <div className="apt-detail__upload-btn-content">
+                  <div className="apt-detail__upload-btn-label">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                      <path d="M17.5 12.5v3.333a1.667 1.667 0 01-1.667 1.667H4.167A1.667 1.667 0 012.5 15.833V12.5M14.167 6.667L10 2.5m0 0L5.833 6.667M10 2.5v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {afterCount >= 6 ? 'Después · Completo' : 'Agregar · Después'}
+                  </div>
+                  <div className="apt-detail__upload-btn-slots">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className={`apt-detail__slot-chip apt-detail__slot-chip--after${i < afterCount ? ' apt-detail__slot-chip--filled' : ''}`} />
+                    ))}
+                    <span className="apt-detail__slot-label">{afterCount}/6</span>
+                  </div>
+                </div>
               </button>
             </div>
           )}
@@ -1329,7 +1562,7 @@ export const AppointmentDetailPage: React.FC = () => {
           </div>
           {appointment.attendedBy && (
             <div className="system-item">
-              <span className="system-label">Atendido por</span>
+              <span className="system-label">Estado cambiado por</span>
               <span className="system-value">
                 {`${appointment.attendedBy.firstName} ${appointment.attendedBy.lastName}`}
               </span>
@@ -1403,6 +1636,7 @@ export const AppointmentDetailPage: React.FC = () => {
           onSubmit={handlePhotoUpload}
           type={photoUploadType}
           appointmentId={appointment.id}
+          existingCount={photoUploadType === 'before' ? beforeCount : afterCount}
         />
       )}
 
@@ -1451,6 +1685,34 @@ export const AppointmentDetailPage: React.FC = () => {
       {viewerImages.length > 0 && (
         <ImageViewer images={viewerImages} initialIndex={viewerIndex} onClose={closeViewer} />
       )}
+
+      {/* Barra de estado sticky — siempre visible al fondo del área de contenido */}
+      <StateTransitionSelector
+        key={appointment.attendees?.length ?? 0}
+        currentStatus={appointment.status}
+        appointmentId={appointment.id}
+        appointment={appointment}
+        onTransition={async (newStatus) => {
+          if (newStatus === 'attended') {
+            if (!appointment.attendees || appointment.attendees.length === 0) {
+              setAttendeeRequiredError(true);
+              setTimeout(() => {
+                attendeeErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 0);
+              const handledErr = new Error('Debe agregar al menos un profesional');
+              (handledErr as any).handled = true;
+              throw handledErr;
+            }
+            setAttendeeRequiredError(false);
+            await appointmentsService.markAsAttended(appointment.id);
+          } else {
+            await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
+          }
+          await loadAppointment(appointment.id, true);
+        }}
+        disabled={false}
+        fixedBottom={true}
+      />
     </div>
   );
 };

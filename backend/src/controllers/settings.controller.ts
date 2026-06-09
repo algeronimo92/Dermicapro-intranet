@@ -28,7 +28,7 @@ export const getSettings = async (_req: Request, res: Response): Promise<void> =
 
     res.json({ data: settings });
   } catch {
-    res.status(500).json({ error: 'Failed to fetch settings' });
+    res.status(500).json({ error: 'Error al obtener configuración' });
   }
 };
 
@@ -65,7 +65,7 @@ export const updateSetting = async (req: Request, res: Response): Promise<void> 
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update setting' });
+      res.status(500).json({ error: 'Error al actualizar configuración' });
     }
   }
 };

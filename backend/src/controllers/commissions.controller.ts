@@ -144,7 +144,7 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
     });
   } catch (error) {
     console.error('Error fetching commissions:', error);
-    res.status(500).json({ error: 'Failed to fetch commissions' });
+    res.status(500).json({ error: 'Error al obtener comisiones' });
   }
 };
 
@@ -197,12 +197,12 @@ export const getCommissionById = async (req: Request, res: Response): Promise<vo
     });
 
     if (!commission) {
-      throw new AppError('Commission not found', 404);
+      throw new AppError('Comisión no encontrada', 404);
     }
 
     // Verificar permisos: solo admin o el vendedor pueden ver la comisión
     if (req.user?.roleName !== ROLES.ADMIN && commission.salesPersonId !== req.user?.id) {
-      throw new AppError('Unauthorized', 403);
+      throw new AppError('No autorizado', 403);
     }
 
     res.json(commission);
@@ -211,7 +211,7 @@ export const getCommissionById = async (req: Request, res: Response): Promise<vo
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error fetching commission:', error);
-      res.status(500).json({ error: 'Failed to fetch commission' });
+      res.status(500).json({ error: 'Error al obtener comisión' });
     }
   }
 };
@@ -297,7 +297,7 @@ export const getCommissionsSummaryBySales = async (req: Request, res: Response):
     res.json(result);
   } catch (error) {
     console.error('Error fetching commissions summary:', error);
-    res.status(500).json({ error: 'Failed to fetch commissions summary' });
+    res.status(500).json({ error: 'Error al obtener resumen de comisiones' });
   }
 };
 
@@ -324,16 +324,16 @@ export const approveCommission = async (req: Request, res: Response): Promise<vo
     });
 
     if (!existing) {
-      throw new AppError('Commission not found', 404);
+      throw new AppError('Comisión no encontrada', 404);
     }
 
     if (existing.status !== 'pending') {
-      throw new AppError(`Cannot approve commission with status: ${existing.status}`, 400);
+      throw new AppError(`No se puede aprobar una comisión con estado: ${existing.status}`, 400);
     }
 
     // Validar que la cita fue atendida
     if (!existing.appointment || existing.appointment.status !== 'attended') {
-      throw new AppError('Cannot approve commission: appointment has not been attended', 400);
+      throw new AppError('No se puede aprobar la comisión: la cita no ha sido atendida', 400);
     }
 
     // Aprobar
@@ -371,7 +371,7 @@ export const approveCommission = async (req: Request, res: Response): Promise<vo
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error approving commission:', error);
-      res.status(500).json({ error: 'Failed to approve commission' });
+      res.status(500).json({ error: 'Error al aprobar comisión' });
     }
   }
 };
@@ -385,7 +385,7 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
     const { rejectionReason } = req.body;
 
     if (!rejectionReason) {
-      throw new AppError('Rejection reason is required', 400);
+      throw new AppError('El motivo de rechazo es requerido', 400);
     }
 
     // Verificar que existe
@@ -394,11 +394,11 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
     });
 
     if (!existing) {
-      throw new AppError('Commission not found', 404);
+      throw new AppError('Comisión no encontrada', 404);
     }
 
     if (existing.status !== 'pending') {
-      throw new AppError(`Cannot reject commission with status: ${existing.status}`, 400);
+      throw new AppError(`No se puede rechazar una comisión con estado: ${existing.status}`, 400);
     }
 
     // Rechazar
@@ -429,7 +429,7 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error rejecting commission:', error);
-      res.status(500).json({ error: 'Failed to reject commission' });
+      res.status(500).json({ error: 'Error al rechazar comisión' });
     }
   }
 };
@@ -448,11 +448,11 @@ export const markAsPaid = async (req: Request, res: Response): Promise<void> => 
     });
 
     if (!existing) {
-      throw new AppError('Commission not found', 404);
+      throw new AppError('Comisión no encontrada', 404);
     }
 
     if (existing.status !== 'approved') {
-      throw new AppError(`Cannot pay commission with status: ${existing.status}. Must be approved first.`, 400);
+      throw new AppError(`No se puede pagar una comisión con estado: ${existing.status}. Debe ser aprobada primero.`, 400);
     }
 
     // Marcar como pagada
@@ -492,7 +492,7 @@ export const markAsPaid = async (req: Request, res: Response): Promise<void> => 
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error marking commission as paid:', error);
-      res.status(500).json({ error: 'Failed to mark commission as paid' });
+      res.status(500).json({ error: 'Error al marcar comisión como pagada' });
     }
   }
 };
@@ -505,7 +505,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
     const { commissionIds, notes } = req.body;
 
     if (!commissionIds || !Array.isArray(commissionIds) || commissionIds.length === 0) {
-      throw new AppError('Commission IDs array is required', 400);
+      throw new AppError('Se requiere un array de IDs de comisiones', 400);
     }
 
     // Verificar que todas las comisiones tengan citas atendidas
@@ -530,7 +530,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
 
     if (notAttendedCommissions.length > 0) {
       throw new AppError(
-        `Cannot approve ${notAttendedCommissions.length} commission(s): appointments have not been attended`,
+        `No se pueden aprobar ${notAttendedCommissions.length} comisión(es): las citas no han sido atendidas`,
         400
       );
     }
@@ -550,7 +550,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
     });
 
     res.json({
-      message: `${result.count} commission(s) approved successfully`,
+      message: `${result.count} comisión(es) aprobada(s) correctamente`,
       count: result.count,
     });
   } catch (error) {
@@ -558,7 +558,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error batch approving commissions:', error);
-      res.status(500).json({ error: 'Failed to batch approve commissions' });
+      res.status(500).json({ error: 'Error al aprobar comisiones en lote' });
     }
   }
 };
@@ -571,7 +571,7 @@ export const batchMarkAsPaid = async (req: Request, res: Response): Promise<void
     const { commissionIds, paymentMethod, paymentReference, notes } = req.body;
 
     if (!commissionIds || !Array.isArray(commissionIds) || commissionIds.length === 0) {
-      throw new AppError('Commission IDs array is required', 400);
+      throw new AppError('Se requiere un array de IDs de comisiones', 400);
     }
 
     // Actualizar en lote
@@ -591,7 +591,7 @@ export const batchMarkAsPaid = async (req: Request, res: Response): Promise<void
     });
 
     res.json({
-      message: `${result.count} commission(s) marked as paid successfully`,
+      message: `${result.count} comisión(es) marcada(s) como pagada(s) correctamente`,
       count: result.count,
     });
   } catch (error) {
@@ -599,7 +599,7 @@ export const batchMarkAsPaid = async (req: Request, res: Response): Promise<void
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error batch marking commissions as paid:', error);
-      res.status(500).json({ error: 'Failed to batch mark commissions as paid' });
+      res.status(500).json({ error: 'Error al marcar comisiones como pagadas en lote' });
     }
   }
 };
@@ -618,11 +618,11 @@ export const cancelCommission = async (req: Request, res: Response): Promise<voi
     });
 
     if (!existing) {
-      throw new AppError('Commission not found', 404);
+      throw new AppError('Comisión no encontrada', 404);
     }
 
     if (existing.status === 'paid') {
-      throw new AppError('Cannot cancel a paid commission', 400);
+      throw new AppError('No se puede cancelar una comisión ya pagada', 400);
     }
 
     // Cancelar
@@ -651,7 +651,7 @@ export const cancelCommission = async (req: Request, res: Response): Promise<voi
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error cancelling commission:', error);
-      res.status(500).json({ error: 'Failed to cancel commission' });
+      res.status(500).json({ error: 'Error al cancelar comisión' });
     }
   }
 };

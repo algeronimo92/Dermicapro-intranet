@@ -100,6 +100,8 @@ model User {
   paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
   appointmentServicesDeleted Session[] @relation("AppointmentSessionDeletedBy")
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
+  appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
+  appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
 
   @@map("users")
 }
@@ -218,8 +220,24 @@ model Appointment {
   appointmentServices Session[]
   payments            Payment[]
   appointmentNotes    AppointmentNote[]
+  attendees           AppointmentAttendee[]
 
   @@map("appointments")
+}
+
+model AppointmentAttendee {
+  id            String   @id @default(uuid())
+  appointmentId String   @map("appointment_id")
+  userId        String   @map("user_id")
+  addedAt       DateTime @default(now()) @map("added_at")
+  addedById     String   @map("added_by_id")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  user        User        @relation("AttendeeUser", fields: [userId], references: [id])
+  addedBy     User        @relation("AttendeeAddedBy", fields: [addedById], references: [id])
+
+  @@unique([appointmentId, userId])
+  @@map("appointment_attendees")
 }
 
 model AppointmentNote {

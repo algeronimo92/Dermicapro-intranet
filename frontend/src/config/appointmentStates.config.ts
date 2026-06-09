@@ -19,6 +19,7 @@ export interface StatePermissions {
   canUploadPhotos: Role[];
   canUploadReceipt: Role[];
   canMarkAttended: Role[];
+  canManageAttendees: Role[];
 }
 
 export interface StateVisibility {
@@ -90,6 +91,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadReceipt: [Role.admin, Role.sales],
       canMarkAttended: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      canManageAttendees: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
     },
     visibility: {
       showWorkflowGuide: true,
@@ -138,6 +140,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadReceipt: [Role.admin, Role.sales],
       canMarkAttended: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      canManageAttendees: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
     },
     visibility: {
       showWorkflowGuide: true,
@@ -186,6 +189,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadReceipt: [Role.admin, Role.sales],
       canMarkAttended: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
+      canManageAttendees: [Role.admin, Role.sales],
     },
     visibility: {
       showWorkflowGuide: false, // Workflow completado
@@ -234,6 +238,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       canUploadPhotos: [],
       canUploadReceipt: [],
       canMarkAttended: [],
+      canManageAttendees: [],
     },
     visibility: {
       showWorkflowGuide: false,
@@ -282,6 +287,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
       canUploadPhotos: [],
       canUploadReceipt: [],
       canMarkAttended: [],
+      canManageAttendees: [],
     },
     visibility: {
       showWorkflowGuide: false,

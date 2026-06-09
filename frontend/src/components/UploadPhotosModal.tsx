@@ -3,16 +3,19 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { CameraCapture } from './CameraCapture';
 
+const MAX_PHOTOS = 6;
+
 interface UploadPhotosModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (files: File[]) => Promise<void>;
   type: 'before' | 'after';
   appointmentId: string;
+  existingCount?: number;
 }
 
 export const UploadPhotosModal: React.FC<UploadPhotosModalProps> = ({
-  isOpen, onClose, onSubmit, type,
+  isOpen, onClose, onSubmit, type, existingCount = 0,
 }) => {
   const [photos, setPhotos]       = useState<File[]>([]);
   const [previews, setPreviews]   = useState<string[]>([]);
@@ -21,8 +24,13 @@ export const UploadPhotosModal: React.FC<UploadPhotosModalProps> = ({
   const [showCamera, setShowCamera] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const remaining = Math.max(0, MAX_PHOTOS - existingCount);
+
   const addFiles = (files: File[]) => {
-    if (files.length + photos.length > 10) { setError('Máximo 10 fotos'); return; }
+    if (files.length + photos.length > remaining) {
+      setError(`Puedes agregar hasta ${remaining} foto${remaining !== 1 ? 's' : ''} más (límite: ${MAX_PHOTOS} por tipo)`);
+      return;
+    }
     for (const f of files) {
       if (!f.type.startsWith('image/')) { setError('Solo se permiten imágenes'); return; }
       if (f.size > 5 * 1024 * 1024)    { setError('Cada imagen debe ser menor a 5 MB'); return; }
@@ -68,62 +76,116 @@ export const UploadPhotosModal: React.FC<UploadPhotosModalProps> = ({
 
   const title       = type === 'before' ? 'Agregar Fotos de Antes' : 'Agregar Fotos de Después';
   const accentColor = type === 'before' ? 'var(--color-info)' : 'var(--color-success)';
+  const slotsFilled = existingCount + photos.length;
 
   return (
     <>
       <Modal isOpen={isOpen} onClose={handleClose} title={title}>
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          {/* ── Contador de slots ── */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'var(--color-bg-secondary)',
+            border: `2px solid ${accentColor}`,
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--spacing-sm) var(--spacing-md)',
+            marginBottom: 'var(--spacing-md)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ color: accentColor, flexShrink: 0 }}>
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="2"/>
+                <path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)' }}>
+                Slots usados
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              {Array.from({ length: MAX_PHOTOS }).map((_, i) => (
+                <div key={i} style={{
+                  width: 20, height: 20, borderRadius: 'var(--radius-sm)',
+                  border: `2px solid ${i < slotsFilled ? accentColor : 'var(--color-border-primary)'}`,
+                  background: i < existingCount
+                    ? accentColor
+                    : i < slotsFilled
+                      ? `${accentColor}60`
+                      : 'transparent',
+                  transition: 'all 0.15s ease',
+                }}/>
+              ))}
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', marginLeft: '4px', fontWeight: 'var(--font-weight-semibold)' }}>
+                {slotsFilled}/{MAX_PHOTOS}
+              </span>
+            </div>
+          </div>
+
           {error && (
             <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-md)' }}>{error}</div>
           )}
 
-          {/* ── Botones de origen ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
-            {/* Galería / archivo */}
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={isUploading}
-              className="upload-receipt-button"
-              style={{ padding: 'var(--spacing-md) var(--spacing-sm)' }}
-            >
-              <svg className="upload-icon" width="26" height="26" viewBox="0 0 32 32" fill="none">
-                <path d="M16 6v14M16 6l-6 6M16 6l6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6 24h20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
-              <span className="upload-label">Subir archivo</span>
-              <span className="upload-hint">Galería · arrastra</span>
-            </button>
+          {remaining === 0 ? (
+            <div style={{
+              padding: 'var(--spacing-lg)',
+              textAlign: 'center',
+              background: 'var(--color-bg-secondary)',
+              borderRadius: 'var(--radius-xl)',
+              border: '2px dashed var(--color-border-primary)',
+              color: 'var(--color-text-tertiary)',
+              fontSize: 'var(--font-size-sm)',
+              marginBottom: 'var(--spacing-md)',
+            }}>
+              Límite de {MAX_PHOTOS} fotos alcanzado para este tipo
+            </div>
+          ) : (
+            <>
+              {/* ── Botones de origen ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  disabled={isUploading}
+                  className="upload-receipt-button"
+                  style={{ padding: 'var(--spacing-md) var(--spacing-sm)' }}
+                >
+                  <svg className="upload-icon" width="26" height="26" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 6v14M16 6l-6 6M16 6l6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6 24h20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                  </svg>
+                  <span className="upload-label">Subir archivo</span>
+                  <span className="upload-hint">Galería · arrastra</span>
+                </button>
 
-            {/* Cámara */}
-            <button
-              type="button"
-              onClick={() => setShowCamera(true)}
-              disabled={isUploading}
-              className="upload-receipt-button"
-              style={{ padding: 'var(--spacing-md) var(--spacing-sm)' }}
-            >
-              <svg className="upload-icon" width="26" height="26" viewBox="0 0 24 24" fill="none">
-                <path d="M23 7l-7 5 7 5V7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <rect x="1" y="5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-              <span className="upload-label">Tomar foto</span>
-              <span className="upload-hint">Usar cámara</span>
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  disabled={isUploading}
+                  className="upload-receipt-button"
+                  style={{ padding: 'var(--spacing-md) var(--spacing-sm)' }}
+                >
+                  <svg className="upload-icon" width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M23 7l-7 5 7 5V7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                  <span className="upload-label">Tomar foto</span>
+                  <span className="upload-hint">Usar cámara</span>
+                </button>
+              </div>
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
 
-          <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', margin: '0 0 var(--spacing-md)' }}>
-            Máximo 10 fotos · 5 MB cada una
-          </p>
+              <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', margin: '0 0 var(--spacing-md)' }}>
+                {remaining} slot{remaining !== 1 ? 's' : ''} disponible{remaining !== 1 ? 's' : ''} · 5 MB por foto
+              </p>
+            </>
+          )}
 
           {/* ── Previews ── */}
           {previews.length > 0 && (

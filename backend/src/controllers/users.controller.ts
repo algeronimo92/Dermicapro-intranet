@@ -79,7 +79,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch users' });
+    res.status(500).json({ error: 'Error al obtener usuarios' });
   }
 };
 
@@ -104,7 +104,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError('Usuario no encontrado', 404);
     }
 
     const formattedUser = {
@@ -133,7 +133,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch user' });
+      res.status(500).json({ error: 'Error al obtener usuario' });
     }
   }
 };
@@ -144,7 +144,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 
     // Validar campos requeridos
     if (!email || !password || !firstName || !lastName) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError('Faltan campos requeridos', 400);
     }
 
     // Verificar si el email ya existe
@@ -153,7 +153,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     });
 
     if (existingUser) {
-      throw new AppError('User with this email already exists', 409);
+      throw new AppError('Ya existe un usuario con este correo electrónico', 409);
     }
 
     // Hash de la contraseña
@@ -195,7 +195,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error creating user:', error);
-      res.status(500).json({ error: 'Failed to create user' });
+      res.status(500).json({ error: 'Error al crear usuario' });
     }
   }
 };
@@ -271,7 +271,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error updating user:', error);
-      res.status(500).json({ error: 'Failed to update user' });
+      res.status(500).json({ error: 'Error al actualizar usuario' });
     }
   }
 };
@@ -282,7 +282,7 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
 
     // No permitir que el usuario se desactive a sí mismo
     if (req.user!.id === id) {
-      throw new AppError('Cannot deactivate your own account', 400);
+      throw new AppError('No puedes desactivar tu propia cuenta', 400);
     }
 
     const user = await prisma.user.update({
@@ -291,7 +291,7 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
     });
 
     res.json({
-      message: 'User deactivated successfully',
+      message: 'Usuario desactivado correctamente',
       user: {
         id: user.id,
         email: user.email,
@@ -304,7 +304,7 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to deactivate user' });
+      res.status(500).json({ error: 'Error al desactivar usuario' });
     }
   }
 };
@@ -319,7 +319,7 @@ export const activateUser = async (req: Request, res: Response): Promise<void> =
     });
 
     res.json({
-      message: 'User activated successfully',
+      message: 'Usuario activado correctamente',
       user: {
         id: user.id,
         email: user.email,
@@ -329,7 +329,7 @@ export const activateUser = async (req: Request, res: Response): Promise<void> =
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to activate user' });
+    res.status(500).json({ error: 'Error al activar usuario' });
   }
 };
 
@@ -354,7 +354,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError('Usuario no encontrado', 404);
     }
 
     let additionalStats: any = {};
@@ -416,7 +416,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch user stats' });
+      res.status(500).json({ error: 'Error al obtener estadísticas del usuario' });
     }
   }
 };
@@ -464,7 +464,7 @@ export const uploadUserPhoto = async (req: Request, res: Response): Promise<void
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error uploading user photo:', error);
-      res.status(500).json({ error: 'Failed to upload photo' });
+      res.status(500).json({ error: 'Error al subir foto' });
     }
   }
 };

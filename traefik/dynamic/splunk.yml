@@ -1,0 +1,29 @@
+http:
+  middlewares:
+    splunk-proto:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+    splunk-redirect-root:
+      redirectRegex:
+        regex: "^https://splunk\\.dermicapro\\.app/?$"
+        replacement: "https://splunk.dermicapro.app/en-US/account/login"
+        permanent: false
+
+  routers:
+    splunk:
+      rule: "Host(`splunk.dermicapro.app`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - splunk-redirect-root
+        - splunk-proto
+      service: splunk
+
+  services:
+    splunk:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8000"

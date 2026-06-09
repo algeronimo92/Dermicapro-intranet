@@ -694,7 +694,7 @@ export const AppointmentFormPage: React.FC = () => {
     if (formData.reservationAmount !== undefined && formData.reservationAmount < 0) {
       newErrors.reservationAmount = 'El monto debe ser mayor o igual a 0';
     }
-    if (formData.reservationAmount && formData.reservationAmount > 0 && !formData.reservationPaymentMethod) {
+    if (!isEditMode && formData.reservationAmount && formData.reservationAmount > 0 && !formData.reservationPaymentMethod) {
       newErrors.reservationPaymentMethod = 'Selecciona un método de pago para la reserva';
     }
 

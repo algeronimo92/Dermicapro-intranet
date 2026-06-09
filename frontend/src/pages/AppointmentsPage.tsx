@@ -191,6 +191,11 @@ export const AppointmentsPage: React.FC = () => {
     loadKanbanAppointments();
   };
 
+  const handleKanbanAttended = async (appointmentId: string) => {
+    await appointmentsService.markAsAttended(appointmentId);
+    loadKanbanAppointments();
+  };
+
   const handleTimeSlotClick = (date: Date, hour: number, minute: number, durationMinutes: number) => {
     const selectedDateTime = new Date(date);
     selectedDateTime.setHours(hour, minute, 0, 0);
@@ -662,6 +667,7 @@ export const AppointmentsPage: React.FC = () => {
         <KanbanBoard
           appointments={kanbanAppointments}
           onStatusChange={handleKanbanStatusChange}
+          onAttended={handleKanbanAttended}
           showCancelled={showCancelled}
           isLoading={isLoading}
         />
