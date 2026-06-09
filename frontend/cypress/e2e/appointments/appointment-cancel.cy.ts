@@ -2,11 +2,7 @@ describe('Cancelar cita', () => {
   let appointmentId: string;
 
   beforeEach(() => {
-    cy.request('POST', '/api/auth/login', {
-      email: Cypress.env('adminEmail'),
-      password: Cypress.env('adminPassword'),
-    }).then(({ body }) => {
-      const token = body.accessToken;
+    cy.getAccessToken(Cypress.env('adminEmail'), Cypress.env('adminPassword')).then((token) => {
       const uniqueSuffix = Date.now().toString().slice(-6);
 
       cy.request({
@@ -27,7 +23,6 @@ describe('Cancelar cita', () => {
           url: '/api/services',
           headers: { Authorization: `Bearer ${token}` },
         }).then(({ body: services }) => {
-          const service = services[0];
           cy.request({
             method: 'POST',
             url: '/api/appointments',
@@ -35,7 +30,7 @@ describe('Cancelar cita', () => {
             body: {
               patientId: patient.id,
               scheduledDate: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-              services: [{ serviceId: service.id, sessionNumber: 1 }],
+              services: [{ serviceId: services[0].id, sessionNumber: 1, tempPackageId: 'pkg-test-1' }],
             },
           }).then(({ body: appointment }) => {
             appointmentId = appointment.id;
@@ -49,10 +44,7 @@ describe('Cancelar cita', () => {
     cy.loginAsAdminAndVisit(`/appointments/${appointmentId}`);
     cy.get('.status-badge-large').should('contain.text', 'Reservada');
 
-    // El botón de cancelar es una acción secundaria destructiva
     cy.contains('button', 'Cancelar Cita').click();
-
-    // Aparece el modal de confirmación
     cy.contains('Confirmar cambio de estado').should('be.visible');
     cy.get('.sts-confirm__ok').click();
 

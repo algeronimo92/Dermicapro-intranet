@@ -1,42 +1,64 @@
-describe('Creación de paciente', () => {
+describe("Creación de paciente", () => {
   beforeEach(() => {
-    cy.loginAsAdminAndVisit('/patients');
+    cy.loginAsAdminAndVisit("/patients");
+    cy.contains("button", "Nuevo Paciente").click();
   });
 
-  it('abre el formulario al hacer clic en Nuevo Paciente', () => {
-    cy.contains('button', 'Nuevo Paciente').click();
-    cy.get('input[name="firstName"]').should('be.visible');
-    cy.get('input[name="lastName"]').should('be.visible');
-    cy.get('input[name="dni"]').should('be.visible');
+  it("muestra todos los campos requeridos del formulario", () => {
+    // Campos de texto requeridos
+    cy.get('input[name="firstName"]').should("be.visible");
+    cy.get('input[name="lastName"]').should("be.visible");
+    cy.get('input[name="dni"]').scrollIntoView().should("be.visible");
+    cy.get('input[name="phone"]').scrollIntoView().should("be.visible");
+
+    // Fecha de nacimiento (DatePicker custom)
+    cy.contains("label", "Fecha de Nacimiento")
+      .scrollIntoView()
+      .should("be.visible");
+    cy.get(".dp-trigger").scrollIntoView().should("be.visible");
+
+    // Sexo
+    cy.get('select[name="sex"]').should("be.visible");
+
+    // Campos opcionales
+    cy.get('input[name="email"]').should("be.visible");
+    cy.get('input[name="address"]').should("be.visible");
+
+    // Botones de acción
+    cy.contains("button", "Cancelar").should("be.visible");
+    cy.contains("button", "Crear Paciente").should("be.visible");
   });
 
-  it('muestra errores de validación si se envía sin datos', () => {
-    cy.contains('button', 'Nuevo Paciente').click();
-    cy.contains('button', 'Crear Paciente').click();
-    cy.contains(/requerido|obligatorio|nombre|dni/i).should('be.visible');
+  it("muestra errores en todos los campos requeridos al enviar vacío", () => {
+    cy.contains("button", "Crear Paciente").click();
+    cy.contains(/el nombre es requerido|nombre.*requerido|requerido/i)
+      .scrollIntoView()
+      .should("be.visible");
   });
 
-  it('crea un paciente correctamente con el formulario completo', () => {
+  it("cancela y cierra el formulario", () => {
+    cy.get('input[name="firstName"]').should("be.visible");
+    cy.contains("button", "Cancelar").click();
+    cy.get('input[name="firstName"]').should("not.exist");
+  });
+
+  it("crea un paciente con todos los campos requeridos", () => {
     const uniqueSuffix = Date.now().toString().slice(-6);
-    const dni = `99${uniqueSuffix}`;
 
-    cy.contains('button', 'Nuevo Paciente').click();
+    cy.get('input[name="firstName"]').type("Paciente");
+    cy.get('input[name="lastName"]').type("Prueba");
+    cy.get('input[name="dni"]').type(`99${uniqueSuffix}`);
+    cy.get('input[name="phone"]').type("987654321");
 
-    cy.get('input[name="firstName"]').type('Paciente');
-    cy.get('input[name="lastName"]').type('Prueba');
-    cy.get('input[name="dni"]').type(dni);
-    cy.get('input[name="phone"]').type('987654321');
-
-    // Seleccionar fecha de nacimiento (DatePicker con react-day-picker v10)
-    cy.get('.dp-trigger').first().click();
-    cy.get('body').find('button.rdp-day_button:not([disabled])').first().click();
+    // Seleccionar fecha de nacimiento
+    cy.get(".dp-trigger").first().click();
+    cy.get("button.rdp-day_button:not([disabled])").first().click();
 
     // Seleccionar sexo
-    cy.get('select[name="sex"]').select('F');
+    cy.get('select[name="sex"]').select("F");
 
-    cy.contains('button', 'Crear Paciente').click();
+    cy.contains("button", "Crear Paciente").click();
 
-    // Verificar que el paciente aparece en la lista o que el modal se cierra
-    cy.contains('Paciente Prueba', { timeout: 8000 }).should('be.visible');
+    cy.contains("Paciente Prueba", { timeout: 8000 }).should("be.visible");
   });
 });

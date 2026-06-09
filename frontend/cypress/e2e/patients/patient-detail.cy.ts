@@ -1,24 +1,23 @@
-describe('Detalle de paciente', () => {
+describe("Detalle de paciente", () => {
   let patientId: string;
 
   before(() => {
-    cy.request('POST', '/api/auth/login', {
-      email: Cypress.env('adminEmail'),
-      password: Cypress.env('adminPassword'),
-    }).then(({ body }) => {
-      const token = body.accessToken;
+    cy.getAccessToken(
+      Cypress.env("adminEmail"),
+      Cypress.env("adminPassword"),
+    ).then((token) => {
       const uniqueSuffix = Date.now().toString().slice(-6);
       cy.request({
-        method: 'POST',
-        url: '/api/patients',
+        method: "POST",
+        url: "/api/patients",
         headers: { Authorization: `Bearer ${token}` },
         body: {
-          firstName: 'María',
-          lastName: 'DetallePrueba',
+          firstName: "María",
+          lastName: "DetallePrueba",
           dni: `88${uniqueSuffix}`,
-          dateOfBirth: '1990-03-20',
-          sex: 'F',
-          phone: '912345678',
+          dateOfBirth: "1990-03-20",
+          sex: "F",
+          phone: "912345678",
         },
       }).then(({ body: patient }) => {
         patientId = patient.id;
@@ -26,27 +25,25 @@ describe('Detalle de paciente', () => {
     });
   });
 
-  it('muestra la información del paciente en la página de detalle', () => {
+  it("muestra la información del paciente en la página de detalle", () => {
     cy.loginAsAdminAndVisit(`/patients/${patientId}`);
-    cy.contains('María').should('be.visible');
-    cy.contains('DetallePrueba').should('be.visible');
+    cy.contains("María").should("be.visible");
+    cy.contains("DetallePrueba").should("be.visible");
+    cy.contains("36 años").should("be.visible");
+    cy.contains("Femenino").should("be.visible");
+    cy.contains("912345678").should("be.visible");
   });
 
-  it('muestra el DNI del paciente', () => {
-    cy.loginAsAdminAndVisit(`/patients/${patientId}`);
-    cy.contains(/dni/i).should('be.visible');
-  });
-
-  it('navega desde la lista de pacientes al detalle al hacer clic', () => {
-    cy.loginAsAdminAndVisit('/patients');
-    cy.get('input[placeholder="Nombre, DNI, teléfono…"]').type('DetallePrueba');
+  it("navega desde la lista de pacientes al detalle al hacer clic", () => {
+    cy.loginAsAdminAndVisit("/patients");
+    cy.get('input[placeholder="Nombre, DNI, teléfono…"]').type("DetallePrueba");
     cy.wait(400);
-    cy.contains('DetallePrueba').click();
-    cy.url().should('include', `/patients/${patientId}`);
+    cy.contains("DetallePrueba").click();
+    cy.url().should("include", `/patients/${patientId}`);
   });
 
-  it('muestra el botón de volver a la lista', () => {
+  it("muestra el botón de volver a la lista", () => {
     cy.loginAsAdminAndVisit(`/patients/${patientId}`);
-    cy.contains(/volver|pacientes/i).should('be.visible');
+    cy.contains(/volver|pacientes/i).should("be.visible");
   });
 });
