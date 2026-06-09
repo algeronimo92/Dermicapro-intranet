@@ -1,0 +1,15 @@
+http:
+  routers:
+    splunk:
+      rule: "Host(`splunk.dermicapro.app`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: splunk
+
+  services:
+    splunk:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8000"
