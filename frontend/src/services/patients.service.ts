@@ -64,8 +64,4 @@ export const patientsService = {
   async reopenOrder(patientId: string, orderId: string): Promise<void> {
     await api.patch(`/patients/${patientId}/orders/${orderId}/reopen`);
   },
-
-  async resetPatientPassword(id: string, newPassword: string): Promise<void> {
-    await api.patch(`/patients/${id}/password`, { newPassword });
-  },
 };

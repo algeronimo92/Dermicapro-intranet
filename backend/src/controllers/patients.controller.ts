@@ -283,13 +283,19 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
 export const updatePatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
+    const { firstName, lastName, dni, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
+
+    if (dni) {
+      const existing = await prisma.patient.findFirst({ where: { dni, NOT: { id } } });
+      if (existing) throw new AppError('Ya existe un paciente con este DNI', 409);
+    }
 
     const patient = await prisma.patient.update({
       where: { id },
       data: {
         firstName,
         lastName,
+        ...(dni && { dni }),
         dateOfBirth: dateOfBirth ? parseStartOfDay(dateOfBirth) : undefined,
         sex,
         phone,
@@ -301,7 +307,11 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
 
     res.json(patient);
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar paciente' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al actualizar paciente' });
+    }
   }
 };
 
