@@ -18,9 +18,13 @@ services:
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --providers.file.directory=/etc/traefik/dynamic
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - traefik-letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dynamic:/etc/traefik/dynamic
     networks:
       - traefik-network
 

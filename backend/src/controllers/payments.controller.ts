@@ -89,7 +89,7 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch payments' });
+    res.status(500).json({ error: 'Error al obtener pagos' });
   }
 };
 
@@ -126,7 +126,7 @@ export const getPaymentById = async (req: Request, res: Response): Promise<void>
     });
 
     if (!payment) {
-      throw new AppError('Payment not found', 404);
+      throw new AppError('Pago no encontrado', 404);
     }
 
     res.json(payment);
@@ -134,7 +134,7 @@ export const getPaymentById = async (req: Request, res: Response): Promise<void>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch payment' });
+      res.status(500).json({ error: 'Error al obtener pago' });
     }
   }
 };
@@ -154,23 +154,23 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
     } = req.body;
 
     if (!patientId || !amountPaid || !paymentMethod || !paymentType) {
-      throw new AppError('Missing required fields: patientId, amountPaid, paymentMethod, paymentType', 400);
+      throw new AppError('Faltan campos requeridos: patientId, amountPaid, paymentMethod, paymentType', 400);
     }
 
     const amount = parseFloat(amountPaid);
-    if (amount <= 0) throw new AppError('Amount paid must be greater than 0', 400);
+    if (amount <= 0) throw new AppError('El monto pagado debe ser mayor a 0', 400);
 
     if (paymentType === 'payment_order_payment' && !paymentOrderId) {
       throw new AppError('paymentOrderId es requerido para pagos de orden de pago', 400);
     }
     if ((paymentType === 'reservation' || paymentType === 'service_payment') && !appointmentId) {
-      throw new AppError('appointmentId is required for reservation or service_payment type', 400);
+      throw new AppError('Se requiere appointmentId para pagos de tipo reserva o servicio', 400);
     }
 
     // Si se usa saldo a favor, validar que el paciente tenga suficiente balance
     if (paymentMethod === 'account_credit') {
       const patient = await prisma.patient.findUnique({ where: { id: patientId }, select: { accountBalance: true } });
-      if (!patient) throw new AppError('Patient not found', 404);
+      if (!patient) throw new AppError('Paciente no encontrado', 404);
       if (parseFloat(patient.accountBalance.toString()) < amount) {
         throw new AppError(
           `Saldo insuficiente. Disponible: S/. ${parseFloat(patient.accountBalance.toString()).toFixed(2)}`,
@@ -243,7 +243,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error creating payment:', error);
-      res.status(500).json({ error: 'Failed to create payment' });
+      res.status(500).json({ error: 'Error al crear pago' });
     }
   }
 };
@@ -297,7 +297,7 @@ export const addCredit = async (req: Request, res: Response): Promise<void> => {
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error adding credit:', error);
-      res.status(500).json({ error: 'Failed to add credit' });
+      res.status(500).json({ error: 'Error al agregar crédito' });
     }
   }
 };
@@ -322,7 +322,7 @@ export const updatePayment = async (req: Request, res: Response): Promise<void> 
 
     res.json(payment);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update payment' });
+    res.status(500).json({ error: 'Error al actualizar pago' });
   }
 };
 
@@ -337,7 +337,7 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
     });
 
     if (!payment) {
-      throw new AppError('Payment not found', 404);
+      throw new AppError('Pago no encontrado', 404);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -379,12 +379,12 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
       }
     });
 
-    res.json({ message: 'Payment deleted successfully' });
+    res.json({ message: 'Pago eliminado correctamente' });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to delete payment' });
+      res.status(500).json({ error: 'Error al eliminar pago' });
     }
   }
 };
@@ -394,7 +394,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
 
     if (!req.file) {
-      throw new AppError('No file uploaded', 400);
+      throw new AppError('No se subió ningún archivo', 400);
     }
 
     // Construir la URL del comprobante
@@ -427,7 +427,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error uploading receipt:', error);
-      res.status(500).json({ error: 'Failed to upload receipt' });
+      res.status(500).json({ error: 'Error al subir comprobante' });
     }
   }
 };

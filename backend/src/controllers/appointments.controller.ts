@@ -102,7 +102,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch appointments' });
+    res.status(500).json({ error: 'Error al obtener citas' });
   }
 };
 
@@ -156,7 +156,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
     });
 
     if (!appointment) {
-      throw new AppError('Appointment not found', 404);
+      throw new AppError('Cita no encontrada', 404);
     }
 
     res.json(appointment);
@@ -164,7 +164,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch appointment' });
+      res.status(500).json({ error: 'Error al obtener cita' });
     }
   }
 };
@@ -174,17 +174,17 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
     const { patientId, scheduledDate, durationMinutes, reservationAmount, reservationPaymentMethod, services } = req.body;
 
     if (!patientId || !scheduledDate) {
-      throw new AppError('Missing required fields: patientId and scheduledDate', 400);
+      throw new AppError('Faltan campos requeridos: patientId y scheduledDate', 400);
     }
 
     if (!services || !Array.isArray(services) || services.length === 0) {
-      throw new AppError('At least one service/session is required', 400);
+      throw new AppError('Se requiere al menos un servicio/sesión', 400);
     }
 
     // Validar que todas las sesiones tengan los campos requeridos
     for (const session of services) {
       if (!session.serviceId || session.sessionNumber === undefined) {
-        throw new AppError('Each session must have serviceId and sessionNumber', 400);
+        throw new AppError('Cada sesión debe tener serviceId y sessionNumber', 400);
       }
     }
 
@@ -226,7 +226,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
         });
 
         if (!service) {
-          throw new AppError(`Service not found: ${firstSession.serviceId}`, 404);
+          throw new AppError(`Servicio no encontrado: ${firstSession.serviceId}`, 404);
         }
 
         // Determinar precio final: usar customPrice si está disponible, sino basePrice
@@ -269,14 +269,14 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
 
           if (!finalOrderId) {
             throw new AppError(
-              `Order not found for tempPackageId: ${session.tempPackageId}`,
+              `Orden no encontrada para tempPackageId: ${session.tempPackageId}`,
               500
             );
           }
         }
 
         if (!finalOrderId) {
-          throw new AppError('OrderId or tempPackageId is required for each session', 400);
+          throw new AppError('Se requiere orderId o tempPackageId para cada sesión', 400);
         }
 
         // Crear AppointmentService
@@ -352,7 +352,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error creating appointment:', error);
-      res.status(500).json({ error: 'Failed to create appointment' });
+      res.status(500).json({ error: 'Error al crear cita' });
     }
   }
 };
@@ -417,7 +417,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
           });
 
           if (!service) {
-            throw new AppError(`Service not found: ${newOrder.serviceId}`, 404);
+            throw new AppError(`Servicio no encontrado: ${newOrder.serviceId}`, 404);
           }
 
           // Obtener el paciente de la cita
@@ -427,7 +427,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
           });
 
           if (!apt) {
-            throw new AppError('Appointment not found', 404);
+            throw new AppError('Cita no encontrada', 404);
           }
 
           // Crear el nuevo Order
@@ -461,14 +461,14 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
 
             if (!finalOrderId) {
               throw new AppError(
-                `Order not found for tempPackageId: ${newSession.tempPackageId}`,
+                `Orden no encontrada para tempPackageId: ${newSession.tempPackageId}`,
                 500
               );
             }
           }
 
           if (!finalOrderId) {
-            throw new AppError('OrderId is required for new session', 400);
+            throw new AppError('Se requiere orderId para la nueva sesión', 400);
           }
 
           // Crear AppointmentService
@@ -551,7 +551,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error updating appointment:', error);
-      res.status(500).json({ error: 'Failed to update appointment' });
+      res.status(500).json({ error: 'Error al actualizar cita' });
     }
   }
 };
@@ -567,9 +567,9 @@ export const deleteAppointment = async (req: Request, res: Response): Promise<vo
       data: { status: 'cancelled' },
     });
 
-    res.json({ message: 'Appointment cancelled successfully' });
+    res.json({ message: 'Cita cancelada correctamente' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to cancel appointment' });
+    res.status(500).json({ error: 'Error al cancelar cita' });
   }
 };
 
@@ -616,11 +616,11 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
       });
 
       if (!existingAppointment) {
-        throw new AppError('Appointment not found', 404);
+        throw new AppError('Cita no encontrada', 404);
       }
 
       if (existingAppointment.status === 'attended') {
-        throw new AppError('Appointment is already attended', 400);
+        throw new AppError('La cita ya fue atendida', 400);
       }
 
       // Exigir al menos un asistente registrado antes de marcar como attended
@@ -700,7 +700,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Error marking appointment as attended:', error);
-      res.status(500).json({ error: 'Failed to mark appointment as attended' });
+      res.status(500).json({ error: 'Error al marcar cita como atendida' });
     }
   }
 };
@@ -711,13 +711,13 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
     const { userId } = req.body;
 
     if (!userId) {
-      res.status(400).json({ error: 'userId is required' });
+      res.status(400).json({ error: 'Se requiere userId' });
       return;
     }
 
     const appointment = await prisma.appointment.findUnique({ where: { id } });
     if (!appointment) {
-      res.status(404).json({ error: 'Appointment not found' });
+      res.status(404).json({ error: 'Cita no encontrada' });
       return;
     }
 
@@ -729,7 +729,7 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
 
     const userExists = await prisma.user.findUnique({ where: { id: userId } });
     if (!userExists) {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'Usuario no encontrado' });
       return;
     }
 
@@ -747,7 +747,7 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
     res.json(updated);
   } catch (error) {
     console.error('Error adding attendee:', error);
-    res.status(500).json({ error: 'Failed to add attendee' });
+    res.status(500).json({ error: 'Error al agregar asistente' });
   }
 };
 
@@ -757,7 +757,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
 
     const appointment = await prisma.appointment.findUnique({ where: { id } });
     if (!appointment) {
-      res.status(404).json({ error: 'Appointment not found' });
+      res.status(404).json({ error: 'Cita no encontrada' });
       return;
     }
 
@@ -772,7 +772,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
     });
 
     if (!attendee) {
-      res.status(404).json({ error: 'Attendee not found' });
+      res.status(404).json({ error: 'Asistente no encontrado' });
       return;
     }
 
@@ -788,7 +788,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
     res.json(updated);
   } catch (error) {
     console.error('Error removing attendee:', error);
-    res.status(500).json({ error: 'Failed to remove attendee' });
+    res.status(500).json({ error: 'Error al eliminar asistente' });
   }
 };
 
@@ -797,7 +797,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
 
     if (!req.file) {
-      throw new AppError('No file uploaded', 400);
+      throw new AppError('No se subió ningún archivo', 400);
     }
 
     const receiptUrl = `/uploads/${req.file.filename}`;
@@ -815,7 +815,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to upload receipt' });
+      res.status(500).json({ error: 'Error al subir comprobante' });
     }
   }
 };
@@ -825,7 +825,7 @@ export const uploadTreatmentPhotos = async (req: Request, res: Response): Promis
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
-      throw new AppError('No files uploaded', 400);
+      throw new AppError('No se subieron archivos', 400);
     }
 
     const urls = files.map(file => `/uploads/${file.filename}`);
@@ -834,7 +834,7 @@ export const uploadTreatmentPhotos = async (req: Request, res: Response): Promis
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to upload photos' });
+      res.status(500).json({ error: 'Error al subir fotos' });
     }
   }
 };
@@ -845,11 +845,11 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
     const { photoUrls, type } = req.body;
 
     if (!photoUrls || !Array.isArray(photoUrls) || photoUrls.length === 0) {
-      throw new AppError('No photo URLs provided', 400);
+      throw new AppError('No se proporcionaron URLs de fotos', 400);
     }
 
     if (type !== 'before' && type !== 'after') {
-      throw new AppError('Invalid photo type. Must be "before" or "after"', 400);
+      throw new AppError('Tipo de foto inválido. Debe ser "before" o "after"', 400);
     }
 
     // Get the appointment
@@ -864,7 +864,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
     });
 
     if (!appointment) {
-      throw new AppError('Appointment not found', 404);
+      throw new AppError('Cita no encontrada', 404);
     }
 
     // Get or create patient record for this appointment
@@ -940,7 +940,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to add photos to appointment' });
+      res.status(500).json({ error: 'Error al agregar fotos a la cita' });
     }
   }
 };
@@ -951,10 +951,10 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
     const { type, photoUrl } = req.body;
 
     if (!photoUrl || typeof photoUrl !== 'string') {
-      throw new AppError('photoUrl is required', 400);
+      throw new AppError('Se requiere photoUrl', 400);
     }
     if (type !== 'before' && type !== 'after') {
-      throw new AppError('type must be "before" or "after"', 400);
+      throw new AppError('El tipo debe ser "before" o "after"', 400);
     }
 
     const appointment = await prisma.appointment.findUnique({
@@ -967,10 +967,10 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
       },
     });
 
-    if (!appointment) throw new AppError('Appointment not found', 404);
+    if (!appointment) throw new AppError('Cita no encontrada', 404);
 
     const patientRecord = appointment.patientRecords[0];
-    if (!patientRecord) throw new AppError('No patient record found', 404);
+    if (!patientRecord) throw new AppError('No se encontró registro del paciente', 404);
 
     const currentBefore = (patientRecord.beforePhotoUrls as string[]) || [];
     const currentAfter  = (patientRecord.afterPhotoUrls  as string[]) || [];
@@ -1006,7 +1006,7 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to remove photo' });
+      res.status(500).json({ error: 'Error al eliminar foto' });
     }
   }
 };
@@ -1028,7 +1028,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
     });
 
     if (!appointment) {
-      throw new AppError('Appointment not found', 404);
+      throw new AppError('Cita no encontrada', 404);
     }
 
     // Get or create patient record for this appointment
@@ -1113,7 +1113,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update body measurements' });
+      res.status(500).json({ error: 'Error al actualizar medidas corporales' });
     }
   }
 };
@@ -1124,7 +1124,7 @@ export const createAppointmentNote = async (req: Request, res: Response): Promis
     const { note } = req.body;
 
     if (!note || note.trim() === '') {
-      throw new AppError('Note content is required', 400);
+      throw new AppError('El contenido de la nota es requerido', 400);
     }
 
     // Verify appointment exists
@@ -1133,7 +1133,7 @@ export const createAppointmentNote = async (req: Request, res: Response): Promis
     });
 
     if (!appointment) {
-      throw new AppError('Appointment not found', 404);
+      throw new AppError('Cita no encontrada', 404);
     }
 
     // Create the note
@@ -1160,7 +1160,7 @@ export const createAppointmentNote = async (req: Request, res: Response): Promis
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to create appointment note' });
+      res.status(500).json({ error: 'Error al crear nota de cita' });
     }
   }
 };
