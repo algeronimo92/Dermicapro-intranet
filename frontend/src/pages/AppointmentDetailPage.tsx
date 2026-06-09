@@ -416,6 +416,7 @@ export const AppointmentDetailPage: React.FC = () => {
   const statusColor = stateConfig.label.color;
 
   return (
+    <>
     <div className="appointment-detail-modern">
       {/* Mobile-First Header */}
       <div className="detail-header">
@@ -1685,34 +1686,35 @@ export const AppointmentDetailPage: React.FC = () => {
       {viewerImages.length > 0 && (
         <ImageViewer images={viewerImages} initialIndex={viewerIndex} onClose={closeViewer} />
       )}
-
-      {/* Barra de estado sticky — siempre visible al fondo del área de contenido */}
-      <StateTransitionSelector
-        key={appointment.attendees?.length ?? 0}
-        currentStatus={appointment.status}
-        appointmentId={appointment.id}
-        appointment={appointment}
-        onTransition={async (newStatus) => {
-          if (newStatus === 'attended') {
-            if (!appointment.attendees || appointment.attendees.length === 0) {
-              setAttendeeRequiredError(true);
-              setTimeout(() => {
-                attendeeErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }, 0);
-              const handledErr = new Error('Debe agregar al menos un profesional');
-              (handledErr as any).handled = true;
-              throw handledErr;
-            }
-            setAttendeeRequiredError(false);
-            await appointmentsService.markAsAttended(appointment.id);
-          } else {
-            await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
-          }
-          await loadAppointment(appointment.id, true);
-        }}
-        disabled={false}
-        fixedBottom={true}
-      />
     </div>
+
+    {/* Barra de estado sticky — siempre visible al fondo del área de contenido, fuera del detalle */}
+    <StateTransitionSelector
+      key={appointment.attendees?.length ?? 0}
+      currentStatus={appointment.status}
+      appointmentId={appointment.id}
+      appointment={appointment}
+      onTransition={async (newStatus) => {
+        if (newStatus === 'attended') {
+          if (!appointment.attendees || appointment.attendees.length === 0) {
+            setAttendeeRequiredError(true);
+            setTimeout(() => {
+              attendeeErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 0);
+            const handledErr = new Error('Debe agregar al menos un profesional');
+            (handledErr as any).handled = true;
+            throw handledErr;
+          }
+          setAttendeeRequiredError(false);
+          await appointmentsService.markAsAttended(appointment.id);
+        } else {
+          await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
+        }
+        await loadAppointment(appointment.id, true);
+      }}
+      disabled={false}
+      fixedBottom={true}
+    />
+    </>
   );
 };
