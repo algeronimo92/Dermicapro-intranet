@@ -47,8 +47,8 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       entry.request_body = truncate(sanitize(req.body));
     }
 
-    if (isError && responseBody !== undefined) {
-      entry.response_body = truncate(responseBody);
+    if (responseBody !== undefined) {
+      entry.response_body = JSON.stringify(truncate(responseBody));
     }
 
     if (isError) {
