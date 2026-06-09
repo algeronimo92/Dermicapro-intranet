@@ -26,6 +26,15 @@ services:
       start_period: 10s
     networks:
       - dermicapro-network
+    logging:
+      driver: splunk
+      options:
+        splunk-token: "${SPLUNK_TOKEN}"
+        splunk-url: "${SPLUNK_URL}"
+        splunk-insecureskipverify: "true"
+        splunk-format: "json"
+        splunk-sourcetype: "docker:db"
+        tag: "{{.Name}}"
 
   # ================================
   # Backend API (Production)
@@ -59,6 +68,15 @@ services:
       start_period: 40s
     networks:
       - dermicapro-network
+    logging:
+      driver: splunk
+      options:
+        splunk-token: "${SPLUNK_TOKEN}"
+        splunk-url: "${SPLUNK_URL}"
+        splunk-insecureskipverify: "true"
+        splunk-format: "json"
+        splunk-sourcetype: "docker:backend"
+        tag: "{{.Name}}"
 
   # ================================
   # Frontend (Production)
@@ -88,6 +106,15 @@ services:
     networks:
       - dermicapro-network
       - traefik-network
+    logging:
+      driver: splunk
+      options:
+        splunk-token: "${SPLUNK_TOKEN}"
+        splunk-url: "${SPLUNK_URL}"
+        splunk-insecureskipverify: "true"
+        splunk-format: "json"
+        splunk-sourcetype: "docker:frontend"
+        tag: "{{.Name}}"
 
 # ================================
 # Networks
