@@ -4,6 +4,7 @@ import { config } from './config/env';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { generalLimiter } from './middlewares/rateLimiter';
+import { requestLogger } from './middlewares/requestLogger';
 import prisma from './config/database';
 import fs from 'fs';
 import path from 'path';
@@ -16,6 +17,7 @@ app.set('trust proxy', 1);
 app.use(cors({ origin: config.cors.origin, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 
 // Rate limiting global (disabled in development)
 if (config.env === 'production') {
