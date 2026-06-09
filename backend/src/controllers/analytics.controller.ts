@@ -14,7 +14,7 @@ export const getExecutiveSummary = async (req: Request, res: Response): Promise<
     res.json(data);
   } catch (error: any) {
     console.error('Executive summary error:', error);
-    res.status(500).json({ error: error.message || 'Error fetching executive summary' });
+    res.status(500).json({ error: error.message || 'Error al obtener resumen ejecutivo' });
   }
 };
 
@@ -30,7 +30,7 @@ export const getFinancialAnalytics = async (req: Request, res: Response): Promis
     res.json(data);
   } catch (error: any) {
     console.error('Financial analytics error:', error);
-    res.status(500).json({ error: error.message || 'Error fetching financial analytics' });
+    res.status(500).json({ error: error.message || 'Error al obtener analíticas financieras' });
   }
 };
 
@@ -46,7 +46,7 @@ export const getOperationsAnalytics = async (req: Request, res: Response): Promi
     res.json(data);
   } catch (error: any) {
     console.error('Operations analytics error:', error);
-    res.status(500).json({ error: error.message || 'Error fetching operations analytics' });
+    res.status(500).json({ error: error.message || 'Error al obtener analíticas de operaciones' });
   }
 };
 
@@ -63,7 +63,7 @@ export const getSalesAnalytics = async (req: Request, res: Response): Promise<vo
     res.json(data);
   } catch (error: any) {
     console.error('Sales analytics error:', error);
-    res.status(500).json({ error: error.message || 'Error fetching sales analytics' });
+    res.status(500).json({ error: error.message || 'Error al obtener analíticas de ventas' });
   }
 };
 
@@ -79,7 +79,7 @@ export const getCustomerAnalytics = async (req: Request, res: Response): Promise
     res.json(data);
   } catch (error: any) {
     console.error('Customer analytics error:', error);
-    res.status(500).json({ error: error.message || 'Error fetching customer analytics' });
+    res.status(500).json({ error: error.message || 'Error al obtener analíticas de clientes' });
   }
 };
 
@@ -96,6 +96,6 @@ export const getServiceAnalytics = async (req: Request, res: Response): Promise<
     res.json(data);
   } catch (error: any) {
     console.error('Service analytics error:', error);
-    res.status(500).json({ error: error.message || 'Error fetching service analytics' });
+    res.status(500).json({ error: error.message || 'Error al obtener analíticas de servicios' });
   }
 };

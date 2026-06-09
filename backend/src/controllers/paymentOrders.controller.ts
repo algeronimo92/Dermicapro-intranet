@@ -95,7 +95,7 @@ export const getAllPaymentOrders = async (req: Request, res: Response): Promise<
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch payment orders' });
+    res.status(500).json({ error: 'Error al obtener órdenes de pago' });
   }
 };
 
@@ -121,7 +121,7 @@ export const getPaymentOrderById = async (req: Request, res: Response): Promise<
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch payment order' });
+      res.status(500).json({ error: 'Error al obtener orden de pago' });
     }
   }
 };
@@ -132,7 +132,7 @@ export const updatePaymentOrderStatus = async (req: Request, res: Response): Pro
     const { status } = req.body;
 
     if (!status || !['pending', 'partial', 'paid', 'cancelled'].includes(status)) {
-      throw new AppError('Invalid status. Must be one of: pending, partial, paid, cancelled', 400);
+      throw new AppError('Estado inválido. Debe ser uno de: pending, partial, paid, cancelled', 400);
     }
 
     const paymentOrder = await prisma.paymentOrder.update({
@@ -154,7 +154,7 @@ export const updatePaymentOrderStatus = async (req: Request, res: Response): Pro
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update payment order status' });
+      res.status(500).json({ error: 'Error al actualizar estado de orden de pago' });
     }
   }
 };
@@ -182,7 +182,7 @@ export const getPaymentOrdersByPatient = async (req: Request, res: Response): Pr
 
     res.json(paymentOrdersWithBalance);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch patient payment orders' });
+    res.status(500).json({ error: 'Error al obtener órdenes de pago del paciente' });
   }
 };
 
@@ -229,7 +229,7 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
 
     res.json(summary);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch payment order summary' });
+    res.status(500).json({ error: 'Error al obtener resumen de orden de pago' });
   }
 };
 
@@ -276,7 +276,7 @@ export const createPaymentOrder = async (req: Request, res: Response): Promise<v
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to create payment order' });
+      res.status(500).json({ error: 'Error al crear orden de pago' });
     }
   }
 };
@@ -292,7 +292,7 @@ export const getOrdersWithoutPaymentOrder = async (req: Request, res: Response):
 
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch orders without payment order' });
+    res.status(500).json({ error: 'Error al obtener órdenes sin orden de pago' });
   }
 };
 
@@ -310,7 +310,7 @@ export const cancelPaymentOrder = async (req: Request, res: Response): Promise<v
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to cancel payment order' });
+      res.status(500).json({ error: 'Error al cancelar orden de pago' });
     }
   }
 };
@@ -329,7 +329,7 @@ export const autoUpdatePaymentOrderStatus = async (req: Request, res: Response):
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update payment order status' });
+      res.status(500).json({ error: 'Error al actualizar estado de orden de pago' });
     }
   }
 };

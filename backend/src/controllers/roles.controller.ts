@@ -14,6 +14,6 @@ export const getAllRoles = async (_req: Request, res: Response): Promise<void> =
     });
     res.json(roles);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch roles' });
+    res.status(500).json({ error: 'Error al obtener roles' });
   }
 };

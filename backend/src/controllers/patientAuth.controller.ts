@@ -14,7 +14,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw new AppError('Email and password are required', 400);
+      throw new AppError('El correo y la contraseña son requeridos', 400);
     }
 
     // Buscar paciente por email
@@ -23,24 +23,24 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!patient) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Credenciales inválidas', 401);
     }
 
     // Validar que el paciente tiene acceso al portal
     if (!patient.hasPortalAccess) {
-      throw new AppError('Portal access not enabled. Contact the clinic.', 403);
+      throw new AppError('Acceso al portal no habilitado. Contacte a la clínica.', 403);
     }
 
     // Validar que el paciente tiene contraseña configurada
     if (!patient.passwordHash) {
-      throw new AppError('Password not configured. Contact the clinic.', 403);
+      throw new AppError('Contraseña no configurada. Contacte a la clínica.', 403);
     }
 
     // Validar contraseña
     const isValidPassword = await comparePassword(password, patient.passwordHash);
 
     if (!isValidPassword) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Credenciales inválidas', 401);
     }
 
     // Crear payload del JWT con type: 'patient'
@@ -76,7 +76,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Patient login error:', error);
-      res.status(500).json({ error: 'Login failed' });
+      res.status(500).json({ error: 'Error al iniciar sesión' });
     }
   }
 };
@@ -90,14 +90,14 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      throw new AppError('Refresh token is required', 400);
+      throw new AppError('El token de actualización es requerido', 400);
     }
 
     const decoded = verifyRefreshToken(refreshToken) as PatientJwtPayload;
 
     // Validar que el token es de tipo paciente
     if (decoded.type !== 'patient') {
-      throw new AppError('Invalid token type', 403);
+      throw new AppError('Tipo de token inválido', 403);
     }
 
     // Buscar paciente
@@ -106,7 +106,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!patient || !patient.hasPortalAccess) {
-      throw new AppError('Invalid refresh token', 401);
+      throw new AppError('Token de actualización inválido', 401);
     }
 
     // Generar nuevos tokens
@@ -128,7 +128,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Patient refresh token error:', error);
-      res.status(401).json({ error: 'Invalid refresh token' });
+      res.status(401).json({ error: 'Token de actualización inválido' });
     }
   }
 };
@@ -141,7 +141,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 export const me = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.patient) {
-      throw new AppError('Not authenticated', 401);
+      throw new AppError('No autenticado', 401);
     }
 
     // Cargar datos completos del paciente
@@ -164,7 +164,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!patient) {
-      throw new AppError('Patient not found', 404);
+      throw new AppError('Paciente no encontrado', 404);
     }
 
     res.json(patient);
@@ -173,7 +173,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Get patient info error:', error);
-      res.status(500).json({ error: 'Failed to get patient information' });
+      res.status(500).json({ error: 'Error al obtener información del paciente' });
     }
   }
 };
@@ -186,10 +186,10 @@ export const logout = async (_req: Request, res: Response): Promise<void> => {
   try {
     // El logout es principalmente client-side (eliminar tokens del localStorage)
     // Aquí podríamos registrar el evento si lo necesitamos
-    res.json({ message: 'Logged out successfully' });
+    res.json({ message: 'Sesión cerrada correctamente' });
   } catch (error) {
     console.error('Patient logout error:', error);
-    res.status(500).json({ error: 'Logout failed' });
+    res.status(500).json({ error: 'Error al cerrar sesión' });
   }
 };
 
@@ -201,39 +201,39 @@ export const logout = async (_req: Request, res: Response): Promise<void> => {
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.patient) {
-      throw new AppError('Not authenticated', 401);
+      throw new AppError('No autenticado', 401);
     }
 
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
 
     // Validaciones de entrada
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      throw new AppError('All password fields are required', 400);
+      throw new AppError('Todos los campos de contraseña son requeridos', 400);
     }
 
     if (newPassword !== confirmNewPassword) {
-      throw new AppError('New passwords do not match', 400);
+      throw new AppError('Las contraseñas nuevas no coinciden', 400);
     }
 
     if (newPassword === currentPassword) {
-      throw new AppError('New password must be different from current password', 400);
+      throw new AppError('La nueva contraseña debe ser diferente a la actual', 400);
     }
 
     // Validar complejidad de la contraseña
     if (newPassword.length < 8) {
-      throw new AppError('Password must be at least 8 characters long', 400);
+      throw new AppError('La contraseña debe tener al menos 8 caracteres', 400);
     }
 
     if (!/[A-Z]/.test(newPassword)) {
-      throw new AppError('Password must contain at least one uppercase letter', 400);
+      throw new AppError('La contraseña debe contener al menos una letra mayúscula', 400);
     }
 
     if (!/[a-z]/.test(newPassword)) {
-      throw new AppError('Password must contain at least one lowercase letter', 400);
+      throw new AppError('La contraseña debe contener al menos una letra minúscula', 400);
     }
 
     if (!/[0-9]/.test(newPassword)) {
-      throw new AppError('Password must contain at least one number', 400);
+      throw new AppError('La contraseña debe contener al menos un número', 400);
     }
 
     // Cargar paciente con password hash
@@ -242,14 +242,14 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     });
 
     if (!patient || !patient.passwordHash) {
-      throw new AppError('Patient not found or password not configured', 404);
+      throw new AppError('Paciente no encontrado o contraseña no configurada', 404);
     }
 
     // Verificar contraseña actual
     const isValidPassword = await comparePassword(currentPassword, patient.passwordHash);
 
     if (!isValidPassword) {
-      throw new AppError('Current password is incorrect', 401);
+      throw new AppError('La contraseña actual es incorrecta', 401);
     }
 
     // Hash de la nueva contraseña
@@ -265,13 +265,13 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       },
     });
 
-    res.json({ message: 'Password changed successfully' });
+    res.json({ message: 'Contraseña cambiada correctamente' });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
       console.error('Change password error:', error);
-      res.status(500).json({ error: 'Failed to change password' });
+      res.status(500).json({ error: 'Error al cambiar contraseña' });
     }
   }
 };

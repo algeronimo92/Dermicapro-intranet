@@ -12,7 +12,7 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'No token provided' });
+      res.status(401).json({ error: 'Token no proporcionado' });
       return;
     }
 
@@ -21,7 +21,7 @@ export const authenticate = async (
 
     // Check if this is a patient token (has 'type' property set to 'patient')
     if ('type' in decoded && (decoded as PatientJwtPayload).type === 'patient') {
-      res.status(401).json({ error: 'Patient tokens not allowed for this endpoint' });
+      res.status(401).json({ error: 'Los tokens de paciente no están permitidos en este endpoint' });
       return;
     }
 
@@ -33,26 +33,26 @@ export const authenticate = async (
     });
 
     if (!user) {
-      res.status(401).json({ error: 'Invalid or expired token' });
+      res.status(401).json({ error: 'Token inválido o expirado' });
       return;
     }
 
     req.user = payload;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    res.status(401).json({ error: 'Token inválido o expirado' });
   }
 };
 
 export const authorize = (...roleNames: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: 'No autenticado' });
       return;
     }
 
     if (!req.user.roleName || !roleNames.includes(req.user.roleName)) {
-      res.status(403).json({ error: 'Insufficient permissions' });
+      res.status(403).json({ error: 'Permisos insuficientes' });
       return;
     }
 

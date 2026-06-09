@@ -9,19 +9,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw new AppError('Email and password are required', 400);
+      throw new AppError('El correo y la contraseña son requeridos', 400);
     }
 
     const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
 
     if (!user || !user.isActive) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Credenciales inválidas', 401);
     }
 
     const isValidPassword = await comparePassword(password, user.passwordHash);
 
     if (!isValidPassword) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Credenciales inválidas', 401);
     }
 
     const payload = {
@@ -54,7 +54,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Login failed' });
+      res.status(500).json({ error: 'Error al iniciar sesión' });
     }
   }
 };
@@ -64,7 +64,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      throw new AppError('Refresh token is required', 400);
+      throw new AppError('El token de actualización es requerido', 400);
     }
 
     const decoded = verifyRefreshToken(refreshToken);
@@ -72,7 +72,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     const user = await prisma.user.findUnique({ where: { id: decoded.id }, include: { role: true } });
 
     if (!user || !user.isActive) {
-      throw new AppError('Invalid refresh token', 401);
+      throw new AppError('Token de actualización inválido', 401);
     }
 
     const payload = {
@@ -93,7 +93,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(401).json({ error: 'Invalid refresh token' });
+      res.status(401).json({ error: 'Token de actualización inválido' });
     }
   }
 };
@@ -101,13 +101,13 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 export const me = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      throw new AppError('Not authenticated', 401);
+      throw new AppError('No autenticado', 401);
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { role: true } });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError('Usuario no encontrado', 404);
     }
 
     res.json({
@@ -128,7 +128,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to fetch user' });
+      res.status(500).json({ error: 'Error al obtener usuario' });
     }
   }
 };
@@ -186,7 +186,7 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to update profile' });
+      res.status(500).json({ error: 'Error al actualizar perfil' });
     }
   }
 };
@@ -213,7 +213,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-    if (!user) throw new AppError('User not found', 404);
+    if (!user) throw new AppError('Usuario no encontrado', 404);
 
     const isValid = await comparePassword(currentPassword, user.passwordHash);
     if (!isValid) {
@@ -230,7 +230,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to change password' });
+      res.status(500).json({ error: 'Error al cambiar contraseña' });
     }
   }
 };
