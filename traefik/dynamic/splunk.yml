@@ -1,4 +1,10 @@
 http:
+  middlewares:
+    splunk-proto:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+
   routers:
     splunk:
       rule: "Host(`splunk.dermicapro.app`)"
@@ -6,6 +12,8 @@ http:
         - websecure
       tls:
         certResolver: letsencrypt
+      middlewares:
+        - splunk-proto
       service: splunk
 
   services:
