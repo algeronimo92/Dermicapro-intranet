@@ -134,7 +134,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const logout = async (_req: Request, res: Response): Promise<void> => {
-  res.json({ message: 'Logged out successfully' });
+  res.json({ message: 'Sesión cerrada correctamente' });
 };
 
 const VALID_THEME_MODES = ['light', 'dark', 'auto'] as const;
