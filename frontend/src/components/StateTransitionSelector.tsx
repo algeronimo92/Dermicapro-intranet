@@ -9,6 +9,7 @@ import {
   TransitionContext,
   StateTransition,
 } from '../config/appointmentStateMachine.config';
+import { getStateConfig } from '../config/appointmentStates.config';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from './Modal';
 
@@ -18,6 +19,7 @@ interface StateTransitionSelectorProps {
   appointment?: any;
   onTransition: (newStatus: AppointmentStatus) => Promise<void>;
   disabled?: boolean;
+  fixedBottom?: boolean;
 }
 
 // Transiciones del flujo principal (acción más probable)
@@ -87,6 +89,7 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
   appointment,
   onTransition,
   disabled = false,
+  fixedBottom = false,
 }) => {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -135,7 +138,9 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
       setPendingTransition(null);
       setShowConfirmModal(false);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al cambiar el estado');
+      if (!err.handled) {
+        setError(err.response?.data?.error || err.message || 'Error al cambiar el estado');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -174,8 +179,17 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
     </button>
   );
 
+  const stateConfig = getStateConfig(currentStatus);
+
   return (
-    <div className="sts-wrapper">
+    <div className={`sts-wrapper${fixedBottom ? ' sts-wrapper--fixed' : ''}`}>
+      {/* Label de estado — solo en barra fija */}
+      {fixedBottom && (
+        <div className={`sts-status-label ${stateConfig.label.color}`}>
+          {stateConfig.label.singular.toUpperCase()}
+        </div>
+      )}
+
       {/* Acción principal */}
       {primaryTransitions.length > 0 && (
         <div className="sts-primary-section">

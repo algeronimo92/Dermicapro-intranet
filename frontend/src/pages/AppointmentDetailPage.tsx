@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentsService } from '../services/appointments.service';
 import { patientsService } from '../services/patients.service';
@@ -58,6 +58,15 @@ export const AppointmentDetailPage: React.FC = () => {
   const [isAddingAttendee, setIsAddingAttendee] = useState(false);
   const [removingAttendeeId, setRemovingAttendeeId] = useState<string | null>(null);
   const [attendeeRequiredError, setAttendeeRequiredError] = useState(false);
+
+  const errorBannerRef = useRef<HTMLDivElement>(null);
+  const attendeeErrorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (error && errorBannerRef.current) {
+      errorBannerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   const openViewer = (images: string[], index = 0) => {
     setViewerImages(images);
@@ -446,7 +455,7 @@ export const AppointmentDetailPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="alert alert-error">
+        <div ref={errorBannerRef} className="alert alert-error">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 6v4M10 14h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -492,28 +501,6 @@ export const AppointmentDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* State Machine Transition Selector - Control Centralizado de Estados */}
-      <StateTransitionSelector
-        key={appointment.attendees?.length ?? 0}
-        currentStatus={appointment.status}
-        appointmentId={appointment.id}
-        appointment={appointment}
-        onTransition={async (newStatus) => {
-          if (newStatus === 'attended') {
-            if (!appointment.attendees || appointment.attendees.length === 0) {
-              setAttendeeRequiredError(true);
-              throw new Error('Debe agregar al menos un profesional');
-            }
-            setAttendeeRequiredError(false);
-            await appointmentsService.markAsAttended(appointment.id);
-          } else {
-            await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
-          }
-          await loadAppointment(appointment.id, true);
-        }}
-        disabled={false}
-      />
-
       {/* Attendees Card — visible en todos los estados excepto cancelled/no_show */}
       {!['cancelled', 'no_show'].includes(appointment.status) && (
         <div className="glass-card">
@@ -528,7 +515,7 @@ export const AppointmentDetailPage: React.FC = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {attendeeRequiredError && (
-              <p style={{ color: 'var(--error-color, #f87171)', fontSize: '13px', margin: 0, fontWeight: 500 }}>
+              <p ref={attendeeErrorRef} style={{ color: 'var(--error-color, #f87171)', fontSize: '13px', margin: 0, fontWeight: 500 }}>
                 Debe agregar al menos un profesional antes de marcar la cita como atendida.
               </p>
             )}
@@ -1698,6 +1685,34 @@ export const AppointmentDetailPage: React.FC = () => {
       {viewerImages.length > 0 && (
         <ImageViewer images={viewerImages} initialIndex={viewerIndex} onClose={closeViewer} />
       )}
+
+      {/* Barra de estado sticky — siempre visible al fondo del área de contenido */}
+      <StateTransitionSelector
+        key={appointment.attendees?.length ?? 0}
+        currentStatus={appointment.status}
+        appointmentId={appointment.id}
+        appointment={appointment}
+        onTransition={async (newStatus) => {
+          if (newStatus === 'attended') {
+            if (!appointment.attendees || appointment.attendees.length === 0) {
+              setAttendeeRequiredError(true);
+              setTimeout(() => {
+                attendeeErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 0);
+              const handledErr = new Error('Debe agregar al menos un profesional');
+              (handledErr as any).handled = true;
+              throw handledErr;
+            }
+            setAttendeeRequiredError(false);
+            await appointmentsService.markAsAttended(appointment.id);
+          } else {
+            await appointmentsService.updateAppointment(appointment.id, { status: newStatus });
+          }
+          await loadAppointment(appointment.id, true);
+        }}
+        disabled={false}
+        fixedBottom={true}
+      />
     </div>
   );
 };
