@@ -4,6 +4,11 @@ http:
       headers:
         customRequestHeaders:
           X-Forwarded-Proto: "https"
+    splunk-redirect-root:
+      redirectRegex:
+        regex: "^https://splunk\\.dermicapro\\.app/?$"
+        replacement: "https://splunk.dermicapro.app/en-US/account/login"
+        permanent: false
 
   routers:
     splunk:
@@ -13,6 +18,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
+        - splunk-redirect-root
         - splunk-proto
       service: splunk
 
