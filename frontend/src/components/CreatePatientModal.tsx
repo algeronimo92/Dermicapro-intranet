@@ -179,7 +179,7 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
         onCreated?.(created);
       }
     } catch (err: any) {
-      setSaveError(err.response?.data?.message || 'Error al guardar paciente');
+      setSaveError(err.response?.data?.error || err.response?.data?.message || 'Error al guardar paciente');
     } finally {
       setIsSaving(false);
     }
