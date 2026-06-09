@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Patient } from '../types';
 import { patientsService, CreatePatientDto } from '../services/patients.service';
 import { Modal } from './Modal';
@@ -74,6 +75,8 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,6 +88,8 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
       setForm(EMPTY_FORM);
       setErrors({});
       setSaveError(null);
+      setNewPassword('');
+      setShowPassword(false);
     }
   }, [isOpen, patientId]);
 
@@ -116,6 +121,8 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
     setForm(EMPTY_FORM);
     setErrors({});
     setSaveError(null);
+    setNewPassword('');
+    setShowPassword(false);
     onClose();
   };
 
@@ -166,11 +173,18 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
 
   const handleSubmit = async () => {
     if (!validate()) return;
+    if (newPassword && newPassword.length < 6) {
+      setErrors(prev => ({ ...prev, newPassword: 'Mínimo 6 caracteres' }));
+      return;
+    }
     try {
       setIsSaving(true);
       setSaveError(null);
       if (isEditMode && patientId) {
         const updated = await patientsService.updatePatient(patientId, form);
+        if (newPassword) {
+          await patientsService.resetPatientPassword(patientId, newPassword);
+        }
         handleClose();
         onUpdated?.(updated);
       } else {
@@ -284,6 +298,53 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
           <Input label="Teléfono *" name="phone" value={form.phone} onChange={handleChange} error={errors.phone} placeholder="987654321" maxLength={9} />
           <Input label="Email" type="email" name="email" value={form.email || ''} onChange={handleChange} error={errors.email} placeholder="ejemplo@correo.com" />
           <Input label="Dirección" name="address" value={form.address || ''} onChange={handleChange} placeholder="Dirección completa" />
+
+          {isEditMode && (
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+                Nueva contraseña del portal
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    if (errors.newPassword) setErrors(prev => ({ ...prev, newPassword: '' }));
+                  }}
+                  placeholder="Dejar vacío para no cambiar"
+                  autoComplete="new-password"
+                  style={{
+                    width: '100%',
+                    padding: '8px 36px 8px 12px',
+                    border: errors.newPassword ? '1.5px solid var(--color-error)' : '1.5px solid var(--color-border-primary)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'var(--color-bg-primary)',
+                    color: 'var(--color-text-primary)',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center', padding: 0,
+                  }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {errors.newPassword && <p style={{ fontSize: '12px', color: 'var(--color-error)', marginTop: '4px' }}>{errors.newPassword}</p>}
+              <p style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', marginTop: '4px' }}>
+                Mínimo 6 caracteres. Dejar vacío para mantener la contraseña actual.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

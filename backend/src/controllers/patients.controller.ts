@@ -305,6 +305,39 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+export const resetPatientPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new AppError('La nueva contraseña debe tener al menos 6 caracteres', 400);
+    }
+
+    const patient = await prisma.patient.findUnique({ where: { id } });
+    if (!patient) throw new AppError('Paciente no encontrado', 404);
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.patient.update({
+      where: { id },
+      data: {
+        passwordHash,
+        passwordSetByStaffId: req.user!.id,
+        passwordSetAt: new Date(),
+      },
+    });
+
+    res.json({ message: 'Contraseña del paciente actualizada correctamente' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al restablecer contraseña del paciente' });
+    }
+  }
+};
+
 export const deletePatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;

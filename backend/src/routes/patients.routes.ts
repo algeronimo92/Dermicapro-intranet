@@ -5,6 +5,7 @@ import {
   createPatient,
   updatePatient,
   deletePatient,
+  resetPatientPassword,
   getPatientHistory,
   getCreditHistory,
   closeServiceInstance,
@@ -25,6 +26,7 @@ router.delete('/:id', deletePatient);
 router.get('/:id/history', getPatientHistory);
 router.get('/:id/credit-history', getCreditHistory);
 router.post('/:id/add-credit', addCredit);
+router.patch('/:id/password', resetPatientPassword);
 router.patch('/:id/orders/:orderId/conclude', closeServiceInstance);
 router.patch('/:id/orders/:orderId/reopen', reopenServiceInstance);
 
