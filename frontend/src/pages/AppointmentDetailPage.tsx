@@ -415,8 +415,10 @@ export const AppointmentDetailPage: React.FC = () => {
   const statusLabel = stateConfig.label.singular;
   const statusColor = stateConfig.label.color;
 
+  const hasFixedBar = !['attended', 'cancelled', 'no_show'].includes(appointment.status);
+
   return (
-    <div className="appointment-detail-modern">
+    <div className="appointment-detail-modern" style={hasFixedBar ? { paddingBottom: '160px' } : undefined}>
       {/* Mobile-First Header */}
       <div className="detail-header">
         <button className="btn-back" onClick={handleBack}>
