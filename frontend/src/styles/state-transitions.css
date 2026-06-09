@@ -245,14 +245,30 @@
   position: sticky;
   bottom: 0;
   z-index: 200;
-  margin-top: var(--spacing-xl);
-  margin-left: -16px;
-  margin-right: -16px;
-  padding: var(--spacing-md) 16px;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
   background: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border-secondary);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl), 0 -2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Espaciado de la barra fija */
+.sts-wrapper--fixed .sts-status-label {
+  margin-bottom: var(--spacing-sm);
+}
+
+.sts-wrapper--fixed .sts-primary-section {
+  margin-bottom: var(--spacing-sm);
+}
+
+.sts-wrapper--fixed .sts-secondary-section {
+  gap: var(--spacing-md);
+}
+
+.sts-wrapper--fixed .sts-secondary-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
 }
 
 /* ── RESPONSIVE ── */

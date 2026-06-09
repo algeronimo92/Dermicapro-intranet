@@ -181,8 +181,8 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
 
   const stateConfig = getStateConfig(currentStatus);
 
-  return (
-    <div className={`sts-wrapper${fixedBottom ? ' sts-wrapper--fixed' : ''}`}>
+  const inner = (
+    <>
       {/* Label de estado — solo en barra fija */}
       {fixedBottom && (
         <div className={`sts-status-label ${stateConfig.label.color}`}>
@@ -244,6 +244,12 @@ export const StateTransitionSelector: React.FC<StateTransitionSelectorProps> = (
           </div>
         </div>
       </Modal>
+    </>
+  );
+
+  return (
+    <div className={`sts-wrapper${fixedBottom ? ' sts-wrapper--fixed' : ''}`}>
+      {inner}
     </div>
   );
 };
