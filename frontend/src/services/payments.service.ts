@@ -1,5 +1,5 @@
 import api from './api';
-import { Payment } from '../types';
+import { Payment, PaginatedResponse } from '../types';
 
 export interface CreatePaymentDto {
   patientId: string;
@@ -13,26 +13,25 @@ export interface CreatePaymentDto {
   notes?: string;
 }
 
+export interface PaymentsFilters {
+  patientId?: string;
+  paymentOrderId?: string;
+  appointmentId?: string;
+  paymentType?: string;
+  page?: number;
+  limit?: number;
+  includeVoided?: boolean;
+}
+
 export const paymentsService = {
-  /**
-   * Crea un nuevo pago
-   */
   async createPayment(data: CreatePaymentDto): Promise<Payment> {
     const response = await api.post<Payment>('/payments', data);
     return response.data;
   },
 
-  /**
-   * Obtiene todos los pagos con filtros opcionales
-   */
-  async getPayments(filters?: {
-    patientId?: string;
-    paymentOrderId?: string;
-    appointmentId?: string;
-    paymentType?: string;
-  }): Promise<Payment[]> {
-    const response = await api.get<{ data: Payment[] }>('/payments', { params: filters });
-    return response.data.data;
+  async getPayments(filters?: PaymentsFilters): Promise<PaginatedResponse<Payment>> {
+    const response = await api.get<PaginatedResponse<Payment>>('/payments', { params: filters });
+    return response.data;
   },
 
   /**
@@ -51,11 +50,8 @@ export const paymentsService = {
     return response.data;
   },
 
-  /**
-   * Elimina un pago
-   */
-  async deletePayment(id: string): Promise<void> {
-    await api.delete(`/payments/${id}`);
+  async voidPayment(id: string, reason?: string): Promise<void> {
+    await api.post(`/payments/${id}/void`, { reason });
   },
 
   /**

@@ -6,12 +6,17 @@ import { parseStartOfDay } from '../utils/dateUtils';
 
 export const getAllPayments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '10', patientId, paymentOrderId, appointmentId, paymentType } = req.query;
+    const { page = '1', limit = '10', patientId, paymentOrderId, appointmentId, paymentType, includeVoided } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
 
     const where: any = {};
+
+    // Por defecto excluye anulados; pasar includeVoided=true para verlos todos
+    if (includeVoided !== 'true') {
+      where.voidedAt = null;
+    }
 
     if (patientId) {
       where.patientId = patientId;
@@ -68,11 +73,10 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
             },
           },
           createdBy: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
+            select: { id: true, firstName: true, lastName: true },
+          },
+          voidedBy: {
+            select: { id: true, firstName: true, lastName: true },
           },
         },
       }),
@@ -217,11 +221,11 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
         });
       }
 
-      // Actualizar status de orden de pago si corresponde
+      // Actualizar status de orden de pago si corresponde (excluye anulados)
       if (paymentOrderId) {
         const paymentOrder = await tx.paymentOrder.findUnique({
           where: { id: paymentOrderId },
-          include: { payments: true },
+          include: { payments: { where: { voidedAt: null } } },
         });
         if (paymentOrder) {
           const totalPaid = paymentOrder.payments.reduce((sum, p) => sum + parseFloat(p.amountPaid.toString()), 0);
@@ -326,43 +330,71 @@ export const updatePayment = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const deletePayment = async (req: Request, res: Response): Promise<void> => {
+export const voidPayment = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const { reason } = req.body;
 
-    // Obtener el pago antes de eliminarlo para saber si tiene orden de pago asociada
     const payment = await prisma.payment.findUnique({
       where: { id },
-      select: { paymentOrderId: true, amountPaid: true },
+      select: {
+        paymentOrderId: true,
+        voidedAt: true,
+        paymentType: true,
+        paymentMethod: true,
+        appointmentId: true,
+        patientId: true,
+        amountPaid: true,
+      },
     });
 
-    if (!payment) {
-      throw new AppError('Pago no encontrado', 404);
-    }
+    if (!payment) throw new AppError('Pago no encontrado', 404);
+    if (payment.voidedAt) throw new AppError('El pago ya fue anulado', 409);
 
     await prisma.$transaction(async (tx) => {
-      // Eliminar el pago
-      await tx.payment.delete({
+      // Soft delete: marcar como anulado
+      await tx.payment.update({
         where: { id },
+        data: {
+          voidedAt: new Date(),
+          voidedById: req.user!.id,
+          voidReason: reason ?? null,
+        },
       });
 
-      // Si tenía orden de pago asociada, recalcular el status
+      // Si es pago de reserva: limpiar reserva en la cita y revertir saldo a favor
+      if (payment.paymentType === 'reservation') {
+        // appointment.reservationAmount field removed — payment.voidedAt is the source of truth
+
+        if (payment.patientId) {
+          await tx.patient.update({
+            where: { id: payment.patientId },
+            data: { accountBalance: { decrement: parseFloat(payment.amountPaid.toString()) } },
+          });
+        }
+      }
+
+      // Si se usó saldo a favor para pagar una orden, devolver el monto al balance
+      if (payment.paymentMethod === 'account_credit' && payment.patientId) {
+        await tx.patient.update({
+          where: { id: payment.patientId },
+          data: { accountBalance: { increment: parseFloat(payment.amountPaid.toString()) } },
+        });
+      }
+
+      // Recalcular status de la orden de pago excluyendo pagos anulados
       if (payment.paymentOrderId) {
         const paymentOrder = await tx.paymentOrder.findUnique({
           where: { id: payment.paymentOrderId },
-          include: {
-            payments: true,
-          },
+          include: { payments: { where: { voidedAt: null } } },
         });
 
         if (paymentOrder) {
-          // Calcular total pagado (sin incluir el pago eliminado)
           const totalPaid = paymentOrder.payments.reduce(
             (sum, p) => sum + parseFloat(p.amountPaid.toString()),
             0
           );
 
-          // Determinar nuevo status
           let newStatus: 'pending' | 'partial' | 'paid' = 'pending';
           if (totalPaid >= parseFloat(paymentOrder.totalAmount.toString())) {
             newStatus = 'paid';
@@ -370,7 +402,6 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
             newStatus = 'partial';
           }
 
-          // Actualizar status
           await tx.paymentOrder.update({
             where: { id: payment.paymentOrderId },
             data: { status: newStatus },
@@ -379,12 +410,12 @@ export const deletePayment = async (req: Request, res: Response): Promise<void> 
       }
     });
 
-    res.json({ message: 'Pago eliminado correctamente' });
+    res.json({ message: 'Pago anulado correctamente' });
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Error al eliminar pago' });
+      res.status(500).json({ error: 'Error al anular pago' });
     }
   }
 };

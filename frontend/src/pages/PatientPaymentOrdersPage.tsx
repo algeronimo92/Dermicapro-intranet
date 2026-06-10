@@ -5,6 +5,7 @@ import { paymentOrdersService } from '../services/paymentOrders.service';
 import { creditsService } from '../services/credits.service';
 import { Patient, PaymentOrder, PaymentOrderStatus, Order, CreditTransaction, PaymentType, PaymentMethod } from '../types';
 import { Loading } from '../components/Loading';
+import { ImageViewer } from '../components/ImageViewer';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { AddCreditModal } from '../components/AddCreditModal';
 import { formatDate } from '../utils/dateUtils';
@@ -23,6 +24,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
   const [patientBalance, setPatientBalance] = useState(0);
   const [creditHistory, setCreditHistory]   = useState<CreditTransaction[]>([]);
   const [showAddCreditModal, setShowAddCreditModal] = useState(false);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -451,16 +453,19 @@ export const PatientPaymentOrdersPage: React.FC = () => {
           <div style={{ padding: 'var(--spacing-sm) 0' }}>
             {creditHistory.map(tx => {
               const isCredit   = tx.paymentType === PaymentType.account_credit;
+              const isReservation = tx.paymentType === PaymentType.reservation;
               const isUsed     = tx.paymentMethod === PaymentMethod.account_credit;
-              // isRefund: !isCredit && !isUsed
               const amount     = Number(tx.amountPaid);
-              const sign       = isCredit ? '+' : '−';
-              const color      = isCredit ? 'var(--color-success-dark)' : 'var(--color-error)';
+              const isIncoming = isCredit || isReservation;
+              const sign       = isIncoming ? '+' : '−';
+              const color      = isIncoming ? 'var(--color-success-dark)' : 'var(--color-error)';
               const label      = isCredit
                 ? 'Abono de saldo'
-                : isUsed
-                  ? `Aplicado a orden de pago${tx.paymentOrderId ? ` #${tx.paymentOrderId.slice(0,6).toUpperCase()}` : ''}`
-                  : 'Devolución';
+                : isReservation
+                  ? 'Reserva de cita'
+                  : isUsed
+                    ? `Aplicado a orden de pago${tx.paymentOrderId ? ` #${tx.paymentOrderId.slice(0,6).toUpperCase()}` : ''}`
+                    : 'Devolución';
               const methodLabels: Record<string, string> = {
                 yape: 'Yape', plin: 'Plin', cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia',
               };
@@ -474,17 +479,26 @@ export const PatientPaymentOrdersPage: React.FC = () => {
                   gap: 'var(--spacing-md)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flex: 1, minWidth: 0 }}>
-                    {/* Ícono */}
-                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: isCredit ? 'var(--color-success-alpha-10)' : 'var(--color-error-alpha-10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ fontSize: 15 }}>{isCredit ? '💰' : '💳'}</span>
-                    </div>
+                    {/* Thumbnail del recibo si existe */}
+                    {tx.receiptUrl ? (
+                      <img
+                        src={tx.receiptUrl}
+                        alt="Comprobante"
+                        onClick={() => setViewerImage(tx.receiptUrl!)}
+                        style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0, cursor: 'zoom-in', border: '1.5px solid var(--color-border-secondary)' }}
+                      />
+                    ) : (
+                      <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: isIncoming ? 'var(--color-success-alpha-10)' : 'var(--color-error-alpha-10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontSize: 15 }}>{isReservation ? '🗓️' : isCredit ? '💰' : '💳'}</span>
+                      </div>
+                    )}
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                         {label}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
                         {formatDate(tx.paymentDate)}
-                        {isCredit && ` · via ${methodLabel}`}
+                        {(isCredit || isReservation) && ` · via ${methodLabel}`}
                         {tx.notes && ` · ${tx.notes}`}
                         {tx.createdBy && ` · ${tx.createdBy.firstName} ${tx.createdBy.lastName}`}
                       </div>
@@ -532,6 +546,14 @@ export const PatientPaymentOrdersPage: React.FC = () => {
               .then(d => setCreditHistory(d.credits)).catch(() => {});
             setShowAddCreditModal(false);
           }}
+        />
+      )}
+
+      {viewerImage && (
+        <ImageViewer
+          images={[viewerImage]}
+          alt="Comprobante"
+          onClose={() => setViewerImage(null)}
         />
       )}
     </div>

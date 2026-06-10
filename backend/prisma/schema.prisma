@@ -98,6 +98,7 @@ model User {
   commissionsPaid            Commission[]         @relation("CommissionPayments")
   paymentOrdersCreated       PaymentOrder[]       @relation("PaymentOrderCreatedBy")
   paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
+  paymentsVoided             Payment[]            @relation("PaymentVoidedBy")
   appointmentServicesDeleted Session[] @relation("AppointmentSessionDeletedBy")
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
   appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
@@ -203,8 +204,6 @@ model Appointment {
   scheduledDate         DateTime          @map("scheduled_date")
   durationMinutes       Int               @default(60) @map("duration_minutes")
   status                AppointmentStatus @default(reserved)
-  reservationAmount     Decimal?          @map("reservation_amount") @db.Decimal(10, 2)
-  reservationReceiptUrl String?           @map("reservation_receipt_url")
   createdById           String            @map("created_by_id")
   attendedById          String?           @map("attended_by_id")
   attendedAt            DateTime?         @map("attended_at")
@@ -362,12 +361,16 @@ model Payment {
   notes         String?
   createdById   String        @map("created_by_id")
   createdAt     DateTime      @default(now()) @map("created_at")
+  voidedAt      DateTime?     @map("voided_at")
+  voidedById    String?       @map("voided_by_id")
+  voidReason    String?       @map("void_reason")
 
   // Relations
-  patient     Patient      @relation(fields: [patientId], references: [id])
+  patient      Patient       @relation(fields: [patientId], references: [id])
   paymentOrder PaymentOrder? @relation(fields: [paymentOrderId], references: [id])
-  appointment Appointment? @relation(fields: [appointmentId], references: [id])
-  createdBy   User         @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  appointment  Appointment?  @relation(fields: [appointmentId], references: [id])
+  createdBy    User          @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  voidedBy     User?         @relation("PaymentVoidedBy", fields: [voidedById], references: [id])
 
   @@map("payments")
 }

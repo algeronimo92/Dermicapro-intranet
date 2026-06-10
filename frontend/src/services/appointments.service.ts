@@ -13,7 +13,6 @@ export interface CreateAppointmentDto {
   serviceId?: string; // DEPRECATED: Ya no se usa, todas las sesiones van en services[]
   scheduledDate: string;
   durationMinutes?: number;
-  reservationAmount?: number;
   reservationPaymentMethod?: string;
   orderId?: string; // DEPRECATED: Ya no se usa
   services?: AppointmentServiceDto[]; // Array de todas las sesiones (REQUERIDO)
@@ -85,12 +84,12 @@ export const appointmentsService = {
     return response.data;
   },
 
-  async uploadReceipt(id: string, file: File, amount: number, paymentMethod: string = 'cash'): Promise<Appointment> {
+  async uploadReceipt(id: string, file: File, amount: number, paymentMethod: string = 'cash'): Promise<{ url: string; appointment: Appointment }> {
     const formData = new FormData();
     formData.append('receipt', file);
     formData.append('amount', amount.toString());
     formData.append('paymentMethod', paymentMethod);
-    const response = await api.post<Appointment>(`/appointments/${id}/upload-receipt`, formData, {
+    const response = await api.post<{ url: string; appointment: Appointment }>(`/appointments/${id}/upload-receipt`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

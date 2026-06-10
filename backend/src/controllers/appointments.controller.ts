@@ -87,13 +87,18 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
               },
             },
           },
+          payments: {
+            where: { paymentType: 'reservation', voidedAt: null },
+            select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+            take: 1,
+          },
         },
       }),
       prisma.appointment.count({ where }),
     ]);
 
     res.json({
-      data: appointments,
+      data: appointments.map(withReservationPayment),
       pagination: {
         page: parseInt(page as string),
         limit: take,
@@ -152,6 +157,11 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
             },
           },
         },
+        payments: {
+          where: { paymentType: 'reservation', voidedAt: null },
+          select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+          take: 1,
+        },
       },
     });
 
@@ -159,7 +169,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
       throw new AppError('Cita no encontrada', 404);
     }
 
-    res.json(appointment);
+    res.json(withReservationPayment(appointment));
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -198,7 +208,6 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
           patientId,
           scheduledDate: new Date(scheduledDate),
           durationMinutes: durationMinutes ? parseInt(durationMinutes) : 60,
-          reservationAmount: reservationAmount ? parseFloat(reservationAmount) : null,
           createdById: req.user!.id,
           status: 'reserved',
         },
@@ -597,6 +606,17 @@ const APPOINTMENT_INCLUDE_WITH_ATTENDEES = {
     where: { deletedAt: null },
     include: { serviceInstance: { include: { service: true } } },
   },
+  payments: {
+    where: { paymentType: 'reservation' as const, voidedAt: null },
+    select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+    take: 1,
+  },
+};
+
+const withReservationPayment = (apt: any) => {
+  if (!apt) return apt;
+  const { payments, ...rest } = apt;
+  return { ...rest, reservationPayment: payments?.[0] ?? null };
 };
 
 export const markAsAttended = async (req: Request, res: Response): Promise<void> => {
@@ -694,7 +714,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
       return updatedAppointment;
     });
 
-    res.json(appointment);
+    res.json(withReservationPayment(appointment));
   } catch (error) {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
@@ -744,7 +764,7 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
       include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
     });
 
-    res.json(updated);
+    res.json(withReservationPayment(updated));
   } catch (error) {
     console.error('Error adding attendee:', error);
     res.status(500).json({ error: 'Error al agregar asistente' });
@@ -785,7 +805,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
       include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
     });
 
-    res.json(updated);
+    res.json(withReservationPayment(updated));
   } catch (error) {
     console.error('Error removing attendee:', error);
     res.status(500).json({ error: 'Error al eliminar asistente' });
@@ -795,6 +815,8 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const amount = req.body.amount ? parseFloat(req.body.amount) : 0;
+    const paymentMethod = req.body.paymentMethod ?? 'cash';
 
     if (!req.file) {
       throw new AppError('No se subió ningún archivo', 400);
@@ -802,12 +824,60 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
     const receiptUrl = `/uploads/${req.file.filename}`;
 
-    const appointment = await prisma.appointment.update({
-      where: { id },
-      data: { reservationReceiptUrl: receiptUrl },
+    const appointment = await prisma.$transaction(async (tx) => {
+      const apt = await tx.appointment.findUnique({
+        where: { id },
+        select: { id: true, patientId: true },
+      });
+      if (!apt) throw new AppError('Cita no encontrada', 404);
+
+      // Solo crear pago si hay monto Y no existe ya un pago de reserva activo para esta cita
+      if (amount > 0) {
+        const existing = await tx.payment.findFirst({
+          where: { appointmentId: id, paymentType: 'reservation', voidedAt: null },
+        });
+
+        if (!existing) {
+          await tx.payment.create({
+            data: {
+              patientId: apt.patientId,
+              appointmentId: id,
+              amountPaid: amount,
+              paymentMethod,
+              paymentType: 'reservation',
+              receiptUrl,
+              createdById: req.user!.id,
+            },
+          });
+
+          await tx.patient.update({
+            where: { id: apt.patientId },
+            data: { accountBalance: { increment: amount } },
+          });
+        } else {
+          await tx.payment.update({
+            where: { id: existing.id },
+            data: { receiptUrl },
+          });
+        }
+      }
+
+      return apt;
     });
 
-    res.json({ url: receiptUrl, appointment });
+    // Re-fetch with reservationPayment included so the response is complete
+    const fresh = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        payments: {
+          where: { paymentType: 'reservation', voidedAt: null },
+          select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+          take: 1,
+        },
+      },
+    });
+
+    res.json({ url: receiptUrl, appointment: withReservationPayment(fresh ?? appointment) });
   } catch (error) {
     if (req.file?.path) {
       try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }

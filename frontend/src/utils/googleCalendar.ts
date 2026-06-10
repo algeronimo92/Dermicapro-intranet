@@ -35,7 +35,7 @@ export const generateGoogleCalendarLink = (appointment: Appointment): string => 
   const details = [
     `Paciente: ${patientName}`,
     `Servicio: ${serviceName}`,
-    appointment.reservationAmount ? `Reserva: S/. ${appointment.reservationAmount}` : '',
+    appointment.reservationPayment?.amountPaid ? `Reserva: S/. ${appointment.reservationPayment.amountPaid}` : '',
     firstNote ? `Notas: ${firstNote}` : ''
   ].filter(Boolean).join('\\n');
 
@@ -92,7 +92,7 @@ export const downloadICSFile = (appointment: Appointment): void => {
   const description = [
     `Paciente: ${patientName}`,
     `Servicio: ${serviceName}`,
-    appointment.reservationAmount ? `Reserva: S/. ${appointment.reservationAmount}` : '',
+    appointment.reservationPayment?.amountPaid ? `Reserva: S/. ${appointment.reservationPayment.amountPaid}` : '',
     firstNote ? `Notas: ${firstNote}` : ''
   ].filter(Boolean).join('\\n');
 

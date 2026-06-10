@@ -246,22 +246,9 @@ export const PatientDetailPage: React.FC = () => {
             </a>
           )}
           {hasActivePendingApt ? (
-            <div title={currentInProgress ? 'Tiene una cita en atención actualmente' : 'Ya tiene una cita reservada'} style={{ position: 'relative' }}>
-              <button disabled style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px', borderRadius: 'var(--radius-lg)',
-                background: 'var(--color-bg-tertiary)', color: 'var(--color-text-disabled)',
-                border: '1.5px solid var(--color-border-secondary)',
-                fontSize: 'var(--font-size-sm)', fontWeight: 700,
-                cursor: 'not-allowed', fontFamily: 'inherit',
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Cita ya agendada
-              </button>
-            </div>
+            <Button variant="primary" size="medium" onClick={() => navigate(`/appointments/${(currentInProgress ?? nextReserved)!.apt!.id}`)}>
+              Ver cita agendada →
+            </Button>
           ) : (
             <Button variant="primary" size="medium" onClick={() => navigate(`/appointments/new?patientId=${id}`)}>+ Nueva Cita</Button>
           )}
@@ -671,11 +658,15 @@ export const PatientDetailPage: React.FC = () => {
               Próxima cita
             </div>
             {nextReserved ? (
-              <div className="pd-last-apt" style={{ marginBottom: 0, background: 'var(--color-primary-alpha-10)', borderLeft: '3px solid var(--color-primary)' }}>
+              <div
+                className="pd-last-apt"
+                onClick={() => navigate(`/appointments/${nextReserved.apt!.id}`)}
+                style={{ marginBottom: 0, background: 'var(--color-primary-alpha-10)', borderLeft: '3px solid var(--color-primary)', cursor: 'pointer' }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div className="pd-last-apt__date">{formatDate(nextReserved.apt!.scheduledDate!)}</div>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)', flexShrink: 0 }}>
-                    ● Reservada
+                    ● Reservada →
                   </span>
                 </div>
                 <div className="pd-last-apt__service">{nextReserved.serviceName}</div>
@@ -963,11 +954,13 @@ export const PatientDetailPage: React.FC = () => {
             },
             {
               icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.8"/><path d="M2 8h14M6 1v3M12 1v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-              label: hasActivePendingApt ? 'Cita ya agendada' : 'Nueva Cita',
+              label: hasActivePendingApt ? 'Ver Cita Agendada' : 'Nueva Cita',
               desc: hasActivePendingApt
                 ? (currentInProgress ? 'En atención actualmente' : 'Ya tiene una cita reservada')
                 : 'Agendar sesión',
-              action: hasActivePendingApt ? () => {} : () => navigate(`/appointments/new?patientId=${id}`),
+              action: hasActivePendingApt
+                ? () => navigate(`/appointments/${(currentInProgress ?? nextReserved)!.apt!.id}`)
+                : () => navigate(`/appointments/new?patientId=${id}`),
               color: 'teal',
             },
             {
