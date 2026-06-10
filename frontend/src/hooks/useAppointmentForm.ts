@@ -145,13 +145,13 @@ export const useAppointmentForm = () => {
         patientId: appointment.patientId,
         scheduledDate: formattedDate,
         durationMinutes: appointment.durationMinutes,
-        reservationAmount: appointment.reservationAmount,
+        reservationAmount: appointment.reservationPayment?.amountPaid,
         notes: latestNote,
         services: []
       });
 
-      if (appointment.reservationReceiptUrl) {
-        setCurrentReceipt(appointment.reservationReceiptUrl);
+      if (appointment.reservationPayment?.receiptUrl) {
+        setCurrentReceipt(appointment.reservationPayment.receiptUrl);
       }
 
       if (appointment.appointmentServices && appointment.appointmentServices.length > 0) {

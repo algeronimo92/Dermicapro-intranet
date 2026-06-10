@@ -43,7 +43,7 @@ interface PatientHistory {
     scheduledDate: string;
     status: AppointmentStatus;
     notes: string | null;
-    reservationAmount: string | null;
+    reservationPaymentAmount: number | null;
     createdAt: string;
     attendedAt: string | null;
     appointmentServices: Array<{

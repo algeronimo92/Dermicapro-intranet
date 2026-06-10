@@ -508,9 +508,11 @@ export const getCreditHistory = async (req: Request, res: Response): Promise<voi
     const credits = await prisma.payment.findMany({
       where: {
         patientId: id,
+        voidedAt: null,
         OR: [
           { paymentType: 'account_credit' },
           { paymentMethod: 'account_credit' },
+          { paymentType: 'reservation' },
         ],
       },
       orderBy: { paymentDate: 'desc' },

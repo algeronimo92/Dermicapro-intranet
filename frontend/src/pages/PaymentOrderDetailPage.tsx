@@ -264,7 +264,8 @@ export const PaymentOrderDetailPage: React.FC = () => {
                   </p>
                 )}
 
-                {/* Comprobante */}
+                {/* Comprobante — ocultar solo si es account_credit sin foto */}
+                {(payment.paymentMethod !== 'account_credit' || !!payment.receiptUrl) && (
                 <div style={{ marginTop: 'var(--spacing-sm)', paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-border-secondary)' }}>
                   {/* Input oculto para cambiar comprobante existente */}
                   <input type="file" id={`rcpt-${payment.id}`} accept="image/*"
@@ -275,7 +276,7 @@ export const PaymentOrderDetailPage: React.FC = () => {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-xs)' }}>
                         <div className="pd-info-label">Comprobante</div>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        {payment.paymentMethod !== 'account_credit' && <div style={{ display: 'flex', gap: 6 }}>
                           {/* Cambiar comprobante */}
                           <label htmlFor={`rcpt-${payment.id}`}
                             title="Cambiar comprobante"
@@ -318,7 +319,7 @@ export const PaymentOrderDetailPage: React.FC = () => {
                             </svg>
                             Foto
                           </button>
-                        </div>
+                        </div>}
                       </div>
                       {/* Thumbnail clickeable → lightbox */}
                       <button type="button"
@@ -380,6 +381,7 @@ export const PaymentOrderDetailPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             ))}
           </div>
@@ -396,9 +398,9 @@ export const PaymentOrderDetailPage: React.FC = () => {
           paymentOrder={paymentOrder}
           patientId={paymentOrder.patientId}
           patientBalance={patientBalance}
-          onSuccess={updated => {
-            setPaymentOrder(updated);
+          onSuccess={() => {
             setShowPaymentModal(false);
+            if (id) load(id);
             creditsService.getCreditHistory(paymentOrder.patientId)
               .then(d => setPatientBalance(d.accountBalance))
               .catch(() => {});

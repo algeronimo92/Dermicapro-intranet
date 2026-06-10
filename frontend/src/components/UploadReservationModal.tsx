@@ -6,7 +6,7 @@ import { CameraCapture } from './CameraCapture';
 interface UploadReservationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (amount: number, file: File) => Promise<void>;
+  onSubmit: (amount: number, file: File, paymentMethod: string) => Promise<void>;
   maxAmount?: number;
   fixedAmount?: number;
 }
@@ -19,6 +19,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
   fixedAmount
 }) => {
   const [amount, setAmount] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +78,11 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
       return;
     }
 
+    if (!paymentMethod) {
+      setError('Por favor seleccione un método de pago');
+      return;
+    }
+
     if (!file) {
       setError('Por favor seleccione un archivo');
       return;
@@ -90,7 +96,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
     try {
       setIsSubmitting(true);
       setError(null);
-      await onSubmit(effectiveAmount, file);
+      await onSubmit(effectiveAmount, file, paymentMethod);
       handleClose();
     } catch (err: any) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Error al subir recibo');
@@ -101,6 +107,7 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
 
   const handleClose = () => {
     setAmount('');
+    setPaymentMethod('');
     setFile(null);
     setPreviewUrl(null);
     setError(null);
@@ -158,6 +165,24 @@ export const UploadReservationModal: React.FC<UploadReservationModalProps> = ({
                 Máximo: S/. {maxAmount.toFixed(2)}
               </p>
             )}
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Método de Pago *</label>
+            <select
+              value={paymentMethod}
+              onChange={e => setPaymentMethod(e.target.value)}
+              className="input"
+              disabled={isSubmitting}
+              required
+            >
+              <option value="">Seleccionar método...</option>
+              <option value="yape">Yape</option>
+              <option value="plin">Plin</option>
+              <option value="cash">Efectivo</option>
+              <option value="transfer">Transferencia</option>
+              <option value="card">Tarjeta</option>
+            </select>
           </div>
 
           <div className="input-group">

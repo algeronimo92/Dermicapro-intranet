@@ -168,14 +168,15 @@ export const AppointmentDetailPage: React.FC = () => {
     setShowUploadModal(true);
   };
 
-  const handleUploadSubmit = async (amount: number, file: File) => {
+  const handleUploadSubmit = async (amount: number, file: File, paymentMethod: string) => {
     if (!id) return;
 
     try {
       setError(null);
       setUploadSuccess(false);
-      const updated = await appointmentsService.uploadReceipt(id, file, amount);
-      setAppointment(updated);
+      await appointmentsService.uploadReceipt(id, file, amount, paymentMethod);
+      const fresh = await appointmentsService.getAppointment(id);
+      setAppointment(fresh);
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
     } catch (err: any) {
@@ -363,7 +364,7 @@ export const AppointmentDetailPage: React.FC = () => {
     const unpaidPaymentOrdersCount = unpaidPaymentOrders.length;
     const unpaidPaymentOrdersTotal = unpaidPaymentOrders.reduce((sum, o) => sum + o.pendingAmount, 0);
 
-    const reservationPaid = appointment.reservationAmount ? Number(appointment.reservationAmount) : 0;
+    const reservationPaid = appointment.reservationPayment?.amountPaid ? Number(appointment.reservationPayment.amountPaid) : 0;
     const hasReservation = reservationPaid > 0;
 
     return {
@@ -407,7 +408,7 @@ export const AppointmentDetailPage: React.FC = () => {
   // Obtener urgencia de pago basada en estado
   const paymentUrgency = getPaymentUrgency(
     appointment.status,
-    !!appointment.reservationReceiptUrl,
+    !!appointment.reservationPayment?.receiptUrl,
     hasPendingPayment
   );
 
@@ -962,8 +963,8 @@ export const AppointmentDetailPage: React.FC = () => {
                 </svg>
               </div>
 
-              {appointment.reservationReceiptUrl && (() => {
-                const receiptUrl = getReceiptUrl(appointment.reservationReceiptUrl) || '';
+              {appointment.reservationPayment?.receiptUrl && (() => {
+                const receiptUrl = getReceiptUrl(appointment.reservationPayment!.receiptUrl) || '';
                 const isPdf = receiptUrl.toLowerCase().includes('.pdf');
                 const isImage = /\.(jpg|jpeg|png|webp)$/i.test(receiptUrl);
                 const handleView = () => isPdf
@@ -1000,7 +1001,7 @@ export const AppointmentDetailPage: React.FC = () => {
                 );
               })()}
 
-              {appointment.status === 'reserved' && !appointment.reservationReceiptUrl && (
+              {appointment.status === 'reserved' && !appointment.reservationPayment?.receiptUrl && (
                 <button onClick={handleUploadReceipt} className="adet-reservation__upload-btn">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M14 10v2.667A1.333 1.333 0 0112.667 14H3.333A1.333 1.333 0 012 12.667V10M11.333 5.333L8 2m0 0L4.667 5.333M8 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1625,7 +1626,7 @@ export const AppointmentDetailPage: React.FC = () => {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onSubmit={handleUploadSubmit}
-        fixedAmount={appointment?.reservationAmount ? Number(appointment.reservationAmount) : undefined}
+        fixedAmount={appointment?.reservationPayment?.amountPaid ? Number(appointment.reservationPayment.amountPaid) : undefined}
       />
 
       {/* Upload Photos Modal */}

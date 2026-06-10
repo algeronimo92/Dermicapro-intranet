@@ -16,6 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/services',    label: 'Servicios',        icon: 'Syringe',                   roles: [Role.admin, Role.sales] },
   { to: '/employees',   label: 'Empleados',        icon: 'UserCog',                   roles: [Role.admin] },
   { to: '/commissions', label: 'Comisiones',       icon: 'BadgeDollarSign',           roles: [Role.admin] },
+  { to: '/payments',    label: 'Pagos',             icon: 'Banknote',                  roles: [Role.admin] },
   { to: '/analytics',   label: 'Analíticas',       icon: 'BarChart3',                 roles: [Role.admin] },
   { to: '/styleguide',  label: 'Ficha de Estilos', icon: 'Palette',                   roles: [Role.admin] },
   { to: '/profile',     label: 'Mi Perfil',        icon: 'CircleUser',                roles: 'all', meta: true },

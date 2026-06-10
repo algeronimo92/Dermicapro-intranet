@@ -493,7 +493,7 @@ export const AppointmentsPage: React.FC = () => {
                   const scheduledDate = new Date(appointment.scheduledDate);
                   const patient = appointment.patient;
                   const services = appointment.appointmentServices?.map(as => as.serviceInstance?.service?.name).filter(Boolean) || [];
-                  const reservationPaid = appointment.reservationAmount ? Number(appointment.reservationAmount) : 0;
+                  const reservationPaid = appointment.reservationPayment?.amountPaid ? Number(appointment.reservationPayment.amountPaid) : 0;
                   const totalAmount = appointment.appointmentServices?.reduce((sum, svc) =>
                     sum + Number(svc.serviceInstance?.service?.basePrice || 0), 0) || 0;
                   const pendingAmount = totalAmount - reservationPaid;

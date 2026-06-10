@@ -158,7 +158,6 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
           patientId: formData.patientId,
           scheduledDate: formData.scheduledDate,
           durationMinutes: formData.durationMinutes || 30,
-          reservationAmount: formData.reservationAmount,
           sessionOperations,
         };
 
@@ -173,7 +172,6 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
           patientId: formData.patientId,
           scheduledDate: formData.scheduledDate,
           durationMinutes: formData.durationMinutes || 30,
-          reservationAmount: formData.reservationAmount,
           services: allSessions,
         };
 
@@ -203,7 +201,7 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
 
     try {
       const result = await appointmentsService.uploadReceipt(id, file, amount);
-      setCurrentReceipt(result.reservationReceiptUrl || null);
+      setCurrentReceipt(result.url || null);
       setFormData(prev => ({ ...prev, reservationAmount: amount }));
       setShowUploadReceiptModal(false);
     } catch (error) {

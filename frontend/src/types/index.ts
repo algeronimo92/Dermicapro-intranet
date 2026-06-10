@@ -167,6 +167,13 @@ export interface AppointmentAttendee {
   addedBy?: Partial<User>;
 }
 
+export interface ReservationPayment {
+  id: string;
+  receiptUrl: string | null;
+  amountPaid: number;
+  paymentMethod: string;
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -174,7 +181,7 @@ export interface Appointment {
   durationMinutes: number;
   status: AppointmentStatus;
   reservationAmount?: number;
-  reservationReceiptUrl?: string;
+  reservationPayment?: ReservationPayment | null;
   attendedAt?: string;
   createdAt: string;
   patient?: Patient;
@@ -261,10 +268,14 @@ export interface Payment {
   notes?: string;
   createdById: string;
   createdAt: string;
+  voidedAt?: string | null;
+  voidedById?: string | null;
+  voidReason?: string | null;
   patient?: Partial<Patient>;
   paymentOrder?: Partial<PaymentOrder>;
   appointment?: Partial<Appointment>;
   createdBy?: Partial<User>;
+  voidedBy?: Partial<User> | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -301,7 +312,6 @@ export interface UpdateAppointmentDto {
   patientId?: string;
   scheduledDate?: string;
   durationMinutes?: number;
-  reservationAmount?: number;
   status?: AppointmentStatus;
   sessionOperations?: SessionOperations;
 }
@@ -310,7 +320,6 @@ export interface CreateAppointmentDto {
   patientId: string;
   scheduledDate: string;
   durationMinutes: number;
-  reservationAmount?: number;
   reservationPaymentMethod?: string;
   services?: any[];  // Para modo create (legacy)
   sessionOperations?: SessionOperations;  // Para modo edit (nuevo)

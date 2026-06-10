@@ -196,9 +196,12 @@ export const AppointmentFormPage: React.FC = () => {
         services: []
       });
 
-      // Load reservation receipt if exists
-      if (appointment.reservationReceiptUrl) {
-        setCurrentReceipt(appointment.reservationReceiptUrl);
+      // Load reservation receipt and amount if exists
+      if (appointment.reservationPayment?.receiptUrl) {
+        setCurrentReceipt(appointment.reservationPayment.receiptUrl);
+      }
+      if (appointment.reservationPayment?.amountPaid) {
+        setFormData(prev => ({ ...prev, reservationAmount: Number(appointment.reservationPayment!.amountPaid) }));
       }
 
       // Load appointmentServices into allSessions for editing
@@ -732,7 +735,6 @@ export const AppointmentFormPage: React.FC = () => {
           patientId: formData.patientId,
           scheduledDate: localToUTC(formData.scheduledDate),
           durationMinutes: formData.durationMinutes,
-          reservationAmount: formData.reservationAmount,
           sessionOperations,
         };
 
@@ -748,7 +750,6 @@ export const AppointmentFormPage: React.FC = () => {
           patientId: formData.patientId,
           scheduledDate: localToUTC(formData.scheduledDate),
           durationMinutes: formData.durationMinutes || 30,
-          reservationAmount: formData.reservationAmount,
           reservationPaymentMethod: formData.reservationPaymentMethod,
           services: sessionsWithPrices,
         };
@@ -764,12 +765,16 @@ export const AppointmentFormPage: React.FC = () => {
             await appointmentsService.uploadReceipt(
               createdAppointment.id,
               pendingReceiptFile,
-              formData.reservationAmount || 0
+              formData.reservationAmount || 0,
+              formData.reservationPaymentMethod || 'cash'
             );
           } catch (uploadError) {
             console.error('Error uploading receipt after creation:', uploadError);
           }
         }
+
+        navigate(`/appointments/${createdAppointment.id}`);
+        return;
       }
 
       navigate(returnTo);
@@ -780,12 +785,12 @@ export const AppointmentFormPage: React.FC = () => {
     }
   };
 
-  const handleUploadReceipt = async (amount: number, file: File) => {
+  const handleUploadReceipt = async (amount: number, file: File, paymentMethod: string) => {
     if (isEditMode && id) {
       // MODO EDIT: Subir inmediatamente al servidor
       try {
-        const result = await appointmentsService.uploadReceipt(id, file, amount);
-        setCurrentReceipt(result.reservationReceiptUrl || null);
+        const result = await appointmentsService.uploadReceipt(id, file, amount, paymentMethod);
+        setCurrentReceipt(result.url || null);
         setFormData(prev => ({ ...prev, reservationAmount: amount }));
         setShowUploadReceiptModal(false);
       } catch (error) {
@@ -795,8 +800,7 @@ export const AppointmentFormPage: React.FC = () => {
     } else {
       // MODO CREATE: Guardar archivo temporalmente para enviar en la creación
       setPendingReceiptFile(file);
-      setFormData(prev => ({ ...prev, reservationAmount: amount }));
-      // Crear preview URL para mostrar la imagen
+      setFormData(prev => ({ ...prev, reservationAmount: amount, reservationPaymentMethod: paymentMethod }));
       const previewUrl = URL.createObjectURL(file);
       setCurrentReceipt(previewUrl);
       setShowUploadReceiptModal(false);
@@ -1372,6 +1376,7 @@ export const AppointmentFormPage: React.FC = () => {
         isOpen={showUploadReceiptModal}
         onClose={() => setShowUploadReceiptModal(false)}
         onSubmit={handleUploadReceipt}
+        fixedAmount={formData.reservationAmount && formData.reservationAmount > 0 ? formData.reservationAmount : undefined}
       />
 
       {viewerUrl && (
