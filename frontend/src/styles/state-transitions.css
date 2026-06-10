@@ -246,6 +246,9 @@
   bottom: 0;
   z-index: 200;
   margin-top: var(--spacing-lg);
+  /* Cancela el padding inferior de .dashboard-content para que la barra
+     pueda pegarse hasta el borde real del área de scroll, sin dejar hueco. */
+  margin-bottom: calc(-1 * var(--spacing-2xl));
   padding: var(--spacing-md) var(--spacing-lg);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
   background: var(--color-bg-primary);
@@ -281,4 +284,17 @@
 
   .sts-primary-btn__icon { width: 32px; height: 32px; }
   .sts-secondary-btn    { font-size: 11px; }
+}
+
+/* Coincide con los breakpoints de padding de .dashboard-content */
+@media (max-width: 768px) {
+  .sts-wrapper--fixed {
+    margin-bottom: calc(-1 * var(--spacing-lg));
+  }
+}
+
+@media (max-width: 480px) {
+  .sts-wrapper--fixed {
+    margin-bottom: calc(-1 * var(--spacing-md));
+  }
 }

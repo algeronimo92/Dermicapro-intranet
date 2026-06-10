@@ -4,8 +4,8 @@
   "description": "Frontend for DermicaPro clinic management system",
   "type": "module",
   "scripts": {
-    "cypress:open": "env -u ELECTRON_RUN_AS_NODE cypress open",
-    "cypress:run": "env -u ELECTRON_RUN_AS_NODE cypress run",
+    "cypress:open": "node scripts/run-cypress.mjs open",
+    "cypress:run": "node scripts/run-cypress.mjs run",
     "dev": "vite",
     "build": "vite build",
     "build:check": "tsc -p tsconfig.build.json --noEmit && vite build",
