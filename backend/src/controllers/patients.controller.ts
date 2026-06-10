@@ -259,7 +259,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
         dateOfBirth: parseStartOfDay(dateOfBirth),
         sex,
         phone,
-        email: email || dni,
+        email: email || null,
         address,
         photoUrl: photoUrl || null,
         createdById: req.user!.id,
