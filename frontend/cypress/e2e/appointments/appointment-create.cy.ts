@@ -2,17 +2,28 @@ describe("Creación de cita", () => {
   let patientId: string;
 
   before(() => {
-    // Usa el primer paciente del seed en lugar de crear uno
+    // Crea un paciente nuevo sin citas previas, para evitar el bloqueo
+    // "Este paciente ya tiene una cita reservada" al crear la cita de prueba
     cy.getAccessToken(
       Cypress.env("adminEmail"),
       Cypress.env("adminPassword"),
     ).then((token) => {
+      const uniqueSuffix = Date.now().toString().slice(-6);
       cy.request({
-        method: "GET",
-        url: "/api/patients?limit=1",
+        method: "POST",
+        url: "/api/patients",
         headers: { Authorization: `Bearer ${token}` },
-      }).then(({ body }) => {
-        patientId = body.data[0].id;
+        body: {
+          firstName: "Crear",
+          lastName: "TestCita",
+          dni: `77${uniqueSuffix}`,
+          dateOfBirth: "1998-09-10",
+          sex: "M",
+          phone: "934567890",
+          email: `creartestcita${uniqueSuffix}@test.com`,
+        },
+      }).then(({ body: patient }) => {
+        patientId = patient.id;
       });
     });
   });
@@ -53,7 +64,7 @@ describe("Creación de cita", () => {
     cy.contains("button", "Crear Cita").scrollIntoView().should("be.visible");
   });
 
-  it("crea una cita completa y redirige a la lista", () => {
+  it("crea una cita completa y redirige al detalle del paciente", () => {
     cy.loginAsAdminAndVisit(`/appointments/new?patientId=${patientId}`);
 
     // Seleccionar servicio (también es un portal con position:fixed → force:true)
@@ -69,6 +80,9 @@ describe("Creación de cita", () => {
       .first()
       .click({ force: true });
 
+    // Agregar el servicio seleccionado a la lista de sesiones de la cita
+    cy.contains("button", "Agregar a la Lista").click();
+
     // Seleccionar fecha
     cy.get(".datetime-input-button").first().click();
     cy.get(
@@ -82,6 +96,7 @@ describe("Creación de cita", () => {
 
     cy.contains("button", "Crear Cita").scrollIntoView().click();
 
-    cy.url({ timeout: 10000 }).should("match", /\/appointments(\/|$|\?)/);
+    // Al crear desde ?patientId=, redirige al detalle del paciente (returnTo)
+    cy.url({ timeout: 10000 }).should("include", `/patients/${patientId}`);
   });
 });

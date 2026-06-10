@@ -83,10 +83,22 @@ describe("Atender cita", () => {
               "contain.text",
               "En Atención",
             );
+
+            // Agregar un profesional antes de poder finalizar la atención
+            cy.contains("button", "Agregar profesional").click();
+            cy.get('input[placeholder="Buscar profesional..."]').should(
+              "be.visible",
+            );
+            cy.get('input[placeholder="Buscar profesional..."]')
+              .next()
+              .find("button")
+              .first()
+              .click();
+
             cy.contains("button", "Finalizar Atención").click();
             cy.get(".status-badge-large", { timeout: 8000 }).should(
               "contain.text",
-              "En Atención",
+              "Atendida",
             );
           });
         },

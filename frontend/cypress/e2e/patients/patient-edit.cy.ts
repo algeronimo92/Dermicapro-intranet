@@ -61,8 +61,8 @@ describe("Editar paciente", () => {
       .should("be.visible");
   });
 
-  it("el campo DNI no es editable en modo edición", () => {
-    cy.get('input[name="dni"]').should("be.disabled");
+  it("edita el DNI", () => {
+    cy.get('input[name="dni"]').should("not.be.disabled");
     cy.get('input[name="dni"]').should("have.value", `44${uniqueSuffix}`);
   });
 
