@@ -64,6 +64,7 @@ export interface User {
   isActive: boolean;
   mustChangePassword?: boolean;
   themeMode?: 'light' | 'dark' | 'auto';
+  hasPin?: boolean;
   createdAt: string;
 }
 

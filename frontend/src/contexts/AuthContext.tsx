@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   mustChangePassword: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithPin: (userId: string, pin: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   updateUser: (updated: User) => void;
@@ -25,6 +26,7 @@ export interface RememberedUser {
   roleName: string;
   roleKey: string;
   photoUrl?: string | null;
+  hasPin?: boolean;
 }
 
 export function getRememberedUsers(): RememberedUser[] {
@@ -57,6 +59,7 @@ function saveRememberedUser(userData: User): void {
     roleName,
     roleKey,
     photoUrl: userData.photoUrl ?? null,
+    hasPin: userData.hasPin ?? false,
   };
   const existing = getRememberedUsers().filter((u) => u.id !== entry.id);
   const updated = [entry, ...existing].slice(0, MAX_REMEMBERED);
@@ -107,6 +110,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveRememberedUser(userData);
   };
 
+  const loginWithPin = async (userId: string, pin: string) => {
+    const { accessToken, refreshToken, mustChangePassword: mcp, user: userData } = await authService.loginWithPin(userId, pin);
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    setUser(userData);
+    applyUserTheme(userData);
+    if (mcp) setMustChangePassword(true);
+    saveRememberedUser(userData);
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
@@ -128,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         mustChangePassword,
         login,
+        loginWithPin,
         logout,
         isAuthenticated: !!user,
         updateUser,

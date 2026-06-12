@@ -721,3 +721,129 @@
   color: var(--color-text-tertiary);
   margin: 0;
 }
+
+/* ==========================================
+   PIN INPUT (login rápido estilo Yape)
+   ========================================== */
+.pin-form-label {
+  text-align: center;
+  display: block;
+}
+
+.pin-input-group {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
+
+.pin-input-box {
+  width: 56px;
+  height: 64px;
+  text-align: center;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base),
+              box-shadow var(--transition-base),
+              background var(--transition-base);
+  font-family: var(--font-family-base);
+  box-sizing: border-box;
+}
+
+.pin-input-box:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+  background: var(--color-bg-primary);
+}
+
+.pin-input-group--error .pin-input-box {
+  border-color: var(--color-error);
+}
+
+/* ── Teclado numérico en pantalla (solo dispositivos táctiles) ── */
+.pin-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.pin-keypad {
+  display: none;
+  grid-template-columns: repeat(3, 64px);
+  gap: var(--spacing-sm);
+}
+
+@media (pointer: coarse) {
+  .pin-keypad {
+    display: grid;
+  }
+}
+
+.pin-keypad-btn {
+  width: 64px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pin-keypad-btn:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-primary);
+}
+
+.pin-keypad-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.pin-keypad-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pin-keypad-btn--action {
+  color: var(--color-text-tertiary);
+}
+
+.pin-keypad-spacer {
+  pointer-events: none;
+}
+
+.pin-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.login-pin-fallback-btn {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  transition: color var(--transition-base);
+}
+
+.login-pin-fallback-btn:hover {
+  color: var(--color-primary);
+}
