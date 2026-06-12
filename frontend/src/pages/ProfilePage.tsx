@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { Camera, Upload, Eye, EyeOff, CheckCircle, AlertCircle, KeyRound, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/auth.service';
 import { usersService } from '../services/users.service';
@@ -7,6 +7,7 @@ import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Button } from '../components/Button';
 import { CameraCapture } from '../components/CameraCapture';
+import { PinInput } from '../components/PinInput';
 import './ProfilePage.css';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
@@ -152,6 +153,70 @@ export const ProfilePage: React.FC = () => {
   };
 
   const strength = pwForm.newPassword ? getPasswordStrength(pwForm.newPassword) : null;
+
+  // ── PIN de acceso rápido ──
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [pinCurrentPassword, setPinCurrentPassword] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinSuccess, setPinSuccess] = useState('');
+  const [pinError, setPinError] = useState('');
+
+  const resetPinForm = () => {
+    setPinCurrentPassword('');
+    setNewPin('');
+    setConfirmPin('');
+    setPinError('');
+  };
+
+  const handlePinSetupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinCurrentPassword || !newPin || !confirmPin) {
+      setPinError('Completa todos los campos');
+      return;
+    }
+    if (newPin.length !== 4 || confirmPin.length !== 4) {
+      setPinError('El PIN debe tener 4 dígitos');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setPinError('Los PIN no coinciden');
+      return;
+    }
+    try {
+      setPinLoading(true);
+      setPinError('');
+      await authService.setPin(pinCurrentPassword, newPin);
+      if (user) updateUser({ ...user, hasPin: true });
+      setPinSuccess('PIN configurado correctamente');
+      setShowPinForm(false);
+      resetPinForm();
+    } catch (err: any) {
+      setPinError(err.response?.data?.error ?? 'Error al configurar el PIN');
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
+  const handleRemovePin = async () => {
+    if (!window.confirm('¿Eliminar el PIN de acceso rápido? Tendrás que usar tu contraseña para iniciar sesión.')) {
+      return;
+    }
+    try {
+      setPinLoading(true);
+      setPinError('');
+      await authService.removePin();
+      if (user) updateUser({ ...user, hasPin: false });
+      setPinSuccess('PIN eliminado correctamente');
+      setShowPinForm(false);
+      resetPinForm();
+    } catch (err: any) {
+      setPinError(err.response?.data?.error ?? 'Error al eliminar el PIN');
+    } finally {
+      setPinLoading(false);
+    }
+  };
 
   return (
     <div className="page-container">
@@ -344,6 +409,90 @@ export const ProfilePage: React.FC = () => {
                 {pwLoading ? 'Actualizando...' : 'Cambiar Contraseña'}
               </Button>
             </form>
+          </div>
+        </div>
+
+        {/* PIN de acceso rápido */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="profile-card-title">PIN de Acceso Rápido</h2>
+          </div>
+          <div className="profile-card-body">
+            {!showPinForm ? (
+              <div className="profile-pin-status">
+                {user?.hasPin ? (
+                  <>
+                    <p className="profile-pin-status-text">
+                      <KeyRound size={15} />
+                      Tienes un PIN configurado para iniciar sesión rápidamente.
+                    </p>
+                    <div className="profile-pin-actions">
+                      <Button type="button" variant="secondary" onClick={() => { resetPinForm(); setPinSuccess(''); setShowPinForm(true); }}>
+                        Cambiar PIN
+                      </Button>
+                      <Button type="button" variant="danger" disabled={pinLoading} onClick={handleRemovePin}>
+                        <Trash2 size={15} /> Eliminar PIN
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="profile-pin-status-text">
+                      Configura un PIN de 4 dígitos para iniciar sesión más rápido, como en Yape.
+                    </p>
+                    <Button type="button" variant="primary" onClick={() => { resetPinForm(); setPinSuccess(''); setShowPinForm(true); }}>
+                      Configurar PIN
+                    </Button>
+                  </>
+                )}
+
+                {pinSuccess && (
+                  <div className="profile-alert profile-alert--success">
+                    <CheckCircle size={15} /> {pinSuccess}
+                  </div>
+                )}
+                {pinError && (
+                  <div className="profile-alert profile-alert--error">
+                    <AlertCircle size={15} /> {pinError}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handlePinSetupSubmit} className="profile-form">
+                <Input
+                  label="Contraseña Actual *"
+                  type="password"
+                  value={pinCurrentPassword}
+                  onChange={(e) => setPinCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+
+                <div className="login-form-group">
+                  <label className="login-form-label">Nuevo PIN *</label>
+                  <PinInput value={newPin} onChange={setNewPin} />
+                </div>
+
+                <div className="login-form-group">
+                  <label className="login-form-label">Confirmar PIN *</label>
+                  <PinInput value={confirmPin} onChange={setConfirmPin} />
+                </div>
+
+                {pinError && (
+                  <div className="profile-alert profile-alert--error">
+                    <AlertCircle size={15} /> {pinError}
+                  </div>
+                )}
+
+                <div className="profile-pin-actions">
+                  <Button type="submit" variant="primary" disabled={pinLoading}>
+                    {pinLoading ? 'Guardando...' : 'Guardar PIN'}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => { setShowPinForm(false); resetPinForm(); }}>
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
 
