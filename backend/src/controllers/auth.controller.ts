@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { comparePassword, hashPassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middlewares/errorHandler';
+import { isValidPinFormat, MAX_PIN_ATTEMPTS } from '../utils/pin';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -22,6 +23,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     if (!isValidPassword) {
       throw new AppError('Credenciales inválidas', 401);
+    }
+
+    if (user.pinFailedAttempts > 0) {
+      await prisma.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
     }
 
     const payload = {
@@ -47,6 +52,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         sex: user.sex ?? null,
         themeMode: user.themeMode,
         mustChangePassword: user.mustChangePassword,
+        hasPin: !!user.pinHash,
         role: user.role ? { id: user.role.id, name: user.role.name, displayName: user.role.displayName } : null,
       },
     });
@@ -121,6 +127,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       isActive: user.isActive,
       mustChangePassword: user.mustChangePassword,
       themeMode: user.themeMode,
+      hasPin: !!user.pinHash,
       createdAt: user.createdAt,
       role: user.role ? { id: user.role.id, name: user.role.name, displayName: user.role.displayName } : null,
     });
@@ -179,6 +186,7 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
       dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
       themeMode: user.themeMode,
+      hasPin: !!user.pinHash,
       createdAt: user.createdAt,
       role: user.role ? { id: user.role.id, name: user.role.name, displayName: user.role.displayName } : null,
     });
@@ -232,5 +240,132 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     } else {
       res.status(500).json({ error: 'Error al cambiar contraseña' });
     }
+  }
+};
+
+export const loginWithPin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, pin } = req.body;
+
+    if (!userId || !pin) {
+      throw new AppError('El usuario y el PIN son requeridos', 400);
+    }
+
+    if (!/^\d{4}$/.test(pin)) {
+      throw new AppError('El PIN debe tener 4 dígitos', 400);
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { role: true } });
+
+    if (!user || !user.isActive) {
+      throw new AppError('Credenciales inválidas', 401);
+    }
+
+    if (!user.pinHash) {
+      throw new AppError('PIN no configurado para este usuario', 400);
+    }
+
+    if (user.pinFailedAttempts >= MAX_PIN_ATTEMPTS) {
+      throw new AppError('PIN bloqueado por demasiados intentos. Inicia sesión con tu contraseña para reactivarlo.', 423);
+    }
+
+    const isValidPin = await comparePassword(pin, user.pinHash);
+
+    if (!isValidPin) {
+      const attempts = user.pinFailedAttempts + 1;
+      await prisma.user.update({ where: { id: user.id }, data: { pinFailedAttempts: attempts } });
+
+      if (attempts >= MAX_PIN_ATTEMPTS) {
+        throw new AppError('PIN incorrecto. Tu PIN ha sido bloqueado. Inicia sesión con tu contraseña para reactivarlo.', 423);
+      }
+
+      throw new AppError('PIN incorrecto', 401);
+    }
+
+    if (user.pinFailedAttempts > 0) {
+      await prisma.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
+    }
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      roleId: user.roleId,
+      roleName: user.role?.name,
+    };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    res.json({
+      accessToken,
+      refreshToken,
+      mustChangePassword: user.mustChangePassword,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        photoUrl: user.photoUrl ?? null,
+        sex: user.sex ?? null,
+        themeMode: user.themeMode,
+        mustChangePassword: user.mustChangePassword,
+        hasPin: true,
+        role: user.role ? { id: user.role.id, name: user.role.name, displayName: user.role.displayName } : null,
+      },
+    });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al iniciar sesión con PIN' });
+    }
+  }
+};
+
+export const setPin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, pin } = req.body;
+
+    if (!currentPassword || !pin) {
+      throw new AppError('Se requieren la contraseña actual y el PIN', 400);
+    }
+
+    if (!isValidPinFormat(pin)) {
+      throw new AppError('El PIN debe tener 4 dígitos y no puede ser una combinación obvia', 400);
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user) throw new AppError('Usuario no encontrado', 404);
+
+    const isValid = await comparePassword(currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new AppError('La contraseña actual es incorrecta', 401);
+    }
+
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { pinHash: await hashPassword(pin), pinFailedAttempts: 0 },
+    });
+
+    res.json({ message: 'PIN configurado correctamente' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al configurar el PIN' });
+    }
+  }
+};
+
+export const removePin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { pinHash: null, pinFailedAttempts: 0 },
+    });
+
+    res.json({ message: 'PIN eliminado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar el PIN' });
   }
 };
