@@ -5,17 +5,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { getRememberedUsers, removeRememberedUser, RememberedUser } from '../contexts/AuthContext';
 import { Role } from '../types';
 import { APP_VERSION } from '../config/version';
+import { PinInput } from '../components/PinInput';
 
 type LoginView = 'cards' | 'quick' | 'full';
 
 export function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginWithPin, isAuthenticated } = useAuth();
   const [view, setView] = useState<LoginView>('full');
   const [remembered, setRemembered] = useState<RememberedUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<RememberedUser | null>(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [usePasswordFallback, setUsePasswordFallback] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -49,9 +52,35 @@ export function LoginPage() {
     }
   };
 
+  const handlePinComplete = async (pinValue: string) => {
+    if (!selectedUser) return;
+    setError('');
+    setIsLoading(true);
+    try {
+      await loginWithPin(selectedUser.id, pinValue);
+    } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 423) {
+        setError(err.response?.data?.error || 'Tu PIN ha sido bloqueado. Ingresa tu contraseña para reactivarlo.');
+        setUsePasswordFallback(true);
+      } else if (!err.response || status === 0) {
+        setError('No se pudo conectar con el servidor. Verifica tu conexión.');
+      } else if (status === 404 || status >= 500) {
+        setError('El servicio no está disponible en este momento. Intenta más tarde.');
+      } else {
+        setError(err.response?.data?.error || 'PIN incorrecto. Intenta de nuevo.');
+      }
+      setPin('');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSelectUser = (user: RememberedUser) => {
     setSelectedUser(user);
     setPassword('');
+    setPin('');
+    setUsePasswordFallback(false);
     setError('');
     setView('quick');
   };
@@ -67,6 +96,8 @@ export function LoginPage() {
   const handleBack = () => {
     setError('');
     setPassword('');
+    setPin('');
+    setUsePasswordFallback(false);
     setView(remembered.length > 0 ? 'cards' : 'full');
   };
 
@@ -133,11 +164,18 @@ export function LoginPage() {
 
               <div className="remembered-grid">
                 {remembered.map((u) => (
-                  <button
+                  <div
                     key={u.id}
                     className="remembered-card"
                     onClick={() => handleSelectUser(u)}
-                    type="button"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelectUser(u);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <button
                       className="remembered-card-remove"
@@ -160,7 +198,7 @@ export function LoginPage() {
                         {u.roleName}
                       </span>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
 
@@ -196,49 +234,97 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="login-form">
-                <div className="login-form-group">
-                  <label className="login-form-label">Contraseña</label>
-                  <div className="login-input-wrapper">
-                    <Lock className="login-input-icon" size={16} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
+              {selectedUser.hasPin && !usePasswordFallback ? (
+                <div className="login-form">
+                  <div className="login-form-group">
+                    <label className="login-form-label pin-form-label">PIN de acceso</label>
+                    <PinInput
+                      value={pin}
+                      onChange={setPin}
+                      onComplete={handlePinComplete}
                       autoFocus
-                      className="login-form-input login-input-with-icon login-input-with-toggle"
-                      placeholder="••••••••"
-                      autoComplete="current-password"
+                      error={!!error}
+                      disabled={isLoading}
                     />
+                  </div>
+
+                  {error && (
+                    <div className="login-error" role="alert">
+                      <span className="login-error-icon">⚠</span>
+                      {error}
+                    </div>
+                  )}
+
+                  {isLoading && (
+                    <div className="pin-loading">
+                      <span className="login-spinner" />
+                      Ingresando...
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="login-pin-fallback-btn"
+                    onClick={() => { setError(''); setPin(''); setUsePasswordFallback(true); }}
+                  >
+                    ¿Olvidaste tu PIN? Usa tu contraseña
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="login-form">
+                  <div className="login-form-group">
+                    <label className="login-form-label">Contraseña</label>
+                    <div className="login-input-wrapper">
+                      <Lock className="login-input-icon" size={16} />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        autoFocus
+                        className="login-form-input login-input-with-icon login-input-with-toggle"
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        className="login-password-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="login-error" role="alert">
+                      <span className="login-error-icon">⚠</span>
+                      {error}
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-submit-btn" disabled={isLoading}>
+                    {isLoading ? (
+                      <><span className="login-spinner" />Ingresando...</>
+                    ) : (
+                      'Ingresar al sistema'
+                    )}
+                  </button>
+
+                  {selectedUser.hasPin && usePasswordFallback && (
                     <button
                       type="button"
-                      className="login-password-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                      tabIndex={-1}
+                      className="login-pin-fallback-btn"
+                      onClick={() => { setError(''); setPassword(''); setUsePasswordFallback(false); }}
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      Usar PIN
                     </button>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="login-error" role="alert">
-                    <span className="login-error-icon">⚠</span>
-                    {error}
-                  </div>
-                )}
-
-                <button type="submit" className="login-submit-btn" disabled={isLoading}>
-                  {isLoading ? (
-                    <><span className="login-spinner" />Ingresando...</>
-                  ) : (
-                    'Ingresar al sistema'
                   )}
-                </button>
-              </form>
+                </form>
+              )}
             </>
           )}
 

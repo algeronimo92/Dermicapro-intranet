@@ -773,7 +773,9 @@ export const AppointmentFormPage: React.FC = () => {
           }
         }
 
-        navigate(`/appointments/${createdAppointment.id}`);
+        // Si venimos de un paciente (o con returnTo explícito), volver ahí;
+        // si no, ir al detalle de la cita recién creada.
+        navigate(returnTo !== '/appointments' ? returnTo : `/appointments/${createdAppointment.id}`);
         return;
       }
 
