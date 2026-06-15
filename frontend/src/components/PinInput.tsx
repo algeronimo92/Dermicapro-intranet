@@ -1,7 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Delete } from 'lucide-react';
 
 const PIN_LENGTH = 4;
+
+const shuffleKeypadDigits = (): string[] => {
+  const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  for (let i = digits.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [digits[i], digits[j]] = [digits[j], digits[i]];
+  }
+  return digits;
+};
 
 interface PinInputProps {
   value: string;
@@ -22,10 +31,23 @@ export const PinInput: React.FC<PinInputProps> = ({
 }) => {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const lastCompletedRef = useRef<string | null>(null);
+  const isFirstRenderRef = useRef(true);
+  const [keypadDigits, setKeypadDigits] = useState<string[]>(shuffleKeypadDigits);
 
   useEffect(() => {
     if (autoFocus) inputsRef.current[0]?.focus();
   }, [autoFocus]);
+
+  // Reordena el teclado cada vez que el PIN se vacía (al completarlo o tras un intento fallido)
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+    if (value === '') {
+      setKeypadDigits(shuffleKeypadDigits());
+    }
+  }, [value]);
 
   useEffect(() => {
     if (value.length === PIN_LENGTH) {
@@ -113,7 +135,7 @@ export const PinInput: React.FC<PinInputProps> = ({
       </div>
 
       <div className="pin-keypad">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+        {keypadDigits.slice(0, 9).map((digit) => (
           <button
             key={digit}
             type="button"
@@ -129,11 +151,11 @@ export const PinInput: React.FC<PinInputProps> = ({
         <button
           type="button"
           className="pin-keypad-btn"
-          onClick={() => handleKeypadDigit('0')}
+          onClick={() => handleKeypadDigit(keypadDigits[9])}
           disabled={disabled || value.length >= PIN_LENGTH}
           tabIndex={-1}
         >
-          0
+          {keypadDigits[9]}
         </button>
         <button
           type="button"
