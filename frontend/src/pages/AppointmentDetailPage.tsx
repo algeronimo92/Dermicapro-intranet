@@ -52,6 +52,12 @@ export const AppointmentDetailPage: React.FC = () => {
   const [viewerImages, setViewerImages] = useState<string[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
 
+  // Photo multi-select state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Map<string, 'before' | 'after'>>(new Map());
+  const [isDesktop, setIsDesktop] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Attendees state
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [showAttendeeSelector, setShowAttendeeSelector] = useState(false);
@@ -108,6 +114,14 @@ export const AppointmentDetailPage: React.FC = () => {
   // Load staff users once for attendee picker
   useEffect(() => {
     usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, []);
 
   const loadAppointment = async (appointmentId: string, silent = false) => {
@@ -254,6 +268,58 @@ export const AppointmentDetailPage: React.FC = () => {
       setAppointment(updated);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al eliminar la foto');
+    }
+  };
+
+  const toggleSelectMode = () => {
+    setIsSelectMode(prev => !prev);
+    setSelectedPhotos(new Map());
+  };
+
+  const togglePhotoSelect = (url: string, type: 'before' | 'after') => {
+    setSelectedPhotos(prev => {
+      const next = new Map(prev);
+      if (next.has(url)) next.delete(url); else next.set(url, type);
+      return next;
+    });
+  };
+
+  const handlePhotoTouchStart = (url: string, type: 'before' | 'after') => {
+    longPressTimer.current = setTimeout(() => {
+      setIsSelectMode(true);
+      setSelectedPhotos(prev => {
+        const next = new Map(prev);
+        next.set(url, type);
+        return next;
+      });
+    }, 500);
+  };
+
+  const handlePhotoTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleRemoveSelectedByType = async (type: 'before' | 'after') => {
+    if (!id) return;
+    const toDelete = [...selectedPhotos.entries()]
+      .filter(([_, t]) => t === type)
+      .map(([url]) => url);
+    if (toDelete.length === 0) return;
+    try {
+      setError(null);
+      for (const photoUrl of toDelete) {
+        await appointmentsService.removePhotoFromAppointment(id, { type, photoUrl });
+      }
+      await loadAppointment(id, true);
+      const next = new Map(selectedPhotos);
+      toDelete.forEach(url => next.delete(url));
+      setSelectedPhotos(next);
+      if (next.size === 0) setIsSelectMode(false);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al eliminar fotos');
     }
   };
 
@@ -1198,60 +1264,172 @@ export const AppointmentDetailPage: React.FC = () => {
                 ) : (
                   <>
                     {/* List View - Before Photos */}
-                    {beforePhotos && beforePhotos.length > 0 && (
-                  <div className="apt-detail__photo-section">
-                    <div className="apt-detail__photo-header">
-                      <span className="apt-detail__photo-badge apt-detail__photo-badge--before">
-                        ANTES
-                      </span>
-                      <span className="apt-detail__photo-count">
-                        {beforePhotos.length} foto{beforePhotos.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="apt-detail__photo-grid">
-                      {beforePhotos.map((url, index) => (
-                        <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}>
-                          <img src={getReceiptUrl(url) || ''} alt={`Antes ${index + 1}`} className="apt-detail__photo-img" />
-                          <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                    {beforePhotos && beforePhotos.length > 0 && (() => {
+                      const selectedBeforeCount = [...selectedPhotos.values()].filter(t => t === 'before').length;
+                      return (
+                      <div className="apt-detail__photo-section">
+                        <div className="apt-detail__photo-header">
+                          <span className="apt-detail__photo-badge apt-detail__photo-badge--before">ANTES</span>
+                          <span className="apt-detail__photo-count">{beforePhotos.length} foto{beforePhotos.length > 1 ? 's' : ''}</span>
                           {canMarkAttended && (
-                            <button className="apt-detail__photo-delete" title="Eliminar foto"
-                              onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'before'); }}>
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            <button
+                              type="button"
+                              onClick={toggleSelectMode}
+                              style={{
+                                marginLeft: 'auto', background: 'none', border: `1px solid ${isSelectMode ? 'var(--color-error)' : 'var(--color-border-primary)'}`,
+                                borderRadius: 'var(--radius-md)', padding: '3px 10px', fontSize: '12px',
+                                color: isSelectMode ? 'var(--color-error)' : 'var(--color-text-tertiary)', cursor: 'pointer',
+                              }}
+                            >
+                              {isSelectMode ? 'Cancelar' : 'Seleccionar'}
                             </button>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                        {isSelectMode && selectedBeforeCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSelectedByType('before')}
+                            style={{
+                              width: '100%', marginBottom: '8px', padding: '8px',
+                              background: 'var(--color-error)', color: 'white', border: 'none',
+                              borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                        Eliminar seleccionadas ({selectedBeforeCount})
+                          </button>
+                        )}
+                        <div className="apt-detail__photo-grid">
+                          {beforePhotos.map((url, index) => {
+                            const isSelected = selectedPhotos.has(url);
+                            return (
+                              <div
+                                key={index}
+                                className="apt-detail__photo-card"
+                                style={{ cursor: isSelectMode ? 'pointer' : undefined }}
+                                onClick={isSelectMode
+                                  ? (e) => { e.stopPropagation(); togglePhotoSelect(url, 'before'); }
+                                  : () => openViewer(beforePhotos.map(u => getReceiptUrl(u) || u), index)}
+                                onTouchStart={!isDesktop ? () => handlePhotoTouchStart(url, 'before') : undefined}
+                                onTouchEnd={!isDesktop ? handlePhotoTouchEnd : undefined}
+                                onTouchMove={!isDesktop ? handlePhotoTouchEnd : undefined}
+                              >
+                                <img
+                                  src={getReceiptUrl(url) || ''}
+                                  alt={`Antes ${index + 1}`}
+                                  className="apt-detail__photo-img"
+                                  style={{ opacity: isSelectMode && !isSelected ? 0.45 : 1, transition: 'opacity 0.15s' }}
+                                />
+                                <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                                {canMarkAttended && !isSelectMode && (
+                                  <button className="apt-detail__photo-delete" title="Eliminar foto"
+                                    onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'before'); }}>
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                                  </button>
+                                )}
+                                {canMarkAttended && isSelectMode && (
+                                  <div style={{
+                                    position: 'absolute', top: 6, left: 6,
+                                    width: 22, height: 22, borderRadius: '50%',
+                                    border: `2px solid ${isSelected ? 'var(--color-error)' : 'white'}`,
+                                    background: isSelected ? 'var(--color-error)' : 'rgba(0,0,0,0.35)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    pointerEvents: 'none',
+                                  }}>
+                                    {isSelected && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 3L5 8.5L2 5.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      );
+                    })()}
 
                 {/* After Photos */}
-                {afterPhotos && afterPhotos.length > 0 && (
+                {afterPhotos && afterPhotos.length > 0 && (() => {
+                  const selectedAfterCount = [...selectedPhotos.values()].filter(t => t === 'after').length;
+                  return (
                   <div className="apt-detail__photo-section">
                     <div className="apt-detail__photo-header">
-                      <span className="apt-detail__photo-badge apt-detail__photo-badge--after">
-                        DESPUÉS
-                      </span>
-                      <span className="apt-detail__photo-count">
-                        {afterPhotos.length} foto{afterPhotos.length > 1 ? 's' : ''}
-                      </span>
+                      <span className="apt-detail__photo-badge apt-detail__photo-badge--after">DESPUÉS</span>
+                      <span className="apt-detail__photo-count">{afterPhotos.length} foto{afterPhotos.length > 1 ? 's' : ''}</span>
+                      {canMarkAttended && (
+                        <button
+                          type="button"
+                          onClick={toggleSelectMode}
+                          style={{
+                            marginLeft: 'auto', background: 'none', border: `1px solid ${isSelectMode ? 'var(--color-error)' : 'var(--color-border-primary)'}`,
+                            borderRadius: 'var(--radius-md)', padding: '3px 10px', fontSize: '12px',
+                            color: isSelectMode ? 'var(--color-error)' : 'var(--color-text-tertiary)', cursor: 'pointer',
+                          }}
+                        >
+                          {isSelectMode ? 'Cancelar' : 'Seleccionar'}
+                        </button>
+                      )}
                     </div>
+                    {isSelectMode && selectedAfterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSelectedByType('after')}
+                        style={{
+                          width: '100%', marginBottom: '8px', padding: '8px',
+                          background: 'var(--color-error)', color: 'white', border: 'none',
+                          borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                        Eliminar seleccionadas ({selectedAfterCount})
+                      </button>
+                    )}
                     <div className="apt-detail__photo-grid">
-                      {afterPhotos.map((url, index) => (
-                        <div key={index} className="apt-detail__photo-card" onClick={() => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}>
-                          <img src={getReceiptUrl(url) || ''} alt={`Después ${index + 1}`} className="apt-detail__photo-img" />
-                          <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
-                          {canMarkAttended && (
-                            <button className="apt-detail__photo-delete" title="Eliminar foto"
-                              onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'after'); }}>
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                      {afterPhotos.map((url, index) => {
+                        const isSelected = selectedPhotos.has(url);
+                        return (
+                          <div
+                            key={index}
+                            className="apt-detail__photo-card"
+                            style={{ cursor: isSelectMode ? 'pointer' : undefined }}
+                            onClick={isSelectMode
+                              ? (e) => { e.stopPropagation(); togglePhotoSelect(url, 'after'); }
+                              : () => openViewer(afterPhotos.map(u => getReceiptUrl(u) || u), index)}
+                            onTouchStart={!isDesktop ? () => handlePhotoTouchStart(url, 'after') : undefined}
+                            onTouchEnd={!isDesktop ? handlePhotoTouchEnd : undefined}
+                            onTouchMove={!isDesktop ? handlePhotoTouchEnd : undefined}
+                          >
+                            <img
+                              src={getReceiptUrl(url) || ''}
+                              alt={`Después ${index + 1}`}
+                              className="apt-detail__photo-img"
+                              style={{ opacity: isSelectMode && !isSelected ? 0.45 : 1, transition: 'opacity 0.15s' }}
+                            />
+                            <div className="apt-detail__photo-overlay">Foto {index + 1}</div>
+                            {canMarkAttended && !isSelectMode && (
+                              <button className="apt-detail__photo-delete" title="Eliminar foto"
+                                onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Eliminar esta foto?')) handleRemovePhoto(url, 'after'); }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                              </button>
+                            )}
+                            {canMarkAttended && isSelectMode && (
+                              <div style={{
+                                position: 'absolute', top: 6, left: 6,
+                                width: 22, height: 22, borderRadius: '50%',
+                                border: `2px solid ${isSelected ? 'var(--color-error)' : 'white'}`,
+                                background: isSelected ? 'var(--color-error)' : 'rgba(0,0,0,0.35)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                pointerEvents: 'none',
+                              }}>
+                                {isSelected && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 3L5 8.5L2 5.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
                   </>
                 )}
               </div>
@@ -1331,8 +1509,8 @@ export const AppointmentDetailPage: React.FC = () => {
         return null;
       })()}
 
-      {/* Body Measurements Card */}
-      {['attended', 'reserved', 'in_progress'].includes(appointment.status) && (() => {
+      {/* Body Measurements Card — oculto temporalmente, lógica en replanteamiento */}
+      {false && (() => {
         const patientRecord = appointment.patientRecords?.[0];
         const hasData = patientRecord && (
           patientRecord.weight ||
