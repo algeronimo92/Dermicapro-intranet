@@ -190,44 +190,96 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
   try {
     const { patientId } = req.params;
 
-    const paymentOrders = await prisma.paymentOrder.findMany({
-      where: { patientId },
-      include: {
-        payments: true,
-      },
-    });
+    const [paymentOrders, patient, ordersWithoutPaymentOrder] = await Promise.all([
+      prisma.paymentOrder.findMany({
+        where: { patientId, status: { not: 'cancelled' } },
+        include: {
+          payments: { where: { voidedAt: null } },
+          orders: { include: { service: { select: { id: true, name: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { accountBalance: true },
+      }),
+      prisma.serviceInstance.findMany({
+        where: { patientId, paymentOrderId: null },
+        include: { service: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
-    // Calcular totales
+    if (!patient) {
+      res.status(404).json({ error: 'Paciente no encontrado' });
+      return;
+    }
+
     const summary = paymentOrders.reduce(
-      (acc, paymentOrder) => {
-        const totalPaid = paymentOrder.payments.reduce(
-          (sum, payment) => sum + parseFloat(payment.amountPaid.toString()),
+      (acc, po) => {
+        const paid = po.payments.reduce(
+          (sum, p) => sum + parseFloat(p.amountPaid.toString()),
           0
         );
-        const balance = parseFloat(paymentOrder.totalAmount.toString()) - totalPaid;
+        const balance = parseFloat(po.totalAmount.toString()) - paid;
 
-        acc.totalBilled += parseFloat(paymentOrder.totalAmount.toString());
-        acc.totalPaid += totalPaid;
+        acc.totalBilled += parseFloat(po.totalAmount.toString());
+        acc.totalPaid += paid;
         acc.totalBalance += balance;
 
-        if (paymentOrder.status === 'pending') acc.pendingCount++;
-        if (paymentOrder.status === 'partial') acc.partialCount++;
-        if (paymentOrder.status === 'paid') acc.paidCount++;
+        if (po.status === 'pending') acc.pendingCount++;
+        if (po.status === 'partial') acc.partialCount++;
+        if (po.status === 'paid') acc.paidCount++;
 
         return acc;
       },
-      {
-        totalBilled: 0,
-        totalPaid: 0,
-        totalBalance: 0,
-        pendingCount: 0,
-        partialCount: 0,
-        paidCount: 0,
-        totalPaymentOrders: paymentOrders.length,
-      }
+      { totalBilled: 0, totalPaid: 0, totalBalance: 0, pendingCount: 0, partialCount: 0, paidCount: 0 }
     );
 
-    res.json(summary);
+    const ordersWithoutPOTotal = ordersWithoutPaymentOrder.reduce(
+      (sum, o) => sum + parseFloat(o.finalPrice.toString()),
+      0
+    );
+
+    const pendingPaymentOrders = paymentOrders
+      .filter((po) => po.status === 'pending' || po.status === 'partial')
+      .map((po) => {
+        const totalPaid = po.payments.reduce(
+          (sum, p) => sum + parseFloat(p.amountPaid.toString()),
+          0
+        );
+        return {
+          id: po.id,
+          totalAmount: parseFloat(po.totalAmount.toString()),
+          totalPaid,
+          balance: parseFloat(po.totalAmount.toString()) - totalPaid,
+          status: po.status,
+          createdAt: po.createdAt,
+          orders: po.orders.map((o) => ({
+            id: o.id,
+            service: o.service,
+            finalPrice: parseFloat(o.finalPrice.toString()),
+            totalSessions: o.totalSessions,
+            completedSessions: o.completedSessions,
+          })),
+        };
+      });
+
+    res.json({
+      ...summary,
+      totalPaymentOrders: paymentOrders.length,
+      totalPending: summary.totalBalance + ordersWithoutPOTotal,
+      accountBalance: parseFloat(patient.accountBalance.toString()),
+      pendingPaymentOrders,
+      ordersWithoutPaymentOrder: ordersWithoutPaymentOrder.map((o) => ({
+        id: o.id,
+        service: o.service,
+        finalPrice: parseFloat(o.finalPrice.toString()),
+        totalSessions: o.totalSessions,
+        completedSessions: o.completedSessions,
+        createdAt: o.createdAt,
+      })),
+    });
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener resumen de orden de pago' });
   }

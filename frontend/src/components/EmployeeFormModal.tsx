@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { usersService, CreateUserDto, UpdateUserDto } from '../services/users.service';
+import api from '../services/api';
 import { Modal } from './Modal';
 import { Input } from './Input';
 import { Select } from './Select';
@@ -65,10 +66,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 
   const loadRoles = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/roles', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
-      });
-      const data = await response.json();
+      const { data } = await api.get<RoleOption[]>('/roles');
       setAvailableRoles(data);
     } catch {
       console.error('Error loading roles');

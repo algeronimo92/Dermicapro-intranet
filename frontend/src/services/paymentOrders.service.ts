@@ -16,6 +16,43 @@ export interface CreatePaymentOrderDto {
   priceOverrides?: { id: string; finalPrice: number }[];
 }
 
+export interface PendingPaymentOrderSummary {
+  id: string;
+  totalAmount: number;
+  totalPaid: number;
+  balance: number;
+  status: 'pending' | 'partial';
+  createdAt: string;
+  orders: {
+    id: string;
+    service: { id: string; name: string };
+    finalPrice: number;
+    totalSessions: number;
+    completedSessions: number;
+  }[];
+}
+
+export interface PatientFinancialSummary {
+  totalBilled: number;
+  totalPaid: number;
+  totalBalance: number;
+  totalPending: number;
+  accountBalance: number;
+  pendingCount: number;
+  partialCount: number;
+  paidCount: number;
+  totalPaymentOrders: number;
+  pendingPaymentOrders: PendingPaymentOrderSummary[];
+  ordersWithoutPaymentOrder: {
+    id: string;
+    service: { id: string; name: string };
+    finalPrice: number;
+    totalSessions: number;
+    completedSessions: number;
+    createdAt: string;
+  }[];
+}
+
 export const paymentOrdersService = {
   /**
    * Obtiene todas las órdenes de pago de un paciente
@@ -72,6 +109,14 @@ export const paymentOrdersService = {
     await api.post(`/payments/${paymentId}/upload-receipt`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+  },
+
+  /**
+   * Resumen financiero completo del paciente: deuda, pagado, saldo a favor y servicios sin OP
+   */
+  async getPatientSummary(patientId: string): Promise<PatientFinancialSummary> {
+    const response = await api.get<PatientFinancialSummary>(`/payment-orders/patient/${patientId}/summary`);
+    return response.data;
   },
 
   /**
