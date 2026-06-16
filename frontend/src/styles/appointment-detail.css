@@ -447,6 +447,26 @@
   white-space: nowrap;
 }
 
+@media (max-width: 639px) {
+  .apt-detail__photo-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-sm);
+  }
+  .apt-detail__photo-summary-sep { display: none; }
+  .apt-detail__photo-summary-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .apt-detail__slot-chips { gap: 3px; }
+  .apt-detail__slot-chip { width: 10px; height: 6px; }
+  .apt-detail__view-switcher {
+    grid-column: 1 / -1;
+    margin-left: 0 !important;
+  }
+}
+
 /* ── SLOT CHIPS — contexto: summary bar (fondo neutro) ── */
 .apt-detail__slot-chips {
   display: flex;
@@ -581,6 +601,7 @@
   gap: var(--spacing-sm);
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
+@media (max-width: 639px)  { .apt-detail__photo-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 640px)  { .apt-detail__photo-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
 @media (min-width: 1024px) { .apt-detail__photo-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--spacing-md); } }
 
@@ -602,7 +623,7 @@
   display: block;
   background: var(--color-bg-tertiary);
 }
-@media (max-width: 639px) { .apt-detail__photo-img { height: 150px; } }
+@media (max-width: 639px) { .apt-detail__photo-img { height: 120px; } }
 
 .apt-detail__photo-overlay {
   position: absolute;
@@ -785,6 +806,75 @@
   height: 200px;
 }
 @media (max-width: 639px) { .apt-detail__skeleton-card { height: 150px; } }
+
+/* ── PENDING SESSIONS PICKER ── */
+
+.psp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+}
+
+.psp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.psp-name {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+
+.psp-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border: none;
+  color: var(--color-on-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+.psp-add-btn:hover { filter: brightness(1.08); }
+
+.psp-done-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .psp-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  .psp-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .psp-done-badge {
+    align-self: flex-start;
+  }
+}
 
 /* ── PACKAGE GROUP VIEW ── */
 
@@ -985,6 +1075,56 @@
 .pkg-price-btn--cancel  { background: var(--color-error); }
 .pkg-price-btn--edit    { background: var(--color-info); }
 .pkg-price-btn--restore { background: var(--color-warning); }
+
+/* ── SESSION REMOVE / RESTORE BUTTONS ── */
+
+.pkg-session__remove-btn,
+.pkg-session__restore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-lg);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.pkg-session__remove-btn {
+  background: transparent;
+  border: 1.5px solid var(--color-border-primary);
+  color: var(--color-text-secondary);
+}
+.pkg-session__remove-btn:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: var(--color-error-alpha-10);
+}
+
+.pkg-session__restore-btn {
+  background: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-on-primary);
+}
+.pkg-session__restore-btn:hover { filter: brightness(1.08); }
+
+/* ── pkg-header mobile ── */
+
+@media (max-width: 639px) {
+  .pkg-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pkg-header__right {
+    align-self: flex-end;
+  }
+  .pkg-header__name {
+    font-size: var(--font-size-base);
+  }
+}
 
 /* ── MEDIDAS CORPORALES ── */
 

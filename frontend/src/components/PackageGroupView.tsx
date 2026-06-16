@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from './Button';
 import { PackageGroup } from '../utils/packageSimulation';
 import { ServiceIcon } from '../utils/serviceIcons';
 
@@ -150,18 +149,29 @@ const PackageHeader: React.FC<{
                 if (e.key === 'Escape') handleCancel();
               }}
             />
-            <button className="pkg-price-btn pkg-price-btn--save" onClick={handleSave}>✓</button>
-            <button className="pkg-price-btn pkg-price-btn--cancel" onClick={handleCancel}>✕</button>
+            <button className="pkg-price-btn pkg-price-btn--save" onClick={handleSave} title="Guardar">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+            </button>
+            <button className="pkg-price-btn pkg-price-btn--cancel" onClick={handleCancel} title="Cancelar">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
           </div>
         ) : (finalPrice !== undefined || basePrice !== undefined) ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', flexWrap: 'wrap' }}>
             <span className="pkg-header__price">
               S/. {Number(finalPrice ?? basePrice).toFixed(2)}
             </span>
-            {/* Botones de edición — solo si no tiene orden de pago */}
             {!readOnly && onUpdatePrice && (
               <>
-                <button className="pkg-price-btn pkg-price-btn--edit" onClick={() => setIsEditingPrice(true)} title="Editar precio">✎</button>
+                <button className="pkg-price-btn pkg-price-btn--edit" onClick={() => setIsEditingPrice(true)} title="Editar precio">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
                 {hasDiscount && tempPackageId && (
                   <button
                     className="pkg-price-btn pkg-price-btn--restore"
@@ -172,7 +182,12 @@ const PackageHeader: React.FC<{
                         setEditedPrice(basePrice.toString());
                       }
                     }}
-                  >⟲</button>
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
                 )}
               </>
             )}
@@ -181,10 +196,12 @@ const PackageHeader: React.FC<{
                 {discount > 0 ? `${discount.toFixed(0)}% OFF` : `+${Math.abs(discount).toFixed(0)}%`}
               </span>
             )}
-            {/* Badge de estado de orden de pago */}
             {isPaymentOrderPaid && (
               <span className="pkg-header__badge" style={{ background: 'var(--color-success-alpha-10)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)', fontSize: 10 }}>
-                ✓ Con Orden de Pago
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }}>
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                Con Orden de Pago
               </span>
             )}
             {readOnly && !isPaymentOrderPaid && !isNewPackage && (
@@ -195,7 +212,7 @@ const PackageHeader: React.FC<{
           </div>
         ) : null}
 
-        {/* Badges de tipo (solo en modo edición) */}
+        {/* Badges de tipo */}
         {!readOnly && isNewPackage && (
           <span className="pkg-header__badge pkg-header__badge--new">Paquete Nuevo</span>
         )}
@@ -210,8 +227,12 @@ const PackageHeader: React.FC<{
           </>
         )}
         {hasPendingReservations && (
-          <span className="pkg-header__badge pkg-header__badge--warning" title="Este paquete tiene sesiones reservadas en otras citas">
-            ⚠ Reservas pendientes
+          <span className="pkg-header__badge pkg-header__badge--warning">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }}>
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Reservas pendientes
           </span>
         )}
       </div>
@@ -219,7 +240,10 @@ const PackageHeader: React.FC<{
       <div className="pkg-header__right">
         {!isNewPackage && completedSessions > 0 && (
           <span className="pkg-header__attended">
-            ✓ {completedSessions} atendida{completedSessions > 1 ? 's' : ''}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }}>
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            {completedSessions} atendida{completedSessions > 1 ? 's' : ''}
           </span>
         )}
         <span className="pkg-header__counter">
@@ -274,14 +298,27 @@ const SessionItem: React.FC<{
       </div>
 
       {!readOnly && (
-        <Button
+        <button
           type="button"
-          variant={isDel ? 'primary' : 'secondary'}
-          size="small"
           onClick={onRemove}
+          className={isDel ? 'pkg-session__restore-btn' : 'pkg-session__remove-btn'}
         >
-          {isDel ? 'Restaurar' : 'Quitar'}
-        </Button>
+          {isDel ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+              </svg>
+              Restaurar
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              Quitar
+            </>
+          )}
+        </button>
       )}
     </div>
   );
