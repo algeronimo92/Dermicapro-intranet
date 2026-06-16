@@ -1,0 +1,320 @@
+/* ============================================================
+   PATIENT DEBT SUMMARY  —  componente centralizado de deuda
+   Compatible con light y dark mode automáticamente
+   ============================================================ */
+
+/* ── 3 CARDS DE RESUMEN ────────────────────────────────────── */
+.pds-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.pds-card {
+  background: var(--color-bg-primary);
+  border: 1.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.pds-card--clickable {
+  cursor: pointer;
+}
+.pds-card--clickable:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Variantes de color según el estado */
+.pds-card--debt-active {
+  background: var(--color-error-alpha-10);
+  border-color: var(--color-error-light);
+}
+.pds-card--debt-clear {
+  background: var(--color-success-alpha-10);
+  border-color: var(--color-success);
+}
+.pds-card--paid-active {
+  background: var(--color-success-alpha-10);
+  border-color: var(--color-success);
+}
+.pds-card--credit-active {
+  background: var(--color-primary-alpha-10);
+  border-color: var(--color-primary);
+}
+
+/* Cabecera de cada card */
+.pds-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.pds-card__label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.pds-card__label--debt-active  { color: var(--color-error); }
+.pds-card__label--debt-clear   { color: var(--color-success-dark); }
+.pds-card__label--paid-active  { color: var(--color-success-dark); }
+.pds-card__label--paid-empty   { color: var(--color-text-tertiary); }
+.pds-card__label--credit-active { color: var(--color-primary); }
+.pds-card__label--credit-empty  { color: var(--color-text-tertiary); }
+
+.pds-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pds-card__icon--debt-active   { background: var(--color-error-alpha-10); color: var(--color-error); }
+.pds-card__icon--debt-clear    { background: var(--color-success-alpha-10); color: var(--color-success); }
+.pds-card__icon--paid-active   { background: var(--color-success-alpha-10); color: var(--color-success); }
+.pds-card__icon--paid-empty    { background: var(--color-bg-secondary); color: var(--color-text-tertiary); }
+.pds-card__icon--credit-active { background: var(--color-primary-alpha-10); color: var(--color-primary); }
+.pds-card__icon--credit-empty  { background: var(--color-bg-secondary); color: var(--color-text-tertiary); }
+
+/* Valor principal */
+.pds-card__amount {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pds-card__amount--debt-active  { color: var(--color-error); }
+.pds-card__amount--debt-clear   { color: var(--color-success-dark); font-size: var(--font-size-xl); }
+.pds-card__amount--paid-active  { color: var(--color-success-dark); }
+.pds-card__amount--paid-empty   { color: var(--color-text-disabled); }
+.pds-card__amount--credit-active { color: var(--color-primary); }
+.pds-card__amount--credit-empty  { color: var(--color-text-disabled); }
+
+.pds-card__sub {
+  font-size: var(--font-size-xs);
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.pds-card__sub--debt-active   { color: var(--color-error); }
+.pds-card__sub--debt-clear    { color: var(--color-success-dark); }
+.pds-card__sub--paid-active   { color: var(--color-success-dark); font-weight: 400; }
+.pds-card__sub--paid-empty    { color: var(--color-text-tertiary); font-weight: 400; }
+.pds-card__sub--credit-active { color: var(--color-primary); }
+.pds-card__sub--credit-empty  { color: var(--color-text-tertiary); font-weight: 400; }
+
+/* ── SECCIÓN COBROS PENDIENTES (variant full) ───────────────── */
+.pds-cobros {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.pds-cobros__header {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pds-cobros__title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pds-cobros__badge {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-warning-alpha-10);
+  color: var(--color-warning-dark);
+  border: 1px solid var(--color-warning);
+}
+
+.pds-cobros__manage {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity var(--transition-fast);
+}
+.pds-cobros__manage:hover { opacity: 0.7; }
+
+.pds-cobros__body {
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Fila de una orden de pago pendiente */
+.pds-po-row {
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pds-po-row:hover {
+  background: var(--color-bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.pds-po-row__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pds-po-row__meta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 3px;
+}
+
+.pds-po-row__status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+.pds-po-row__status--pending {
+  background: var(--color-error-alpha-10);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-light);
+}
+.pds-po-row__status--partial {
+  background: var(--color-warning-alpha-10);
+  color: var(--color-warning-dark);
+  border: 1px solid var(--color-warning);
+}
+
+.pds-po-row__amount {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-error);
+  white-space: nowrap;
+}
+
+.pds-po-row__bar-track {
+  height: 4px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.pds-po-row__bar-fill {
+  height: 100%;
+  background: var(--color-warning);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+/* Fila de orden sin orden de pago */
+.pds-noopo-row {
+  border: 1px solid var(--color-border-secondary);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pds-noopo-row:hover {
+  background: var(--color-bg-secondary);
+}
+
+.pds-noopo-row__meta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 3px;
+}
+
+.pds-noopo-row__tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-warning-alpha-10);
+  color: var(--color-warning-dark);
+  border: 1px solid var(--color-warning);
+}
+
+.pds-noopo-row__amount {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-warning-dark);
+  white-space: nowrap;
+}
+
+.pds-cobros__empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--spacing-md);
+  background: var(--color-success-alpha-10);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-success);
+  color: var(--color-success-dark);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.pds-cobros__see-all {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+  transition: opacity var(--transition-fast);
+  align-self: flex-start;
+}
+.pds-cobros__see-all:hover { opacity: 0.7; }
+
+/* ── SKELETON / LOADING ─────────────────────────────────────── */
+.pds-skeleton {
+  animation: pds-pulse 1.5s ease-in-out infinite;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+@keyframes pds-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .pds-cards {
+    grid-template-columns: 1fr;
+  }
+}

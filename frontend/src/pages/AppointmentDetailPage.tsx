@@ -13,6 +13,7 @@ import { BodyMeasurementsModal } from '../components/BodyMeasurementsModal';
 import { StateTransitionSelector } from '../components/StateTransitionSelector';
 import { PackageGroupView } from '../components/PackageGroupView';
 import { ImageViewer } from '../components/ImageViewer';
+import { PatientDebtSummary } from '../components/PatientDebtSummary';
 import { useAuth } from '../contexts/AuthContext';
 import { packageSimulator } from '../utils/packageSimulation';
 import { addToGoogleCalendar, downloadICSFile } from '../utils/googleCalendar';
@@ -824,6 +825,15 @@ export const AppointmentDetailPage: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Resumen financiero del paciente */}
+      {appointment.patientId && (
+        <PatientDebtSummary
+          patientId={appointment.patientId}
+          patientName={appointment.patient?.firstName}
+          variant="compact"
+        />
+      )}
 
       {/* Payment Status Card - DISEÑO MEJORADO CON SEPARACIÓN CLARA */}
       <div className={`glass-card payment-card ${

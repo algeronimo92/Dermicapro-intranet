@@ -7,7 +7,7 @@ import { Patient, PaymentOrder, PaymentOrderStatus, Order, CreditTransaction, Pa
 import { Loading } from '../components/Loading';
 import { ImageViewer } from '../components/ImageViewer';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
-import { AddCreditModal } from '../components/AddCreditModal';
+import { PatientDebtSummary } from '../components/PatientDebtSummary';
 import { formatDate } from '../utils/dateUtils';
 import '../styles/patient-payment-orders.css';
 
@@ -23,8 +23,8 @@ export const PatientPaymentOrdersPage: React.FC = () => {
   const [selectedPaymentOrder, setSelectedPaymentOrder] = useState<PaymentOrder | null>(null);
   const [patientBalance, setPatientBalance] = useState(0);
   const [creditHistory, setCreditHistory]   = useState<CreditTransaction[]>([]);
-  const [showAddCreditModal, setShowAddCreditModal] = useState(false);
   const [viewerImage, setViewerImage] = useState<string | null>(null);
+  const [summaryKey, setSummaryKey] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -50,6 +50,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
       setOrdersWithoutPaymentOrder(ordersWithoutPaymentOrderData);
       setPatientBalance(creditData.accountBalance);
       setCreditHistory(creditData.credits);
+      setSummaryKey((k) => k + 1);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar datos');
     } finally {
@@ -114,23 +115,6 @@ export const PatientPaymentOrdersPage: React.FC = () => {
     );
   }
 
-  const totalPaymentOrders = paymentOrders.length;
-  const totalAmount = paymentOrders.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
-  const totalPaid = paymentOrders.reduce((sum, inv) => {
-    const paid = inv.payments?.reduce((s, p) => s + Number(p.amountPaid), 0) || 0;
-    return sum + paid;
-  }, 0);
-
-  // Calcular el total de órdenes sin orden de pago
-  const ordersWithoutPaymentOrderTotal = ordersWithoutPaymentOrder.reduce((sum, order) => sum + Number(order.finalPrice || 0), 0);
-
-  // Total pendiente = (órdenes de pago - pagos) + órdenes sin ODP
-  const totalPending = (totalAmount - totalPaid) + ordersWithoutPaymentOrderTotal;
-
-  const pendingPaymentOrders = paymentOrders.filter(inv => {
-    return inv.status === 'pending' || inv.status === 'partial';
-  });
-
   return (
     <div className="payment-orders-container">
       {/* Header */}
@@ -166,74 +150,13 @@ export const PatientPaymentOrdersPage: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="payment-orders-summary">
-        <div className="summary-card summary-card-total">
-          <div className="summary-label">
-            TOTAL DE ÓRDENES DE PAGO
-          </div>
-          <div className="summary-amount">
-            S/. {totalAmount.toFixed(2)}
-          </div>
-          <div className="summary-subtitle">
-            {totalPaymentOrders} {totalPaymentOrders === 1 ? 'orden de pago' : 'órdenes de pago'}
-          </div>
-        </div>
-
-        <div className="summary-card summary-card-paid">
-          <div className="summary-label">
-            TOTAL PAGADO
-          </div>
-          <div className="summary-amount">
-            S/. {totalPaid.toFixed(2)}
-          </div>
-          <div className="summary-subtitle">
-            {((totalAmount > 0 ? (totalPaid / totalAmount * 100) : 0)).toFixed(0)}% completado
-          </div>
-        </div>
-
-        <div className="summary-card summary-card-pending">
-          <div className="summary-label">
-            TOTAL PENDIENTE
-          </div>
-          <div className="summary-amount">
-            S/. {totalPending.toFixed(2)}
-          </div>
-          <div className="summary-subtitle">
-            {pendingPaymentOrders.length} {pendingPaymentOrders.length === 1 ? 'orden de pago' : 'órdenes de pago'} pendiente(s)
-          </div>
-        </div>
-
-        {/* ── Saldo a Favor ── */}
-        <div className="summary-card" style={{
-          background: patientBalance > 0 ? 'var(--color-primary-alpha-10)' : 'var(--color-bg-primary)',
-          border: `1px solid ${patientBalance > 0 ? 'var(--color-primary)' : 'var(--color-border-secondary)'}`,
-          position: 'relative',
-        }}>
-          <div className="summary-label" style={{ color: patientBalance > 0 ? 'var(--color-primary)' : undefined }}>
-            SALDO A FAVOR
-          </div>
-          <div className="summary-amount" style={{ color: patientBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-disabled)' }}>
-            S/. {patientBalance.toFixed(2)}
-          </div>
-          <button
-            onClick={() => setShowAddCreditModal(true)}
-            style={{
-              marginTop: 8,
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '4px 10px', borderRadius: 'var(--radius-md)',
-              background: 'var(--color-primary-alpha-10)',
-              border: '1.5px solid var(--color-primary)',
-              color: 'var(--color-primary)',
-              fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            {patientBalance > 0 ? 'Agregar más' : 'Agregar saldo'}
-          </button>
-        </div>
-      </div>
+      <PatientDebtSummary
+        key={summaryKey}
+        patientId={id!}
+        patientName={patient.firstName}
+        variant="compact"
+        onCreditAdded={() => id && loadData(id)}
+      />
 
       {/* Órdenes sin orden de pago */}
       {ordersWithoutPaymentOrder.length > 0 && (
@@ -287,7 +210,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
       <div className="payment-orders-list-container">
         <div className="payment-orders-list-header">
           <h2 className="payment-orders-list-title">
-            Todas las Órdenes de Pago ({totalPaymentOrders})
+            Todas las Órdenes de Pago ({paymentOrders.length})
           </h2>
         </div>
 
@@ -528,23 +451,6 @@ export const PatientPaymentOrdersPage: React.FC = () => {
             creditsService.getCreditHistory(patient.id)
               .then(d => { setPatientBalance(d.accountBalance); setCreditHistory(d.credits); })
               .catch(() => {});
-          }}
-        />
-      )}
-
-      {/* ── Modal agregar saldo a favor ── */}
-      {patient && (
-        <AddCreditModal
-          isOpen={showAddCreditModal}
-          onClose={() => setShowAddCreditModal(false)}
-          patientId={patient.id}
-          patientName={`${patient.firstName} ${patient.lastName}`}
-          currentBalance={patientBalance}
-          onSuccess={(newBalance) => {
-            setPatientBalance(newBalance);
-            if (patient) creditsService.getCreditHistory(patient.id)
-              .then(d => setCreditHistory(d.credits)).catch(() => {});
-            setShowAddCreditModal(false);
           }}
         />
       )}

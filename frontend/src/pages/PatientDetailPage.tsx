@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
-import { Patient, Sex, Role, PaymentOrderStatus, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
+import { Patient, Sex, Role, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { Modal } from '../components/Modal';
 import { CreatePatientModal } from '../components/CreatePatientModal';
-import { AddCreditModal } from '../components/AddCreditModal';
+import { PatientDebtSummary } from '../components/PatientDebtSummary';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate, calculateAge } from '../utils/dateUtils';
 import { creditsService } from '../services/credits.service';
@@ -38,8 +38,6 @@ export const PatientDetailPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal]     = useState(false);
   const [isDeleting, setIsDeleting]               = useState(false);
   const [showEditModal, setShowEditModal]         = useState(false);
-  const [showAddCreditModal, setShowAddCreditModal] = useState(false);
-  const [accountBalance, setAccountBalance]         = useState(0);
   const [creditHistory, setCreditHistory]           = useState<CreditTransaction[]>([]);
   const [concludingOrderId, setConcludingOrderId]   = useState<string | null>(null);
   const [concludeReason, setConcludeReason]         = useState('');
@@ -56,7 +54,6 @@ export const PatientDetailPage: React.FC = () => {
         creditsService.getCreditHistory(patientId),
       ]);
       setPatient(data);
-      setAccountBalance(creditData.accountBalance);
       setCreditHistory(creditData.credits);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar paciente');
@@ -147,31 +144,6 @@ export const PatientDetailPage: React.FC = () => {
 
   // Bloqueo de nueva cita — el paciente ya tiene una cita activa
   const hasActivePendingApt = !!(currentInProgress || nextReserved);
-
-  const uniquePaymentOrders = allOrders
-    .filter(o => o.paymentOrder)
-    .map(o => o.paymentOrder!)
-    .filter((po, i, arr) => arr.findIndex(x => x.id === po.id) === i);
-
-  const pendingPaymentOrders = uniquePaymentOrders.filter(
-    po => po.status === PaymentOrderStatus.pending || po.status === PaymentOrderStatus.partial
-  );
-
-  const totalPendingInPaymentOrders = pendingPaymentOrders.reduce((sum, po) => {
-    const paid = (po.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
-    return sum + (Number(po.totalAmount ?? 0) - paid);
-  }, 0);
-
-  // Órdenes que aún no tienen orden de pago generada
-  const ordersWithoutPaymentOrder = allOrders.filter(o => !o.paymentOrder);
-  const totalWithoutPaymentOrder  = ordersWithoutPaymentOrder.reduce((sum, o) => sum + Number(o.finalPrice ?? 0), 0);
-
-  // Deuda total = órdenes de pago pendientes + órdenes sin ODP
-  const totalPendingAmount = totalPendingInPaymentOrders + totalWithoutPaymentOrder;
-
-  const totalPaid = uniquePaymentOrders.reduce((sum, po) => {
-    return sum + (po.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
-  }, 0);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -285,124 +257,13 @@ export const PatientDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ══ STRIP FINANCIERO ════════════════════════════════════════════════ */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 'var(--spacing-md)',
-        marginBottom: 'var(--spacing-xl)',
-      }}>
-        {/* Deuda pendiente */}
-        <div style={{
-          background: totalPendingAmount > 0 ? 'var(--color-error-alpha-10)' : 'var(--color-success-alpha-10)',
-          border: `1.5px solid ${totalPendingAmount > 0 ? 'var(--color-error-light)' : 'var(--color-success)'}`,
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--spacing-lg)',
-          boxShadow: 'var(--shadow-sm)',
-          cursor: totalPendingAmount > 0 ? 'pointer' : 'default',
-          transition: 'box-shadow var(--transition-fast)',
-        }}
-          onClick={() => totalPendingAmount > 0 && navigate(`/patients/${id}/payment-orders`)}
-          onMouseEnter={e => totalPendingAmount > 0 && (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-sm)' }}>
-            <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: totalPendingAmount > 0 ? 'var(--color-error)' : 'var(--color-success-dark)' }}>
-              Deuda pendiente
-            </div>
-            <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: totalPendingAmount > 0 ? 'var(--color-error-alpha-10)' : 'var(--color-success-alpha-10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {totalPendingAmount > 0 ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="1" y="3" width="14" height="10" rx="1.5" stroke="var(--color-error)" strokeWidth="1.6"/>
-                  <path d="M1 7h14" stroke="var(--color-error)" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="7" stroke="var(--color-success)" strokeWidth="1.6"/>
-                  <path d="M5 8l2 2 4-4" stroke="var(--color-success)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-          </div>
-          {totalPendingAmount > 0 ? (
-            <>
-              <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 800, color: 'var(--color-error)', lineHeight: 1 }}>
-                S/. {totalPendingAmount.toFixed(2)}
-              </div>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-error)', marginTop: 6, fontWeight: 600 }}>
-                {pendingPaymentOrders.length} orden{pendingPaymentOrders.length !== 1 ? 'es' : ''} de pago · clic para gestionar →
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, color: 'var(--color-success-dark)', lineHeight: 1 }}>
-                Al día ✓
-              </div>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-success-dark)', marginTop: 6, fontWeight: 600 }}>
-                Sin deuda pendiente
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Total pagado */}
-        <div style={{
-          background: totalPaid > 0 ? 'var(--color-success-alpha-10)' : 'var(--color-bg-primary)',
-          border: `1.5px solid ${totalPaid > 0 ? 'var(--color-success)' : 'var(--color-border-secondary)'}`,
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--spacing-lg)',
-          boxShadow: 'var(--shadow-sm)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-sm)' }}>
-            <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: totalPaid > 0 ? 'var(--color-success-dark)' : 'var(--color-text-tertiary)' }}>
-              Total pagado
-            </div>
-            <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: totalPaid > 0 ? 'var(--color-success-alpha-10)' : 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="7" stroke={totalPaid > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)'} strokeWidth="1.6"/>
-                <path d="M5 8l2 2 4-4" stroke={totalPaid > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </div>
-          <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 800, color: totalPaid > 0 ? 'var(--color-success-dark)' : 'var(--color-text-disabled)', lineHeight: 1 }}>
-            S/. {totalPaid.toFixed(2)}
-          </div>
-          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', marginTop: 6 }}>
-            {uniquePaymentOrders.length} orden{uniquePaymentOrders.length !== 1 ? 'es' : ''} de pago en total
-          </div>
-        </div>
-
-        {/* Saldo a favor */}
-        <div style={{
-          background: accountBalance > 0 ? 'var(--color-primary-alpha-10)' : 'var(--color-bg-primary)',
-          border: `1.5px solid ${accountBalance > 0 ? 'var(--color-primary)' : 'var(--color-border-secondary)'}`,
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--spacing-lg)',
-          boxShadow: 'var(--shadow-sm)',
-          cursor: 'pointer',
-          position: 'relative' as const,
-        }}
-          onClick={() => setShowAddCreditModal(true)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-sm)' }}>
-            <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: accountBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-tertiary)' }}>
-              Saldo a favor
-            </div>
-            <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-lg)', background: accountBalance > 0 ? 'var(--color-primary-alpha-10)' : 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <rect x="1" y="3" width="14" height="10" rx="1.5" stroke={accountBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-tertiary)'} strokeWidth="1.6"/>
-                <path d="M5 8h6M8 6v4" stroke={accountBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-tertiary)'} strokeWidth="1.6" strokeLinecap="round"/>
-              </svg>
-            </div>
-          </div>
-          <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 800, color: accountBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-disabled)', lineHeight: 1 }}>
-            S/. {accountBalance.toFixed(2)}
-          </div>
-          <div style={{ fontSize: 'var(--font-size-xs)', color: accountBalance > 0 ? 'var(--color-primary)' : 'var(--color-text-tertiary)', marginTop: 6, fontWeight: accountBalance > 0 ? 600 : 400 }}>
-            {accountBalance > 0 ? 'Clic para agregar más' : 'Clic para agregar saldo'}
-          </div>
-        </div>
-      </div>
+      {/* ══ RESUMEN FINANCIERO ══════════════════════════════════════════════ */}
+      <PatientDebtSummary
+        patientId={patient.id}
+        patientName={patient.firstName}
+        variant="full"
+        onCreditAdded={() => loadPatient(id!)}
+      />
 
       {/* ══ GRID DE CARDS ═══════════════════════════════════════════════════ */}
       <div className="pd-grid">
@@ -494,97 +355,6 @@ export const PatientDetailPage: React.FC = () => {
                 </span>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* CARD — Cobros Pendientes (órdenes de pago sin pagar + órdenes sin ODP) */}
-        <div className="pd-card">
-          <div className="pd-card__header">
-            <h2 className="pd-card__title">
-              <span className="pd-card__icon pd-card__icon--amber">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
-                  <path d="M1 7h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
-              </span>
-              Cobros Pendientes
-            </h2>
-            {(pendingPaymentOrders.length + ordersWithoutPaymentOrder.length) > 0 && (
-              <span className="pd-card__badge">{pendingPaymentOrders.length + ordersWithoutPaymentOrder.length}</span>
-            )}
-          </div>
-          <div className="pd-card__body">
-            {(pendingPaymentOrders.length + ordersWithoutPaymentOrder.length) > 0 ? (
-              <>
-                <div className="pd-payment-order-list" style={{ marginBottom: 'var(--spacing-md)' }}>
-
-                  {/* Órdenes de pago creadas pero sin pagar */}
-                  {pendingPaymentOrders.slice(0, 3).map(po => {
-                    const paid      = (po.payments || []).reduce((s, p) => s + Number(p.amountPaid), 0);
-                    const remaining = Number(po.totalAmount ?? 0) - paid;
-                    const pct       = Number(po.totalAmount) > 0 ? Math.round((paid / Number(po.totalAmount)) * 100) : 0;
-                    return (
-                      <div key={po.id} className="pd-payment-order"
-                        style={{ cursor: 'pointer', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}
-                        onClick={() => navigate(`/payment-orders/${po.id}`)}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>
-                              Orden de Pago #{(po.id ?? '').slice(0, 8).toUpperCase()} · {po.createdAt ? formatDate(po.createdAt) : ''}
-                            </div>
-                            <span className={`pd-payment-order__status pd-payment-order__status--${po.status}`}>
-                              {po.status === PaymentOrderStatus.pending ? 'Sin pagar' : 'Pago parcial'}
-                            </span>
-                          </div>
-                          <span className="pd-payment-order__amount">S/. {remaining.toFixed(2)}</span>
-                        </div>
-                        <div style={{ height: 4, background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--color-warning)', borderRadius: 'var(--radius-full)' }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Órdenes sin orden de pago */}
-                  {ordersWithoutPaymentOrder.slice(0, 3).map(order => (
-                    <div key={order.id} className="pd-payment-order"
-                      style={{ cursor: 'pointer', flexDirection: 'column', gap: 4, alignItems: 'stretch', borderLeft: '3px solid var(--color-warning)' }}
-                      onClick={() => navigate(`/patients/${id}/payment-orders`)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>
-                            {order.service?.name || 'Servicio'} · {order.totalSessions} sesión{order.totalSessions !== 1 ? 'es' : ''}
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning)' }}>
-                            Sin orden de pago
-                          </span>
-                        </div>
-                        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--color-warning-dark)' }}>
-                          S/. {Number(order.finalPrice ?? 0).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  {(pendingPaymentOrders.length + ordersWithoutPaymentOrder.length) > 6 && (
-                    <button className="pd-view-all" onClick={() => navigate(`/patients/${id}/payment-orders`)}>
-                      Ver todas →
-                    </button>
-                  )}
-                </div>
-                <Button variant="primary" size="medium" onClick={() => navigate(`/patients/${id}/payment-orders`)} style={{ width: '100%' }}>
-                  Gestionar Cobros
-                </Button>
-              </>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--spacing-md)', background: 'var(--color-success-alpha-10)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-success)' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, color: 'var(--color-success)' }}>
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/>
-                  <path d="M8 12l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-success-dark)' }}>Sin cobros pendientes</span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -693,12 +463,6 @@ export const PatientDetailPage: React.FC = () => {
               </span>
               Movimientos de Saldo
             </h2>
-            <button
-              onClick={() => setShowAddCreditModal(true)}
-              className="btn-icon btn-primary"
-              title="Agregar saldo"
-              style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', fontSize: 18 }}
-            >+</button>
           </div>
           <div className="pd-card__body">
             {creditHistory.length > 0 ? (
@@ -735,9 +499,6 @@ export const PatientDetailPage: React.FC = () => {
                   <path d="M2 10h20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
                 <p>Sin movimientos de saldo</p>
-                <button className="pd-view-all" onClick={() => setShowAddCreditModal(true)}>
-                  + Agregar primer saldo
-                </button>
               </div>
             )}
           </div>
@@ -983,21 +744,6 @@ export const PatientDetailPage: React.FC = () => {
       </div>
 
       {/* ══ MODALS ══════════════════════════════════════════════════════════ */}
-      {patient && (
-        <AddCreditModal
-          isOpen={showAddCreditModal}
-          onClose={() => setShowAddCreditModal(false)}
-          patientId={patient.id}
-          patientName={`${patient.firstName} ${patient.lastName}`}
-          currentBalance={accountBalance}
-          onSuccess={newBalance => {
-            setAccountBalance(newBalance);
-            if (id) creditsService.getCreditHistory(id).then(d => setCreditHistory(d.credits));
-            setShowAddCreditModal(false);
-          }}
-        />
-      )}
-
       <CreatePatientModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
