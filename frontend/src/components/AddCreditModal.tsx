@@ -25,6 +25,7 @@ const METHODS: { value: PaymentMethod; label: string; icon: string }[] = [
 ];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_RECEIPTS = 3;
 
 export const AddCreditModal: React.FC<AddCreditModalProps> = ({
   isOpen, onClose, patientId, patientName, currentBalance, onSuccess,
@@ -32,14 +33,15 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
   const [amount, setAmount]             = useState('');
   const [method, setMethod]             = useState<PaymentMethod>(PaymentMethod.yape);
   const [notes, setNotes]               = useState('');
-  const [receiptFile, setReceiptFile]   = useState<File | null>(null);
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+  const [receiptPreviews, setReceiptPreviews] = useState<string[]>([]);
   const [saving, setSaving]             = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [amountError, setAmountError]   = useState('');
   const [fileError, setFileError]       = useState('');
   const [showCamera, setShowCamera]     = useState(false);
   const [lightbox, setLightbox]         = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,8 +50,8 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
       setAmount('');
       setMethod(PaymentMethod.yape);
       setNotes('');
-      setReceiptFile(null);
-      setReceiptPreview(null);
+      setReceiptFiles([]);
+      setReceiptPreviews([]);
       setError(null);
       setAmountError('');
       setFileError('');
@@ -58,20 +60,38 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
 
   const validateAmount = (val: string) => {
     const n = parseFloat(val);
-    if (!val || isNaN(n) || n <= 0) { setAmountError('Ingresa un monto válido mayor a 0'); return false; }
+    if (!val || isNaN(n) || n <= 0) { setAmountError('Ingresa un monto valido mayor a 0'); return false; }
     setAmountError('');
     return true;
   };
 
-  const handleFileChange = (file: File | null) => {
+  const handleFilesAdd = (incoming: File[]) => {
     setFileError('');
-    if (!file) { setReceiptFile(null); setReceiptPreview(null); return; }
-    if (!file.type.startsWith('image/')) { setFileError('Solo se permiten imágenes'); return; }
-    if (file.size > MAX_FILE_SIZE) { setFileError('El archivo no debe superar los 5 MB'); return; }
-    setReceiptFile(file);
-    const reader = new FileReader();
-    reader.onload = e => setReceiptPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    const remaining = MAX_RECEIPTS - receiptFiles.length;
+    if (remaining <= 0) {
+      setFileError(`Maximo ${MAX_RECEIPTS} comprobantes permitidos`);
+      return;
+    }
+    const toAdd: File[] = [];
+    for (const file of incoming.slice(0, remaining)) {
+      if (!file.type.startsWith('image/')) { setFileError('Solo se permiten imagenes'); return; }
+      if (file.size > MAX_FILE_SIZE) { setFileError('El archivo no debe superar los 5 MB'); return; }
+      toAdd.push(file);
+    }
+    if (toAdd.length === 0) return;
+    setReceiptFiles(prev => [...prev, ...toAdd]);
+    toAdd.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => setReceiptPreviews(prev => [...prev, e.target?.result as string]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeReceiptFile = (index: number) => {
+    setReceiptFiles(prev => prev.filter((_, i) => i !== index));
+    setReceiptPreviews(prev => prev.filter((_, i) => i !== index));
+    setFileError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async () => {
@@ -84,8 +104,8 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
         paymentMethod: method,
         notes: notes.trim() || undefined,
       });
-      if (receiptFile) {
-        await paymentOrdersService.uploadReceipt(paymentId, receiptFile);
+      if (receiptFiles.length > 0) {
+        await paymentOrdersService.uploadReceipt(paymentId, receiptFiles);
       }
       onSuccess(accountBalance);
       onClose();
@@ -95,8 +115,6 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
       setSaving(false);
     }
   };
-
-  const clearFile = () => { setReceiptFile(null); setReceiptPreview(null); setFileError(''); if (fileInputRef.current) fileInputRef.current.value = ''; };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Agregar Saldo a Favor">
@@ -165,10 +183,10 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
           )}
         </div>
 
-        {/* Método de pago */}
+        {/* Metodo de pago */}
         <div>
           <label style={{ display: 'block', fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--spacing-sm)' }}>
-            Método de pago recibido
+            Metodo de pago recibido
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8 }}>
             {METHODS.map(m => (
@@ -193,29 +211,80 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
           <label style={{ display: 'block', fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--spacing-sm)' }}>
             Comprobante <span style={{ color: 'var(--color-text-disabled)', fontWeight: 400, textTransform: 'none' }}>(opcional)</span>
           </label>
-          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-            onChange={e => handleFileChange(e.target.files?.[0] ?? null)} />
+          <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+            onChange={e => { const selected = e.target.files; if (selected?.length) handleFilesAdd(Array.from(selected)); if (fileInputRef.current) fileInputRef.current.value = ''; }} />
 
-          {receiptPreview ? (
-            <div style={{ borderRadius: 'var(--radius-xl)', overflow: 'hidden', border: '2px solid var(--color-primary)', background: '#111' }}>
-              <button type="button" onClick={() => setLightbox(true)} style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }}>
-                <img src={receiptPreview} alt="Comprobante" style={{ width: '100%', maxHeight: 240, objectFit: 'contain', display: 'block', background: '#111' }} />
-              </button>
-              <div style={{ background: 'rgba(4,47,46,0.92)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" onClick={() => setLightbox(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  Ver
-                </button>
-                <span style={{ flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{receiptFile?.name}</span>
-                <button type="button" onClick={() => fileInputRef.current?.click()}
-                  style={{ padding: '3px 8px', borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-                  Cambiar
-                </button>
-                <button type="button" onClick={clearFile}
-                  style={{ width: 24, height: 24, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 15, flexShrink: 0 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(220,38,38,0.7)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}>×</button>
+          {receiptFiles.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-sm)' }}>
+                {receiptPreviews.map((preview, idx) => (
+                  <div key={idx} style={{
+                    position: 'relative',
+                    borderRadius: 'var(--radius-lg)',
+                    overflow: 'hidden',
+                    border: '2px solid var(--color-border-primary)',
+                    background: '#111',
+                    aspectRatio: '1',
+                  }}>
+                    <button type="button" onClick={() => { setLightboxIndex(idx); setLightbox(true); }}
+                      style={{ display: 'block', width: '100%', height: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }}>
+                      <img src={preview} alt={`Comprobante ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </button>
+                    <button type="button" onClick={() => removeReceiptFile(idx)}
+                      style={{
+                        position: 'absolute', top: 4, right: 4,
+                        width: 22, height: 22, borderRadius: 'var(--radius-full)',
+                        background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.25)',
+                        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(220,38,38,0.85)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.65)')}>
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-sm)' }}>
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', fontWeight: 600 }}>
+                  {receiptFiles.length} de {MAX_RECEIPTS} comprobantes
+                </span>
+                {receiptFiles.length < MAX_RECEIPTS && (
+                  <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 'var(--radius-md)',
+                        background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-primary)',
+                        color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 600,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      <svg width="12" height="12" viewBox="0 0 32 32" fill="none">
+                        <path d="M16 6v14M16 6l-6 6M16 6l6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6 24h20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                      </svg>
+                      Agregar archivo
+                    </button>
+                    <button type="button" onClick={() => setShowCamera(true)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 'var(--radius-md)',
+                        background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-primary)',
+                        color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 600,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M23 7l-7 5 7 5V7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="1" y="5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                      Tomar foto
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -223,13 +292,13 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
               <button type="button" className="upload-receipt-button" style={{ padding: 'var(--spacing-md) var(--spacing-sm)' }}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); handleFileChange(e.dataTransfer.files?.[0] ?? null); }}>
+                onDrop={e => { e.preventDefault(); const dropped = e.dataTransfer.files; if (dropped?.length) handleFilesAdd(Array.from(dropped)); }}>
                 <svg className="upload-icon" width="26" height="26" viewBox="0 0 32 32" fill="none">
                   <path d="M16 6v14M16 6l-6 6M16 6l6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M6 24h20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
                 </svg>
                 <span className="upload-label">Subir archivo</span>
-                <span className="upload-hint">Galería · arrastra</span>
+                <span className="upload-hint">Galeria -- arrastra</span>
               </button>
               <button type="button" className="upload-receipt-button" style={{ padding: 'var(--spacing-md) var(--spacing-sm)' }}
                 onClick={() => setShowCamera(true)}>
@@ -238,7 +307,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
                   <rect x="1" y="5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
                 </svg>
                 <span className="upload-label">Tomar foto</span>
-                <span className="upload-hint">Usar cámara</span>
+                <span className="upload-hint">Usar camara</span>
               </button>
             </div>
           )}
@@ -251,26 +320,26 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
             Notas <span style={{ color: 'var(--color-text-disabled)', fontWeight: 400, textTransform: 'none' }}>(opcional)</span>
           </label>
           <textarea className="adet-note-textarea" value={notes} onChange={e => setNotes(e.target.value)}
-            placeholder="Número de operación, referencia..." rows={2} />
+            placeholder="Numero de operacion, referencia..." rows={2} />
         </div>
       </div>
 
       <div className="modal-actions">
         <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
         <Button variant="primary" onClick={handleSubmit} disabled={saving || !!amountError || !amount}>
-          {saving ? 'Agregando saldo…' : 'Agregar Saldo'}
+          {saving ? 'Agregando saldo...' : 'Agregar Saldo'}
         </Button>
       </div>
 
       {showCamera && (
         <CameraCapture
           onClose={() => setShowCamera(false)}
-          onCapture={file => { handleFileChange(file); setShowCamera(false); }}
+          onCapture={file => { handleFilesAdd([file]); setShowCamera(false); }}
         />
       )}
 
-      {lightbox && receiptPreview && (
-        <ImageViewer images={[receiptPreview]} alt="Comprobante" onClose={() => setLightbox(false)} />
+      {lightbox && receiptPreviews.length > 0 && (
+        <ImageViewer images={receiptPreviews.filter(p => !!p)} initialIndex={lightboxIndex} alt="Comprobante" onClose={() => setLightbox(false)} />
       )}
     </Modal>
   );

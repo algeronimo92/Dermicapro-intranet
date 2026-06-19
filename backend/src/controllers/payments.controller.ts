@@ -423,37 +423,46 @@ export const voidPayment = async (req: Request, res: Response): Promise<void> =>
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const files = req.files as Express.Multer.File[] | undefined;
 
-    if (!req.file) {
-      throw new AppError('No se subió ningún archivo', 400);
+    if (!files || files.length === 0) {
+      throw new AppError('No se subieron archivos', 400);
     }
 
-    // Construir la URL del comprobante
-    const receiptUrl = `/uploads/${req.file.filename}`;
+    const existing = await prisma.payment.findUnique({
+      where: { id },
+      select: { receiptUrls: true },
+    });
+    if (!existing) throw new AppError('Pago no encontrado', 404);
 
-    // Actualizar el pago con la URL del comprobante
+    const currentUrls = existing.receiptUrls || [];
+    if (currentUrls.length + files.length > 3) {
+      files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
+      throw new AppError(`Solo se permiten 3 comprobantes. Ya tiene ${currentUrls.length}.`, 400);
+    }
+
+    const newUrls = files.map(f => `/uploads/${f.filename}`);
+
     const payment = await prisma.payment.update({
       where: { id },
-      data: { receiptUrl },
+      data: {
+        receiptUrls: { push: newUrls },
+        receiptUrl: currentUrls.length === 0 ? newUrls[0] : undefined,
+      },
       include: {
         patient: true,
         paymentOrder: true,
         appointment: true,
         createdBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
+          select: { id: true, firstName: true, lastName: true },
         },
       },
     });
 
     res.json(payment);
   } catch (error) {
-    if (req.file?.path) {
-      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
-    }
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (files) files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

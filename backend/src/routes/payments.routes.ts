@@ -18,7 +18,7 @@ router.use(authenticate);
 router.get('/', getAllPayments);
 router.get('/:id', getPaymentById);
 router.post('/', createPayment);
-router.post('/:id/upload-receipt', uploadLimiter, receiptUpload.single('receipt'), processUpload, uploadReceipt);
+router.post('/:id/upload-receipt', uploadLimiter, receiptUpload.array('receipts', 3), processUpload, uploadReceipt);
 router.post('/:id/void', voidPayment);
 router.put('/:id', updatePayment);
 

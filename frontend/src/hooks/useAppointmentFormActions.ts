@@ -194,14 +194,14 @@ export const useAppointmentFormActions = (props: UseAppointmentFormActionsProps)
   // RECEIPT HANDLER
   // ============================================
 
-  const handleUploadReceipt = async (amount: number, file: File) => {
+  const handleUploadReceipt = async (amount: number, files: File[]) => {
     if (!isEditMode || !id) {
-      throw new Error('Solo se puede subir recibo en modo edición');
+      throw new Error('Solo se puede subir recibo en modo edicion');
     }
 
     try {
-      const result = await appointmentsService.uploadReceipt(id, file, amount);
-      setCurrentReceipt(result.url || null);
+      const result = await appointmentsService.uploadReceipt(id, files, amount);
+      setCurrentReceipt(result.urls?.[0] || null);
       setFormData(prev => ({ ...prev, reservationAmount: amount }));
       setShowUploadReceiptModal(false);
     } catch (error) {

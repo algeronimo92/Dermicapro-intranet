@@ -89,7 +89,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
           },
           payments: {
             where: { paymentType: 'reservation', voidedAt: null },
-            select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+            select: { id: true, receiptUrl: true, receiptUrls: true, amountPaid: true, paymentMethod: true },
             take: 1,
           },
         },
@@ -159,7 +159,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
         },
         payments: {
           where: { paymentType: 'reservation', voidedAt: null },
-          select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+          select: { id: true, receiptUrl: true, receiptUrls: true, amountPaid: true, paymentMethod: true },
           take: 1,
         },
       },
@@ -608,7 +608,7 @@ const APPOINTMENT_INCLUDE_WITH_ATTENDEES = {
   },
   payments: {
     where: { paymentType: 'reservation' as const, voidedAt: null },
-    select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+    select: { id: true, receiptUrl: true, receiptUrls: true, amountPaid: true, paymentMethod: true },
     take: 1,
   },
 };
@@ -817,12 +817,13 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
     const amount = req.body.amount ? parseFloat(req.body.amount) : 0;
     const paymentMethod = req.body.paymentMethod ?? 'cash';
+    const files = req.files as Express.Multer.File[] | undefined;
 
-    if (!req.file) {
-      throw new AppError('No se subió ningún archivo', 400);
+    if (!files || files.length === 0) {
+      throw new AppError('No se subieron archivos', 400);
     }
 
-    const receiptUrl = `/uploads/${req.file.filename}`;
+    const receiptUrls = files.map(f => `/uploads/${f.filename}`);
 
     const appointment = await prisma.$transaction(async (tx) => {
       const apt = await tx.appointment.findUnique({
@@ -831,7 +832,6 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       });
       if (!apt) throw new AppError('Cita no encontrada', 404);
 
-      // Solo crear pago si hay monto Y no existe ya un pago de reserva activo para esta cita
       if (amount > 0) {
         const existing = await tx.payment.findFirst({
           where: { appointmentId: id, paymentType: 'reservation', voidedAt: null },
@@ -845,7 +845,8 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
               amountPaid: amount,
               paymentMethod,
               paymentType: 'reservation',
-              receiptUrl,
+              receiptUrl: receiptUrls[0],
+              receiptUrls,
               createdById: req.user!.id,
             },
           });
@@ -855,9 +856,14 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
             data: { accountBalance: { increment: amount } },
           });
         } else {
+          const currentUrls = existing.receiptUrls || [];
+          const mergedUrls = [...currentUrls, ...receiptUrls].slice(0, 3);
           await tx.payment.update({
             where: { id: existing.id },
-            data: { receiptUrl },
+            data: {
+              receiptUrl: mergedUrls[0],
+              receiptUrls: mergedUrls,
+            },
           });
         }
       }
@@ -865,23 +871,21 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       return apt;
     });
 
-    // Re-fetch with reservationPayment included so the response is complete
     const fresh = await prisma.appointment.findUnique({
       where: { id },
       include: {
         payments: {
           where: { paymentType: 'reservation', voidedAt: null },
-          select: { id: true, receiptUrl: true, amountPaid: true, paymentMethod: true },
+          select: { id: true, receiptUrl: true, receiptUrls: true, amountPaid: true, paymentMethod: true },
           take: 1,
         },
       },
     });
 
-    res.json({ url: receiptUrl, appointment: withReservationPayment(fresh ?? appointment) });
+    res.json({ urls: receiptUrls, appointment: withReservationPayment(fresh ?? appointment) });
   } catch (error) {
-    if (req.file?.path) {
-      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
-    }
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (files) files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

@@ -47,7 +47,7 @@ export const PaymentOrderDetailPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [cameraPaymentId, setCameraPaymentId] = useState<string | null>(null);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxUrls, setLightboxUrls] = useState<string[]>([]);
   const [patientBalance, setPatientBalance] = useState(0);
 
   useEffect(() => { if (id) load(id); }, [id]);
@@ -70,10 +70,10 @@ export const PaymentOrderDetailPage: React.FC = () => {
     }
   };
 
-  const handleUploadReceipt = async (paymentId: string, file: File) => {
+  const handleUploadReceipt = async (paymentId: string, files: File[]) => {
     try {
       setUploadingId(paymentId);
-      await paymentsService.uploadReceipt(paymentId, file);
+      await paymentsService.uploadReceipt(paymentId, files);
       if (paymentOrder) await load(paymentOrder.id);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al subir el comprobante');
@@ -264,22 +264,27 @@ export const PaymentOrderDetailPage: React.FC = () => {
                   </p>
                 )}
 
-                {/* Comprobante — ocultar solo si es account_credit sin foto */}
-                {(payment.paymentMethod !== 'account_credit' || !!payment.receiptUrl) && (
+                {/* Comprobante */}
+                {(payment.paymentMethod !== 'account_credit' || (payment.receiptUrls?.length ?? 0) > 0) && (
                 <div style={{ marginTop: 'var(--spacing-sm)', paddingTop: 'var(--spacing-sm)', borderTop: '1px solid var(--color-border-secondary)' }}>
-                  {/* Input oculto para cambiar comprobante existente */}
-                  <input type="file" id={`rcpt-${payment.id}`} accept="image/*"
+                  <input type="file" id={`rcpt-${payment.id}`} accept="image/*" multiple
                     style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadReceipt(payment.id, f); }} />
+                    onChange={e => {
+                      const selected = e.target.files;
+                      if (selected?.length) {
+                        const existing = payment.receiptUrls?.length ?? 0;
+                        const remaining = Math.max(0, 3 - existing);
+                        if (remaining > 0) handleUploadReceipt(payment.id, Array.from(selected).slice(0, remaining));
+                      }
+                      e.target.value = '';
+                    }} />
 
-                  {payment.receiptUrl ? (
+                  {(payment.receiptUrls?.length ?? 0) > 0 ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-xs)' }}>
-                        <div className="pd-info-label">Comprobante</div>
-                        {payment.paymentMethod !== 'account_credit' && <div style={{ display: 'flex', gap: 6 }}>
-                          {/* Cambiar comprobante */}
+                        <div className="pd-info-label">Comprobantes ({payment.receiptUrls!.length})</div>
+                        {payment.paymentMethod !== 'account_credit' && (payment.receiptUrls!.length < 3) && <div style={{ display: 'flex', gap: 6 }}>
                           <label htmlFor={`rcpt-${payment.id}`}
-                            title="Cambiar comprobante"
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               padding: '3px 8px', borderRadius: 'var(--radius-md)',
@@ -291,17 +296,14 @@ export const PaymentOrderDetailPage: React.FC = () => {
                               opacity: uploadingId === payment.id ? 0.6 : 1,
                               fontFamily: 'inherit',
                             }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                              <path d="M12.25 8.75v2.333A1.167 1.167 0 0111.083 12.25H2.917A1.167 1.167 0 011.75 11.083V8.75M9.917 4.667L7 1.75m0 0L4.083 4.667M7 1.75v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                            {uploadingId === payment.id ? 'Subiendo…' : 'Cambiar'}
+                            {uploadingId === payment.id ? 'Subiendo...' : 'Agregar'}
                           </label>
-                          {/* Tomar foto nueva */}
                           <button type="button"
                             disabled={!!uploadingId}
                             onClick={() => setCameraPaymentId(payment.id)}
-                            title="Tomar nueva foto"
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               padding: '3px 8px', borderRadius: 'var(--radius-md)',
@@ -321,24 +323,30 @@ export const PaymentOrderDetailPage: React.FC = () => {
                           </button>
                         </div>}
                       </div>
-                      {/* Thumbnail clickeable → lightbox */}
-                      <button type="button"
-                        onClick={() => setLightboxUrl(getReceiptUrl(payment.receiptUrl))}
-                        style={{
-                          padding: 0, border: '2px solid var(--color-border-secondary)',
-                          borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-                          maxWidth: 200, cursor: 'zoom-in', background: 'none',
-                          display: 'block', transition: 'border-color 0.15s',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
-                        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border-secondary)')}>
-                        <img src={getReceiptUrl(payment.receiptUrl) || ''} alt="Comprobante"
-                          style={{ width: '100%', display: 'block', maxHeight: 120, objectFit: 'cover' }} />
-                      </button>
+                      <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
+                        {payment.receiptUrls!.map((url, idx) => {
+                          const resolved = getReceiptUrl(url);
+                          if (!resolved) return null;
+                          return (
+                            <button key={idx} type="button"
+                              onClick={() => setLightboxUrls(payment.receiptUrls!.map(u => getReceiptUrl(u)).filter((u): u is string => !!u))}
+                              style={{
+                                padding: 0, border: '2px solid var(--color-border-secondary)',
+                                borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+                                width: 100, cursor: 'zoom-in', background: 'none',
+                                display: 'block', transition: 'border-color 0.15s',
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border-secondary)')}>
+                              <img src={resolved} alt={`Comprobante ${idx + 1}`}
+                                style={{ width: '100%', display: 'block', height: 80, objectFit: 'cover' }} />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
-                      {/* Subir desde galería (usa el input oculto de arriba) */}
                       <label htmlFor={`rcpt-${payment.id}`}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -356,8 +364,6 @@ export const PaymentOrderDetailPage: React.FC = () => {
                         </svg>
                         {uploadingId === payment.id ? 'Subiendo...' : 'Subir archivo'}
                       </label>
-
-                      {/* Tomar foto con cámara */}
                       <button type="button"
                         disabled={!!uploadingId}
                         onClick={() => setCameraPaymentId(payment.id)}
@@ -413,14 +419,14 @@ export const PaymentOrderDetailPage: React.FC = () => {
         <CameraCapture
           onClose={() => setCameraPaymentId(null)}
           onCapture={async file => {
-            if (cameraPaymentId) await handleUploadReceipt(cameraPaymentId, file);
+            if (cameraPaymentId) await handleUploadReceipt(cameraPaymentId, [file]);
             setCameraPaymentId(null);
           }}
         />
       )}
 
-      {lightboxUrl && (
-        <ImageViewer images={[lightboxUrl]} alt="Comprobante" onClose={() => setLightboxUrl(null)} />
+      {lightboxUrls.length > 0 && (
+        <ImageViewer images={lightboxUrls} alt="Comprobante" onClose={() => setLightboxUrls([])} />
       )}
     </div>
   );
