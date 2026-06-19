@@ -31,7 +31,7 @@ router.delete('/:id', deleteAppointment);
 router.post('/:id/attend', markAsAttended);
 router.post('/:id/attendees', addAttendee);
 router.delete('/:id/attendees/:userId', removeAttendee);
-router.post('/:id/upload-receipt', uploadLimiter, receiptUpload.single('receipt'), processUpload, uploadReceipt);
+router.post('/:id/upload-receipt', uploadLimiter, receiptUpload.array('receipts', 3), processUpload, uploadReceipt);
 router.post('/upload-photos', uploadLimiter, upload.array('photos', 10), processUpload, uploadTreatmentPhotos);
 router.post('/:id/add-photos', addPhotosToAppointment);
 router.delete('/:id/photos', removePhotoFromAppointment);

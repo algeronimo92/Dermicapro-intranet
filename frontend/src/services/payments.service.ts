@@ -57,14 +57,12 @@ export const paymentsService = {
   /**
    * Sube un comprobante de pago
    */
-  async uploadReceipt(paymentId: string, file: File): Promise<Payment> {
+  async uploadReceipt(paymentId: string, files: File[]): Promise<Payment> {
     const formData = new FormData();
-    formData.append('receipt', file);
+    files.forEach(file => formData.append('receipts', file));
 
     const response = await api.post<Payment>(`/payments/${paymentId}/upload-receipt`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },

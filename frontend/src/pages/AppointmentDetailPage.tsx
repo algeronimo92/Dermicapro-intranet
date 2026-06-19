@@ -183,13 +183,13 @@ export const AppointmentDetailPage: React.FC = () => {
     setShowUploadModal(true);
   };
 
-  const handleUploadSubmit = async (amount: number, file: File, paymentMethod: string) => {
+  const handleUploadSubmit = async (amount: number, files: File[], paymentMethod: string) => {
     if (!id) return;
 
     try {
       setError(null);
       setUploadSuccess(false);
-      await appointmentsService.uploadReceipt(id, file, amount, paymentMethod);
+      await appointmentsService.uploadReceipt(id, files, amount, paymentMethod);
       const fresh = await appointmentsService.getAppointment(id);
       setAppointment(fresh);
       setUploadSuccess(true);
@@ -475,7 +475,7 @@ export const AppointmentDetailPage: React.FC = () => {
   // Obtener urgencia de pago basada en estado
   const paymentUrgency = getPaymentUrgency(
     appointment.status,
-    !!appointment.reservationPayment?.receiptUrl,
+    (appointment.reservationPayment?.receiptUrls?.length ?? 0) > 0 || !!appointment.reservationPayment?.receiptUrl,
     hasPendingPayment
   );
 
@@ -1040,45 +1040,45 @@ export const AppointmentDetailPage: React.FC = () => {
                 </svg>
               </div>
 
-              {appointment.reservationPayment?.receiptUrl && (() => {
-                const receiptUrl = getReceiptUrl(appointment.reservationPayment!.receiptUrl) || '';
-                const isPdf = receiptUrl.toLowerCase().includes('.pdf');
-                const isImage = /\.(jpg|jpeg|png|webp)$/i.test(receiptUrl);
-                const handleView = () => isPdf
-                  ? window.open(receiptUrl, '_blank')
-                  : openViewer([receiptUrl]);
+              {(() => {
+                const urls = appointment.reservationPayment?.receiptUrls?.length
+                  ? appointment.reservationPayment.receiptUrls
+                  : appointment.reservationPayment?.receiptUrl
+                    ? [appointment.reservationPayment.receiptUrl]
+                    : [];
+                if (urls.length === 0) return null;
+                const resolvedUrls = urls.map(u => getReceiptUrl(u)).filter((u): u is string => !!u);
+                if (resolvedUrls.length === 0) return null;
                 return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-bg-primary)', padding: '10px 12px', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--spacing-sm)', border: '1px solid var(--color-border-secondary)' }}>
-                  {isImage && (
-                    <img
-                      src={receiptUrl}
-                      alt="Recibo de reserva"
-                      style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: 'var(--radius-md)', cursor: 'zoom-in', flexShrink: 0 }}
-                      onClick={handleView}
-                    />
-                  )}
-                  {isPdf && (
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }}>
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <text x="6" y="19" fontSize="5" fill="currentColor" fontWeight="bold">PDF</text>
-                    </svg>
-                  )}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                      Comprobante de Reserva
-                    </div>
-                    <button
-                      onClick={handleView}
-                      style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: 'var(--font-weight-semibold)', fontFamily: 'inherit' }}>
-                      Ver recibo completo →
-                    </button>
+                <div style={{ background: 'var(--color-bg-primary)', padding: '10px 12px', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--spacing-sm)', border: '1px solid var(--color-border-secondary)' }}>
+                  <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: '8px' }}>
+                    Comprobantes de Reserva ({resolvedUrls.length})
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {resolvedUrls.map((url, idx) => {
+                      const isPdf = url.toLowerCase().includes('.pdf');
+                      const handleView = () => isPdf
+                        ? window.open(url, '_blank')
+                        : openViewer(resolvedUrls.filter(u => !/\.pdf$/i.test(u)), resolvedUrls.filter(u => !/\.pdf$/i.test(u)).indexOf(url));
+                      return isPdf ? (
+                        <button key={idx} onClick={handleView} style={{ width: 52, height: 52, borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-secondary)', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-secondary)' }}>
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      ) : (
+                        <img key={idx} src={url} alt={`Recibo ${idx + 1}`}
+                          style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-md)', cursor: 'zoom-in', flexShrink: 0, border: '1px solid var(--color-border-secondary)' }}
+                          onClick={handleView} />
+                      );
+                    })}
                   </div>
                 </div>
                 );
               })()}
 
-              {appointment.status === 'reserved' && !appointment.reservationPayment?.receiptUrl && (
+              {appointment.status === 'reserved' && !(appointment.reservationPayment?.receiptUrls?.length || appointment.reservationPayment?.receiptUrl) && (
                 <button onClick={handleUploadReceipt} className="adet-reservation__upload-btn">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M14 10v2.667A1.333 1.333 0 0112.667 14H3.333A1.333 1.333 0 012 12.667V10M11.333 5.333L8 2m0 0L4.667 5.333M8 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
