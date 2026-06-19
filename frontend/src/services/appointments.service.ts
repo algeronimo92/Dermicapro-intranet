@@ -84,15 +84,13 @@ export const appointmentsService = {
     return response.data;
   },
 
-  async uploadReceipt(id: string, file: File, amount: number, paymentMethod: string = 'cash'): Promise<{ url: string; appointment: Appointment }> {
+  async uploadReceipt(id: string, files: File[], amount: number, paymentMethod: string = 'cash'): Promise<{ urls: string[]; appointment: Appointment }> {
     const formData = new FormData();
-    formData.append('receipt', file);
+    files.forEach(file => formData.append('receipts', file));
     formData.append('amount', amount.toString());
     formData.append('paymentMethod', paymentMethod);
-    const response = await api.post<{ url: string; appointment: Appointment }>(`/appointments/${id}/upload-receipt`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    const response = await api.post<{ urls: string[]; appointment: Appointment }>(`/appointments/${id}/upload-receipt`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },

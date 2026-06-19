@@ -103,9 +103,9 @@ export const paymentOrdersService = {
     return { paymentId: paymentRes.data.id, paymentOrder: updated.data };
   },
 
-  async uploadReceipt(paymentId: string, file: File): Promise<void> {
+  async uploadReceipt(paymentId: string, files: File[]): Promise<void> {
     const form = new FormData();
-    form.append('receipt', file);
+    files.forEach(file => form.append('receipts', file));
     await api.post(`/payments/${paymentId}/upload-receipt`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

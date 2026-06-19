@@ -764,7 +764,7 @@ export const AppointmentFormPage: React.FC = () => {
           try {
             await appointmentsService.uploadReceipt(
               createdAppointment.id,
-              pendingReceiptFile,
+              [pendingReceiptFile],
               formData.reservationAmount || 0,
               formData.reservationPaymentMethod || 'cash'
             );
@@ -787,12 +787,11 @@ export const AppointmentFormPage: React.FC = () => {
     }
   };
 
-  const handleUploadReceipt = async (amount: number, file: File, paymentMethod: string) => {
+  const handleUploadReceipt = async (amount: number, files: File[], paymentMethod: string) => {
     if (isEditMode && id) {
-      // MODO EDIT: Subir inmediatamente al servidor
       try {
-        const result = await appointmentsService.uploadReceipt(id, file, amount, paymentMethod);
-        setCurrentReceipt(result.url || null);
+        const result = await appointmentsService.uploadReceipt(id, files, amount, paymentMethod);
+        setCurrentReceipt(result.urls?.[0] || null);
         setFormData(prev => ({ ...prev, reservationAmount: amount }));
         setShowUploadReceiptModal(false);
       } catch (error) {
@@ -800,10 +799,9 @@ export const AppointmentFormPage: React.FC = () => {
         throw error;
       }
     } else {
-      // MODO CREATE: Guardar archivo temporalmente para enviar en la creación
-      setPendingReceiptFile(file);
+      setPendingReceiptFile(files[0]);
       setFormData(prev => ({ ...prev, reservationAmount: amount, reservationPaymentMethod: paymentMethod }));
-      const previewUrl = URL.createObjectURL(file);
+      const previewUrl = URL.createObjectURL(files[0]);
       setCurrentReceipt(previewUrl);
       setShowUploadReceiptModal(false);
     }

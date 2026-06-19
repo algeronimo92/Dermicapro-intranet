@@ -97,6 +97,7 @@ export interface CreditTransaction {
   paymentDate: string;
   notes?: string;
   receiptUrl?: string;
+  receiptUrls?: string[];
   paymentOrderId?: string;
   paymentOrder?: { id: string } | null;
   createdBy?: Partial<User>;
@@ -171,6 +172,7 @@ export interface AppointmentAttendee {
 export interface ReservationPayment {
   id: string;
   receiptUrl: string | null;
+  receiptUrls: string[];
   amountPaid: number;
   paymentMethod: string;
 }
@@ -266,6 +268,7 @@ export interface Payment {
   paymentType: PaymentType;
   paymentDate: string;
   receiptUrl?: string;
+  receiptUrls?: string[];
   notes?: string;
   createdById: string;
   createdAt: string;
