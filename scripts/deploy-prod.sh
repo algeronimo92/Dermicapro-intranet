@@ -19,10 +19,7 @@ NEW_COLOR=$([ "$ACTIVE" = "blue" ] && echo "green" || echo "blue")
 
 echo "[deploy] Activo: $ACTIVE → Desplegando: $NEW_COLOR"
 
-# 1. Pull código
-git pull origin main
-
-# 2. Build imagen del nuevo color
+# 1. Build imagen del nuevo color
 echo "[deploy] Construyendo imagen $NEW_COLOR..."
 docker compose -p "dermicapro-${NEW_COLOR}" \
   -f "${REPO_DIR}/docker-compose.prod-${NEW_COLOR}.yml" \

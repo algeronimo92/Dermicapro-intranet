@@ -17,4 +17,5 @@ jobs:
           script: |
             set -e
             cd /docker/dermicapro-intranet
+            git pull origin main
             bash scripts/deploy-prod.sh
