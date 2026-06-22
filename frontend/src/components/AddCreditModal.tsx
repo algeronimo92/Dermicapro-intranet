@@ -44,6 +44,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showConfirm, setShowConfirm]   = useState(false);
 
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
   const handleRequestConfirm = () => {
     if (!validateAmount(amount)) return;
     setShowConfirm(true);
+
   };
 
   const handleSubmit = async () => {

@@ -102,7 +102,7 @@ export const AppointmentFormPage: React.FC = () => {
     return 30;
   };
 
-  type AppointmentFormData = CreateAppointmentDto & { notes: string };
+  type AppointmentFormData = CreateAppointmentDto & { notes: string; reservationAmount?: number };
 
   const [formData, setFormData] = useState<AppointmentFormData>({
     patientId: preselectedPatientId || '',

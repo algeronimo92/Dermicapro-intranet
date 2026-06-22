@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Appointment, AppointmentStatus, User } from '../types';
 import {
@@ -53,6 +53,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const [dragOverColumn, setDragOverColumn] = useState<AppointmentStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const touchDragActiveRef = useRef(false);
+  const touchStartPosRef   = useRef({ x: 0, y: 0 });
+  const justDraggedRef     = useRef(false);
+
   // Attend modal state
   const [pendingAttend, setPendingAttend] = useState<Appointment | null>(null);
   const [staffUsers, setStaffUsers] = useState<User[]>([]);
@@ -62,6 +66,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   useEffect(() => {
     usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const prevent = (e: TouchEvent) => {
+      if (touchDragActiveRef.current) e.preventDefault();
+    };
+    document.addEventListener('touchmove', prevent, { passive: false });
+    return () => document.removeEventListener('touchmove', prevent);
   }, []);
 
   const draggingAppointment = appointments.find(a => a.id === draggingId);
@@ -103,6 +115,91 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const handleDragEnd = () => {
     setDraggingId(null);
     setDragOverColumn(null);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, appointmentId: string) => {
+    const apt = appointments.find(a => a.id === appointmentId);
+    if (!apt || FINAL_STATES.includes(apt.status)) return;
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    touchDragActiveRef.current = false;
+    justDraggedRef.current = false;
+    setDraggingId(appointmentId);
+    setErrorMsg(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!draggingId) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartPosRef.current.x;
+    const dy = touch.clientY - touchStartPosRef.current.y;
+    if (!touchDragActiveRef.current && Math.sqrt(dx * dx + dy * dy) > 8) {
+      touchDragActiveRef.current = true;
+    }
+    if (!touchDragActiveRef.current) return;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const colEl = el?.closest('[data-status]');
+    const status = (colEl?.getAttribute('data-status') as AppointmentStatus) ?? null;
+    setDragOverColumn(status);
+  };
+
+  const handleTouchEnd = async () => {
+    if (!draggingId || !touchDragActiveRef.current) {
+      setDraggingId(null);
+      setDragOverColumn(null);
+      touchDragActiveRef.current = false;
+      return;
+    }
+
+    touchDragActiveRef.current = false;
+    justDraggedRef.current = true;
+    setTimeout(() => { justDraggedRef.current = false; }, 150);
+
+    const targetStatus = dragOverColumn;
+    setDragOverColumn(null);
+
+    if (!targetStatus || !draggingAppointment) {
+      setDraggingId(null);
+      return;
+    }
+
+    if (draggingAppointment.status === targetStatus) {
+      setDraggingId(null);
+      return;
+    }
+
+    const result = canTransition(draggingAppointment.status, targetStatus, user?.role);
+    if (!result.allowed) {
+      setErrorMsg(result.reason || 'No se puede mover esta cita aquí');
+      setDraggingId(null);
+      return;
+    }
+
+    if (needsConfirmation(draggingAppointment.status, targetStatus)) {
+      const msg =
+        getConfirmationMessage(draggingAppointment.status, targetStatus) ||
+        '¿Confirmas este cambio de estado?';
+      if (!window.confirm(msg)) {
+        setDraggingId(null);
+        return;
+      }
+    }
+
+    const idToUpdate = draggingAppointment.id;
+    setDraggingId(null);
+
+    if (targetStatus === AppointmentStatus.attended) {
+      setSelectedAttendees(new Set());
+      setAttendModalError(null);
+      setPendingAttend(draggingAppointment);
+      return;
+    }
+
+    try {
+      await onStatusChange(idToUpdate, targetStatus);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || err.message || 'Error al cambiar el estado');
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, targetStatus: AppointmentStatus) => {
@@ -236,6 +333,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           return (
             <div
               key={col.status}
+              data-status={col.status}
               className={`kanban-column ${col.colorClass} ${dragClass}`}
               onDragOver={e => handleDragOver(e, col.status)}
               onDragLeave={handleDragLeave}
@@ -275,7 +373,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       draggable={!isFinal}
                       onDragStart={e => handleDragStart(e, apt.id)}
                       onDragEnd={handleDragEnd}
-                      onClick={() => !draggingId && navigate(`/appointments/${apt.id}`)}
+                      onTouchStart={e => handleTouchStart(e, apt.id)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      onClick={() => !justDraggedRef.current && !draggingId && navigate(`/appointments/${apt.id}`)}
                       title={isFinal ? 'Las citas en estado final no se pueden mover' : undefined}
                     >
                       <div className="kanban-card-top">
