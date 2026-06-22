@@ -6,32 +6,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS
+      - name: Deploy blue-green a producción
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          debug: true
           port: 22
-          timeout: 60s
-          command_timeout: 10m
+          command_timeout: 15m
           script: |
             set -e
             cd /docker/dermicapro-intranet
-            git pull origin main
-
-            # Fix red traefik si tiene labels incorrectos
-            if docker network inspect traefik-network >/dev/null 2>&1; then
-            docker compose -f docker-compose.prod.yml down || true  
-            docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml down || true
-              docker network rm traefik-network || true
-            fi
-
-            # Traefik
-            docker compose -p traefik -f /docker/dermicapro-intranet/traefik/docker-compose.yml up -d
-
-            # DermicaPro
-            docker compose -f docker-compose.prod.yml build --no-cache
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -f
+            bash scripts/deploy-prod.sh

@@ -151,3 +151,6 @@ docs/superpowers/
 .npm
 .eslintcache
 .stylelintcache
+
+# Blue-green deployment state (VPS only)
+active-color.txt

@@ -1,0 +1,43 @@
+# ================================
+# Database — Infraestructura permanente
+# ================================
+# Nunca se baja en deploys blue-green.
+# Comando: docker compose -p dermicapro-db -f docker-compose.prod-db.yml up -d
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: dermicapro-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-dermicapro}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dermicapro123}
+      POSTGRES_DB: ${DB_NAME:-dermicapro_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dermicapro} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - dermicapro-prod-network
+    logging:
+      driver: splunk
+      options:
+        splunk-token: "${SPLUNK_TOKEN}"
+        splunk-url: "${SPLUNK_URL}"
+        splunk-insecureskipverify: "true"
+        splunk-format: "json"
+        splunk-sourcetype: "docker:db"
+        tag: "{{.Name}}"
+
+networks:
+  dermicapro-prod-network:
+    external: true
+    name: dermicapro-prod-network
+
+volumes:
+  postgres_data:
+    name: dermicapro_postgres_data

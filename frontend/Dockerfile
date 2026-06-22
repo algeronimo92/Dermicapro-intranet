@@ -26,8 +26,8 @@ RUN npm run build
 # ----------------
 FROM nginx:alpine AS production
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx template (BACKEND_URL se inyecta en runtime via envsubst)
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 
 # Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -44,8 +44,8 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Sustituye solo ${BACKEND_URL} — las $variables de nginx ($host, $uri, etc.) quedan intactas
+CMD ["/bin/sh", "-c", "envsubst '${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
 
 # ----------------
 # Stage 3: Development
