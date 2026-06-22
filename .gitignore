@@ -140,6 +140,10 @@ pnpm-lock.yaml
 # Superpowers Plans
 # ================================
 docs/superpowers/
+<<<<<<< HEAD
+.superpowers/
+=======
+>>>>>>> main
 
 # ================================
 # Misc

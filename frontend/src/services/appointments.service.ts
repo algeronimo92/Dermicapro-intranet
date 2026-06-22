@@ -13,6 +13,7 @@ export interface CreateAppointmentDto {
   serviceId?: string; // DEPRECATED: Ya no se usa, todas las sesiones van en services[]
   scheduledDate: string;
   durationMinutes?: number;
+  reservationAmount?: number;
   reservationPaymentMethod?: string;
   orderId?: string; // DEPRECATED: Ya no se usa
   services?: AppointmentServiceDto[]; // Array de todas las sesiones (REQUERIDO)

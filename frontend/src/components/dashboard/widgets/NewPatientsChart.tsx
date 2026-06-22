@@ -77,7 +77,7 @@ export const NewPatientsChart: React.FC<NewPatientsChartProps> = ({
               width={32}
             />
             <Tooltip
-              formatter={(value: unknown) => [value, 'Pacientes nuevos']}
+              formatter={(value: unknown) => [value as React.ReactNode, 'Pacientes nuevos']}
               labelFormatter={(label: unknown) =>
                 typeof label === 'string' ? formatLabel(label, granularity) : ''
               }

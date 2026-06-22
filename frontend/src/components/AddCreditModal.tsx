@@ -42,6 +42,8 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
   const [showCamera, setShowCamera]     = useState(false);
   const [lightbox, setLightbox]         = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showConfirm, setShowConfirm]   = useState(false);
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +57,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
       setError(null);
       setAmountError('');
       setFileError('');
+      setShowConfirm(false);
     }
   }, [isOpen]);
 
@@ -94,8 +97,14 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = async () => {
+  const handleRequestConfirm = () => {
     if (!validateAmount(amount)) return;
+    setShowConfirm(true);
+
+  };
+
+  const handleSubmit = async () => {
+    setShowConfirm(false);
     try {
       setSaving(true);
       setError(null);
@@ -326,7 +335,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
 
       <div className="modal-actions">
         <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={saving || !!amountError || !amount}>
+        <Button variant="primary" onClick={handleRequestConfirm} disabled={saving || !!amountError || !amount}>
           {saving ? 'Agregando saldo...' : 'Agregar Saldo'}
         </Button>
       </div>
@@ -340,6 +349,62 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
 
       {lightbox && receiptPreviews.length > 0 && (
         <ImageViewer images={receiptPreviews.filter(p => !!p)} initialIndex={lightboxIndex} alt="Comprobante" onClose={() => setLightbox(false)} />
+      )}
+
+      {showConfirm && (
+        <Modal isOpen onClose={() => setShowConfirm(false)} title="Confirmar abono" size="small">
+          <div style={{
+            background: 'var(--color-error-alpha-10, rgba(220,38,38,0.08))',
+            border: '2px solid var(--color-error, #dc2626)',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--spacing-lg)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-md)',
+          }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 'var(--radius-full)',
+              background: 'var(--color-error, #dc2626)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M12 9v4M12 17h.01" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{
+                fontSize: 'var(--font-size-lg)', fontWeight: 700,
+                color: 'var(--color-error, #dc2626)', margin: '0 0 8px',
+              }}>
+                Atencion: Esta accion no se puede deshacer
+              </p>
+              <p style={{
+                fontSize: 'var(--font-size-sm)', color: 'var(--color-text-primary)',
+                margin: 0, lineHeight: 1.5,
+              }}>
+                Se agregara <strong style={{ color: 'var(--color-text-primary)' }}>S/. {parseFloat(amount).toFixed(2)}</strong> al
+                saldo a favor de <strong style={{ color: 'var(--color-text-primary)' }}>{patientName}</strong> mediante <strong style={{ color: 'var(--color-text-primary)' }}>{METHODS.find(m => m.value === method)?.label}</strong>.
+              </p>
+              <p style={{
+                fontSize: 'var(--font-size-sm)', color: 'var(--color-text-tertiary)',
+                margin: '8px 0 0', lineHeight: 1.5,
+              }}>
+                Nuevo saldo: <strong style={{ color: 'var(--color-primary)' }}>S/. {(currentBalance + parseFloat(amount)).toFixed(2)}</strong>
+              </p>
+            </div>
+          </div>
+          <div className="modal-actions" style={{ marginTop: 'var(--spacing-lg)' }}>
+            <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSubmit}
+              style={{ background: 'var(--color-error, #dc2626)', borderColor: 'var(--color-error, #dc2626)' }}
+            >
+              Si, agregar saldo
+            </Button>
+          </div>
+        </Modal>
       )}
     </Modal>
   );
