@@ -1,0 +1,22 @@
+# Routing de producción — gestionado por scripts/deploy-prod.sh
+# Este archivo se sobreescribe en cada deploy para apuntar al color activo.
+# Traefik lo detecta en ~1-2s sin necesidad de reinicio.
+http:
+  routers:
+    production:
+      rule: "Host(`dermicapro.app`) || Host(`www.dermicapro.app`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: production-active
+
+  services:
+    production-active:
+      loadBalancer:
+        servers:
+          - url: "http://dermicapro-frontend-blue:80"
+        healthCheck:
+          path: /health
+          interval: 10s
+          timeout: 3s
