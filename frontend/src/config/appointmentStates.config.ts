@@ -85,7 +85,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
     },
     permissions: {
       canView: [Role.admin, Role.medical_staff, Role.sales],
-      canEdit: [Role.admin, Role.sales],
+      canEdit: [Role.admin, Role.medical_staff, Role.sales],
       canDelete: [Role.admin],
       canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
@@ -134,7 +134,7 @@ const STATES_CONFIG: Record<AppointmentStatus, AppointmentStateConfig> = {
     },
     permissions: {
       canView: [Role.admin, Role.medical_staff, Role.sales],
-      canEdit: [Role.admin, Role.sales],
+      canEdit: [Role.admin, Role.medical_staff, Role.sales],
       canDelete: [Role.admin],
       canChangeStatus: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
       canUploadPhotos: [Role.admin, Role.medical_staff, Role.sales, Role.assistant],
