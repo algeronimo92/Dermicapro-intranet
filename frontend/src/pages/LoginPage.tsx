@@ -158,7 +158,7 @@ export function LoginPage() {
           {view === 'cards' && (
             <>
               <div className="login-form-header">
-                <h1 className="login-welcome">Bienvenido de vuelta</h1>
+                <h1 className="login-welcome">Bienvenido de vuelta!!</h1>
                 <p className="login-subtitle">Selecciona tu cuenta para continuar</p>
               </div>
 
