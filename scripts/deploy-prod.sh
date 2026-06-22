@@ -8,11 +8,6 @@ REPO_DIR="/docker/dermicapro-intranet"
 STATE_FILE="${REPO_DIR}/active-color.txt"
 TRAEFIK_DYNAMIC="${REPO_DIR}/traefik/dynamic/production.yml"
 
-# Cargar variables de entorno de producción
-set -a
-source "${REPO_DIR}/.env.production"
-set +a
-
 # Determinar colores
 ACTIVE=$(cat "$STATE_FILE" 2>/dev/null || echo "blue")
 NEW_COLOR=$([ "$ACTIVE" = "blue" ] && echo "green" || echo "blue")
