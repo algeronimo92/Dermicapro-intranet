@@ -104,61 +104,34 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
    * Rules:
    * - Current time + 1 hour minimum
    * - Round up to next 30-minute interval
-   * Examples:
-   * - 11:00 -> 12:00
-   * - 12:00 -> 13:00
-   * - 12:01 -> 13:30
-   * - 13:31 -> 15:00
    */
-  const calculateMinimumTime = (): string => {
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
+  // const calculateMinimumTime = (): string => {
+  //   const now = new Date();
+  //   const currentHours = now.getHours();
+  //   const currentMinutes = now.getMinutes();
+  //   let minHours = currentHours + 1;
+  //   let minMinutes = currentMinutes;
+  //   if (minMinutes > 0 && minMinutes <= 30) { minMinutes = 30; }
+  //   else if (minMinutes > 30) { minMinutes = 0; minHours += 1; }
+  //   if (minHours >= 24) { minHours = 23; minMinutes = 30; }
+  //   return `${String(minHours).padStart(2, '0')}:${String(minMinutes).padStart(2, '0')}`;
+  // };
 
-    // Add 1 hour
-    let minHours = currentHours + 1;
-    let minMinutes = currentMinutes;
-
-    // Round up to next 30-minute interval
-    if (minMinutes > 0 && minMinutes <= 30) {
-      minMinutes = 30;
-    } else if (minMinutes > 30) {
-      minMinutes = 0;
-      minHours += 1;
-    }
-
-    // Handle overflow
-    if (minHours >= 24) {
-      minHours = 23;
-      minMinutes = 30;
-    }
-
-    return `${String(minHours).padStart(2, '0')}:${String(minMinutes).padStart(2, '0')}`;
-  };
-
-  /**
-   * Check if selected date is today
-   */
-  const isSelectedDateToday = (): boolean => {
-    if (!selectedDate) return false;
-    const today = new Date();
-    const [year, month, day] = selectedDate.split('-').map(Number);
-    return (
-      day === today.getDate() &&
-      month - 1 === today.getMonth() &&
-      year === today.getFullYear()
-    );
-  };
+  // const isSelectedDateToday = (): boolean => {
+  //   if (!selectedDate) return false;
+  //   const today = new Date();
+  //   const [year, month, day] = selectedDate.split('-').map(Number);
+  //   return day === today.getDate() && month - 1 === today.getMonth() && year === today.getFullYear();
+  // };
 
   /**
    * Validate if a time is allowed for the selected date
    */
-  const isTimeValid = (timeStr: string): boolean => {
-    if (!isSelectedDateToday()) return true;
-
-    const minTime = calculateMinimumTime();
-    return timeStr >= minTime;
-  };
+  // const isTimeValid = (timeStr: string): boolean => {
+  //   if (!isSelectedDateToday()) return true;
+  //   const minTime = calculateMinimumTime();
+  //   return timeStr >= minTime;
+  // };
 
   // Calendar generation
   const generateCalendar = (year: number, month: number) => {

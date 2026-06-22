@@ -125,30 +125,21 @@ export const Calendar: React.FC<CalendarProps> = ({
    * Calculate the height of the blocked past time overlay
    * Returns the minimum allowed time position in pixels (current time + 1 hour rounded)
    */
-  const getBlockedPastHeight = (): number => {
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
-
-    // Add 1 hour
-    let minHours = currentHours + 1;
-    let minMinutes = currentMinutes;
-
-    // Round up to next 30-minute interval
-    if (minMinutes > 0 && minMinutes <= 30) {
-      minMinutes = 30;
-    } else if (minMinutes > 30) {
-      minMinutes = 0;
-      minHours += 1;
-    }
-
-    // Handle overflow
-    if (minHours >= 24) {
-      return 0; // Don't show overlay if we're past 11:00 PM
-    }
-
-    return minHours * 60 + minMinutes; // Convert to pixels (1px = 1 minute)
-  };
+  // const getBlockedPastHeight = (): number => {
+  //   const now = new Date();
+  //   const currentHours = now.getHours();
+  //   const currentMinutes = now.getMinutes();
+  //   let minHours = currentHours + 1;
+  //   let minMinutes = currentMinutes;
+  //   if (minMinutes > 0 && minMinutes <= 30) {
+  //     minMinutes = 30;
+  //   } else if (minMinutes > 30) {
+  //     minMinutes = 0;
+  //     minHours += 1;
+  //   }
+  //   if (minHours >= 24) return 0;
+  //   return minHours * 60 + minMinutes;
+  // };
 
   /**
    * Check if a date is in the past (before today)
@@ -165,13 +156,11 @@ export const Calendar: React.FC<CalendarProps> = ({
    * Check if a time position (in minutes) is in the past for today
    * Returns true if the time is before current time + 1 hour (rounded to 30 min)
    */
-  const isPastTimeToday = (date: Date, totalMinutes: number): boolean => {
-    // Only check if it's today
-    if (!shouldShowTimeIndicator(date)) return false;
-
-    const minAllowedMinutes = getBlockedPastHeight();
-    return totalMinutes < minAllowedMinutes;
-  };
+  // const isPastTimeToday = (date: Date, totalMinutes: number): boolean => {
+  //   if (!shouldShowTimeIndicator(date)) return false;
+  //   const minAllowedMinutes = getBlockedPastHeight();
+  //   return totalMinutes < minAllowedMinutes;
+  // };
 
   const handlePrev = () => {
     const newDate = new Date(currentDate);
