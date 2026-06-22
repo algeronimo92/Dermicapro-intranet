@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X, RefreshCw, Check, CameraOff, Grid3x3,
-  Timer, RotateCcw, ChevronLeft, ChevronRight,
+  Timer, RotateCcw,
 } from 'lucide-react';
 import './CameraCapture.css';
 
