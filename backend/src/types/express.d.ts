@@ -9,6 +9,7 @@ declare global {
         email: string;
         roleId?: string | null;
         roleName?: string;
+        tenantSlug?: string;
       };
       patient?: {
         id: string;
