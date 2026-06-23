@@ -39,12 +39,12 @@ export async function disconnectAllTenants(): Promise<void> {
   );
 }
 
-export function disconnectTenant(slug: string): void {
+export async function disconnectTenant(slug: string): Promise<void> {
   const cached = tenantClients.get(slug);
   if (cached) {
-    cached.prisma.$disconnect();
-    cached.pool.end();
     tenantClients.delete(slug);
+    await cached.prisma.$disconnect();
+    await cached.pool.end();
   }
 }
 
