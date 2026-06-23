@@ -2,9 +2,15 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+const VALID_SLUG = /^[a-z0-9_]{1,63}$/;
+
 const tenantClients = new Map<string, { prisma: PrismaClient; pool: Pool }>();
 
 export function getTenantPrisma(slug: string): PrismaClient {
+  if (!VALID_SLUG.test(slug)) {
+    throw new Error(`Invalid tenant slug: ${slug}`);
+  }
+
   const cached = tenantClients.get(slug);
   if (cached) return cached.prisma;
 
