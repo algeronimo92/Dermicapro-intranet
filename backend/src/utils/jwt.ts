@@ -7,6 +7,7 @@ export interface JwtPayload {
   email: string;
   roleId?: string | null;
   roleName?: string;
+  tenantSlug?: string;
 }
 
 export const generateAccessToken = (payload: JwtPayload | PatientJwtPayload): string => {

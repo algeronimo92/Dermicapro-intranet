@@ -19,7 +19,6 @@ export const authenticate = async (
     const token = authHeader.substring(7);
     const decoded = verifyAccessToken(token);
 
-    // Check if this is a patient token (has 'type' property set to 'patient')
     if ('type' in decoded && (decoded as PatientJwtPayload).type === 'patient') {
       res.status(401).json({ error: 'Los tokens de paciente no están permitidos en este endpoint' });
       return;
@@ -27,7 +26,17 @@ export const authenticate = async (
 
     const payload = decoded as JwtPayload;
 
-    const user = await prisma.user.findUnique({
+    // Cross-tenant isolation: if the token carries a tenantSlug and the request
+    // has a resolved tenant, they must match to prevent token reuse across tenants.
+    if (payload.tenantSlug && req.tenant && payload.tenantSlug !== req.tenant.slug) {
+      res.status(401).json({ error: 'Token inválido para esta clinica' });
+      return;
+    }
+
+    // Use the tenant-scoped PrismaClient when available so the user lookup hits
+    // the correct schema; fall back to the global client for non-tenant requests.
+    const db = req.tenantPrisma ?? prisma;
+    const user = await db.user.findUnique({
       where: { id: payload.id },
       select: { id: true },
     });

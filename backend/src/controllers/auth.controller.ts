@@ -1,9 +1,29 @@
 import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
 import prisma from '../config/database';
 import { comparePassword, hashPassword } from '../utils/password';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, JwtPayload } from '../utils/jwt';
 import { AppError } from '../middlewares/errorHandler';
 import { isValidPinFormat, MAX_PIN_ATTEMPTS } from '../utils/pin';
+
+// Selects the correct PrismaClient: tenant-scoped when available, global otherwise.
+function getPrisma(req: Request): PrismaClient {
+  return (req.tenantPrisma ?? prisma) as PrismaClient;
+}
+
+// Builds a JWT payload that includes tenantSlug when inside a tenant context.
+function buildPayload(
+  user: { id: string; email: string; roleId: string | null; role?: { name: string } | null },
+  tenantSlug?: string
+): JwtPayload {
+  return {
+    id: user.id,
+    email: user.email,
+    roleId: user.roleId,
+    roleName: user.role?.name,
+    ...(tenantSlug ? { tenantSlug } : {}),
+  };
+}
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -13,7 +33,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('El correo y la contraseña son requeridos', 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
+    const db = getPrisma(req);
+    const user = await db.user.findUnique({ where: { email }, include: { role: true } });
 
     if (!user || !user.isActive) {
       throw new AppError('Credenciales inválidas', 401);
@@ -26,16 +47,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     if (user.pinFailedAttempts > 0) {
-      await prisma.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
+      await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
     }
 
-    const payload = {
-      id: user.id,
-      email: user.email,
-      roleId: user.roleId,
-      roleName: user.role?.name,
-    };
-
+    const payload = buildPayload(user, req.tenant?.slug);
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
@@ -74,19 +89,16 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     }
 
     const decoded = verifyRefreshToken(refreshToken);
-
-    const user = await prisma.user.findUnique({ where: { id: decoded.id }, include: { role: true } });
+    const db = getPrisma(req);
+    const user = await db.user.findUnique({ where: { id: (decoded as JwtPayload).id }, include: { role: true } });
 
     if (!user || !user.isActive) {
       throw new AppError('Token de actualización inválido', 401);
     }
 
-    const payload = {
-      id: user.id,
-      email: user.email,
-      roleId: user.roleId,
-      roleName: user.role?.name,
-    };
+    // Preserve the tenantSlug from the original token (or from req.tenant if available).
+    const tenantSlug = req.tenant?.slug ?? (decoded as JwtPayload).tenantSlug;
+    const payload = buildPayload(user, tenantSlug);
 
     const newAccessToken = generateAccessToken(payload);
     const newRefreshToken = generateRefreshToken(payload);
@@ -110,7 +122,8 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('No autenticado', 401);
     }
 
-    const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { role: true } });
+    const db = getPrisma(req);
+    const user = await db.user.findUnique({ where: { id: req.user.id }, include: { role: true } });
 
     if (!user) {
       throw new AppError('Usuario no encontrado', 404);
@@ -162,15 +175,16 @@ export const updateMe = async (req: Request, res: Response): Promise<void> => {
       updateData.themeMode = themeMode;
     }
 
+    const db = getPrisma(req);
     if (email !== undefined) {
-      const existing = await prisma.user.findUnique({ where: { email } });
+      const existing = await db.user.findUnique({ where: { email } });
       if (existing && existing.id !== req.user!.id) {
         throw new AppError('Este correo ya está en uso por otro usuario', 409);
       }
       updateData.email = email;
     }
 
-    const user = await prisma.user.update({
+    const user = await db.user.update({
       where: { id: req.user!.id },
       data: updateData,
       include: { role: true },
@@ -220,7 +234,8 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       throw new AppError('La contraseña debe contener al menos un carácter especial', 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    const db = getPrisma(req);
+    const user = await db.user.findUnique({ where: { id: req.user!.id } });
     if (!user) throw new AppError('Usuario no encontrado', 404);
 
     const isValid = await comparePassword(currentPassword, user.passwordHash);
@@ -228,7 +243,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       throw new AppError('La contraseña actual es incorrecta', 401);
     }
 
-    await prisma.user.update({
+    await db.user.update({
       where: { id: req.user!.id },
       data: { passwordHash: await hashPassword(newPassword), mustChangePassword: false },
     });
@@ -255,7 +270,8 @@ export const loginWithPin = async (req: Request, res: Response): Promise<void> =
       throw new AppError('El PIN debe tener 4 dígitos', 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId }, include: { role: true } });
+    const db = getPrisma(req);
+    const user = await db.user.findUnique({ where: { id: userId }, include: { role: true } });
 
     if (!user || !user.isActive) {
       throw new AppError('Credenciales inválidas', 401);
@@ -273,7 +289,7 @@ export const loginWithPin = async (req: Request, res: Response): Promise<void> =
 
     if (!isValidPin) {
       const attempts = user.pinFailedAttempts + 1;
-      await prisma.user.update({ where: { id: user.id }, data: { pinFailedAttempts: attempts } });
+      await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: attempts } });
 
       if (attempts >= MAX_PIN_ATTEMPTS) {
         throw new AppError('PIN incorrecto. Tu PIN ha sido bloqueado. Inicia sesión con tu contraseña para reactivarlo.', 423);
@@ -283,16 +299,10 @@ export const loginWithPin = async (req: Request, res: Response): Promise<void> =
     }
 
     if (user.pinFailedAttempts > 0) {
-      await prisma.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
+      await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
     }
 
-    const payload = {
-      id: user.id,
-      email: user.email,
-      roleId: user.roleId,
-      roleName: user.role?.name,
-    };
-
+    const payload = buildPayload(user, req.tenant?.slug);
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
@@ -334,7 +344,8 @@ export const setPin = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('El PIN debe tener 4 dígitos y no puede ser una combinación obvia', 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    const db = getPrisma(req);
+    const user = await db.user.findUnique({ where: { id: req.user!.id } });
     if (!user) throw new AppError('Usuario no encontrado', 404);
 
     const isValid = await comparePassword(currentPassword, user.passwordHash);
@@ -342,7 +353,7 @@ export const setPin = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('La contraseña actual es incorrecta', 401);
     }
 
-    await prisma.user.update({
+    await db.user.update({
       where: { id: req.user!.id },
       data: { pinHash: await hashPassword(pin), pinFailedAttempts: 0 },
     });
@@ -359,7 +370,8 @@ export const setPin = async (req: Request, res: Response): Promise<void> => {
 
 export const removePin = async (req: Request, res: Response): Promise<void> => {
   try {
-    await prisma.user.update({
+    const db = getPrisma(req);
+    await db.user.update({
       where: { id: req.user!.id },
       data: { pinHash: null, pinFailedAttempts: 0 },
     });

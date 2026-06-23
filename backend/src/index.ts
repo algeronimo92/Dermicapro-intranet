@@ -5,6 +5,7 @@ import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { generalLimiter } from './middlewares/rateLimiter';
 import { requestLogger } from './middlewares/requestLogger';
+import { tenantResolver } from './middlewares/tenantResolver';
 import prisma from './config/database';
 import fs from 'fs';
 import path from 'path';
@@ -23,6 +24,9 @@ app.use(requestLogger);
 if (config.env === 'production') {
   app.use('/api', generalLimiter);
 }
+
+// Resolve tenant from subdomain (sets req.tenant + req.tenantPrisma when matched)
+app.use(tenantResolver);
 
 if (!fs.existsSync(config.upload.directory)) {
   fs.mkdirSync(config.upload.directory, { recursive: true });
