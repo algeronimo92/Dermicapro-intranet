@@ -1,3 +1,6 @@
+import { PrismaClient } from '@prisma/client';
+import { Tenant } from '../platform/types';
+
 declare global {
   namespace Express {
     interface Request {
@@ -15,6 +18,8 @@ declare global {
         dni: string;
         hasPortalAccess: boolean;
       };
+      tenant?: Tenant;
+      tenantPrisma?: PrismaClient;
     }
   }
 }
