@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import prisma from '../../config/database';
 import { DashboardStrategy } from './strategies/base.strategy';
 import { AdminDashboardStrategy } from './strategies/admin.strategy';
 import { MedicalDashboardStrategy } from './strategies/medical.strategy';
@@ -75,5 +74,3 @@ export class DashboardService {
   }
 }
 
-// Singleton: Exportar instancia única del servicio
-export const dashboardService = new DashboardService(prisma);

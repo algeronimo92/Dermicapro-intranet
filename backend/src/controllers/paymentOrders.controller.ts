@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
-import { paymentOrderService } from '../services/paymentOrder.service';
+import { PaymentOrderService } from '../services/paymentOrder.service';
 import { PaymentOrderFactory } from '../services/paymentOrder.factory';
 import { parseStartOfDay } from '../utils/dateUtils';
 
@@ -23,7 +23,7 @@ export const getAllPaymentOrders = async (req: Request, res: Response): Promise<
     }
 
     const [paymentOrders, total] = await Promise.all([
-      prisma.paymentOrder.findMany({
+      getPrisma(req).paymentOrder.findMany({
         where,
         skip,
         take,
@@ -67,7 +67,7 @@ export const getAllPaymentOrders = async (req: Request, res: Response): Promise<
           },
         },
       }),
-      prisma.paymentOrder.count({ where }),
+      getPrisma(req).paymentOrder.count({ where }),
     ]);
 
     // Calcular balance para cada orden de pago
@@ -103,7 +103,7 @@ export const getPaymentOrderById = async (req: Request, res: Response): Promise<
   try {
     const { id } = req.params;
 
-    const paymentOrder = await paymentOrderService.getPaymentOrderById(id);
+    const paymentOrder = await new PaymentOrderService(getPrisma(req)).getPaymentOrderById(id);
 
     // Calcular total pagado y balance
     const totalPaid = paymentOrder.payments?.reduce(
@@ -135,7 +135,7 @@ export const updatePaymentOrderStatus = async (req: Request, res: Response): Pro
       throw new AppError('Estado inválido. Debe ser uno de: pending, partial, paid, cancelled', 400);
     }
 
-    const paymentOrder = await prisma.paymentOrder.update({
+    const paymentOrder = await getPrisma(req).paymentOrder.update({
       where: { id },
       data: { status },
       include: {
@@ -163,7 +163,7 @@ export const getPaymentOrdersByPatient = async (req: Request, res: Response): Pr
   try {
     const { patientId } = req.params;
 
-    const paymentOrders = await paymentOrderService.getPatientPaymentOrders(patientId);
+    const paymentOrders = await new PaymentOrderService(getPrisma(req)).getPatientPaymentOrders(patientId);
 
     // Calcular balance para cada orden de pago
     const paymentOrdersWithBalance = paymentOrders.map((paymentOrder) => {
@@ -191,7 +191,7 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
     const { patientId } = req.params;
 
     const [paymentOrders, patient, ordersWithoutPaymentOrder] = await Promise.all([
-      prisma.paymentOrder.findMany({
+      getPrisma(req).paymentOrder.findMany({
         where: { patientId, status: { not: 'cancelled' } },
         include: {
           payments: { where: { voidedAt: null } },
@@ -199,11 +199,11 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
         },
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.patient.findUnique({
+      getPrisma(req).patient.findUnique({
         where: { id: patientId },
         select: { accountBalance: true },
       }),
-      prisma.serviceInstance.findMany({
+      getPrisma(req).serviceInstance.findMany({
         where: { patientId, paymentOrderId: null },
         include: { service: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'desc' },
@@ -306,7 +306,7 @@ export const createPaymentOrder = async (req: Request, res: Response): Promise<v
     if (priceOverrides && Array.isArray(priceOverrides) && priceOverrides.length > 0) {
       await Promise.all(
         (priceOverrides as { id: string; finalPrice: number }[]).map(override =>
-          prisma.serviceInstance.update({
+          getPrisma(req).serviceInstance.update({
             where: { id: override.id },
             data: { finalPrice: override.finalPrice },
           })
@@ -321,7 +321,7 @@ export const createPaymentOrder = async (req: Request, res: Response): Promise<v
       dueDate ? parseStartOfDay(dueDate) : undefined
     );
 
-    const paymentOrder = await paymentOrderService.createPaymentOrder(paymentOrderDto);
+    const paymentOrder = await new PaymentOrderService(getPrisma(req)).createPaymentOrder(paymentOrderDto);
 
     res.status(201).json(paymentOrder);
   } catch (error) {
@@ -340,7 +340,7 @@ export const getOrdersWithoutPaymentOrder = async (req: Request, res: Response):
   try {
     const { patientId } = req.params;
 
-    const orders = await paymentOrderService.getOrdersWithoutPaymentOrder(patientId);
+    const orders = await new PaymentOrderService(getPrisma(req)).getOrdersWithoutPaymentOrder(patientId);
 
     res.json(orders);
   } catch (error) {
@@ -355,7 +355,7 @@ export const cancelPaymentOrder = async (req: Request, res: Response): Promise<v
   try {
     const { id } = req.params;
 
-    const paymentOrder = await paymentOrderService.cancelPaymentOrder(id);
+    const paymentOrder = await new PaymentOrderService(getPrisma(req)).cancelPaymentOrder(id);
 
     res.json(paymentOrder);
   } catch (error) {
@@ -374,7 +374,7 @@ export const autoUpdatePaymentOrderStatus = async (req: Request, res: Response):
   try {
     const { id } = req.params;
 
-    const paymentOrder = await paymentOrderService.updatePaymentOrderStatus(id);
+    const paymentOrder = await new PaymentOrderService(getPrisma(req)).updatePaymentOrderStatus(id);
 
     res.json(paymentOrder);
   } catch (error) {

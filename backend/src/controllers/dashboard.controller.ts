@@ -1,23 +1,8 @@
 import { Request, Response } from 'express';
-import { dashboardService } from '../services/dashboard/dashboard.service';
+import { DashboardService } from '../services/dashboard/dashboard.service';
 import { AppError } from '../middlewares/errorHandler';
+import { getPrisma } from '../utils/tenant';
 
-/**
- * Controller para endpoints de dashboards
- * Delega la lógica de negocio al DashboardService que usa Strategy Pattern
- */
-
-/**
- * GET /api/dashboard
- *
- * Obtiene los datos del dashboard para el usuario autenticado
- * El tipo de dashboard se determina automáticamente por el rol del usuario
- *
- * Query params:
- * - period: 'today' | 'week' | 'month' | 'year' (opcional, default: 'month')
- *
- * @requires authenticate middleware - req.user debe estar presente
- */
 export const getDashboard = async (
   req: Request,
   res: Response
@@ -31,15 +16,12 @@ export const getDashboard = async (
     const roleName = req.user.roleName;
     const userId = req.user.id;
 
-    // Validar que el usuario tenga un rol asignado
     if (!roleName) {
       throw new AppError('Usuario sin rol asignado', 403);
     }
 
-    // Delegar al servicio que aplicará la estrategia correspondiente
-    const data = await dashboardService.getDashboard(roleName, userId, {
-      period,
-    });
+    const svc = new DashboardService(getPrisma(req));
+    const data = await svc.getDashboard(roleName, userId, { period });
 
     res.json({ data });
   } catch (error) {
@@ -52,18 +34,13 @@ export const getDashboard = async (
   }
 };
 
-/**
- * GET /api/dashboard/available-roles
- *
- * Obtiene la lista de roles que tienen dashboard disponible
- * Útil para debugging y documentación
- */
 export const getAvailableRoles = async (
-  _req: Request,
+  req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const roles = dashboardService.getAvailableRoles();
+    const svc = new DashboardService(getPrisma(req));
+    const roles = svc.getAvailableRoles();
     res.json({ roles });
   } catch (error) {
     console.error('Error al obtener roles disponibles:', error);

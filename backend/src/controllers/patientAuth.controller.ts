@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { comparePassword, hashPassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middlewares/errorHandler';
@@ -18,7 +18,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Buscar paciente por email
-    const patient = await prisma.patient.findFirst({
+    const patient = await getPrisma(req).patient.findFirst({
       where: { email },
     });
 
@@ -54,7 +54,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const refreshToken = generateRefreshToken(payload);
 
     // Actualizar lastLogin
-    await prisma.patient.update({
+    await getPrisma(req).patient.update({
       where: { id: patient.id },
       data: { lastLogin: new Date() },
     });
@@ -101,7 +101,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Buscar paciente
-    const patient = await prisma.patient.findUnique({
+    const patient = await getPrisma(req).patient.findUnique({
       where: { id: decoded.id },
     });
 
@@ -145,7 +145,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Cargar datos completos del paciente
-    const patient = await prisma.patient.findUnique({
+    const patient = await getPrisma(req).patient.findUnique({
       where: { id: req.patient.id },
       select: {
         id: true,
@@ -237,7 +237,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     }
 
     // Cargar paciente con password hash
-    const patient = await prisma.patient.findUnique({
+    const patient = await getPrisma(req).patient.findUnique({
       where: { id: req.patient.id },
     });
 
@@ -256,7 +256,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     const newPasswordHash = await hashPassword(newPassword);
 
     // Actualizar contraseña
-    await prisma.patient.update({
+    await getPrisma(req).patient.update({
       where: { id: patient.id },
       data: {
         passwordHash: newPasswordHash,

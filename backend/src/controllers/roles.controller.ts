@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 
-export const getAllRoles = async (_req: Request, res: Response): Promise<void> => {
+export const getAllRoles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const roles = await prisma.role.findMany({
+    const roles = await getPrisma(req).role.findMany({
       orderBy: { name: 'asc' },
       select: {
         id: true,

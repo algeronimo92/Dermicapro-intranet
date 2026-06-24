@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
 import { ROLES } from '../constants/roles';
@@ -39,14 +39,14 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     const where = Object.keys(conditions).length > 0 ? conditions : {};
 
     const [users, total] = await Promise.all([
-      prisma.user.findMany({
+      getPrisma(req).user.findMany({
         where,
         skip,
         take,
         orderBy: { createdAt: 'desc' },
         include: { role: true },
       }),
-      prisma.user.count({ where }),
+      getPrisma(req).user.count({ where }),
     ]);
 
     const formattedUsers = users.map(user => ({
@@ -87,7 +87,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma(req).user.findUnique({
       where: { id },
       include: {
         role: true,
@@ -148,7 +148,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Verificar si el email ya existe
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await getPrisma(req).user.findUnique({
       where: { email },
     });
 
@@ -159,7 +159,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     // Hash de la contraseña
     const passwordHash = await hashPassword(password);
 
-    const user = await prisma.user.create({
+    const user = await getPrisma(req).user.create({
       data: {
         email,
         passwordHash,
@@ -211,7 +211,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     // Verificar si se está cambiando el email
     if (email !== undefined) {
       // Verificar que no exista otro usuario con ese email
-      const existingUser = await prisma.user.findUnique({
+      const existingUser = await getPrisma(req).user.findUnique({
         where: { email },
       });
 
@@ -241,7 +241,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       updateData.passwordHash = await hashPassword(password);
     }
 
-    const user = await prisma.user.update({
+    const user = await getPrisma(req).user.update({
       where: { id },
       data: updateData,
       include: { role: true },
@@ -285,7 +285,7 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
       throw new AppError('No puedes desactivar tu propia cuenta', 400);
     }
 
-    const user = await prisma.user.update({
+    const user = await getPrisma(req).user.update({
       where: { id },
       data: { isActive: false },
     });
@@ -313,7 +313,7 @@ export const activateUser = async (req: Request, res: Response): Promise<void> =
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.update({
+    const user = await getPrisma(req).user.update({
       where: { id },
       data: { isActive: true },
     });
@@ -337,7 +337,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma(req).user.findUnique({
       where: { id },
       include: {
         role: true,
@@ -361,13 +361,13 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
 
     if (user.role?.name === ROLES.SALES) {
       // Estadísticas de ventas
-      const commissionStats = await prisma.commission.aggregate({
+      const commissionStats = await getPrisma(req).commission.aggregate({
         where: { salesPersonId: id },
         _sum: { commissionAmount: true },
         _count: true,
       });
 
-      const paidCommissions = await prisma.commission.aggregate({
+      const paidCommissions = await getPrisma(req).commission.aggregate({
         where: {
           salesPersonId: id,
           status: 'paid',
@@ -382,7 +382,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
       };
     } else if (user.role?.name === ROLES.MEDICAL_STAFF) {
       // Estadísticas de enfermería
-      const recentAppointments = await prisma.appointment.count({
+      const recentAppointments = await getPrisma(req).appointment.count({
         where: {
           attendedById: id,
           attendedAt: {
@@ -432,7 +432,7 @@ export const uploadUserPhoto = async (req: Request, res: Response): Promise<void
 
     const photoUrl = `/uploads/${req.file.filename}`;
 
-    const user = await prisma.user.update({
+    const user = await getPrisma(req).user.update({
       where: { id },
       data: { photoUrl },
       include: { role: true },

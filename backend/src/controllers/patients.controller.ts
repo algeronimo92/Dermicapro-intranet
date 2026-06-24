@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
 import { parseStartOfDay } from '../utils/dateUtils';
 import { hashPassword } from '../utils/password';
@@ -33,7 +33,7 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
     const where = Object.keys(conditions).length > 0 ? conditions : {};
 
     const [patients, total] = await Promise.all([
-      prisma.patient.findMany({
+      getPrisma(req).patient.findMany({
         where,
         skip,
         take,
@@ -80,7 +80,7 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
           },
         },
       }),
-      prisma.patient.count({ where }),
+      getPrisma(req).patient.count({ where }),
     ]);
 
     // Transformar los datos para incluir lastAttendedDate y lastAttendedBy
@@ -121,7 +121,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
 
-    const patient = await prisma.patient.findUnique({
+    const patient = await getPrisma(req).patient.findUnique({
       where: { id },
       include: {
         appointments: {
@@ -240,7 +240,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
       throw new AppError('Faltan campos requeridos', 400);
     }
 
-    const existingPatient = await prisma.patient.findUnique({
+    const existingPatient = await getPrisma(req).patient.findUnique({
       where: { dni },
     });
 
@@ -251,7 +251,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
     // Hash del DNI para usarlo como contraseña inicial
     const passwordHash = await hashPassword(dni);
 
-    const patient = await prisma.patient.create({
+    const patient = await getPrisma(req).patient.create({
       data: {
         firstName,
         lastName,
@@ -286,11 +286,11 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
     const { firstName, lastName, dni, dateOfBirth, sex, phone, email, address, photoUrl } = req.body;
 
     if (dni) {
-      const existing = await prisma.patient.findFirst({ where: { dni, NOT: { id } } });
+      const existing = await getPrisma(req).patient.findFirst({ where: { dni, NOT: { id } } });
       if (existing) throw new AppError('Ya existe un paciente con este DNI', 409);
     }
 
-    const patient = await prisma.patient.update({
+    const patient = await getPrisma(req).patient.update({
       where: { id },
       data: {
         firstName,
@@ -324,12 +324,12 @@ export const resetPatientPassword = async (req: Request, res: Response): Promise
       throw new AppError('La nueva contraseña debe tener al menos 6 caracteres', 400);
     }
 
-    const patient = await prisma.patient.findUnique({ where: { id } });
+    const patient = await getPrisma(req).patient.findUnique({ where: { id } });
     if (!patient) throw new AppError('Paciente no encontrado', 404);
 
     const passwordHash = await hashPassword(newPassword);
 
-    await prisma.patient.update({
+    await getPrisma(req).patient.update({
       where: { id },
       data: {
         passwordHash,
@@ -352,7 +352,7 @@ export const deletePatient = async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
 
-    await prisma.patient.delete({
+    await getPrisma(req).patient.delete({
       where: { id },
     });
 
@@ -367,7 +367,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
     const { id } = req.params;
 
     // Obtener información del paciente
-    const patient = await prisma.patient.findUnique({
+    const patient = await getPrisma(req).patient.findUnique({
       where: { id },
       select: {
         id: true,
@@ -393,7 +393,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
     }
 
     // Obtener todas las citas del paciente
-    const appointments = await prisma.appointment.findMany({
+    const appointments = await getPrisma(req).appointment.findMany({
       where: { patientId: id },
       include: {
         appointmentServices: {
@@ -460,7 +460,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
     const lastAppointment = appointments[0];
 
     // Tratamientos concluidos anticipadamente
-    const concludedOrders = await prisma.serviceInstance.findMany({
+    const concludedOrders = await getPrisma(req).serviceInstance.findMany({
       where: { patientId: id, concludedAt: { not: null } },
       include: {
         service: { select: { id: true, name: true } },
@@ -499,13 +499,13 @@ export const getCreditHistory = async (req: Request, res: Response): Promise<voi
   try {
     const { id } = req.params;
 
-    const patient = await prisma.patient.findUnique({
+    const patient = await getPrisma(req).patient.findUnique({
       where: { id },
       select: { id: true, accountBalance: true },
     });
     if (!patient) { res.status(404).json({ error: 'Paciente no encontrado' }); return; }
 
-    const credits = await prisma.payment.findMany({
+    const credits = await getPrisma(req).payment.findMany({
       where: {
         patientId: id,
         voidedAt: null,
@@ -533,7 +533,7 @@ export const closeServiceInstance = async (req: Request, res: Response): Promise
     const { id: patientId, orderId } = req.params;
     const { reason } = req.body;
 
-    const order = await prisma.serviceInstance.findFirst({
+    const order = await getPrisma(req).serviceInstance.findFirst({
       where: { id: orderId, patientId },
     });
 
@@ -546,7 +546,7 @@ export const closeServiceInstance = async (req: Request, res: Response): Promise
       return;
     }
 
-    const updated = await prisma.serviceInstance.update({
+    const updated = await getPrisma(req).serviceInstance.update({
       where: { id: orderId },
       data: {
         concludedAt: new Date(),
@@ -566,13 +566,13 @@ export const reopenServiceInstance = async (req: Request, res: Response): Promis
   try {
     const { id: patientId, orderId } = req.params;
 
-    const order = await prisma.serviceInstance.findFirst({
+    const order = await getPrisma(req).serviceInstance.findFirst({
       where: { id: orderId, patientId },
     });
 
     if (!order) { res.status(404).json({ error: 'Servicio no encontrado' }); return; }
 
-    const updated = await prisma.serviceInstance.update({
+    const updated = await getPrisma(req).serviceInstance.update({
       where: { id: orderId },
       data: { concludedAt: null, concludedById: null, concludeReason: null },
     });

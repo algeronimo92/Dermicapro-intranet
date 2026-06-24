@@ -7,8 +7,11 @@ import { Request, Response, NextFunction } from 'express';
 import sharp from 'sharp';
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, config.upload.directory);
+  destination: (req, _file, cb) => {
+    const tenantSlug = (req as any).tenant?.slug || 'default';
+    const dir = path.join(config.upload.directory, tenantSlug);
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
   },
   filename: (_req, file, cb) => {
     const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;

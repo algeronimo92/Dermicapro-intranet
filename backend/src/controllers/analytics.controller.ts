@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import { analyticsService } from '../services/analytics/analytics.service';
+import { AnalyticsService } from '../services/analytics/analytics.service';
 import { AnalyticsFilters } from '../types/analytics.types';
+import { getPrisma } from '../utils/tenant';
 
 export const getExecutiveSummary = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -10,7 +11,7 @@ export const getExecutiveSummary = async (req: Request, res: Response): Promise<
       endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
     };
 
-    const data = await analyticsService.getExecutiveSummary(filters);
+    const data = await new AnalyticsService(getPrisma(req)).getExecutiveSummary(filters);
     res.json(data);
   } catch (error: any) {
     console.error('Executive summary error:', error);
@@ -26,7 +27,7 @@ export const getFinancialAnalytics = async (req: Request, res: Response): Promis
       endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
     };
 
-    const data = await analyticsService.getFinancialAnalytics(filters);
+    const data = await new AnalyticsService(getPrisma(req)).getFinancialAnalytics(filters);
     res.json(data);
   } catch (error: any) {
     console.error('Financial analytics error:', error);
@@ -42,7 +43,7 @@ export const getOperationsAnalytics = async (req: Request, res: Response): Promi
       endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
     };
 
-    const data = await analyticsService.getOperationsAnalytics(filters);
+    const data = await new AnalyticsService(getPrisma(req)).getOperationsAnalytics(filters);
     res.json(data);
   } catch (error: any) {
     console.error('Operations analytics error:', error);
@@ -59,7 +60,7 @@ export const getSalesAnalytics = async (req: Request, res: Response): Promise<vo
       salesPersonId: req.query.salesPersonId as string | undefined
     };
 
-    const data = await analyticsService.getSalesAnalytics(filters);
+    const data = await new AnalyticsService(getPrisma(req)).getSalesAnalytics(filters);
     res.json(data);
   } catch (error: any) {
     console.error('Sales analytics error:', error);
@@ -75,7 +76,7 @@ export const getCustomerAnalytics = async (req: Request, res: Response): Promise
       endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
     };
 
-    const data = await analyticsService.getCustomerAnalytics(filters);
+    const data = await new AnalyticsService(getPrisma(req)).getCustomerAnalytics(filters);
     res.json(data);
   } catch (error: any) {
     console.error('Customer analytics error:', error);
@@ -92,7 +93,7 @@ export const getServiceAnalytics = async (req: Request, res: Response): Promise<
       serviceTemplateId: req.query.serviceTemplateId as string | undefined
     };
 
-    const data = await analyticsService.getServiceAnalytics(filters);
+    const data = await new AnalyticsService(getPrisma(req)).getServiceAnalytics(filters);
     res.json(data);
   } catch (error: any) {
     console.error('Service analytics error:', error);

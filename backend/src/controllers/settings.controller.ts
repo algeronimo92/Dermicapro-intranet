@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
 
 const VALID_KEYS = ['session_timeout_minutes'] as const;
@@ -13,9 +13,9 @@ const SETTING_META: Record<SettingKey, { description: string; min: number; max: 
   },
 };
 
-export const getSettings = async (_req: Request, res: Response): Promise<void> => {
+export const getSettings = async (req: Request, res: Response): Promise<void> => {
   try {
-    const rows = await prisma.systemSetting.findMany();
+    const rows = await getPrisma(req).systemSetting.findMany();
     const settings: Record<string, string> = {};
     rows.forEach(r => { settings[r.key] = r.value; });
 
@@ -54,7 +54,7 @@ export const updateSetting = async (req: Request, res: Response): Promise<void> 
       );
     }
 
-    const updated = await prisma.systemSetting.upsert({
+    const updated = await getPrisma(req).systemSetting.upsert({
       where: { key },
       update: { value: String(num), updatedById: req.user!.id },
       create: { key, value: String(num), description: meta.description, updatedById: req.user!.id },

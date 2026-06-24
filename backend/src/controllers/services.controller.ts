@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 
 export const getServices = async (req: Request, res: Response) => {
   try {
     const includeDeleted = req.query.includeDeleted === 'true';
 
-    const services = await prisma.serviceTemplate.findMany({
+    const services = await getPrisma(req).serviceTemplate.findMany({
       where: includeDeleted ? {} : { deletedAt: null },
       orderBy: { name: 'asc' }
     });
@@ -15,9 +15,9 @@ export const getServices = async (req: Request, res: Response) => {
   }
 };
 
-export const getActiveServices = async (_req: Request, res: Response) => {
+export const getActiveServices = async (req: Request, res: Response) => {
   try {
-    const services = await prisma.serviceTemplate.findMany({
+    const services = await getPrisma(req).serviceTemplate.findMany({
       where: {
         isActive: true,
         deletedAt: null
@@ -33,7 +33,7 @@ export const getActiveServices = async (_req: Request, res: Response) => {
 export const getService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const service = await prisma.serviceTemplate.findUnique({
+    const service = await getPrisma(req).serviceTemplate.findUnique({
       where: { id }
     });
 
@@ -76,7 +76,7 @@ export const createService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El tipo de comisión debe ser "percentage" o "fixed"' });
     }
 
-    const service = await prisma.serviceTemplate.create({
+    const service = await getPrisma(req).serviceTemplate.create({
       data: {
         name,
         description,
@@ -102,7 +102,7 @@ export const updateService = async (req: Request, res: Response) => {
     const { name, description, basePrice, defaultSessions, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
 
     // Verificar que el servicio existe
-    const existingService = await prisma.serviceTemplate.findUnique({
+    const existingService = await getPrisma(req).serviceTemplate.findUnique({
       where: { id }
     });
 
@@ -131,7 +131,7 @@ export const updateService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El tipo de comisión debe ser "percentage" o "fixed"' });
     }
 
-    const service = await prisma.serviceTemplate.update({
+    const service = await getPrisma(req).serviceTemplate.update({
       where: { id },
       data: {
         name,
@@ -157,7 +157,7 @@ export const deleteService = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Verificar que el servicio existe
-    const existingService = await prisma.serviceTemplate.findUnique({
+    const existingService = await getPrisma(req).serviceTemplate.findUnique({
       where: { id }
     });
 
@@ -170,7 +170,7 @@ export const deleteService = async (req: Request, res: Response) => {
     }
 
     // Soft delete: solo actualizar deletedAt
-    await prisma.serviceTemplate.update({
+    await getPrisma(req).serviceTemplate.update({
       where: { id },
       data: { deletedAt: new Date() }
     });
@@ -186,7 +186,7 @@ export const restoreService = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Verificar que el servicio existe
-    const existingService = await prisma.serviceTemplate.findUnique({
+    const existingService = await getPrisma(req).serviceTemplate.findUnique({
       where: { id }
     });
 
@@ -199,7 +199,7 @@ export const restoreService = async (req: Request, res: Response) => {
     }
 
     // Restaurar: poner deletedAt a null
-    const service = await prisma.serviceTemplate.update({
+    const service = await getPrisma(req).serviceTemplate.update({
       where: { id },
       data: { deletedAt: null }
     });
