@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
 import { ROLES } from '../constants/roles';
 
@@ -53,7 +53,7 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
     }
 
     const [commissions, total] = await Promise.all([
-      prisma.commission.findMany({
+      getPrisma(req).commission.findMany({
         where,
         skip,
         take,
@@ -113,11 +113,11 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
           },
         },
       }),
-      prisma.commission.count({ where }),
+      getPrisma(req).commission.count({ where }),
     ]);
 
     // Calcular totales por estado
-    const totals = await prisma.commission.groupBy({
+    const totals = await getPrisma(req).commission.groupBy({
       by: ['status'],
       where: salesPersonId ? { salesPersonId: salesPersonId as string } : {},
       _sum: {
@@ -155,7 +155,7 @@ export const getCommissionById = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
 
-    const commission = await prisma.commission.findUnique({
+    const commission = await getPrisma(req).commission.findUnique({
       where: { id },
       include: {
         salesPerson: {
@@ -237,7 +237,7 @@ export const getCommissionsSummaryBySales = async (req: Request, res: Response):
     }
 
     // Agrupar por vendedor y estado
-    const summary = await prisma.commission.groupBy({
+    const summary = await getPrisma(req).commission.groupBy({
       by: ['salesPersonId', 'status'],
       where,
       _sum: {
@@ -248,7 +248,7 @@ export const getCommissionsSummaryBySales = async (req: Request, res: Response):
 
     // Obtener información de vendedores
     const salesPersonIds = [...new Set(summary.map((s) => s.salesPersonId))];
-    const salesPersons = await prisma.user.findMany({
+    const salesPersons = await getPrisma(req).user.findMany({
       where: {
         id: { in: salesPersonIds },
       },
@@ -310,7 +310,7 @@ export const approveCommission = async (req: Request, res: Response): Promise<vo
     const { notes } = req.body;
 
     // Verificar que existe y obtener la cita asociada
-    const existing = await prisma.commission.findUnique({
+    const existing = await getPrisma(req).commission.findUnique({
       where: { id },
       include: {
         appointment: {
@@ -337,7 +337,7 @@ export const approveCommission = async (req: Request, res: Response): Promise<vo
     }
 
     // Aprobar
-    const commission = await prisma.commission.update({
+    const commission = await getPrisma(req).commission.update({
       where: { id },
       data: {
         status: 'approved',
@@ -389,7 +389,7 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
     }
 
     // Verificar que existe
-    const existing = await prisma.commission.findUnique({
+    const existing = await getPrisma(req).commission.findUnique({
       where: { id },
     });
 
@@ -402,7 +402,7 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
     }
 
     // Rechazar
-    const commission = await prisma.commission.update({
+    const commission = await getPrisma(req).commission.update({
       where: { id },
       data: {
         status: 'rejected',
@@ -443,7 +443,7 @@ export const markAsPaid = async (req: Request, res: Response): Promise<void> => 
     const { paymentMethod, paymentReference, notes } = req.body;
 
     // Verificar que existe
-    const existing = await prisma.commission.findUnique({
+    const existing = await getPrisma(req).commission.findUnique({
       where: { id },
     });
 
@@ -456,7 +456,7 @@ export const markAsPaid = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Marcar como pagada
-    const commission = await prisma.commission.update({
+    const commission = await getPrisma(req).commission.update({
       where: { id },
       data: {
         status: 'paid',
@@ -509,7 +509,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
     }
 
     // Verificar que todas las comisiones tengan citas atendidas
-    const commissions = await prisma.commission.findMany({
+    const commissions = await getPrisma(req).commission.findMany({
       where: {
         id: { in: commissionIds },
       },
@@ -536,7 +536,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
     }
 
     // Actualizar en lote solo las que están pending
-    const result = await prisma.commission.updateMany({
+    const result = await getPrisma(req).commission.updateMany({
       where: {
         id: { in: commissionIds },
         status: 'pending',
@@ -575,7 +575,7 @@ export const batchMarkAsPaid = async (req: Request, res: Response): Promise<void
     }
 
     // Actualizar en lote
-    const result = await prisma.commission.updateMany({
+    const result = await getPrisma(req).commission.updateMany({
       where: {
         id: { in: commissionIds },
         status: 'approved',
@@ -613,7 +613,7 @@ export const cancelCommission = async (req: Request, res: Response): Promise<voi
     const { notes } = req.body;
 
     // Verificar que existe
-    const existing = await prisma.commission.findUnique({
+    const existing = await getPrisma(req).commission.findUnique({
       where: { id },
     });
 
@@ -626,7 +626,7 @@ export const cancelCommission = async (req: Request, res: Response): Promise<voi
     }
 
     // Cancelar
-    const commission = await prisma.commission.update({
+    const commission = await getPrisma(req).commission.update({
       where: { id },
       data: {
         status: 'cancelled',

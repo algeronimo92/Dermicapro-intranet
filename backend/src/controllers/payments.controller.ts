@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
 import { parseStartOfDay } from '../utils/dateUtils';
 
@@ -35,7 +35,7 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
     }
 
     const [payments, total] = await Promise.all([
-      prisma.payment.findMany({
+      getPrisma(req).payment.findMany({
         where,
         skip,
         take,
@@ -80,7 +80,7 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
           },
         },
       }),
-      prisma.payment.count({ where }),
+      getPrisma(req).payment.count({ where }),
     ]);
 
     res.json({
@@ -101,7 +101,7 @@ export const getPaymentById = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
 
-    const payment = await prisma.payment.findUnique({
+    const payment = await getPrisma(req).payment.findUnique({
       where: { id },
       include: {
         patient: true,
@@ -173,7 +173,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
 
     // Si se usa saldo a favor, validar que el paciente tenga suficiente balance
     if (paymentMethod === 'account_credit') {
-      const patient = await prisma.patient.findUnique({ where: { id: patientId }, select: { accountBalance: true } });
+      const patient = await getPrisma(req).patient.findUnique({ where: { id: patientId }, select: { accountBalance: true } });
       if (!patient) throw new AppError('Paciente no encontrado', 404);
       if (parseFloat(patient.accountBalance.toString()) < amount) {
         throw new AppError(
@@ -183,7 +183,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await getPrisma(req).$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           patientId,
@@ -266,10 +266,10 @@ export const addCredit = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('No se puede usar saldo a favor para cargar saldo a favor', 400);
     }
 
-    const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+    const patient = await getPrisma(req).patient.findUnique({ where: { id: patientId } });
     if (!patient) throw new AppError('Paciente no encontrado', 404);
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await getPrisma(req).$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           patientId,
@@ -311,7 +311,7 @@ export const updatePayment = async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
     const { notes, receiptUrl } = req.body;
 
-    const payment = await prisma.payment.update({
+    const payment = await getPrisma(req).payment.update({
       where: { id },
       data: {
         notes,
@@ -335,7 +335,7 @@ export const voidPayment = async (req: Request, res: Response): Promise<void> =>
     const { id } = req.params;
     const { reason } = req.body;
 
-    const payment = await prisma.payment.findUnique({
+    const payment = await getPrisma(req).payment.findUnique({
       where: { id },
       select: {
         paymentOrderId: true,
@@ -351,7 +351,7 @@ export const voidPayment = async (req: Request, res: Response): Promise<void> =>
     if (!payment) throw new AppError('Pago no encontrado', 404);
     if (payment.voidedAt) throw new AppError('El pago ya fue anulado', 409);
 
-    await prisma.$transaction(async (tx) => {
+    await getPrisma(req).$transaction(async (tx) => {
       // Soft delete: marcar como anulado
       await tx.payment.update({
         where: { id },
@@ -429,7 +429,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       throw new AppError('No se subieron archivos', 400);
     }
 
-    const existing = await prisma.payment.findUnique({
+    const existing = await getPrisma(req).payment.findUnique({
       where: { id },
       select: { receiptUrls: true },
     });
@@ -443,7 +443,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
     const newUrls = files.map(f => `/uploads/${f.filename}`);
 
-    const payment = await prisma.payment.update({
+    const payment = await getPrisma(req).payment.update({
       where: { id },
       data: {
         receiptUrls: { push: newUrls },

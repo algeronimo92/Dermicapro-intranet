@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
-import prisma from '../config/database';
+import { getPrisma } from '../utils/tenant';
 import { AppError } from '../middlewares/errorHandler';
 import { prepareDateRange } from '../utils/dateUtils';
 import { ROLES } from '../constants/roles';
@@ -43,7 +43,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
     }
 
     const [appointments, total] = await Promise.all([
-      prisma.appointment.findMany({
+      getPrisma(req).appointment.findMany({
         where,
         skip,
         take,
@@ -94,7 +94,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
           },
         },
       }),
-      prisma.appointment.count({ where }),
+      getPrisma(req).appointment.count({ where }),
     ]);
 
     res.json({
@@ -115,7 +115,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
   try {
     const { id } = req.params;
 
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patient: true,
@@ -199,7 +199,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
     }
 
     // Ejecutar todas las operaciones dentro de una transacción
-    const appointment = await prisma.$transaction(async (tx) => {
+    const appointment = await getPrisma(req).$transaction(async (tx) => {
       // ============================================
       // PASO 1: Crear el Appointment
       // ============================================
@@ -375,7 +375,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
     console.log('🔍 BACKEND DEBUG: Full body =', JSON.stringify(req.body, null, 2));
 
     // Ejecutar todas las operaciones dentro de una transacción
-    const appointment = await prisma.$transaction(async (tx) => {
+    const appointment = await getPrisma(req).$transaction(async (tx) => {
       // ============================================
       // PASO 1: Soft delete de sesiones marcadas
       // ============================================
@@ -571,7 +571,7 @@ export const deleteAppointment = async (req: Request, res: Response): Promise<vo
 
     // Soft delete: marca la cita como cancelada en lugar de eliminarla
     // Esto preserva el historial, comisiones y registros asociados
-    await prisma.appointment.update({
+    await getPrisma(req).appointment.update({
       where: { id },
       data: { status: 'cancelled' },
     });
@@ -623,7 +623,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
 
-    const appointment = await prisma.$transaction(async (tx) => {
+    const appointment = await getPrisma(req).$transaction(async (tx) => {
       const existingAppointment = await tx.appointment.findUnique({
         where: { id },
         include: {
@@ -735,7 +735,7 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const appointment = await prisma.appointment.findUnique({ where: { id } });
+    const appointment = await getPrisma(req).appointment.findUnique({ where: { id } });
     if (!appointment) {
       res.status(404).json({ error: 'Cita no encontrada' });
       return;
@@ -747,19 +747,19 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const userExists = await prisma.user.findUnique({ where: { id: userId } });
+    const userExists = await getPrisma(req).user.findUnique({ where: { id: userId } });
     if (!userExists) {
       res.status(404).json({ error: 'Usuario no encontrado' });
       return;
     }
 
-    await prisma.appointmentAttendee.upsert({
+    await getPrisma(req).appointmentAttendee.upsert({
       where: { appointmentId_userId: { appointmentId: id, userId } },
       create: { appointmentId: id, userId, addedById: req.user!.id },
       update: {},
     });
 
-    const updated = await prisma.appointment.findUnique({
+    const updated = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
     });
@@ -775,7 +775,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
   try {
     const { id, userId } = req.params;
 
-    const appointment = await prisma.appointment.findUnique({ where: { id } });
+    const appointment = await getPrisma(req).appointment.findUnique({ where: { id } });
     if (!appointment) {
       res.status(404).json({ error: 'Cita no encontrada' });
       return;
@@ -787,7 +787,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const attendee = await prisma.appointmentAttendee.findUnique({
+    const attendee = await getPrisma(req).appointmentAttendee.findUnique({
       where: { appointmentId_userId: { appointmentId: id, userId } },
     });
 
@@ -796,11 +796,11 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    await prisma.appointmentAttendee.delete({
+    await getPrisma(req).appointmentAttendee.delete({
       where: { appointmentId_userId: { appointmentId: id, userId } },
     });
 
-    const updated = await prisma.appointment.findUnique({
+    const updated = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: APPOINTMENT_INCLUDE_WITH_ATTENDEES,
     });
@@ -825,7 +825,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
     const receiptUrls = files.map(f => `/uploads/${f.filename}`);
 
-    const appointment = await prisma.$transaction(async (tx) => {
+    const appointment = await getPrisma(req).$transaction(async (tx) => {
       const apt = await tx.appointment.findUnique({
         where: { id },
         select: { id: true, patientId: true },
@@ -871,7 +871,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
       return apt;
     });
 
-    const fresh = await prisma.appointment.findUnique({
+    const fresh = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         payments: {
@@ -927,7 +927,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
     }
 
     // Get the appointment
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patientRecords: {
@@ -946,7 +946,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
 
     if (!patientRecord) {
       // Create a new patient record if none exists
-      patientRecord = await prisma.patientRecord.create({
+      patientRecord = await getPrisma(req).patientRecord.create({
         data: {
           patientId: appointment.patientId,
           appointmentId: appointment.id,
@@ -960,7 +960,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
       const currentBeforePhotos = (patientRecord.beforePhotoUrls as string[]) || [];
       const currentAfterPhotos = (patientRecord.afterPhotoUrls as string[]) || [];
 
-      patientRecord = await prisma.patientRecord.update({
+      patientRecord = await getPrisma(req).patientRecord.update({
         where: { id: patientRecord.id },
         data: {
           beforePhotoUrls: type === 'before'
@@ -974,7 +974,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
     }
 
     // Return updated appointment with patient records
-    const updatedAppointment = await prisma.appointment.findUnique({
+    const updatedAppointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patient: true,
@@ -1031,7 +1031,7 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
       throw new AppError('El tipo debe ser "before" o "after"', 400);
     }
 
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patientRecords: {
@@ -1049,7 +1049,7 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
     const currentBefore = (patientRecord.beforePhotoUrls as string[]) || [];
     const currentAfter  = (patientRecord.afterPhotoUrls  as string[]) || [];
 
-    await prisma.patientRecord.update({
+    await getPrisma(req).patientRecord.update({
       where: { id: patientRecord.id },
       data: {
         beforePhotoUrls: type === 'before' ? currentBefore.filter(u => u !== photoUrl) : currentBefore,
@@ -1062,7 +1062,7 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
     const filePath = `${process.env.UPLOAD_DIR || './uploads'}/${filename}`;
     try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* ignore */ }
 
-    const updatedAppointment = await prisma.appointment.findUnique({
+    const updatedAppointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patient: true,
@@ -1091,7 +1091,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
     const { weight, bodyMeasurement, healthNotes } = req.body;
 
     // Get the appointment
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patientRecords: {
@@ -1110,7 +1110,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
 
     if (!patientRecord) {
       // Create a new patient record if none exists
-      patientRecord = await prisma.patientRecord.create({
+      patientRecord = await getPrisma(req).patientRecord.create({
         data: {
           patientId: appointment.patientId,
           appointmentId: appointment.id,
@@ -1122,7 +1122,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
       });
     } else {
       // Update existing patient record
-      patientRecord = await prisma.patientRecord.update({
+      patientRecord = await getPrisma(req).patientRecord.update({
         where: { id: patientRecord.id },
         data: {
           weight: weight !== undefined ? (weight ? parseFloat(weight) : null) : undefined,
@@ -1133,7 +1133,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
     }
 
     // Return updated appointment with patient records
-    const updatedAppointment = await prisma.appointment.findUnique({
+    const updatedAppointment = await getPrisma(req).appointment.findUnique({
       where: { id },
       include: {
         patient: true,
@@ -1202,7 +1202,7 @@ export const createAppointmentNote = async (req: Request, res: Response): Promis
     }
 
     // Verify appointment exists
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await getPrisma(req).appointment.findUnique({
       where: { id },
     });
 
@@ -1211,7 +1211,7 @@ export const createAppointmentNote = async (req: Request, res: Response): Promis
     }
 
     // Create the note
-    const appointmentNote = await prisma.appointmentNote.create({
+    const appointmentNote = await getPrisma(req).appointmentNote.create({
       data: {
         appointmentId: id,
         note: note.trim(),
