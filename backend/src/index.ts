@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config/env';
 import routes from './routes';
+import platformRoutes from './routes/platform';
 import { errorHandler } from './middlewares/errorHandler';
 import { generalLimiter } from './middlewares/rateLimiter';
 import { requestLogger } from './middlewares/requestLogger';
@@ -61,6 +62,7 @@ app.get('/health', async (_req, res) => {
 // Tenant resolution runs before all API routes
 app.use('/api', tenantResolver);
 app.use('/api', routes);
+app.use('/platform', platformRoutes);
 
 app.use(errorHandler);
 
