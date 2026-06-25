@@ -29,3 +29,37 @@ export interface TenantMetrics {
   lastAccess: Date | null;
   updatedAt: Date;
 }
+
+export interface TenantMigration {
+  id: string;
+  tenantId: string;
+  migrationName: string;
+  appliedAt: Date;
+  status: 'success' | 'failed';
+  error: string | null;
+}
+
+export interface CreateTenantDto {
+  name: string;
+  slug: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  logoUrl?: string;
+  adminEmail?: string;
+  adminPassword?: string;
+  adminFirstName?: string;
+  adminLastName?: string;
+}
+
+export interface UpdateTenantDto {
+  name?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  logoUrl?: string;
+}
+
+export interface ProvisionResult {
+  tenant: Tenant;
+  migrationsApplied: number;
+  adminCreated: boolean;
+}

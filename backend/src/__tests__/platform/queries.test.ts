@@ -208,4 +208,109 @@ describe('Platform Queries', () => {
       expect(admin).toBeNull();
     });
   });
+
+  describe('createTenant', () => {
+    it('inserts a new tenant with is_active=false and returns mapped row', async () => {
+      const row = {
+        id: 'uuid-1', name: 'Clinic A', slug: 'clinica_a', is_active: false,
+        contact_email: null, contact_phone: null, logo_url: null,
+        created_at: new Date(), updated_at: new Date(),
+      };
+      mockPool.query.mockResolvedValueOnce({ rows: [row] });
+
+      const tenant = await queries.createTenant({ name: 'Clinic A', slug: 'clinica_a' });
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO tenants'),
+        ['Clinic A', 'clinica_a', null, null, null],
+      );
+      expect(tenant).toMatchObject({ id: 'uuid-1', name: 'Clinic A', slug: 'clinica_a', isActive: false });
+    });
+  });
+
+  describe('updateTenant', () => {
+    it('updates tenant and returns mapped row', async () => {
+      const row = { id: 'uuid-1', name: 'New Name', slug: 'clinica_a', is_active: true, contact_email: 'x@y.com', contact_phone: null, logo_url: null, created_at: new Date(), updated_at: new Date() };
+      mockPool.query.mockResolvedValueOnce({ rows: [row] });
+
+      const result = await queries.updateTenant('uuid-1', { name: 'New Name', contactEmail: 'x@y.com' });
+
+      expect(result).toMatchObject({ name: 'New Name', contactEmail: 'x@y.com' });
+    });
+
+    it('returns null when tenant not found', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      const result = await queries.updateTenant('nonexistent', { name: 'X' });
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('setTenantActive', () => {
+    it('activates tenant', async () => {
+      const row = { id: 'uuid-1', name: 'Clinic', slug: 'clinic', is_active: true, contact_email: null, contact_phone: null, logo_url: null, created_at: new Date(), updated_at: new Date() };
+      mockPool.query.mockResolvedValueOnce({ rows: [row] });
+
+      const result = await queries.setTenantActive('uuid-1', true);
+      expect(result?.isActive).toBe(true);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('is_active = $2'), ['uuid-1', true]);
+    });
+  });
+
+  describe('listAllTenants', () => {
+    it('returns all tenants ordered by created_at desc', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [
+        { id: '1', name: 'A', slug: 'a', is_active: true, contact_email: null, contact_phone: null, logo_url: null, created_at: new Date(), updated_at: new Date() },
+        { id: '2', name: 'B', slug: 'b', is_active: false, contact_email: null, contact_phone: null, logo_url: null, created_at: new Date(), updated_at: new Date() },
+      ] });
+      const tenants = await queries.listAllTenants();
+      expect(tenants).toHaveLength(2);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('ORDER BY created_at DESC'));
+    });
+  });
+
+  describe('insertTenantMigration', () => {
+    it('upserts migration record', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      await queries.insertTenantMigration({ tenantId: 'tid', migrationName: '20251203_init', status: 'success' });
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO tenant_migrations'),
+        ['tid', '20251203_init', 'success', null],
+      );
+    });
+
+    it('records error for failed migration', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      await queries.insertTenantMigration({ tenantId: 'tid', migrationName: 'bad', status: 'failed', error: 'syntax error' });
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.any(String),
+        ['tid', 'bad', 'failed', 'syntax error'],
+      );
+    });
+  });
+
+  describe('listTenantMigrations', () => {
+    it('returns migrations for tenant ordered by applied_at desc', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [
+        { id: 'm1', tenant_id: 'tid', migration_name: 'init', applied_at: new Date(), status: 'success', error: null },
+      ] });
+      const migrations = await queries.listTenantMigrations('tid');
+      expect(migrations).toHaveLength(1);
+      expect(migrations[0]).toMatchObject({ tenantId: 'tid', migrationName: 'init', status: 'success' });
+    });
+  });
+
+  describe('findTenantById', () => {
+    it('returns tenant by id', async () => {
+      const row = { id: 'uuid-1', name: 'Clinic', slug: 'clinic', is_active: true, contact_email: null, contact_phone: null, logo_url: null, created_at: new Date(), updated_at: new Date() };
+      mockPool.query.mockResolvedValueOnce({ rows: [row] });
+      const result = await queries.findTenantById('uuid-1');
+      expect(result).toMatchObject({ id: 'uuid-1', name: 'Clinic' });
+    });
+
+    it('returns null when tenant not found', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      const result = await queries.findTenantById('nonexistent');
+      expect(result).toBeNull();
+    });
+  });
 });

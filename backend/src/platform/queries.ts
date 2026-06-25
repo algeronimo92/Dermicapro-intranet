@@ -1,5 +1,5 @@
 import platformPool from './db';
-import { Tenant, PlatformAdmin } from './types';
+import { Tenant, PlatformAdmin, TenantMigration, CreateTenantDto, UpdateTenantDto } from './types';
 
 function mapTenantRow(row: any): Tenant {
   return {
@@ -27,6 +27,17 @@ function mapPlatformAdminRow(row: any): PlatformAdmin {
   };
 }
 
+function mapTenantMigrationRow(row: any): TenantMigration {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    migrationName: row.migration_name,
+    appliedAt: row.applied_at,
+    status: row.status,
+    error: row.error,
+  };
+}
+
 export async function findTenantBySlug(slug: string): Promise<Tenant | null> {
   const result = await platformPool.query(
     'SELECT * FROM tenants WHERE slug = $1',
@@ -43,9 +54,24 @@ export async function findActiveTenantBySlug(slug: string): Promise<Tenant | nul
   return result.rows[0] ? mapTenantRow(result.rows[0]) : null;
 }
 
+export async function findTenantById(id: string): Promise<Tenant | null> {
+  const result = await platformPool.query(
+    'SELECT * FROM tenants WHERE id = $1',
+    [id]
+  );
+  return result.rows[0] ? mapTenantRow(result.rows[0]) : null;
+}
+
 export async function listActiveTenants(): Promise<Tenant[]> {
   const result = await platformPool.query(
     'SELECT * FROM tenants WHERE is_active = true ORDER BY name'
+  );
+  return result.rows.map(mapTenantRow);
+}
+
+export async function listAllTenants(): Promise<Tenant[]> {
+  const result = await platformPool.query(
+    'SELECT * FROM tenants ORDER BY created_at DESC'
   );
   return result.rows.map(mapTenantRow);
 }
@@ -56,6 +82,66 @@ export async function findPlatformAdminByEmail(email: string): Promise<PlatformA
     [email]
   );
   return result.rows[0] ? mapPlatformAdminRow(result.rows[0]) : null;
+}
+
+export async function listTenantMigrations(tenantId: string): Promise<TenantMigration[]> {
+  const result = await platformPool.query(
+    'SELECT * FROM tenant_migrations WHERE tenant_id = $1 ORDER BY applied_at DESC',
+    [tenantId]
+  );
+  return result.rows.map(mapTenantMigrationRow);
+}
+
+// ── Write queries ─────────────────────────────────────────────────────────────
+
+export async function createTenant(
+  dto: Pick<CreateTenantDto, 'name' | 'slug' | 'contactEmail' | 'contactPhone' | 'logoUrl'>
+): Promise<Tenant> {
+  const result = await platformPool.query(
+    `INSERT INTO tenants (name, slug, contact_email, contact_phone, logo_url, is_active)
+     VALUES ($1, $2, $3, $4, $5, false)
+     RETURNING *`,
+    [dto.name, dto.slug, dto.contactEmail ?? null, dto.contactPhone ?? null, dto.logoUrl ?? null]
+  );
+  return mapTenantRow(result.rows[0]);
+}
+
+export async function updateTenant(id: string, dto: UpdateTenantDto): Promise<Tenant | null> {
+  const result = await platformPool.query(
+    `UPDATE tenants
+     SET name          = COALESCE($2, name),
+         contact_email = COALESCE($3, contact_email),
+         contact_phone = COALESCE($4, contact_phone),
+         logo_url      = COALESCE($5, logo_url),
+         updated_at    = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [id, dto.name ?? null, dto.contactEmail ?? null, dto.contactPhone ?? null, dto.logoUrl ?? null]
+  );
+  return result.rows[0] ? mapTenantRow(result.rows[0]) : null;
+}
+
+export async function setTenantActive(id: string, isActive: boolean): Promise<Tenant | null> {
+  const result = await platformPool.query(
+    'UPDATE tenants SET is_active = $2, updated_at = NOW() WHERE id = $1 RETURNING *',
+    [id, isActive]
+  );
+  return result.rows[0] ? mapTenantRow(result.rows[0]) : null;
+}
+
+export async function insertTenantMigration(data: {
+  tenantId: string;
+  migrationName: string;
+  status: 'success' | 'failed';
+  error?: string;
+}): Promise<void> {
+  await platformPool.query(
+    `INSERT INTO tenant_migrations (tenant_id, migration_name, status, error)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (tenant_id, migration_name)
+     DO UPDATE SET status = $3, error = $4, applied_at = NOW()`,
+    [data.tenantId, data.migrationName, data.status, data.error ?? null]
+  );
 }
 
 export { platformPool };
