@@ -1,5 +1,5 @@
 import platformPool from './db';
-import { Tenant, PlatformAdmin, TenantMigration, CreateTenantDto, UpdateTenantDto } from './types';
+import { Tenant, PlatformAdmin, TenantMigration, TenantMetrics, CreateTenantDto, UpdateTenantDto } from './types';
 
 function mapTenantRow(row: any): Tenant {
   return {
@@ -142,6 +142,49 @@ export async function insertTenantMigration(data: {
      DO UPDATE SET status = $3, error = $4, applied_at = NOW()`,
     [data.tenantId, data.migrationName, data.status, data.error ?? null]
   );
+}
+
+function mapTenantMetricsRow(row: any): TenantMetrics {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    totalPatients: row.total_patients,
+    totalAppointmentsMonth: row.total_appointments_month,
+    activeUsers: row.active_users,
+    lastAccess: row.last_access,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function upsertTenantMetrics(
+  tenantId: string,
+  data: {
+    totalPatients: number;
+    totalAppointmentsMonth: number;
+    activeUsers: number;
+    lastAccess: Date | null;
+  },
+): Promise<void> {
+  await platformPool.query(
+    `INSERT INTO tenant_metrics (tenant_id, total_patients, total_appointments_month, active_users, last_access)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (tenant_id)
+     DO UPDATE SET
+       total_patients          = $2,
+       total_appointments_month = $3,
+       active_users            = $4,
+       last_access             = $5,
+       updated_at              = NOW()`,
+    [tenantId, data.totalPatients, data.totalAppointmentsMonth, data.activeUsers, data.lastAccess],
+  );
+}
+
+export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics | null> {
+  const result = await platformPool.query(
+    'SELECT * FROM tenant_metrics WHERE tenant_id = $1',
+    [tenantId],
+  );
+  return result.rows[0] ? mapTenantMetricsRow(result.rows[0]) : null;
 }
 
 export { platformPool };
