@@ -46,7 +46,7 @@ This plan covers the backend foundation only. Subsequent plans will cover:
   - `findPlatformAdminByEmail(email: string): Promise<PlatformAdmin | null>`
   - `listActiveTenants(): Promise<Tenant[]>`
 
-- [ ] **Step 1: Create the platform SQL migration**
+- [x] **Step 1: Create the platform SQL migration**
 
 Create `backend/scripts/create-platform-schema.sql`:
 
@@ -102,7 +102,7 @@ CREATE INDEX idx_tenant_metrics_tenant_id ON tenant_metrics(tenant_id);
 CREATE INDEX idx_tenant_migrations_tenant_id ON tenant_migrations(tenant_id);
 ```
 
-- [ ] **Step 2: Create platform types**
+- [x] **Step 2: Create platform types**
 
 Create `backend/src/platform/types.ts`:
 
@@ -140,7 +140,7 @@ export interface TenantMetrics {
 }
 ```
 
-- [ ] **Step 3: Create platform database pool**
+- [x] **Step 3: Create platform database pool**
 
 Create `backend/src/platform/db.ts`:
 
@@ -155,7 +155,7 @@ const platformPool = new Pool({
 export default platformPool;
 ```
 
-- [ ] **Step 4: Create platform queries**
+- [x] **Step 4: Create platform queries**
 
 Create `backend/src/platform/queries.ts`:
 
@@ -221,7 +221,7 @@ export async function findPlatformAdminByEmail(email: string): Promise<PlatformA
 }
 ```
 
-- [ ] **Step 5: Write tests for platform queries**
+- [x] **Step 5: Write tests for platform queries**
 
 Create `backend/src/__tests__/platform/queries.test.ts`:
 
@@ -274,14 +274,14 @@ describe('Platform Queries', () => {
 });
 ```
 
-- [ ] **Step 6: Run tests to verify**
+- [x] **Step 6: Run tests to verify**
 
 Run: `cd backend && npx jest src/__tests__/platform/queries.test.ts --verbose`
 
 Note: These tests require the platform tables to exist in the database. Run the SQL script first:
 `make shell-db` then `\i /path/to/create-platform-schema.sql`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/scripts/create-platform-schema.sql backend/src/platform/
@@ -304,7 +304,7 @@ git commit -m "feat(platform): add platform schema tables and typed query layer"
   - `disconnectAllTenants(): Promise<void>` -- cleanup for graceful shutdown
   - `getTenantCacheSize(): number` -- for monitoring
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `backend/src/__tests__/platform/tenant-prisma.test.ts`:
 
@@ -349,12 +349,12 @@ describe('Tenant PrismaClient Factory', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd backend && npx jest src/__tests__/platform/tenant-prisma.test.ts --verbose`
 Expected: FAIL with "Cannot find module '../../platform/tenant-prisma'"
 
-- [ ] **Step 3: Implement tenant-prisma factory**
+- [x] **Step 3: Implement tenant-prisma factory**
 
 Create `backend/src/platform/tenant-prisma.ts`:
 
@@ -414,12 +414,12 @@ export function getTenantCacheSize(): number {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd backend && npx jest src/__tests__/platform/tenant-prisma.test.ts --verbose`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/platform/tenant-prisma.ts backend/src/__tests__/platform/tenant-prisma.test.ts
@@ -441,7 +441,7 @@ git commit -m "feat(platform): add tenant PrismaClient factory with caching"
   - `tenantResolver` middleware -- injects `req.tenant: Tenant` and `req.tenantPrisma: PrismaClient` into the request
   - Extended `Express.Request` type with `tenant` and `tenantPrisma` fields
 
-- [ ] **Step 1: Extend Express Request type**
+- [x] **Step 1: Extend Express Request type**
 
 Modify `backend/src/types/express.d.ts`:
 
@@ -476,7 +476,7 @@ declare global {
 export {};
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `backend/src/__tests__/middlewares/tenantResolver.test.ts`:
 
@@ -565,12 +565,12 @@ describe('tenantResolver middleware', () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `cd backend && npx jest src/__tests__/middlewares/tenantResolver.test.ts --verbose`
 Expected: FAIL with "Cannot find module '../../middlewares/tenantResolver'"
 
-- [ ] **Step 4: Implement tenantResolver middleware**
+- [x] **Step 4: Implement tenantResolver middleware**
 
 Create `backend/src/middlewares/tenantResolver.ts`:
 
@@ -632,12 +632,12 @@ export async function tenantResolver(
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `cd backend && npx jest src/__tests__/middlewares/tenantResolver.test.ts --verbose`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/src/types/express.d.ts backend/src/middlewares/tenantResolver.ts
@@ -662,7 +662,7 @@ git commit -m "feat(middleware): add tenant resolver for subdomain-based multi-t
   - `PatientJwtPayload` extended with `tenantSlug: string`
   - `authenticate` middleware now uses `req.tenantPrisma` and validates tenant slug match
 
-- [ ] **Step 1: Update JwtPayload types**
+- [x] **Step 1: Update JwtPayload types**
 
 Modify `backend/src/utils/jwt.ts` -- add `tenantSlug` to `JwtPayload`:
 
@@ -700,7 +700,7 @@ export const verifyRefreshToken = (token: string): JwtPayload | PatientJwtPayloa
 };
 ```
 
-- [ ] **Step 2: Update PatientJwtPayload**
+- [x] **Step 2: Update PatientJwtPayload**
 
 Modify `backend/src/types/auth.types.ts` -- add `tenantSlug` to `PatientJwtPayload`:
 
@@ -715,11 +715,11 @@ export interface PatientJwtPayload {
 // ... rest of the file stays the same
 ```
 
-- [ ] **Step 3: Update express.d.ts user type**
+- [x] **Step 3: Update express.d.ts user type**
 
 This was already done in Task 3 -- `tenantSlug` is included in `req.user`.
 
-- [ ] **Step 4: Update auth middleware to use tenant prisma and validate tenant slug**
+- [x] **Step 4: Update auth middleware to use tenant prisma and validate tenant slug**
 
 Modify `backend/src/middlewares/auth.ts`:
 
@@ -798,7 +798,7 @@ export const authorize = (...roleNames: string[]) => {
 };
 ```
 
-- [ ] **Step 5: Write auth middleware tests**
+- [x] **Step 5: Write auth middleware tests**
 
 Create `backend/src/__tests__/middlewares/auth.test.ts`:
 
@@ -868,12 +868,12 @@ describe('authenticate middleware', () => {
 });
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run: `cd backend && npx jest src/__tests__/middlewares/auth.test.ts --verbose`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/src/utils/jwt.ts backend/src/types/auth.types.ts
@@ -893,7 +893,7 @@ git commit -m "feat(auth): add tenantSlug to JWT and validate against subdomain"
 - Consumes: `req.tenant.slug`, `req.tenantPrisma` from middleware chain
 - Produces: JWT tokens now include `tenantSlug` field
 
-- [ ] **Step 1: Update auth.controller.ts**
+- [x] **Step 1: Update auth.controller.ts**
 
 In `backend/src/controllers/auth.controller.ts`, apply these changes:
 
@@ -956,7 +956,7 @@ export const functionName = async (req: Request, res: Response): Promise<void> =
     // ... rest of function unchanged
 ```
 
-- [ ] **Step 2: Update patientAuth.controller.ts**
+- [x] **Step 2: Update patientAuth.controller.ts**
 
 Same pattern -- remove global prisma import, add `const prisma = req.tenantPrisma!;` in each function, and add `tenantSlug: req.tenant!.slug` to patient JWT payloads.
 
@@ -970,12 +970,12 @@ Patient login payload:
     };
 ```
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `cd backend && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/src/controllers/auth.controller.ts backend/src/controllers/patientAuth.controller.ts
@@ -1006,7 +1006,7 @@ The change is mechanical and identical for all 9 controllers:
 1. Remove `import prisma from '../config/database';`
 2. In each exported async function, add `const prisma = req.tenantPrisma!;` as the first line inside `try {}`
 
-- [ ] **Step 1: Update patients.controller.ts**
+- [x] **Step 1: Update patients.controller.ts**
 
 Remove line 2: `import prisma from '../config/database';`
 
@@ -1019,44 +1019,44 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
     // ... rest unchanged
 ```
 
-- [ ] **Step 2: Update appointments.controller.ts**
+- [x] **Step 2: Update appointments.controller.ts**
 
 Same pattern. Remove global import. Add `const prisma = req.tenantPrisma!;` in each function.
 
-- [ ] **Step 3: Update services.controller.ts**
+- [x] **Step 3: Update services.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 4: Update users.controller.ts**
+- [x] **Step 4: Update users.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 5: Update commissions.controller.ts**
+- [x] **Step 5: Update commissions.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 6: Update payments.controller.ts**
+- [x] **Step 6: Update payments.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 7: Update paymentOrders.controller.ts**
+- [x] **Step 7: Update paymentOrders.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 8: Update roles.controller.ts**
+- [x] **Step 8: Update roles.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 9: Update settings.controller.ts**
+- [x] **Step 9: Update settings.controller.ts**
 
 Same pattern.
 
-- [ ] **Step 10: Verify TypeScript compiles**
+- [x] **Step 10: Verify TypeScript compiles**
 
 Run: `cd backend && npx tsc --noEmit`
 Expected: No errors (all controllers now reference `req.tenantPrisma` which is typed in `express.d.ts`)
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add backend/src/controllers/
@@ -1080,7 +1080,7 @@ git commit -m "refactor(controllers): migrate all controllers from global prisma
 
 The dashboard and analytics services already accept PrismaClient via constructor. The problem is they export singletons. The fix is to remove the singletons and create instances per-request in the controllers.
 
-- [ ] **Step 1: Remove singleton from dashboard.service.ts**
+- [x] **Step 1: Remove singleton from dashboard.service.ts**
 
 In `backend/src/services/dashboard/dashboard.service.ts`:
 
@@ -1094,7 +1094,7 @@ The file should end with just the class export (no singleton):
 // export const dashboardService = new DashboardService(prisma);
 ```
 
-- [ ] **Step 2: Update dashboard.controller.ts to create per-request instance**
+- [x] **Step 2: Update dashboard.controller.ts to create per-request instance**
 
 In `backend/src/controllers/dashboard.controller.ts`:
 
@@ -1151,7 +1151,7 @@ export const getAvailableRoles = async (
 };
 ```
 
-- [ ] **Step 3: Remove singleton from analytics.service.ts**
+- [x] **Step 3: Remove singleton from analytics.service.ts**
 
 In `backend/src/services/analytics/analytics.service.ts`:
 
@@ -1174,7 +1174,7 @@ class AnalyticsService {
 export { AnalyticsService };
 ```
 
-- [ ] **Step 4: Update analytics.controller.ts to create per-request instance**
+- [x] **Step 4: Update analytics.controller.ts to create per-request instance**
 
 In `backend/src/controllers/analytics.controller.ts`, change the import and create instance per request:
 
@@ -1205,7 +1205,7 @@ export const getExecutiveSummary = async (req: Request, res: Response): Promise<
 // Each one creates: const analyticsService = new AnalyticsService(req.tenantPrisma!);
 ```
 
-- [ ] **Step 5: Update paymentOrder.service.ts**
+- [x] **Step 5: Update paymentOrder.service.ts**
 
 In `backend/src/services/paymentOrder.service.ts`:
 
@@ -1230,12 +1230,12 @@ Then in `paymentOrders.controller.ts`, wherever `PaymentOrderService` is instant
 const service = new PaymentOrderService(req.tenantPrisma!);
 ```
 
-- [ ] **Step 6: Verify TypeScript compiles**
+- [x] **Step 6: Verify TypeScript compiles**
 
 Run: `cd backend && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/src/services/ backend/src/controllers/dashboard.controller.ts
@@ -1255,7 +1255,7 @@ git commit -m "refactor(services): remove singletons, inject tenant prisma per-r
 - Consumes: `tenantResolver` from `middlewares/tenantResolver`, `disconnectAllTenants` from `platform/tenant-prisma`, `platformPool` from `platform/db`
 - Produces: Express app with tenant resolution in the middleware chain
 
-- [ ] **Step 1: Update database.ts to keep it as fallback**
+- [x] **Step 1: Update database.ts to keep it as fallback**
 
 The global prisma singleton in `backend/src/config/database.ts` is no longer imported by any controller. Keep it minimal for backward compatibility during transition (e.g., health checks):
 
@@ -1273,7 +1273,7 @@ const prisma = new PrismaClient({
 export default prisma;
 ```
 
-- [ ] **Step 2: Update index.ts**
+- [x] **Step 2: Update index.ts**
 
 Modify `backend/src/index.ts` to add tenant resolver middleware and update shutdown handlers:
 
@@ -1366,12 +1366,12 @@ process.on('SIGTERM', shutdown);
 startServer();
 ```
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `cd backend && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/src/index.ts backend/src/config/database.ts
@@ -1390,7 +1390,7 @@ git commit -m "feat(app): wire tenant resolver middleware into Express pipeline"
 - Consumes: `req.tenant.slug`
 - Produces: Files saved to `uploads/<tenant_slug>/` instead of `uploads/`
 
-- [ ] **Step 1: Find all Multer configurations**
+- [x] **Step 1: Find all Multer configurations**
 
 Run: `grep -rn "multer\|upload" backend/src/middlewares/ backend/src/routes/ --include="*.ts" | grep -i "multer\|destination\|storage"`
 
@@ -1411,7 +1411,7 @@ const storage = multer.diskStorage({
 });
 ```
 
-- [ ] **Step 2: Update static file serving in index.ts**
+- [x] **Step 2: Update static file serving in index.ts**
 
 The current `app.use('/uploads', express.static(...))` serves all files. With tenant isolation, serve per-tenant:
 
@@ -1429,12 +1429,12 @@ app.use('/uploads', (req, res, next) => {
 
 Note: The `/uploads` route also needs tenant resolution. Move it after the tenant resolver or apply tenant resolver to it.
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `cd backend && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/src/
@@ -1453,7 +1453,7 @@ git commit -m "feat(uploads): isolate file uploads by tenant directory"
 - Consumes: Existing Prisma schema, platform SQL script
 - Produces: A working development environment with platform tables and a `tenant_dev` schema for local testing
 
-- [ ] **Step 1: Create dev tenant setup script**
+- [x] **Step 1: Create dev tenant setup script**
 
 Create `backend/scripts/setup-dev-tenant.sql`:
 
@@ -1473,7 +1473,7 @@ ON CONFLICT (slug) DO NOTHING;
 -- This will be done by Prisma migrate pointing to the tenant schema
 ```
 
-- [ ] **Step 2: Document local development workflow**
+- [x] **Step 2: Document local development workflow**
 
 For local development with subdomains, developers need to add entries to their hosts file:
 
@@ -1486,7 +1486,7 @@ For local development with subdomains, developers need to add entries to their h
 
 Then the frontend Vite dev server and backend both accept `dev.localhost:5173` and `dev.localhost:5000`.
 
-- [ ] **Step 3: Update env.example with new variables**
+- [x] **Step 3: Update env.example with new variables**
 
 Add to `backend/.env.example`:
 
@@ -1495,7 +1495,7 @@ Add to `backend/.env.example`:
 PLATFORM_DOMAIN=localhost
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/scripts/setup-dev-tenant.sql
@@ -1512,17 +1512,17 @@ git commit -m "feat(dev): add development tenant setup script and docs"
 - Consumes: All previous tasks
 - Produces: Verification that the multi-tenant middleware chain works
 
-- [ ] **Step 1: Run TypeScript compilation**
+- [x] **Step 1: Run TypeScript compilation**
 
 Run: `cd backend && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 2: Run all existing tests**
+- [x] **Step 2: Run all existing tests**
 
 Run: `cd backend && npx jest --verbose`
 Expected: Existing tests pass (some may need mock updates for `req.tenantPrisma`)
 
-- [ ] **Step 3: Fix any failing tests**
+- [x] **Step 3: Fix any failing tests**
 
 Tests that create mock requests will need `tenantPrisma` added to the mock. Common fix:
 
@@ -1534,7 +1534,7 @@ const req = {
 } as unknown as Request;
 ```
 
-- [ ] **Step 4: Manual smoke test**
+- [x] **Step 4: Manual smoke test**
 
 1. Start services: `make up`
 2. Apply platform schema: `make shell-db` then run `create-platform-schema.sql`
@@ -1542,7 +1542,7 @@ const req = {
 4. Test health endpoint: `curl http://localhost:5000/health`
 5. Test tenant resolution: `curl -H "Host: dev.localhost" http://localhost:5000/api/auth/login -X POST -H "Content-Type: application/json" -d '{"email":"admin@dermicapro.com","password":"admin123"}'`
 
-- [ ] **Step 5: Final commit**
+- [x] **Step 5: Final commit**
 
 ```bash
 git add -A
