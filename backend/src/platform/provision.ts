@@ -3,7 +3,7 @@ import path from 'path';
 import bcrypt from 'bcrypt';
 import platformPool from './db';
 import { getTenantPrisma } from './tenant-prisma';
-import { createTenant, setTenantActive, insertTenantMigration } from './queries';
+import { createTenant, setTenantActive, insertTenantMigration, findTenantBySlug } from './queries';
 import { CreateTenantDto, ProvisionResult } from './types';
 
 const VALID_SLUG = /^[a-z0-9_]{1,63}$/;
@@ -82,6 +82,11 @@ export async function createTenantAdminUser(
 
 export async function provisionTenant(dto: CreateTenantDto): Promise<ProvisionResult> {
   if (!VALID_SLUG.test(dto.slug)) throw new Error(`Slug inválido: ${dto.slug}`);
+
+  const existing = await findTenantBySlug(dto.slug);
+  if (existing) {
+    throw new Error(`Ya existe un tenant con el slug "${dto.slug}"`);
+  }
 
   const tenant = await createTenant(dto);
   try {

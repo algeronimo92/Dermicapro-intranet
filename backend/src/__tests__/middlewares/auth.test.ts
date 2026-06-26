@@ -66,6 +66,20 @@ describe('authenticate middleware (tenant-aware)', () => {
     expect(next).toHaveBeenCalled();
   });
 
+  test('rejects tenant token used on bare domain (no req.tenant)', async () => {
+    mockVerifyAccessToken.mockReturnValue({ id: 'u3', email: 'c@d.com', tenantSlug: 'clinic-a' });
+
+    const req = makeReq(); // no tenant, no tenantPrisma
+    const res = makeRes();
+    const next = jest.fn() as NextFunction;
+
+    await authenticate(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect((res.json as jest.Mock).mock.calls[0][0]).toMatchObject({ error: expect.stringContaining('clínica') });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   test('rejects cross-tenant token (token slug != req.tenant.slug)', async () => {
     mockVerifyAccessToken.mockReturnValue({ id: 'u3', email: 'c@d.com', tenantSlug: 'clinic-a' });
 

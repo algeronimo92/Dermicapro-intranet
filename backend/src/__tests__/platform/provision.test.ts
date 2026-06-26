@@ -129,6 +129,7 @@ describe('provisionTenant', () => {
   it('creates, provisions, and activates a tenant', async () => {
     const mockTenant = { id: 't1', slug: 'clinica', isActive: false, name: 'Clinica' };
     const activeTenant = { ...mockTenant, isActive: true };
+    (queriesModule.findTenantBySlug as jest.Mock).mockResolvedValue(null);
     (queriesModule.createTenant as jest.Mock).mockResolvedValue(mockTenant);
     (queriesModule.setTenantActive as jest.Mock).mockResolvedValue(activeTenant);
     mockQuery.mockResolvedValue({});
@@ -149,6 +150,7 @@ describe('provisionTenant', () => {
 
   it('creates admin user when adminEmail + adminPassword provided', async () => {
     const mockTenant = { id: 't1', slug: 'clinica', isActive: false, name: 'Clinica' };
+    (queriesModule.findTenantBySlug as jest.Mock).mockResolvedValue(null);
     (queriesModule.createTenant as jest.Mock).mockResolvedValue(mockTenant);
     (queriesModule.setTenantActive as jest.Mock).mockResolvedValue({ ...mockTenant, isActive: true });
     mockQuery.mockResolvedValue({});
@@ -177,6 +179,7 @@ describe('provisionTenant', () => {
 
   it('deactivates tenant and rethrows when schema creation fails', async () => {
     const mockTenant = { id: 't1', slug: 'bad_slug', isActive: false };
+    (queriesModule.findTenantBySlug as jest.Mock).mockResolvedValue(null);
     (queriesModule.createTenant as jest.Mock).mockResolvedValue(mockTenant);
     (queriesModule.setTenantActive as jest.Mock).mockResolvedValue(undefined);
     mockQuery.mockRejectedValueOnce(new Error('DB error'));
@@ -187,6 +190,13 @@ describe('provisionTenant', () => {
 
   it('rejects invalid slug before any DB call', async () => {
     await expect(provisionTenant({ name: 'X', slug: 'Has-Hyphens' })).rejects.toThrow('Slug inválido');
+    expect(queriesModule.createTenant).not.toHaveBeenCalled();
+  });
+
+  it('rejects when a tenant with the same slug already exists', async () => {
+    const mockTenant = { id: 't1', slug: 'clinica', isActive: false, name: 'Clinica' };
+    (queriesModule.findTenantBySlug as jest.Mock).mockResolvedValue(mockTenant); // exists
+    await expect(provisionTenant({ name: 'X', slug: 'clinica' })).rejects.toThrow('Ya existe un tenant');
     expect(queriesModule.createTenant).not.toHaveBeenCalled();
   });
 });

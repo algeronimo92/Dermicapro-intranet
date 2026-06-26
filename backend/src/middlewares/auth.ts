@@ -26,8 +26,11 @@ export const authenticate = async (
 
     const payload = decoded as JwtPayload;
 
-    // Cross-tenant isolation: if the token carries a tenantSlug and the request
-    // has a resolved tenant, they must match to prevent token reuse across tenants.
+    // Cross-tenant isolation: tenant tokens must only be used within a tenant context.
+    if (payload.tenantSlug && !req.tenant) {
+      res.status(401).json({ error: 'Acceso no autorizado fuera del contexto de clínica' });
+      return;
+    }
     if (payload.tenantSlug && req.tenant && payload.tenantSlug !== req.tenant.slug) {
       res.status(401).json({ error: 'Token inválido para esta clinica' });
       return;

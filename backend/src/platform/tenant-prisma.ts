@@ -21,7 +21,10 @@ export function getTenantPrisma(slug: string): PrismaClient {
   });
 
   pool.on('connect', (client) => {
-    client.query(`SET search_path TO "${schemaName}"`);
+    client.query(`SET search_path TO "${schemaName}"`).catch((err) => {
+      console.error(`[tenant-prisma] Failed to set search_path for ${schemaName}:`, err);
+      client.release(true); // destroy connection on search_path failure
+    });
   });
 
   const adapter = new PrismaPg(pool);
