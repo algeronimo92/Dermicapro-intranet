@@ -18,6 +18,10 @@ export const config = {
     origin: process.env.CORS_ORIGIN || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
   },
 
+  platform: {
+    domain: process.env.PLATFORM_DOMAIN || 'localhost',
+  },
+
   upload: {
     directory: process.env.UPLOAD_DIR || './uploads',
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB default

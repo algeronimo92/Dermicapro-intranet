@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS tenant_migrations (
   UNIQUE(tenant_id, migration_name)
 );
 
-CREATE INDEX idx_tenants_slug ON tenants(slug);
-CREATE INDEX idx_tenants_is_active ON tenants(is_active);
-CREATE INDEX idx_tenant_metrics_tenant_id ON tenant_metrics(tenant_id);
-CREATE INDEX idx_tenant_migrations_tenant_id ON tenant_migrations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
+CREATE INDEX IF NOT EXISTS idx_tenants_is_active ON tenants(is_active);
+CREATE INDEX IF NOT EXISTS idx_tenant_metrics_tenant_id ON tenant_metrics(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_migrations_tenant_id ON tenant_migrations(tenant_id);

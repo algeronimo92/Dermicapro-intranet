@@ -8,7 +8,7 @@ import { generalLimiter } from './middlewares/rateLimiter';
 import { requestLogger } from './middlewares/requestLogger';
 import { tenantResolver } from './middlewares/tenantResolver';
 import { disconnectAllTenants } from './platform/tenant-prisma';
-import platformPool from './platform/db';
+import platformPool, { ensurePlatformTables } from './platform/db';
 import prisma from './config/database';
 import fs from 'fs';
 import path from 'path';
@@ -70,6 +70,9 @@ const startServer = async () => {
   try {
     await platformPool.query('SELECT 1');
     console.log('Platform database connected successfully');
+
+    await ensurePlatformTables();
+    console.log('Platform tables verified');
 
     app.listen(config.port, () => {
       console.log(`Server running on port ${config.port}`);
