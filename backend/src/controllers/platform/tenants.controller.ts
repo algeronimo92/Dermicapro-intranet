@@ -5,9 +5,11 @@ import {
   updateTenant,
   setTenantActive,
   listTenantMigrations,
+  getTenantMetrics,
 } from '../../platform/queries';
 import { provisionTenant } from '../../platform/provision';
 import { AppError } from '../../middlewares/errorHandler';
+import { aggregateTenantMetrics } from '../../platform/metrics';
 
 export const listTenants = async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -86,5 +88,31 @@ export const getTenantMigrations = async (req: Request, res: Response): Promise<
   } catch (err) {
     if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
     else res.status(500).json({ error: 'Error al obtener migraciones' });
+  }
+};
+
+export const getTenantMetricsHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenant = await findTenantBySlug(req.params.slug);
+    if (!tenant) throw new AppError('Clinica no encontrada', 404);
+    const metrics = await getTenantMetrics(tenant.id);
+    if (!metrics) throw new AppError('Métricas no disponibles aún. Espere el siguiente ciclo de actualización.', 404);
+    res.json({ data: metrics });
+  } catch (err) {
+    if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
+    else res.status(500).json({ error: 'Error al obtener métricas' });
+  }
+};
+
+export const refreshTenantMetricsHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenant = await findTenantBySlug(req.params.slug);
+    if (!tenant) throw new AppError('Clinica no encontrada', 404);
+    await aggregateTenantMetrics(tenant.slug, tenant.id);
+    const metrics = await getTenantMetrics(tenant.id);
+    res.json({ data: metrics });
+  } catch (err) {
+    if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
+    else res.status(500).json({ error: 'Error al actualizar métricas' });
   }
 };

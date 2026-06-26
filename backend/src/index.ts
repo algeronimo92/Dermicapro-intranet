@@ -10,6 +10,7 @@ import { tenantResolver } from './middlewares/tenantResolver';
 import { disconnectAllTenants } from './platform/tenant-prisma';
 import platformPool, { ensurePlatformTables } from './platform/db';
 import prisma from './config/database';
+import { startMetricsCron, stopMetricsCron } from './platform/cron';
 import fs from 'fs';
 import path from 'path';
 
@@ -78,6 +79,7 @@ const startServer = async () => {
       console.log(`Server running on port ${config.port}`);
       console.log(`Environment: ${config.nodeEnv}`);
     });
+    startMetricsCron();
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -86,6 +88,7 @@ const startServer = async () => {
 
 const shutdown = async () => {
   console.log('Shutting down...');
+  stopMetricsCron();
   await disconnectAllTenants();
   await platformPool.end();
   await prisma.$disconnect();

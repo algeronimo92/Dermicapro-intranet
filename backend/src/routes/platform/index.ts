@@ -8,6 +8,8 @@ import {
   activateTenant,
   deactivateTenant,
   getTenantMigrations,
+  getTenantMetricsHandler,
+  refreshTenantMetricsHandler,
 } from '../../controllers/platform/tenants.controller';
 import { authenticatePlatformAdmin } from '../../middlewares/platformAuth';
 
@@ -25,5 +27,7 @@ router.put('/tenants/:slug', authenticatePlatformAdmin, updateTenantHandler);
 router.post('/tenants/:slug/activate', authenticatePlatformAdmin, activateTenant);
 router.post('/tenants/:slug/deactivate', authenticatePlatformAdmin, deactivateTenant);
 router.get('/tenants/:slug/migrations', authenticatePlatformAdmin, getTenantMigrations);
+router.get('/tenants/:slug/metrics', authenticatePlatformAdmin, getTenantMetricsHandler);
+router.post('/tenants/:slug/metrics/refresh', authenticatePlatformAdmin, refreshTenantMetricsHandler);
 
 export default router;
