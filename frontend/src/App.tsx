@@ -29,6 +29,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { FirstLoginModal } from './components/FirstLoginModal';
 // Portal de Pacientes
 import { PatientLoginPage, PatientDashboardPage, PatientChangePasswordPage } from './pages/patient';
@@ -68,6 +69,7 @@ function App() {
                 />
 
                 {/* Rutas del Sistema de Staff */}
+                <Route path="/register" element={<RegisterPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route
                   path="/*"
