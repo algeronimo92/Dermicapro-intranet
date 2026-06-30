@@ -46,9 +46,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       throw new AppError('Credenciales inválidas', 401);
     }
 
-    if (user.pinFailedAttempts > 0) {
-      await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
-    }
+    // Touch the user on every successful login so platform metrics can show
+    // recent tenant activity without waiting for another profile update.
+    await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
 
     const payload = buildPayload(user, req.tenant?.slug);
     const accessToken = generateAccessToken(payload);
@@ -298,9 +298,8 @@ export const loginWithPin = async (req: Request, res: Response): Promise<void> =
       throw new AppError('PIN incorrecto', 401);
     }
 
-    if (user.pinFailedAttempts > 0) {
-      await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
-    }
+    // Touch the user on every successful PIN login for tenant activity metrics.
+    await db.user.update({ where: { id: user.id }, data: { pinFailedAttempts: 0 } });
 
     const payload = buildPayload(user, req.tenant?.slug);
     const accessToken = generateAccessToken(payload);

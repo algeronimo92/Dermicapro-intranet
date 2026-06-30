@@ -27,14 +27,11 @@ export const SuperAdminTenantDetailPage: React.FC = () => {
     setIsLoading(true);
     setError('');
     try {
-      let [tenantData, metricsData, migrationsData] = await Promise.all([
+      const [tenantData, metricsData, migrationsData] = await Promise.all([
         platformAdminApi.getTenant(slug),
-        platformAdminApi.getTenantMetrics(slug),
+        platformAdminApi.refreshTenantMetrics(slug).catch(() => null),
         platformAdminApi.getTenantMigrations(slug),
       ]);
-      if (!metricsData) {
-        metricsData = await platformAdminApi.refreshTenantMetrics(slug).catch(() => null);
-      }
       setTenant(tenantData);
       setMetrics(metricsData);
       setMigrations(migrationsData);

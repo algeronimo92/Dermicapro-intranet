@@ -25,10 +25,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
       setTenants(tenantList);
       const entries = await Promise.all(
         tenantList.map(async (tenant) => {
-          let metrics = await platformAdminApi.getTenantMetrics(tenant.slug);
-          if (!metrics) {
-            metrics = await platformAdminApi.refreshTenantMetrics(tenant.slug).catch(() => null);
-          }
+          const metrics = await platformAdminApi.refreshTenantMetrics(tenant.slug).catch(() => null);
           return [tenant.slug, metrics] as const;
         }),
       );
