@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import platformPool from '../../platform/db';
+import { AppError } from '../../middlewares/errorHandler';
 
 const SETTINGS_KEYS = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from', 'platform_domain', 'max_tenants'] as const;
 type SettingKey = typeof SETTINGS_KEYS[number];
@@ -32,8 +33,9 @@ export const getSettingsHandler = async (_req: Request, res: Response): Promise<
   try {
     const raw = await getAllSettings();
     res.json({ data: toResponse(raw) });
-  } catch {
-    res.status(500).json({ error: 'Error al obtener configuracion' });
+  } catch (err) {
+    if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
+    else res.status(500).json({ error: 'Error al obtener configuracion' });
   }
 };
 
@@ -42,12 +44,32 @@ export const updateSettingsHandler = async (req: Request, res: Response): Promis
     const { smtpHost, smtpPort, smtpUser, smtpPassword, smtpFrom, platformDomain, maxTenants } = req.body;
     const updates: Array<[SettingKey, string]> = [];
     if (smtpHost !== undefined) updates.push(['smtp_host', String(smtpHost || '')]);
-    if (smtpPort !== undefined) updates.push(['smtp_port', String(smtpPort || '')]);
+    if (smtpPort !== undefined) {
+      if (smtpPort !== null && smtpPort !== '') {
+        const port = parseInt(String(smtpPort), 10);
+        if (isNaN(port) || port <= 0 || port > 65535) {
+          throw new AppError('smtpPort debe ser un numero entre 1 y 65535', 400);
+        }
+        updates.push(['smtp_port', String(port)]);
+      } else {
+        updates.push(['smtp_port', '']);
+      }
+    }
     if (smtpUser !== undefined) updates.push(['smtp_user', String(smtpUser || '')]);
     if (smtpPassword !== undefined && smtpPassword !== '••••••••') updates.push(['smtp_password', String(smtpPassword || '')]);
     if (smtpFrom !== undefined) updates.push(['smtp_from', String(smtpFrom || '')]);
     if (platformDomain !== undefined) updates.push(['platform_domain', String(platformDomain || '')]);
-    if (maxTenants !== undefined) updates.push(['max_tenants', String(maxTenants || '')]);
+    if (maxTenants !== undefined) {
+      if (maxTenants !== null && maxTenants !== '') {
+        const max = parseInt(String(maxTenants), 10);
+        if (isNaN(max) || max <= 0) {
+          throw new AppError('maxTenants debe ser un numero positivo', 400);
+        }
+        updates.push(['max_tenants', String(max)]);
+      } else {
+        updates.push(['max_tenants', '']);
+      }
+    }
 
     for (const [key, value] of updates) {
       await platformPool.query(
@@ -58,7 +80,8 @@ export const updateSettingsHandler = async (req: Request, res: Response): Promis
     }
     const raw = await getAllSettings();
     res.json({ data: toResponse(raw) });
-  } catch {
-    res.status(500).json({ error: 'Error al guardar configuracion' });
+  } catch (err) {
+    if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
+    else res.status(500).json({ error: 'Error al guardar configuracion' });
   }
 };
