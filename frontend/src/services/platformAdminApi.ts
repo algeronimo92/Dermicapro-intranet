@@ -80,6 +80,16 @@ export interface CreatePlatformAdminDto {
   lastName: string;
 }
 
+export interface PlatformSettings {
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpUser: string | null;
+  smtpPassword: string | null;
+  smtpFrom: string | null;
+  platformDomain: string | null;
+  maxTenants: number | null;
+}
+
 interface DataEnvelope<T> {
   data: T;
   total?: number;
@@ -200,5 +210,15 @@ export const platformAdminApi = {
 
   async deactivatePlatformAdmin(id: string): Promise<void> {
     await platformApi.delete(`/admins/${id}`);
+  },
+
+  async getSettings(): Promise<PlatformSettings> {
+    const res = await platformApi.get<{ data: PlatformSettings }>('/settings');
+    return res.data.data;
+  },
+
+  async updateSettings(dto: Partial<PlatformSettings>): Promise<PlatformSettings> {
+    const res = await platformApi.put<{ data: PlatformSettings }>('/settings', dto);
+    return res.data.data;
   },
 };
