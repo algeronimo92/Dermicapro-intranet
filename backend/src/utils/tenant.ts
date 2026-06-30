@@ -10,5 +10,8 @@ import prisma from '../config/database';
  * schema.
  */
 export function getPrisma(req: Request): PrismaClient {
+  if (req.tenant && !req.tenantPrisma) {
+    throw new Error('Tenant resolved but tenantPrisma not initialised — check tenantResolver middleware');
+  }
   return (req.tenantPrisma ?? prisma) as PrismaClient;
 }

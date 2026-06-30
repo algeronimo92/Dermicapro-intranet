@@ -137,6 +137,12 @@ pnpm-lock.yaml
 .claude/
 
 # ================================
+# Superpowers / Playwright MCP
+# ================================
+.superpowers/
+.playwright-mcp/
+
+# ================================
 # Misc
 # ================================
 .npm

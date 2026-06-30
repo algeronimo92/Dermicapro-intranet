@@ -4,11 +4,6 @@ import { verifyAccessToken } from '../utils/jwt';
 import { PatientJwtPayload } from '../types/auth.types';
 import prisma from '../config/database';
 
-/**
- * Middleware para autenticar pacientes
- * Verifica el token JWT y que el tipo sea 'patient'
- * Carga los datos del paciente y los adjunta a req.patient
- */
 export const authenticatePatient = async (
   req: Request,
   res: Response,
@@ -25,14 +20,23 @@ export const authenticatePatient = async (
     const token = authHeader.substring(7);
     const decoded = verifyAccessToken(token) as PatientJwtPayload;
 
-    // Validar que el token es de tipo paciente
     if (decoded.type !== 'patient') {
       res.status(403).json({ error: 'Tipo de token inválido' });
       return;
     }
 
-    // Cargar paciente de la base de datos
-    const patient = await prisma.patient.findUnique({
+    // Cross-tenant isolation: mirrors the same guard used for staff tokens.
+    if (decoded.tenantSlug && !req.tenant) {
+      res.status(401).json({ error: 'Acceso no autorizado fuera del contexto de clínica' });
+      return;
+    }
+    if (decoded.tenantSlug && req.tenant && decoded.tenantSlug !== req.tenant.slug) {
+      res.status(401).json({ error: 'Token inválido para esta clínica' });
+      return;
+    }
+
+    const db = req.tenantPrisma ?? prisma;
+    const patient = await db.patient.findUnique({
       where: { id: decoded.id },
       select: {
         id: true,
@@ -44,13 +48,11 @@ export const authenticatePatient = async (
       },
     });
 
-    // Validar que el paciente existe y tiene acceso al portal
     if (!patient || !patient.hasPortalAccess) {
       res.status(401).json({ error: 'No autorizado' });
       return;
     }
 
-    // Adjuntar paciente al request
     req.patient = patient;
     next();
   } catch (error) {

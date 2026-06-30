@@ -19,12 +19,17 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://backend:5000',
-        changeOrigin: true,
+        changeOrigin: false,
+        secure: false,
+      },
+      '/platform': {
+        target: 'http://backend:5000',
+        changeOrigin: false,
         secure: false,
       },
       '/uploads': {
         target: 'http://backend:5000',
-        changeOrigin: true,
+        changeOrigin: false,
         secure: false,
       },
     },

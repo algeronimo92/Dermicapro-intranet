@@ -48,6 +48,8 @@ const SuperAdminLoginPage = lazy(() => import('./pages/superadmin/SuperAdminLogi
 const SuperAdminDashboardPage = lazy(() => import('./pages/superadmin/SuperAdminDashboardPage').then((module) => ({ default: module.SuperAdminDashboardPage })));
 const SuperAdminTenantsPage = lazy(() => import('./pages/superadmin/SuperAdminTenantsPage').then((module) => ({ default: module.SuperAdminTenantsPage })));
 const SuperAdminTenantDetailPage = lazy(() => import('./pages/superadmin/SuperAdminTenantDetailPage').then((module) => ({ default: module.SuperAdminTenantDetailPage })));
+const SuperAdminAdminsPage = lazy(() => import('./pages/superadmin/SuperAdminAdminsPage').then((module) => ({ default: module.SuperAdminAdminsPage })));
+const SuperAdminSettingsPage = lazy(() => import('./pages/superadmin/SuperAdminSettingsPage').then((module) => ({ default: module.SuperAdminSettingsPage })));
 const SuperAdminLayout = lazy(() => import('./components/superadmin/SuperAdminLayout').then((module) => ({ default: module.SuperAdminLayout })));
 const RequirePlatformAuth = lazy(() => import('./components/superadmin/RequirePlatformAuth').then((module) => ({ default: module.RequirePlatformAuth })));
 
@@ -85,6 +87,8 @@ function App() {
                       <Route path="dashboard" element={<SuperAdminDashboardPage />} />
                       <Route path="tenants" element={<SuperAdminTenantsPage />} />
                       <Route path="tenants/:slug" element={<SuperAdminTenantDetailPage />} />
+                      <Route path="admins" element={<SuperAdminAdminsPage />} />
+                      <Route path="settings" element={<SuperAdminSettingsPage />} />
                     </Route>
 
                     {/* Ruta de impersonacion (tenant app) */}

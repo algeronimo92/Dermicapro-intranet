@@ -48,6 +48,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       id: patient.id,
       email: patient.email,
       type: 'patient',
+      tenantSlug: req.tenant?.slug,
     };
 
     const accessToken = generateAccessToken(payload);
@@ -114,6 +115,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
       id: patient.id,
       email: patient.email,
       type: 'patient',
+      tenantSlug: decoded.tenantSlug,
     };
 
     const newAccessToken = generateAccessToken(payload);

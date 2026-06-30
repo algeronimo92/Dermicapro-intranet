@@ -1,0 +1,426 @@
+/* =====================================================
+   Superadmin — layout-only styles
+   Buttons, tables, forms, modals, badges, alerts,
+   loading → use global classes from global.css
+   ===================================================== */
+
+/* ── Shell ─────────────────────────────────────────── */
+.superadmin-shell {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────── */
+.superadmin-sidebar {
+  background: var(--color-bg-primary);
+  border-right: 1px solid var(--color-border-secondary);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  position: sticky;
+  top: 0;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  overflow-x: hidden;
+}
+
+/* Brand header — mismo gradiente que el tenant */
+.superadmin-brand {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-height: 56px;
+  flex-shrink: 0;
+}
+
+.superadmin-brand__mark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.superadmin-brand strong {
+  display: block;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-extrabold);
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.superadmin-brand span {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+}
+
+/* ── Sidebar nav ────────────────────────────────────── */
+.superadmin-nav {
+  flex: 1;
+  min-height: 0;
+  padding: var(--spacing-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.superadmin-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px var(--spacing-md);
+  margin: 0 var(--spacing-sm);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: inset 3px 0 0 transparent;
+  transition: background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+  white-space: nowrap;
+}
+
+.superadmin-nav__item:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.superadmin-nav__item--active,
+.superadmin-nav__item.active {
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+/* ── Main content area ──────────────────────────────── */
+.superadmin-content {
+  padding: var(--spacing-xl);
+  overflow: auto;
+  height: 100vh;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* ── Sidebar user section (debajo del nav) ──────────── */
+.superadmin-sidebar__user {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+  min-height: 60px;
+}
+
+.superadmin-sidebar__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-alpha-20);
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.superadmin-sidebar__admin-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.superadmin-sidebar__admin-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 2px;
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.superadmin-sidebar__admin-role {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  text-transform: capitalize;
+}
+
+/* ── Sidebar footer (logout) ────────────────────────── */
+.superadmin-sidebar__footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
+  flex-shrink: 0;
+}
+
+.superadmin-sidebar__logout {
+  width: 100%;
+  padding: 9px var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-error);
+  background: transparent;
+  border: 1.5px solid var(--color-error);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.superadmin-sidebar__logout:hover {
+  background: var(--color-error);
+  color: #fff;
+}
+
+.superadmin-sidebar__logout:active {
+  background: var(--color-error-dark);
+  border-color: var(--color-error-dark);
+  color: #fff;
+}
+
+/* ── Page layout ────────────────────────────────────── */
+.superadmin-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.superadmin-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.superadmin-page__header h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs);
+  line-height: var(--line-height-tight);
+}
+
+.superadmin-page__header p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.superadmin-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* ── Metric cards grid ──────────────────────────────── */
+.superadmin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.superadmin-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.superadmin-card__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--spacing-sm);
+}
+
+.superadmin-card__value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+/* ── Panel (section card) ───────────────────────────── */
+.superadmin-panel {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: var(--spacing-xl);
+}
+
+.superadmin-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.superadmin-panel__header h2 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* ── Tabs ───────────────────────────────────────────── */
+.superadmin-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-secondary);
+  padding: 0 var(--spacing-xl);
+}
+
+.superadmin-tab {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.superadmin-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.superadmin-tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── Detail info grid ───────────────────────────────── */
+.superadmin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.superadmin-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-right: 1px solid var(--color-border-secondary);
+}
+
+.superadmin-detail-item:last-child {
+  border-right: none;
+}
+
+.superadmin-detail-item span {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--font-weight-semibold);
+}
+
+.superadmin-detail-item strong {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── Icon button ────────────────────────────────────── */
+.superadmin-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.superadmin-icon-button:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.superadmin-icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── 2-column form grid (modal) ─────────────────────── */
+.superadmin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+/* ── Login page ─────────────────────────────────────── */
+.superadmin-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-xl);
+}
+
+.superadmin-login__panel {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ── Loading state ──────────────────────────────────── */
+.superadmin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}

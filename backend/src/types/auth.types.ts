@@ -6,6 +6,7 @@ export interface PatientJwtPayload {
   id: string; // Patient UUID
   email: string | null;
   type: 'patient'; // Distinguir de tokens de staff
+  tenantSlug?: string;
 }
 
 /**

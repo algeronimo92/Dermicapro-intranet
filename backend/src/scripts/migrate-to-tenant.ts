@@ -29,6 +29,31 @@ export function buildMigrationSql(sourceSchema: string, targetSchema: string, ta
   return `INSERT INTO "${targetSchema}"."${table}" SELECT * FROM "${sourceSchema}"."${table}" ON CONFLICT DO NOTHING`;
 }
 
+async function buildEnumAwareMigrationSql(
+  pool: Pool,
+  sourceSchema: string,
+  targetSchema: string,
+  table: string,
+): Promise<string> {
+  const colResult = await pool.query(
+    `SELECT column_name, data_type, udt_name
+     FROM information_schema.columns
+     WHERE table_schema = $1 AND table_name = $2
+     ORDER BY ordinal_position`,
+    [targetSchema, table],
+  );
+
+  const insertCols = colResult.rows.map((r: any) => `"${r.column_name}"`);
+  const selectCols = colResult.rows.map((row: any) => {
+    if (row.data_type === 'USER-DEFINED') {
+      return `"${row.column_name}"::text::"${targetSchema}"."${row.udt_name}"`;
+    }
+    return `"${row.column_name}"`;
+  });
+
+  return `INSERT INTO "${targetSchema}"."${table}" (${insertCols.join(', ')}) SELECT ${selectCols.join(', ')} FROM "${sourceSchema}"."${table}" ON CONFLICT DO NOTHING`;
+}
+
 async function applyPlatformSchema(pool: Pool, dryRun: boolean): Promise<void> {
   console.log('Creating platform schema tables...');
   const sql = fs.readFileSync(
@@ -83,16 +108,26 @@ async function migrateData(
   dryRun: boolean
 ): Promise<void> {
   console.log('\nMigrating data...');
-  for (const table of TABLES_IN_ORDER) {
-    const sourceCount = await getTableCount(pool, sourceSchema, table);
-    if (dryRun) {
-      console.log(`  [DRY RUN] Would migrate ${table}: ${sourceCount} rows`);
-      continue;
+  if (!dryRun) {
+    await pool.query('SET session_replication_role = replica');
+  }
+  try {
+    for (const table of TABLES_IN_ORDER) {
+      const sourceCount = await getTableCount(pool, sourceSchema, table);
+      if (dryRun) {
+        console.log(`  [DRY RUN] Would migrate ${table}: ${sourceCount} rows`);
+        continue;
+      }
+      const sql = await buildEnumAwareMigrationSql(pool, sourceSchema, targetSchema, table);
+      await pool.query(sql);
+      const targetCount = await getTableCount(pool, targetSchema, table);
+      const match = sourceCount === targetCount ? 'OK' : 'MISMATCH';
+      console.log(`  ${match} ${table}: ${sourceCount} -> ${targetCount}`);
     }
-    await pool.query(buildMigrationSql(sourceSchema, targetSchema, table));
-    const targetCount = await getTableCount(pool, targetSchema, table);
-    const match = sourceCount === targetCount ? 'OK' : 'MISMATCH';
-    console.log(`  ${match} ${table}: ${sourceCount} -> ${targetCount}`);
+  } finally {
+    if (!dryRun) {
+      await pool.query('SET session_replication_role = DEFAULT');
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const platformApi = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/platform',
+  baseURL: '/platform',
   headers: { 'Content-Type': 'application/json' },
 });
 
