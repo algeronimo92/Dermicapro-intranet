@@ -15,6 +15,7 @@ import {
 } from '../../controllers/platform/tenants.controller';
 import { registerTenantHandler } from '../../controllers/platform/onboarding.controller';
 import { impersonateTenantHandler } from '../../controllers/platform/impersonation.controller';
+import { listPlatformAdminsHandler, createPlatformAdminHandler, deactivatePlatformAdminHandler } from '../../controllers/platform/admins.controller';
 import { authenticatePlatformAdmin } from '../../middlewares/platformAuth';
 
 const router = Router();
@@ -48,5 +49,9 @@ router.get('/tenants/:slug/metrics', authenticatePlatformAdmin, getTenantMetrics
 router.post('/tenants/:slug/metrics/refresh', authenticatePlatformAdmin, refreshTenantMetricsHandler);
 router.get('/migrations/failed-summary', authenticatePlatformAdmin, getFailedMigrationsSummaryHandler);
 router.post('/tenants/:slug/impersonate', authenticatePlatformAdmin, impersonateTenantHandler);
+
+router.get('/admins', authenticatePlatformAdmin, listPlatformAdminsHandler);
+router.post('/admins', authenticatePlatformAdmin, createPlatformAdminHandler);
+router.delete('/admins/:id', authenticatePlatformAdmin, deactivatePlatformAdminHandler);
 
 export default router;

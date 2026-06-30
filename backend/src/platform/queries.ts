@@ -206,4 +206,33 @@ export async function getFailedMigrationsSummary(): Promise<
   }));
 }
 
+export async function listAllPlatformAdmins(): Promise<PlatformAdmin[]> {
+  const result = await platformPool.query(
+    'SELECT id, email, first_name, last_name, is_active, created_at FROM platform_admins ORDER BY created_at DESC',
+  );
+  return result.rows.map(mapPlatformAdminRow);
+}
+
+export async function createPlatformAdminRecord(data: {
+  email: string;
+  passwordHash: string;
+  firstName: string;
+  lastName: string;
+}): Promise<PlatformAdmin> {
+  const result = await platformPool.query(
+    `INSERT INTO platform_admins (email, password_hash, first_name, last_name)
+     VALUES ($1, $2, $3, $4) RETURNING id, email, first_name, last_name, is_active, created_at`,
+    [data.email, data.passwordHash, data.firstName, data.lastName],
+  );
+  return mapPlatformAdminRow(result.rows[0]);
+}
+
+export async function deactivatePlatformAdminById(id: string): Promise<boolean> {
+  const result = await platformPool.query(
+    'UPDATE platform_admins SET is_active = false WHERE id = $1',
+    [id],
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export { platformPool };
