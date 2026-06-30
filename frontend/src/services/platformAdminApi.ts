@@ -164,4 +164,11 @@ export const platformAdminApi = {
     const res = await platformApi.get<{ data: FailedMigrationsSummary }>('/migrations/failed-summary');
     return res.data.data;
   },
+
+  async impersonateTenant(slug: string): Promise<{ token: string; userEmail: string; loginUrl: string }> {
+    const res = await platformApi.post<{ data: { token: string; userEmail: string; loginUrl: string } }>(
+      `/tenants/${slug}/impersonate`,
+    );
+    return res.data.data;
+  },
 };

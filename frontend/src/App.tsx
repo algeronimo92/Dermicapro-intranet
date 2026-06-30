@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { hasTenantSubdomain } from './utils/tenantSubdomain';
+import { PlatformLandingPage } from './pages/PlatformLandingPage';
 import { NAV_ITEMS, canAccessNav } from './config/navigation.config';
 import { Sidebar } from './components/Sidebar';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { Timer } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PatientAuthProvider, usePatientAuth } from './contexts/PatientAuthContext';
+import { PlatformAuthProvider } from './contexts/PlatformAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
 import { PatientsPage } from './pages/PatientsPage';
@@ -28,6 +31,7 @@ import { StyleGuidePage } from './pages/StyleGuidePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AnalyticsPage } from './pages/analytics/AnalyticsPage';
+import { ImpersonatePage } from './pages/ImpersonatePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { FirstLoginModal } from './components/FirstLoginModal';
@@ -38,6 +42,14 @@ import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/settings.css';
 import './styles/commissions-page.css';
+import './styles/superadmin.css';
+
+const SuperAdminLoginPage = lazy(() => import('./pages/superadmin/SuperAdminLoginPage').then((module) => ({ default: module.SuperAdminLoginPage })));
+const SuperAdminDashboardPage = lazy(() => import('./pages/superadmin/SuperAdminDashboardPage').then((module) => ({ default: module.SuperAdminDashboardPage })));
+const SuperAdminTenantsPage = lazy(() => import('./pages/superadmin/SuperAdminTenantsPage').then((module) => ({ default: module.SuperAdminTenantsPage })));
+const SuperAdminTenantDetailPage = lazy(() => import('./pages/superadmin/SuperAdminTenantDetailPage').then((module) => ({ default: module.SuperAdminTenantDetailPage })));
+const SuperAdminLayout = lazy(() => import('./components/superadmin/SuperAdminLayout').then((module) => ({ default: module.SuperAdminLayout })));
+const RequirePlatformAuth = lazy(() => import('./components/superadmin/RequirePlatformAuth').then((module) => ({ default: module.RequirePlatformAuth })));
 
 // Wrapper interno para SystemSettingsProvider (necesita acceso a useAuth)
 function SystemSettingsWrapper({ children }: { children: React.ReactNode }) {
@@ -54,34 +66,60 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <PatientAuthProvider>
-          <SystemSettingsWrapper>
-            <Router>
-              <Routes>
-                {/* Rutas del Portal de Pacientes */}
-                <Route path="/patient/login" element={<PatientLoginPage />} />
-                <Route
-                  path="/patient/*"
-                  element={
-                    <ProtectedPatientRoute>
-                      <PatientPortalRoutes />
-                    </ProtectedPatientRoute>
-                  }
-                />
+          <PlatformAuthProvider>
+            <SystemSettingsWrapper>
+              <Router>
+                <Suspense fallback={<div className="login-loading">Cargando...</div>}>
+                  <Routes>
+                    {/* Rutas de Superadmin */}
+                    <Route path="/superadmin/login" element={<SuperAdminLoginPage />} />
+                    <Route
+                      path="/superadmin/*"
+                      element={
+                        <RequirePlatformAuth>
+                          <SuperAdminLayout />
+                        </RequirePlatformAuth>
+                      }
+                    >
+                      <Route index element={<Navigate to="/superadmin/dashboard" replace />} />
+                      <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+                      <Route path="tenants" element={<SuperAdminTenantsPage />} />
+                      <Route path="tenants/:slug" element={<SuperAdminTenantDetailPage />} />
+                    </Route>
 
-                {/* Rutas del Sistema de Staff */}
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <DashboardLayout />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </Router>
-          </SystemSettingsWrapper>
+                    {/* Ruta de impersonacion (tenant app) */}
+                    <Route path="/impersonate" element={<ImpersonatePage />} />
+
+                    {/* Rutas del Portal de Pacientes */}
+                    <Route path="/patient/login" element={<PatientLoginPage />} />
+                    <Route
+                      path="/patient/*"
+                      element={
+                        <ProtectedPatientRoute>
+                          <PatientPortalRoutes />
+                        </ProtectedPatientRoute>
+                      }
+                    />
+
+                    {/* Rutas del Sistema de Staff — solo disponibles con subdominio de clínica */}
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route
+                      path="/login"
+                      element={hasTenantSubdomain() ? <LoginPage /> : <PlatformLandingPage />}
+                    />
+                    <Route
+                      path="/*"
+                      element={
+                        hasTenantSubdomain()
+                          ? <ProtectedRoute><DashboardLayout /></ProtectedRoute>
+                          : <PlatformLandingPage />
+                      }
+                    />
+                  </Routes>
+                </Suspense>
+              </Router>
+            </SystemSettingsWrapper>
+          </PlatformAuthProvider>
         </PatientAuthProvider>
       </AuthProvider>
     </ThemeProvider>
