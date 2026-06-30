@@ -149,7 +149,7 @@ export const SuperAdminTenantsPage: React.FC = () => {
           className="form-input"
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-          style={{ width: 160 }}
+          style={{ flex: '0 1 160px' }}
         >
           <option value="all">Todas</option>
           <option value="active">Activas</option>
@@ -170,7 +170,11 @@ export const SuperAdminTenantsPage: React.FC = () => {
             Cargando clínicas...
           </div>
         ) : filteredTenants.length === 0 ? (
-          <p className="table-empty">No hay clínicas registradas.</p>
+          <p className="table-empty">
+            {search || filterStatus !== 'all'
+              ? 'No hay clínicas que coincidan con los filtros aplicados.'
+              : 'No hay clínicas registradas.'}
+          </p>
         ) : (
           <div className="table-container" style={{ borderRadius: 0, border: 'none', boxShadow: 'none' }}>
             <table className="table">
@@ -279,7 +283,7 @@ export const SuperAdminTenantsPage: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={isCreating}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); setForm(initialForm); setIsSlugEdited(false); }} disabled={isCreating}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={isCreating}>
