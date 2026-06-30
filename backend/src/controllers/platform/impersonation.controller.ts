@@ -34,6 +34,6 @@ export const impersonateTenantHandler = async (req: Request, res: Response): Pro
     res.json({ data: { token, userEmail: adminUser.email, loginUrl } });
   } catch (err) {
     if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
-    else res.status(500).json({ error: 'Error al generar sesion de impersonacion' });
+    else res.status(500).json({ error: 'Error al generar sesión de impersonación' });
   }
 };
