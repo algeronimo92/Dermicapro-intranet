@@ -64,6 +64,22 @@ export interface FailedMigrationsSummary {
   tenants: Array<{ slug: string; name: string; failedCount: number }>;
 }
 
+export interface PlatformAdmin {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CreatePlatformAdminDto {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
 interface DataEnvelope<T> {
   data: T;
   total?: number;
@@ -170,5 +186,19 @@ export const platformAdminApi = {
       `/tenants/${slug}/impersonate`,
     );
     return res.data.data;
+  },
+
+  async listPlatformAdmins(): Promise<PlatformAdmin[]> {
+    const res = await platformApi.get<{ data: PlatformAdmin[] }>('/admins');
+    return res.data.data;
+  },
+
+  async createPlatformAdmin(dto: CreatePlatformAdminDto): Promise<PlatformAdmin> {
+    const res = await platformApi.post<{ data: PlatformAdmin }>('/admins', dto);
+    return res.data.data;
+  },
+
+  async deactivatePlatformAdmin(id: string): Promise<void> {
+    await platformApi.delete(`/admins/${id}`);
   },
 };
