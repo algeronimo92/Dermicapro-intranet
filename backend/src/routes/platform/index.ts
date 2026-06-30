@@ -11,6 +11,7 @@ import {
   getTenantMigrations,
   getTenantMetricsHandler,
   refreshTenantMetricsHandler,
+  getFailedMigrationsSummaryHandler,
 } from '../../controllers/platform/tenants.controller';
 import { registerTenantHandler } from '../../controllers/platform/onboarding.controller';
 import { authenticatePlatformAdmin } from '../../middlewares/platformAuth';
@@ -44,5 +45,6 @@ router.post('/tenants/:slug/deactivate', authenticatePlatformAdmin, deactivateTe
 router.get('/tenants/:slug/migrations', authenticatePlatformAdmin, getTenantMigrations);
 router.get('/tenants/:slug/metrics', authenticatePlatformAdmin, getTenantMetricsHandler);
 router.post('/tenants/:slug/metrics/refresh', authenticatePlatformAdmin, refreshTenantMetricsHandler);
+router.get('/migrations/failed-summary', authenticatePlatformAdmin, getFailedMigrationsSummaryHandler);
 
 export default router;

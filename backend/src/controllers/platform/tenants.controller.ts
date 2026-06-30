@@ -6,6 +6,7 @@ import {
   setTenantActive,
   listTenantMigrations,
   getTenantMetrics,
+  getFailedMigrationsSummary,
 } from '../../platform/queries';
 import { provisionTenant } from '../../platform/provision';
 import { AppError } from '../../middlewares/errorHandler';
@@ -114,5 +115,20 @@ export const refreshTenantMetricsHandler = async (req: Request, res: Response): 
   } catch (err) {
     if (err instanceof AppError) res.status(err.statusCode).json({ error: err.message });
     else res.status(500).json({ error: 'Error al actualizar métricas' });
+  }
+};
+
+export const getFailedMigrationsSummaryHandler = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await getFailedMigrationsSummary();
+    const totalFailed = rows.reduce((s, r) => s + r.failedCount, 0);
+    res.json({
+      data: {
+        totalFailed,
+        tenants: rows.map((r) => ({ slug: r.tenantSlug, name: r.tenantName, failedCount: r.failedCount })),
+      },
+    });
+  } catch {
+    res.status(500).json({ error: 'Error al obtener resumen de migraciones' });
   }
 };

@@ -187,4 +187,23 @@ export async function getTenantMetrics(tenantId: string): Promise<TenantMetrics 
   return result.rows[0] ? mapTenantMetricsRow(result.rows[0]) : null;
 }
 
+export async function getFailedMigrationsSummary(): Promise<
+  Array<{ tenantSlug: string; tenantName: string; failedCount: number }>
+> {
+  const result = await platformPool.query(`
+    SELECT t.slug AS tenant_slug, t.name AS tenant_name,
+           COUNT(tm.id) AS failed_count
+    FROM tenants t
+    JOIN tenant_migrations tm ON tm.tenant_id = t.id
+    WHERE tm.status = 'failed'
+    GROUP BY t.id, t.slug, t.name
+    ORDER BY failed_count DESC
+  `);
+  return result.rows.map((r: any) => ({
+    tenantSlug: r.tenant_slug,
+    tenantName: r.tenant_name,
+    failedCount: parseInt(r.failed_count, 10),
+  }));
+}
+
 export { platformPool };
