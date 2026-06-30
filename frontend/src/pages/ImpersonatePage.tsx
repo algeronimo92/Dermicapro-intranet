@@ -14,7 +14,7 @@ export function ImpersonatePage() {
     } else {
       navigate('/login', { replace: true });
     }
-  }, []);
+  }, [params, navigate]);
 
   return <div className="login-loading">Iniciando sesion...</div>;
 }
