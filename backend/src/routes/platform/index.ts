@@ -16,6 +16,7 @@ import {
 import { registerTenantHandler } from '../../controllers/platform/onboarding.controller';
 import { impersonateTenantHandler } from '../../controllers/platform/impersonation.controller';
 import { listPlatformAdminsHandler, createPlatformAdminHandler, deactivatePlatformAdminHandler } from '../../controllers/platform/admins.controller';
+import { getSettingsHandler, updateSettingsHandler } from '../../controllers/platform/settings.controller';
 import { authenticatePlatformAdmin } from '../../middlewares/platformAuth';
 
 const router = Router();
@@ -53,5 +54,8 @@ router.post('/tenants/:slug/impersonate', authenticatePlatformAdmin, impersonate
 router.get('/admins', authenticatePlatformAdmin, listPlatformAdminsHandler);
 router.post('/admins', authenticatePlatformAdmin, createPlatformAdminHandler);
 router.delete('/admins/:id', authenticatePlatformAdmin, deactivatePlatformAdminHandler);
+
+router.get('/settings', authenticatePlatformAdmin, getSettingsHandler);
+router.put('/settings', authenticatePlatformAdmin, updateSettingsHandler);
 
 export default router;

@@ -50,10 +50,17 @@ export async function ensurePlatformTables(): Promise<void> {
       UNIQUE(tenant_id, migration_name)
     );
 
+    CREATE TABLE IF NOT EXISTS platform_settings (
+      key VARCHAR(100) PRIMARY KEY,
+      value TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
     CREATE INDEX IF NOT EXISTS idx_tenants_is_active ON tenants(is_active);
     CREATE INDEX IF NOT EXISTS idx_tenant_metrics_tenant_id ON tenant_metrics(tenant_id);
     CREATE INDEX IF NOT EXISTS idx_tenant_migrations_tenant_id ON tenant_migrations(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_platform_settings_key ON platform_settings(key);
   `);
 }
 
