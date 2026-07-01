@@ -61,7 +61,13 @@ services:
       - backend_uploads:/app/uploads
     command: sh -c "npx prisma migrate deploy && node dist/index.js"
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -91,7 +97,11 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -99,10 +109,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
-      - "traefik.http.routers.frontend.rule=Host(`dermicapro.app`) || Host(`www.dermicapro.app`)"
+      - "traefik.http.routers.frontend.rule=Host(`dermicapro.app`) || Host(`www.dermicapro.app`) || Host(`*.dermicapro.app`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.frontend.tls.domains[0].main=dermicapro.app"
+      - "traefik.http.routers.frontend.tls.domains[0].sans=*.dermicapro.app"
     networks:
       - dermicapro-network
       - traefik-network

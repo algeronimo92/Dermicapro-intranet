@@ -1,21 +1,26 @@
 services:
   traefik:
-    image: traefik:latest
+    image: traefik:v3.4
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - HOSTINGER_API_TOKEN=${HOSTINGER_API_TOKEN}
     command:
-      - --log.level=DEBUG                                                                                                                                                                                                                                                                                            
-      - --api.insecure=true 
+      - --log.level=DEBUG
+      - --api.insecure=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=hostinger
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --providers.file.directory=/etc/traefik/dynamic
