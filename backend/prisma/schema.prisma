@@ -106,6 +106,7 @@ model User {
   appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
 
+  @@index([roleId], map: "users_role_id_idx")
   @@map("users")
 }
 
@@ -142,6 +143,9 @@ model Patient {
   paymentOrders      PaymentOrder[]
   payments           Payment[]
 
+  @@index([createdById], map: "patients_created_by_id_idx")
+  @@index([passwordSetByStaffId], map: "patients_password_set_by_staff_id_idx")
+  @@index([createdAt], map: "patients_created_at_idx")
   @@map("patients")
 }
 
@@ -167,6 +171,8 @@ model ServiceTemplate {
   orders                 ServiceInstance[]
   commissions            Commission[]
 
+  @@index([deletedAt, name], map: "service_templates_deleted_at_name_idx")
+  @@index([isActive, deletedAt, name], map: "service_templates_active_lookup_idx")
   @@map("service_templates")
 }
 
@@ -197,6 +203,11 @@ model ServiceInstance {
   appointmentServices Session[]
   commissions         Commission[]
 
+  @@index([patientId, createdAt(sort: Desc)], map: "service_instances_patient_created_at_idx")
+  @@index([serviceTemplateId], map: "service_instances_service_template_id_idx")
+  @@index([createdById], map: "service_instances_created_by_id_idx")
+  @@index([concludedById], map: "service_instances_concluded_by_id_idx")
+  @@index([paymentOrderId], map: "service_instances_payment_order_id_idx")
   @@map("service_instances")
 }
 
@@ -223,6 +234,10 @@ model Appointment {
   appointmentNotes    AppointmentNote[]
   attendees           AppointmentAttendee[]
 
+  @@index([patientId, scheduledDate(sort: Desc)], map: "appointments_patient_scheduled_date_idx")
+  @@index([status, scheduledDate(sort: Desc)], map: "appointments_status_scheduled_date_idx")
+  @@index([createdById, scheduledDate(sort: Desc)], map: "appointments_created_by_scheduled_date_idx")
+  @@index([attendedById], map: "appointments_attended_by_id_idx")
   @@map("appointments")
 }
 
@@ -238,6 +253,8 @@ model AppointmentAttendee {
   addedBy     User        @relation("AttendeeAddedBy", fields: [addedById], references: [id])
 
   @@unique([appointmentId, userId])
+  @@index([userId], map: "appointment_attendees_user_id_idx")
+  @@index([addedById], map: "appointment_attendees_added_by_id_idx")
   @@map("appointment_attendees")
 }
 
@@ -252,6 +269,8 @@ model AppointmentNote {
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   createdBy   User        @relation("AppointmentNoteCreatedBy", fields: [createdById], references: [id])
 
+  @@index([appointmentId, createdAt(sort: Desc)], map: "appointment_notes_appointment_created_at_idx")
+  @@index([createdById], map: "appointment_notes_created_by_id_idx")
   @@map("appointment_notes")
 }
 
@@ -272,6 +291,9 @@ model PatientRecord {
   appointment     Appointment @relation(fields: [appointmentId], references: [id])
   createdBy       User        @relation(fields: [createdById], references: [id])
 
+  @@index([patientId, createdAt(sort: Desc)], map: "patient_records_patient_created_at_idx")
+  @@index([appointmentId], map: "patient_records_appointment_id_idx")
+  @@index([createdById], map: "patient_records_created_by_id_idx")
   @@map("patient_records")
 }
 
@@ -308,6 +330,13 @@ model Commission {
   approvedBy       User?             @relation("CommissionApprovals", fields: [approvedById], references: [id])
   paidBy           User?             @relation("CommissionPayments", fields: [paidById], references: [id])
 
+  @@index([salesPersonId, status, createdAt(sort: Desc)], map: "commissions_sales_status_created_at_idx")
+  @@index([appointmentId], map: "commissions_appointment_id_idx")
+  @@index([serviceInstanceId], map: "commissions_service_instance_id_idx")
+  @@index([serviceTemplateId], map: "commissions_service_template_id_idx")
+  @@index([approvedById], map: "commissions_approved_by_id_idx")
+  @@index([paidById], map: "commissions_paid_by_id_idx")
+  @@index([status, createdAt(sort: Desc)], map: "commissions_status_created_at_idx")
   @@map("commissions")
 }
 
@@ -328,6 +357,9 @@ model Session {
   serviceInstance ServiceInstance @relation(fields: [serviceInstanceId], references: [id])
   deletedBy       User?           @relation("AppointmentSessionDeletedBy", fields: [deletedById], references: [id])
 
+  @@index([appointmentId, deletedAt], map: "sessions_appointment_deleted_at_idx")
+  @@index([serviceInstanceId, deletedAt], map: "sessions_service_instance_deleted_at_idx")
+  @@index([deletedById], map: "sessions_deleted_by_id_idx")
   @@map("sessions")
 }
 
@@ -347,6 +379,9 @@ model PaymentOrder {
   createdBy User         @relation("PaymentOrderCreatedBy", fields: [createdById], references: [id])
   payments  Payment[]
 
+  @@index([patientId, status, createdAt(sort: Desc)], map: "ordenes_de_pago_patient_status_created_at_idx")
+  @@index([createdById], map: "ordenes_de_pago_created_by_id_idx")
+  @@index([status, createdAt(sort: Desc)], map: "ordenes_de_pago_status_created_at_idx")
   @@map("ordenes_de_pago")
 }
 
@@ -375,6 +410,13 @@ model Payment {
   createdBy    User          @relation("PaymentCreatedBy", fields: [createdById], references: [id])
   voidedBy     User?         @relation("PaymentVoidedBy", fields: [voidedById], references: [id])
 
+  @@index([patientId, paymentDate(sort: Desc)], map: "payments_patient_payment_date_idx")
+  @@index([paymentOrderId, voidedAt, paymentDate(sort: Desc)], map: "payments_order_voided_payment_date_idx")
+  @@index([appointmentId, paymentType, voidedAt], map: "payments_appointment_type_voided_idx")
+  @@index([createdById], map: "payments_created_by_id_idx")
+  @@index([voidedById], map: "payments_voided_by_id_idx")
+  @@index([paymentDate(sort: Desc)], map: "payments_payment_date_idx")
+  @@index([paymentType, paymentDate(sort: Desc)], map: "payments_type_payment_date_idx")
   @@map("payments")
 }
 
