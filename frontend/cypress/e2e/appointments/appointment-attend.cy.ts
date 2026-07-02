@@ -95,6 +95,10 @@ describe("Atender cita", () => {
               .first()
               .click();
 
+            // Esperar a que la petición de agregar profesional termine y se
+            // refleje en el DOM antes de finalizar (evita condición de carrera)
+            cy.get('button[title="Quitar"]', { timeout: 6000 }).should("exist");
+
             cy.contains("button", "Finalizar Atención").click();
             cy.get(".status-badge-large", { timeout: 8000 }).should(
               "contain.text",
