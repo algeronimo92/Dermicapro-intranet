@@ -13,8 +13,6 @@ interface ServiceFormModalProps {
 const EMPTY_FORM = {
   name: '',
   description: '',
-  basePrice: '',
-  defaultSessions: '1',
   commissionType: 'percentage' as 'percentage' | 'fixed',
   commissionRate: '',
   commissionFixedAmount: '',
@@ -51,8 +49,6 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
       setForm({
         name: service.name,
         description: service.description || '',
-        basePrice: service.basePrice.toString(),
-        defaultSessions: service.defaultSessions.toString(),
         commissionType: (service.commissionType || 'percentage') as 'percentage' | 'fixed',
         commissionRate: service.commissionRate
           ? (parseFloat(service.commissionRate.toString()) * 100).toString()
@@ -72,10 +68,6 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
 
   const validate = (): boolean => {
     if (!form.name.trim()) { setError('El nombre es requerido'); return false; }
-    const price = parseFloat(form.basePrice);
-    if (isNaN(price) || price < 0) { setError('El precio debe ser un número válido mayor o igual a 0'); return false; }
-    const sessions = parseInt(form.defaultSessions);
-    if (isNaN(sessions) || sessions < 1) { setError('El número de sesiones debe ser al menos 1'); return false; }
     return true;
   };
 
@@ -89,8 +81,6 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
       const data = {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
-        basePrice: parseFloat(form.basePrice),
-        defaultSessions: parseInt(form.defaultSessions),
         commissionType: form.commissionType,
         commissionRate:
           form.commissionType === 'percentage' && form.commissionRate
@@ -171,35 +161,6 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
               />
             </div>
 
-            {/* Precio y Sesiones */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-              <div>
-                <label className="field-label">Precio Base (S/) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.basePrice}
-                  onChange={set('basePrice')}
-                  placeholder="0.00"
-                  className="filter-select-modern"
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div>
-                <label className="field-label">Número de Sesiones *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.defaultSessions}
-                  onChange={set('defaultSessions')}
-                  placeholder="1"
-                  className="filter-select-modern"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-
             {/* Sección comisiones */}
             <div style={{
               padding: 'var(--spacing-md)',
@@ -207,9 +168,12 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
               borderRadius: 'var(--radius-xl)',
               border: '1px solid var(--color-border-secondary)',
             }}>
-              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: 'var(--spacing-md)' }}>
-                Configuración de Comisiones
+              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text-primary)', marginBottom: 'var(--spacing-xs)' }}>
+                Comisión por defecto
               </div>
+              <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)', marginBottom: 'var(--spacing-md)' }}>
+                Se aplica a todos los paquetes de este servicio, salvo que un paquete defina su propia comisión.
+              </p>
 
               {/* Tipo de comisión */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>

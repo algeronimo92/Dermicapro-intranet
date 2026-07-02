@@ -48,11 +48,9 @@ interface PatientHistory {
     attendedAt: string | null;
     appointmentServices: Array<{
       id: string;
-      serviceTemplateId: string;
       serviceInstanceId: string | null;
       sessionNumber: number | null;
       serviceInstance?: { totalSessions: number; service?: { name: string } } | null;
-      service?: { name: string; basePrice: string };
       order: { id: string; totalSessions: number } | null;
     }>;
     createdBy: { id: string; firstName: string; lastName: string };
@@ -347,7 +345,7 @@ export const PatientHistoryPage: React.FC = () => {
                             </svg>
                             <div>
                               <div className="phist-treatment-row__name">
-                                {svc.serviceInstance?.service?.name || svc.service?.name || 'Servicio'}
+                                {svc.serviceInstance?.service?.name || 'Servicio'}
                               </div>
                               {svc.serviceInstance && svc.sessionNumber && (
                                 <div className="phist-treatment-row__session">

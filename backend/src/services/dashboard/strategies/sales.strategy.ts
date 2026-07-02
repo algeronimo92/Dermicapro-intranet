@@ -94,7 +94,8 @@ export class SalesDashboardStrategy extends BaseDashboardStrategy {
         createdAt: dateRange,
       },
       include: {
-        serviceTemplate: true,
+        service: true,
+        servicePackage: true,
         appointment: {
           select: {
             id: true,

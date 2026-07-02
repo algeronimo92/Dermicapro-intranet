@@ -130,7 +130,7 @@ export const MedicalDashboard: React.FC<MedicalDashboardProps> = ({ data, isLoad
             <h3 className="dashboard__card-title">Mis procedimientos más realizados (último mes)</h3>
             <div className="services-list">
               {data.personal.myTopServices.map((svc, i) => (
-                <div key={svc.serviceTemplateId} className="service-item">
+                <div key={svc.serviceId} className="service-item">
                   <div className="service-item__rank">#{i + 1}</div>
                   <div className="service-item__info">
                     <div className="service-item__name">{svc.name}</div>

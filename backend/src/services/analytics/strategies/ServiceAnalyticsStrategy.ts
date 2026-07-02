@@ -33,8 +33,8 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     gte: Date;
     lte: Date;
   }): Promise<ServiceAnalyticsData['overview']> {
-    const totalServices = await this.prisma.serviceTemplate.count();
-    const activeServices = await this.prisma.serviceTemplate.count({
+    const totalServices = await this.prisma.service.count();
+    const activeServices = await this.prisma.service.count({
       where: {
         isActive: true,
       },
@@ -70,13 +70,14 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       },
     };
 
-    if (filters?.serviceTemplateId) {
-      where.serviceTemplateId = filters.serviceTemplateId;
+    if (filters?.serviceId) {
+      where.serviceId = filters.serviceId;
     }
 
-    // Obtener datos de órdenes agrupados por servicio
+    // Obtener datos de órdenes agrupados por servicio (tratamiento base,
+    // no por paquete/variante — así x1 y x6 del mismo tratamiento suman juntos)
     const ordersByService = await this.prisma.serviceInstance.groupBy({
-      by: ['serviceTemplateId'],
+      by: ['serviceId'],
       _count: true,
       _sum: {
         finalPrice: true,
@@ -87,16 +88,16 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       where,
       orderBy: {
         _count: {
-          serviceTemplateId: 'desc',
+          serviceId: 'desc',
         },
       },
     });
 
     // Obtener información de los servicios
-    const services = await this.prisma.serviceTemplate.findMany({
+    const services = await this.prisma.service.findMany({
       where: {
         id: {
-          in: ordersByService.map((o) => o.serviceTemplateId),
+          in: ordersByService.map((o) => o.serviceId),
         },
       },
       select: {
@@ -111,7 +112,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
         const totalAppointments = await this.prisma.session.count({
           where: {
             serviceInstance: {
-              serviceTemplateId: order.serviceTemplateId,
+              serviceId: order.serviceId,
               createdAt: {
                 gte: dateRange.gte,
                 lte: dateRange.lte,
@@ -124,7 +125,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
           await this.prisma.session.count({
             where: {
               serviceInstance: {
-                serviceTemplateId: order.serviceTemplateId,
+                serviceId: order.serviceId,
                 createdAt: {
                   gte: dateRange.gte,
                   lte: dateRange.lte,
@@ -141,10 +142,10 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
             ? (completedAppointments / totalAppointments) * 100
             : 0;
 
-        const service = services.find((s) => s.id === order.serviceTemplateId);
+        const service = services.find((s) => s.id === order.serviceId);
 
         return {
-          serviceTemplateId: order.serviceTemplateId,
+          serviceId: order.serviceId,
           serviceName: service?.name || 'Servicio Desconocido',
           timesOrdered: order._count,
           revenue: Math.round((Number(order._sum.finalPrice) || 0) * 100) / 100,
@@ -158,26 +159,27 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
   }
 
   private async getPricingData(): Promise<ServiceAnalyticsData['pricing']> {
-    const priceData = await this.prisma.serviceTemplate.aggregate({
+    const priceData = await this.prisma.servicePackage.aggregate({
       _avg: {
-        basePrice: true,
+        price: true,
       },
       _min: {
-        basePrice: true,
+        price: true,
       },
       _max: {
-        basePrice: true,
+        price: true,
       },
       where: {
         isActive: true,
+        deletedAt: null,
       },
     });
 
     return {
-      averageServicePrice: Math.round((Number(priceData._avg.basePrice) || 0) * 100) / 100,
+      averageServicePrice: Math.round((Number(priceData._avg.price) || 0) * 100) / 100,
       priceRange: {
-        min: Math.round((Number(priceData._min.basePrice) || 0) * 100) / 100,
-        max: Math.round((Number(priceData._max.basePrice) || 0) * 100) / 100,
+        min: Math.round((Number(priceData._min.price) || 0) * 100) / 100,
+        max: Math.round((Number(priceData._max.price) || 0) * 100) / 100,
       },
     };
   }
@@ -186,19 +188,19 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
     gte: Date;
     lte: Date;
   }): Promise<ServiceAnalyticsData['packages']> {
-    // Obtener paquetes (servicios con 'Paquete' en el nombre o categoría)
-    const packages = await this.prisma.serviceTemplate.findMany({
+    // Paquetes reales del catálogo (antes: heurística por nombre "Paquete"/"Package")
+    const packages = await this.prisma.servicePackage.findMany({
       where: {
-        OR: [
-          { name: { contains: 'Paquete', mode: 'insensitive' } },
-          { name: { contains: 'Package', mode: 'insensitive' } },
-        ],
         isActive: true,
+        deletedAt: null,
       },
       select: {
         id: true,
-        name: true,
-        basePrice: true,
+        price: true,
+        label: true,
+        service: {
+          select: { name: true },
+        },
       },
     });
 
@@ -211,7 +213,7 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
       packages.map(async (pkg) => {
         const ordersCount = await this.prisma.serviceInstance.count({
           where: {
-            serviceTemplateId: pkg.id,
+            servicePackageId: pkg.id,
             createdAt: {
               gte: dateRange.gte,
               lte: dateRange.lte,
@@ -221,9 +223,9 @@ export class ServiceAnalyticsStrategy extends BaseAnalyticsStrategy<ServiceAnaly
 
         return {
           packageId: pkg.id,
-          packageName: pkg.name,
-          serviceCount: 1, // TODO: Implementar si hay relación de paquetes con múltiples servicios
-          totalPrice: Math.round((Number(pkg.basePrice) || 0) * 100) / 100,
+          packageName: `${pkg.service.name}${pkg.label ? ` (${pkg.label})` : ''}`,
+          serviceName: pkg.service.name,
+          price: Math.round((Number(pkg.price) || 0) * 100) / 100,
           popularity: ordersCount,
         };
       })

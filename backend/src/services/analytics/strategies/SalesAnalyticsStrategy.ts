@@ -204,7 +204,7 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     lte: Date;
   }): Promise<SalesAnalyticsData['topServices']> {
     const servicesSales = await this.prisma.serviceInstance.groupBy({
-      by: ['serviceTemplateId'],
+      by: ['serviceId'],
       _count: true,
       _sum: {
         finalPrice: true,
@@ -223,10 +223,10 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
       take: 10,
     });
 
-    const servicesInfo = await this.prisma.serviceTemplate.findMany({
+    const servicesInfo = await this.prisma.service.findMany({
       where: {
         id: {
-          in: servicesSales.map((s) => s.serviceTemplateId),
+          in: servicesSales.map((s) => s.serviceId),
         },
       },
       select: {
@@ -236,9 +236,9 @@ export class SalesAnalyticsStrategy extends BaseAnalyticsStrategy<SalesAnalytics
     });
 
     return servicesSales.map((sale) => {
-      const service = servicesInfo.find((s) => s.id === sale.serviceTemplateId);
+      const service = servicesInfo.find((s) => s.id === sale.serviceId);
       return {
-        serviceTemplateId: sale.serviceTemplateId,
+        serviceId: sale.serviceId,
         serviceName: service?.name || 'Servicio Desconocido',
         unitsSold: sale._count,
         revenue: Number(sale._sum.finalPrice) || 0,

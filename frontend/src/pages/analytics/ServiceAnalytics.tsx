@@ -66,7 +66,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
               {data.performance.map((svc) => {
                 const v = completionVariant(svc.completionRate);
                 return (
-                  <tr key={svc.serviceTemplateId}>
+                  <tr key={svc.serviceId}>
                     <td style={{ fontWeight: 500 }}>{svc.serviceName}</td>
                     <td className="anlx-table__right">{svc.timesOrdered}</td>
                     <td className="anlx-table__right anlx-table__currency">{fmt(svc.revenue)}</td>
@@ -138,7 +138,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
               <thead>
                 <tr>
                   <th>Paquete</th>
-                  <th className="anlx-table__right">Servicios</th>
+                  <th>Servicio</th>
                   <th className="anlx-table__right">Precio</th>
                   <th className="anlx-table__right">Popularidad</th>
                 </tr>
@@ -147,8 +147,8 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
                 {data.packages.map((pkg) => (
                   <tr key={pkg.packageId}>
                     <td style={{ fontWeight: 500 }}>{pkg.packageName}</td>
-                    <td className="anlx-table__right">{pkg.serviceCount}</td>
-                    <td className="anlx-table__right anlx-table__currency">{fmt(pkg.totalPrice)}</td>
+                    <td>{pkg.serviceName}</td>
+                    <td className="anlx-table__right anlx-table__currency">{fmt(pkg.price)}</td>
                     <td className="anlx-table__right">
                       <span style={{ padding: '3px 8px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)' }}>
                         {pkg.popularity} órdenes

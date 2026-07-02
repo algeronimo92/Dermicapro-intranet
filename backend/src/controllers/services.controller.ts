@@ -1,12 +1,38 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 
+const PACKAGES_ORDER = { sessions: 'asc' as const };
+
+export const validateCommissionFields = (body: any): string | null => {
+  const { commissionType, commissionRate, commissionFixedAmount } = body;
+
+  if (commissionRate !== undefined && commissionRate !== null && (commissionRate < 0 || commissionRate > 1)) {
+    return 'La tasa de comisión debe estar entre 0 y 1 (0% - 100%)';
+  }
+
+  if (commissionFixedAmount !== undefined && commissionFixedAmount !== null && commissionFixedAmount < 0) {
+    return 'El monto fijo de comisión debe ser mayor o igual a 0';
+  }
+
+  if (commissionType && !['percentage', 'fixed'].includes(commissionType)) {
+    return 'El tipo de comisión debe ser "percentage" o "fixed"';
+  }
+
+  return null;
+};
+
 export const getServices = async (req: Request, res: Response) => {
   try {
     const includeDeleted = req.query.includeDeleted === 'true';
 
-    const services = await prisma.serviceTemplate.findMany({
+    const services = await prisma.service.findMany({
       where: includeDeleted ? {} : { deletedAt: null },
+      include: {
+        packages: {
+          where: includeDeleted ? {} : { deletedAt: null },
+          orderBy: PACKAGES_ORDER
+        }
+      },
       orderBy: { name: 'asc' }
     });
     res.json(services);
@@ -17,10 +43,16 @@ export const getServices = async (req: Request, res: Response) => {
 
 export const getActiveServices = async (_req: Request, res: Response) => {
   try {
-    const services = await prisma.serviceTemplate.findMany({
+    const services = await prisma.service.findMany({
       where: {
         isActive: true,
         deletedAt: null
+      },
+      include: {
+        packages: {
+          where: { isActive: true, deletedAt: null },
+          orderBy: PACKAGES_ORDER
+        }
       },
       orderBy: { name: 'asc' }
     });
@@ -33,8 +65,9 @@ export const getActiveServices = async (_req: Request, res: Response) => {
 export const getService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const service = await prisma.serviceTemplate.findUnique({
-      where: { id }
+    const service = await prisma.service.findUnique({
+      where: { id },
+      include: { packages: { orderBy: PACKAGES_ORDER } }
     });
 
     if (!service) {
@@ -49,45 +82,29 @@ export const getService = async (req: Request, res: Response) => {
 
 export const createService = async (req: Request, res: Response) => {
   try {
-    const { name, description, basePrice, defaultSessions, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
+    const { name, description, icon, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
 
-    // Validaciones
-    if (!name || !basePrice) {
-      return res.status(400).json({ message: 'Nombre y precio son requeridos' });
+    if (!name) {
+      return res.status(400).json({ message: 'El nombre es requerido' });
     }
 
-    if (basePrice < 0) {
-      return res.status(400).json({ message: 'El precio debe ser mayor o igual a 0' });
+    const commissionError = validateCommissionFields(req.body);
+    if (commissionError) {
+      return res.status(400).json({ message: commissionError });
     }
 
-    if (defaultSessions !== undefined && defaultSessions < 1) {
-      return res.status(400).json({ message: 'El número de sesiones debe ser al menos 1' });
-    }
-
-    if (commissionRate !== undefined && (commissionRate < 0 || commissionRate > 1)) {
-      return res.status(400).json({ message: 'La tasa de comisión debe estar entre 0 y 1 (0% - 100%)' });
-    }
-
-    if (commissionFixedAmount !== undefined && commissionFixedAmount < 0) {
-      return res.status(400).json({ message: 'El monto fijo de comisión debe ser mayor o igual a 0' });
-    }
-
-    if (commissionType && !['percentage', 'fixed'].includes(commissionType)) {
-      return res.status(400).json({ message: 'El tipo de comisión debe ser "percentage" o "fixed"' });
-    }
-
-    const service = await prisma.serviceTemplate.create({
+    const service = await prisma.service.create({
       data: {
         name,
         description,
-        basePrice,
-        defaultSessions: defaultSessions || 1,
+        icon,
         isActive: isActive !== undefined ? isActive : true,
         commissionType: commissionType || 'percentage',
         commissionRate: commissionRate !== undefined ? commissionRate : null,
         commissionFixedAmount: commissionFixedAmount !== undefined ? commissionFixedAmount : null,
         commissionNotes: commissionNotes || null,
-      }
+      },
+      include: { packages: true }
     });
 
     return res.status(201).json(service);
@@ -99,51 +116,32 @@ export const createService = async (req: Request, res: Response) => {
 export const updateService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, basePrice, defaultSessions, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
+    const { name, description, icon, isActive, commissionType, commissionRate, commissionFixedAmount, commissionNotes } = req.body;
 
-    // Verificar que el servicio existe
-    const existingService = await prisma.serviceTemplate.findUnique({
-      where: { id }
-    });
+    const existingService = await prisma.service.findUnique({ where: { id } });
 
     if (!existingService) {
       return res.status(404).json({ message: 'Servicio no encontrado' });
     }
 
-    // Validaciones
-    if (basePrice !== undefined && basePrice < 0) {
-      return res.status(400).json({ message: 'El precio debe ser mayor o igual a 0' });
+    const commissionError = validateCommissionFields(req.body);
+    if (commissionError) {
+      return res.status(400).json({ message: commissionError });
     }
 
-    if (defaultSessions !== undefined && defaultSessions < 1) {
-      return res.status(400).json({ message: 'El número de sesiones debe ser al menos 1' });
-    }
-
-    if (commissionRate !== undefined && commissionRate !== null && (commissionRate < 0 || commissionRate > 1)) {
-      return res.status(400).json({ message: 'La tasa de comisión debe estar entre 0 y 1 (0% - 100%)' });
-    }
-
-    if (commissionFixedAmount !== undefined && commissionFixedAmount !== null && commissionFixedAmount < 0) {
-      return res.status(400).json({ message: 'El monto fijo de comisión debe ser mayor o igual a 0' });
-    }
-
-    if (commissionType && !['percentage', 'fixed'].includes(commissionType)) {
-      return res.status(400).json({ message: 'El tipo de comisión debe ser "percentage" o "fixed"' });
-    }
-
-    const service = await prisma.serviceTemplate.update({
+    const service = await prisma.service.update({
       where: { id },
       data: {
         name,
         description,
-        basePrice,
-        defaultSessions,
+        icon,
         isActive,
         commissionType: commissionType !== undefined ? commissionType : undefined,
         commissionRate: commissionRate !== undefined ? commissionRate : undefined,
         commissionFixedAmount: commissionFixedAmount !== undefined ? commissionFixedAmount : undefined,
         commissionNotes: commissionNotes !== undefined ? commissionNotes : undefined,
-      }
+      },
+      include: { packages: { orderBy: PACKAGES_ORDER } }
     });
 
     return res.json(service);
@@ -156,10 +154,7 @@ export const deleteService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Verificar que el servicio existe
-    const existingService = await prisma.serviceTemplate.findUnique({
-      where: { id }
-    });
+    const existingService = await prisma.service.findUnique({ where: { id } });
 
     if (!existingService) {
       return res.status(404).json({ message: 'Servicio no encontrado' });
@@ -169,11 +164,11 @@ export const deleteService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El servicio ya está eliminado' });
     }
 
-    // Soft delete: solo actualizar deletedAt
-    await prisma.serviceTemplate.update({
-      where: { id },
-      data: { deletedAt: new Date() }
-    });
+    // Soft delete en cascada: el servicio y todos sus paquetes
+    await prisma.$transaction([
+      prisma.service.update({ where: { id }, data: { deletedAt: new Date() } }),
+      prisma.servicePackage.updateMany({ where: { serviceId: id, deletedAt: null }, data: { deletedAt: new Date() } })
+    ]);
 
     return res.status(204).send();
   } catch (error: any) {
@@ -185,10 +180,7 @@ export const restoreService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Verificar que el servicio existe
-    const existingService = await prisma.serviceTemplate.findUnique({
-      where: { id }
-    });
+    const existingService = await prisma.service.findUnique({ where: { id } });
 
     if (!existingService) {
       return res.status(404).json({ message: 'Servicio no encontrado' });
@@ -198,10 +190,10 @@ export const restoreService = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El servicio no está eliminado' });
     }
 
-    // Restaurar: poner deletedAt a null
-    const service = await prisma.serviceTemplate.update({
+    const service = await prisma.service.update({
       where: { id },
-      data: { deletedAt: null }
+      data: { deletedAt: null },
+      include: { packages: { orderBy: PACKAGES_ORDER } }
     });
 
     return res.json(service);

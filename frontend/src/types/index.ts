@@ -104,25 +104,38 @@ export interface CreditTransaction {
   createdAt: string;
 }
 
+export interface ServicePackage {
+  id: string;
+  serviceId: string;
+  sessions: number;
+  price: number;
+  label?: string | null;
+  commissionType?: 'percentage' | 'fixed' | null;
+  commissionRate?: number | null;
+  commissionFixedAmount?: number | null;
+  isActive: boolean;
+  deletedAt?: string | null;
+}
+
 export interface Service {
   id: string;
   name: string;
   description?: string;
-  basePrice: number;
-  defaultSessions: number;
+  icon?: string;
   commissionType?: 'percentage' | 'fixed';
   commissionRate?: number;
   commissionFixedAmount?: number;
   commissionNotes?: string;
   isActive: boolean;
   deletedAt?: string | null;
+  packages?: ServicePackage[];
 }
 
 export interface Order {
   id: string;
   patientId: string;
-  serviceTemplateId: string;
-  serviceId?: string;
+  serviceId: string;
+  servicePackageId: string;
   totalSessions: number;
   completedSessions: number;
   originalPrice: number;
@@ -135,6 +148,7 @@ export interface Order {
   createdAt: string;
   patient?: Patient;
   service?: Service;
+  servicePackage?: ServicePackage;
   createdBy?: Partial<User>;
   appointmentServices?: AppointmentService[];
   paymentOrder?: Partial<PaymentOrder>;
@@ -146,7 +160,7 @@ export interface AppointmentService {
   serviceInstanceId: string;
   sessionNumber?: number | null;
   createdAt: string;
-  serviceInstance: Partial<Order> & { service?: Service };
+  serviceInstance: Partial<Order> & { service?: Service; servicePackage?: ServicePackage };
   appointment?: Partial<Appointment>;
 }
 
@@ -297,12 +311,12 @@ export interface SessionOperations {
   toDelete: string[];  // IDs de AppointmentService a eliminar (soft delete)
   toCreate: Array<{
     orderId?: string;
-    serviceId: string;
+    servicePackageId: string;
     sessionNumber: number;
     tempPackageId?: string;
   }>;
   newOrders: Array<{
-    serviceId: string;
+    servicePackageId: string;
     totalSessions: number;
     tempPackageId: string;
   }>;

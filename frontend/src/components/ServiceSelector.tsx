@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Service } from '../types';
+import { Service, ServicePackage } from '../types';
 
 interface ServiceSelectorProps {
+  /** id del ServicePackage seleccionado */
   value: string;
-  onChange: (serviceId: string) => void;
+  onChange: (servicePackageId: string) => void;
   services: Service[];
   label?: string;
   error?: string;
   disabled?: boolean;
 }
+
+const formatPrice = (price: number) => `S/. ${Number(price).toLocaleString('es-PE')}`;
 
 export const ServiceSelector: React.FC<ServiceSelectorProps> = ({
   value,
@@ -21,17 +24,32 @@ export const ServiceSelector: React.FC<ServiceSelectorProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [pickedServiceId, setPickedServiceId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedService = services.find(s => s.id === value);
+  // Resuelve el paquete seleccionado y su servicio padre a partir del value actual
+  let selectedPackage: ServicePackage | undefined;
+  let selectedService: Service | undefined;
+  for (const s of services) {
+    const pkg = s.packages?.find(p => p.id === value);
+    if (pkg) {
+      selectedPackage = pkg;
+      selectedService = s;
+      break;
+    }
+  }
 
-  const filtered = searchTerm.trim()
-    ? services.filter(s =>
+  const servicesWithPackages = services.filter(s => (s.packages?.length ?? 0) > 0);
+
+  const filteredServices = searchTerm.trim()
+    ? servicesWithPackages.filter(s =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    : services;
+    : servicesWithPackages;
+
+  const pickedService = pickedServiceId ? services.find(s => s.id === pickedServiceId) : null;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -41,21 +59,28 @@ export const ServiceSelector: React.FC<ServiceSelectorProps> = ({
         dropdownRef.current && !dropdownRef.current.contains(target)
       ) {
         setIsOpen(false);
+        setPickedServiceId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelect = (id: string) => {
-    onChange(id);
+  const handlePickService = (serviceId: string) => {
+    setPickedServiceId(serviceId);
+  };
+
+  const handleSelectPackage = (servicePackageId: string) => {
+    onChange(servicePackageId);
     setIsOpen(false);
+    setPickedServiceId(null);
     setSearchTerm('');
   };
 
   const handleClear = () => {
     onChange('');
     setSearchTerm('');
+    setPickedServiceId(null);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -71,23 +96,20 @@ export const ServiceSelector: React.FC<ServiceSelectorProps> = ({
     };
   };
 
-  const formatLabel = (s: Service) => {
-    const price = `S/. ${Number(s.basePrice).toLocaleString('es-PE')}`;
-    const sessions = s.defaultSessions > 1 ? ` · ${s.defaultSessions} sesiones` : '';
-    return { name: s.name, meta: `${price}${sessions}` };
-  };
-
   return (
     <div className="service-selector">
       {label && <label className="input-label">{label}</label>}
 
-      {selectedService ? (
+      {selectedPackage && selectedService ? (
         <div className={`service-selected${error ? ' service-selected-error' : ''}`}>
           <div className="service-selected-info">
-            <span className="service-selected-name">{selectedService.name}</span>
+            <span className="service-selected-name">
+              {selectedService.name}
+              {selectedPackage.label ? ` — ${selectedPackage.label}` : ''}
+            </span>
             <span className="service-selected-meta">
-              S/. {Number(selectedService.basePrice).toLocaleString('es-PE')}
-              {selectedService.defaultSessions > 1 && ` · ${selectedService.defaultSessions} sesiones`}
+              {formatPrice(selectedPackage.price)}
+              {selectedPackage.sessions > 1 && ` · ${selectedPackage.sessions} sesiones`}
             </span>
           </div>
           <button
@@ -110,7 +132,7 @@ export const ServiceSelector: React.FC<ServiceSelectorProps> = ({
               ref={inputRef}
               type="text"
               className={`input service-search-input${error ? ' input-error' : ''}`}
-              placeholder="Buscar servicio o tratamiento..."
+              placeholder={pickedService ? pickedService.name : 'Buscar servicio o tratamiento...'}
               value={searchTerm}
               onChange={e => {
                 setSearchTerm(e.target.value);
@@ -124,25 +146,48 @@ export const ServiceSelector: React.FC<ServiceSelectorProps> = ({
 
           {isOpen && containerRef.current && createPortal(
             <div ref={dropdownRef} className="service-dropdown" style={getDropdownPosition()}>
-              {filtered.length === 0 ? (
+              {pickedService ? (
+                <>
+                  <div
+                    className="service-dropdown-item service-dropdown-back"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => setPickedServiceId(null)}
+                  >
+                    ‹ Cambiar servicio
+                  </div>
+                  {(pickedService.packages ?? []).map(pkg => (
+                    <div
+                      key={pkg.id}
+                      className="service-dropdown-item"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => handleSelectPackage(pkg.id)}
+                    >
+                      <span className="service-dropdown-name">{pkg.label || 'Individual'}</span>
+                      <span className="service-dropdown-meta">
+                        {formatPrice(pkg.price)}
+                        {pkg.sessions > 1 && ` · ${pkg.sessions} sesiones`}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              ) : filteredServices.length === 0 ? (
                 <div className="service-dropdown-item service-dropdown-empty">
                   No se encontraron servicios
                 </div>
               ) : (
-                filtered.map(s => {
-                  const { name, meta } = formatLabel(s);
-                  return (
-                    <div
-                      key={s.id}
-                      className="service-dropdown-item"
-                      onMouseDown={e => e.preventDefault()}
-                      onClick={() => handleSelect(s.id)}
-                    >
-                      <span className="service-dropdown-name">{name}</span>
-                      <span className="service-dropdown-meta">{meta}</span>
-                    </div>
-                  );
-                })
+                filteredServices.map(s => (
+                  <div
+                    key={s.id}
+                    className="service-dropdown-item"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => handlePickService(s.id)}
+                  >
+                    <span className="service-dropdown-name">{s.name}</span>
+                    <span className="service-dropdown-meta">
+                      {s.packages?.length} {s.packages?.length === 1 ? 'paquete' : 'paquetes'}
+                    </span>
+                  </div>
+                ))
               )}
             </div>,
             document.body

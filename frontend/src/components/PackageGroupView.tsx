@@ -4,7 +4,7 @@ import { ServiceIcon } from '../utils/serviceIcons';
 
 interface PackageGroupViewProps {
   packageGroups: PackageGroup[];
-  services: Array<{ id: string; basePrice: number }>;
+  services: Array<{ id: string; price: number }>;
   onRemoveSession: (originalIndex: number) => void;
   onUpdatePackagePrice?: (tempPackageId: string, newPrice: number) => void;
   readOnly?: boolean;
@@ -37,13 +37,13 @@ export const PackageGroupView: React.FC<PackageGroupViewProps> = ({
 
 const PackageGroupCard: React.FC<{
   packageGroup: PackageGroup;
-  services: Array<{ id: string; basePrice: number }>;
+  services: Array<{ id: string; price: number }>;
   onRemoveSession: (originalIndex: number) => void;
   onUpdatePackagePrice?: (tempPackageId: string, newPrice: number) => void;
   readOnly?: boolean;
 }> = ({ packageGroup, services, onRemoveSession, onUpdatePackagePrice, readOnly = false }) => {
   const isNewPackage = packageGroup.type === 'new';
-  const service = services.find((s) => s.id === packageGroup.serviceId);
+  const service = services.find((s) => s.id === packageGroup.servicePackageId);
 
   return (
     <div className="pkg-group">
@@ -57,7 +57,7 @@ const PackageGroupCard: React.FC<{
         hasPendingReservations={packageGroup.hasPendingReservations}
         orderCreatedAt={packageGroup.orderCreatedAt}
         finalPrice={packageGroup.finalPrice}
-        basePrice={service?.basePrice}
+        basePrice={service?.price}
         tempPackageId={packageGroup.id}
         onUpdatePrice={onUpdatePackagePrice}
         readOnly={readOnly || !!packageGroup.hasPaymentOrder}

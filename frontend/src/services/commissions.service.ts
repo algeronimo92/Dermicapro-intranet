@@ -5,7 +5,8 @@ export interface Commission {
   salesPersonId: string;
   appointmentId: string;
   serviceInstanceId?: string | null;
-  serviceTemplateId?: string | null;
+  serviceId?: string | null;
+  servicePackageId?: string | null;
   commissionRate: number;
   baseAmount: number;
   commissionAmount: number;
@@ -38,10 +39,15 @@ export interface Commission {
       dni: string;
     };
   };
-  serviceTemplate?: {
+  service?: {
     id: string;
     name: string;
-    basePrice: number;
+  };
+  servicePackage?: {
+    id: string;
+    label?: string | null;
+    sessions: number;
+    price: number;
   };
   serviceInstance?: {
     id: string;
@@ -57,11 +63,6 @@ export interface Commission {
     id: string;
     firstName: string;
     lastName: string;
-  };
-  service?: {
-    id?: string;
-    name?: string;
-    basePrice?: number;
   };
 }
 
@@ -101,7 +102,7 @@ export interface CommissionsFilters {
   salesPersonId?: string;
   startDate?: string;
   endDate?: string;
-  serviceTemplateId?: string;
+  serviceId?: string;
 }
 
 const commissionsService = {
@@ -117,7 +118,7 @@ const commissionsService = {
     if (filters.salesPersonId) params.append('salesPersonId', filters.salesPersonId);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
-    if (filters.serviceTemplateId) params.append('serviceTemplateId', filters.serviceTemplateId);
+    if (filters.serviceId) params.append('serviceId', filters.serviceId);
 
     const response = await api.get(`/commissions?${params.toString()}`);
     return response.data;

@@ -718,13 +718,13 @@ export const StyleGuidePage: React.FC = () => {
               value={serviceSelectorVal}
               onChange={setServiceSelectorVal}
               services={[
-                { id: '1', name: 'HIFU 12D Ultraformer III', basePrice: 1200, defaultSessions: 1, isActive: true },
-                { id: '2', name: 'Borrado de Tatuajes M (x4)', basePrice: 1500, defaultSessions: 4, isActive: true },
-                { id: '3', name: 'Pico Láser 532nm', basePrice: 450, defaultSessions: 1, isActive: true },
-                { id: '4', name: 'Hollywood Peel Carbon', basePrice: 280, defaultSessions: 1, isActive: true },
-                { id: '5', name: 'Depilación Láser Axilas (x6)', basePrice: 750, defaultSessions: 6, isActive: true },
-                { id: '6', name: 'ADN de Salmón - Rostro (x3)', basePrice: 650, defaultSessions: 3, isActive: true },
-                { id: '7', name: 'Botox - 2 Zonas', basePrice: 600, defaultSessions: 1, isActive: true },
+                { id: '1', name: 'HIFU 12D Ultraformer III', isActive: true, packages: [{ id: 'p1', serviceId: '1', sessions: 1, price: 1200, isActive: true }] },
+                { id: '2', name: 'Borrado de Tatuajes M', isActive: true, packages: [{ id: 'p2', serviceId: '2', sessions: 4, price: 1500, label: 'x4', isActive: true }] },
+                { id: '3', name: 'Pico Láser 532nm', isActive: true, packages: [{ id: 'p3', serviceId: '3', sessions: 1, price: 450, isActive: true }] },
+                { id: '4', name: 'Hollywood Peel Carbon', isActive: true, packages: [{ id: 'p4', serviceId: '4', sessions: 1, price: 280, isActive: true }] },
+                { id: '5', name: 'Depilación Láser Axilas', isActive: true, packages: [{ id: 'p5', serviceId: '5', sessions: 6, price: 750, label: 'x6', isActive: true }] },
+                { id: '6', name: 'ADN de Salmón - Rostro', isActive: true, packages: [{ id: 'p6', serviceId: '6', sessions: 3, price: 650, label: 'x3', isActive: true }] },
+                { id: '7', name: 'Botox - 2 Zonas', isActive: true, packages: [{ id: 'p7', serviceId: '7', sessions: 1, price: 600, isActive: true }] },
               ]}
             />
           </div>

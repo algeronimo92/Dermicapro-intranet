@@ -128,7 +128,7 @@ export const AppointmentFormPage: React.FC = () => {
 
   // Lista unificada de todas las sesiones (incluye la "primera" y las "adicionales")
   const [allSessions, setAllSessions] = useState<Array<{
-    serviceId: string;
+    servicePackageId: string;
     orderId?: string;
     sessionNumber?: number;
     appointmentServiceId?: string; // ID del appointmentService si existe en BD
@@ -160,7 +160,7 @@ export const AppointmentFormPage: React.FC = () => {
     // If we have preselected service and order, initialize the first session
     if (preselectedServiceId && preselectedOrderId && allSessions.length === 0) {
       setAllSessions([{
-        serviceId: preselectedServiceId,
+        servicePackageId: preselectedServiceId,
         orderId: preselectedOrderId,
         sessionNumber: undefined // Will be calculated by backend
       }]);
@@ -207,9 +207,9 @@ export const AppointmentFormPage: React.FC = () => {
       // Load appointmentServices into allSessions for editing
       if (appointment.appointmentServices && appointment.appointmentServices.length > 0) {
         const sessions = appointment.appointmentServices
-          .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId) // Filter out invalid entries
+          .filter(appSvc => appSvc.serviceInstance?.servicePackageId) // Filter out invalid entries
           .map(appSvc => ({
-            serviceId: appSvc.serviceInstance!.serviceTemplateId as string,
+            servicePackageId: appSvc.serviceInstance!.servicePackageId as string,
             orderId: appSvc.serviceInstance!.id as string | undefined,
             sessionNumber: appSvc.sessionNumber || undefined,
             appointmentServiceId: appSvc.id // Marcar como sesión existente en BD
@@ -367,7 +367,7 @@ export const AppointmentFormPage: React.FC = () => {
     }
 
     const newSession = {
-      serviceId: selectedSessionServiceId,
+      servicePackageId: selectedSessionServiceId,
       orderId,
       sessionNumber, // IMPORTANTE: Siempre incluir sessionNumber
       tempPackageId
@@ -398,8 +398,8 @@ export const AppointmentFormPage: React.FC = () => {
     let sessionNumber = 1;
     while (occupiedNumbers.has(sessionNumber)) sessionNumber++;
 
-    const serviceId = order.serviceId ?? order.serviceTemplateId;
-    setAllSessions(prev => [...prev, { serviceId, orderId: order.id, sessionNumber }]);
+    const servicePackageId = order.servicePackageId;
+    setAllSessions(prev => [...prev, { servicePackageId, orderId: order.id, sessionNumber }]);
     if (errors.sessions) setErrors(prev => ({ ...prev, sessions: '' }));
   };
 
@@ -442,7 +442,7 @@ export const AppointmentFormPage: React.FC = () => {
       } else if (session.tempPackageId) {
         packageKey = session.tempPackageId;
       } else {
-        packageKey = `new-${session.serviceId}`;
+        packageKey = `new-${session.servicePackageId}`;
       }
 
       if (!packageGroups.has(packageKey)) {
@@ -521,7 +521,7 @@ export const AppointmentFormPage: React.FC = () => {
       } else if (session.tempPackageId) {
         packageKey = session.tempPackageId;
       } else {
-        packageKey = `new-${session.serviceId}`;
+        packageKey = `new-${session.servicePackageId}`;
       }
 
       if (!packageGroups.has(packageKey)) {
@@ -588,12 +588,12 @@ export const AppointmentFormPage: React.FC = () => {
     const toDelete: string[] = [];
     const toCreate: Array<{
       orderId?: string;
-      serviceId: string;
+      servicePackageId: string;
       sessionNumber: number;
       tempPackageId?: string;
     }> = [];
     const newOrders: Array<{
-      serviceId: string;
+      servicePackageId: string;
       totalSessions: number;
       tempPackageId: string;
     }> = [];
@@ -619,7 +619,7 @@ export const AppointmentFormPage: React.FC = () => {
         if (session.orderId) {
           toCreate.push({
             orderId: session.orderId,
-            serviceId: session.serviceId,
+            servicePackageId: session.servicePackageId,
             sessionNumber: session.sessionNumber || 1,
           });
         }
@@ -627,10 +627,12 @@ export const AppointmentFormPage: React.FC = () => {
         else if (session.tempPackageId) {
           // Agregar el nuevo paquete solo una vez
           if (!addedNewOrders.has(session.tempPackageId)) {
-            const service = services.find((s) => s.id === session.serviceId);
+            const servicePackage = services
+              .flatMap((s) => s.packages ?? [])
+              .find((p) => p.id === session.servicePackageId);
             newOrders.push({
-              serviceId: session.serviceId,
-              totalSessions: service?.defaultSessions || 1,
+              servicePackageId: session.servicePackageId,
+              totalSessions: servicePackage?.sessions || 1,
               tempPackageId: session.tempPackageId,
             });
             addedNewOrders.add(session.tempPackageId);
@@ -638,7 +640,7 @@ export const AppointmentFormPage: React.FC = () => {
 
           // Agregar la sesión a crear (el backend creará el Order primero)
           toCreate.push({
-            serviceId: session.serviceId,
+            servicePackageId: session.servicePackageId,
             sessionNumber: session.sessionNumber || 1,
             tempPackageId: session.tempPackageId,
           });
@@ -939,10 +941,20 @@ export const AppointmentFormPage: React.FC = () => {
 
             {/* List of added sessions - Using Professional Package Simulation for BOTH modes */}
             {allSessions.length > 0 && (() => {
+              // Aplanar servicios+paquetes a la forma que espera el simulador (id = servicePackageId)
+              const servicePackagesMetadata = services.flatMap((s) =>
+                (s.packages ?? []).map((p) => ({
+                  id: p.id,
+                  name: s.name,
+                  price: Number(p.price),
+                  sessions: p.sessions,
+                }))
+              );
+
               // Simulate package groups using Strategy + Factory patterns
               const packageGroups = packageSimulator.simulatePackages(
                 allSessions,
-                services,
+                servicePackagesMetadata,
                 patientOrders,
                 isEditMode,
                 packageCustomPrices
@@ -951,7 +963,7 @@ export const AppointmentFormPage: React.FC = () => {
               return (
                 <PackageGroupView
                   packageGroups={packageGroups}
-                  services={services}
+                  services={servicePackagesMetadata}
                   onRemoveSession={handleRemoveSession}
                   onUpdatePackagePrice={handleUpdatePackagePrice}
                 />
@@ -976,10 +988,12 @@ export const AppointmentFormPage: React.FC = () => {
                   />
 
                   {selectedSessionServiceId && (() => {
-                    const selectedService = services.find(s => s.id === selectedSessionServiceId);
+                    const selectedPackage = services
+                      .flatMap((s) => s.packages ?? [])
+                      .find((p) => p.id === selectedSessionServiceId);
 
-                    // VALIDACIÓN: Servicios de 1 sesión SIEMPRE crean paquetes nuevos
-                    if (selectedService && selectedService.defaultSessions === 1) {
+                    // VALIDACIÓN: Paquetes de 1 sesión SIEMPRE crean paquetes nuevos
+                    if (selectedPackage && selectedPackage.sessions === 1) {
                       return (
                         <div className="alert alert-info" style={{ marginTop: '12px', fontSize: '13px' }}>
                           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -990,14 +1004,14 @@ export const AppointmentFormPage: React.FC = () => {
                       );
                     }
 
-                    // No hay órdenes del paciente o servicio no válido
-                    if (!selectedService || patientOrders.length === 0) {
+                    // No hay órdenes del paciente o paquete no válido
+                    if (!selectedPackage || patientOrders.length === 0) {
                       return null;
                     }
 
                     // 1. Filtrar paquetes EXISTENTES disponibles (no completos)
                     const availableOrders = patientOrders
-                      .filter(order => order.serviceId === selectedSessionServiceId)
+                      .filter(order => order.servicePackageId === selectedSessionServiceId)
                       .map(order => {
                         const appointmentServices = order.appointmentServices || [];
                         const nonCancelledAppointments = appointmentServices.filter((a: any) => a.appointment?.status !== 'cancelled') || [];
@@ -1036,7 +1050,7 @@ export const AppointmentFormPage: React.FC = () => {
 
                     // 2. Identificar paquetes SIMULADOS (temporales) en allSessions
                     const simulatedPackages = allSessions
-                      .filter(s => s.tempPackageId && s.serviceId === selectedSessionServiceId)
+                      .filter(s => s.tempPackageId && s.servicePackageId === selectedSessionServiceId)
                       .reduce((acc, session) => {
                         const key = session.tempPackageId!;
                         if (!acc[key]) {
@@ -1048,13 +1062,13 @@ export const AppointmentFormPage: React.FC = () => {
 
                     const availableSimulatedPackages = Object.entries(simulatedPackages).map(([tempPackageId, sessions]) => {
                       const nextSession = sessions.length + 1;
-                      const isComplete = nextSession > selectedService.defaultSessions;
+                      const isComplete = nextSession > selectedPackage.sessions;
                       return {
                         type: 'simulated' as const,
                         tempPackageId,
                         sessions,
                         nextSession,
-                        totalSessions: selectedService.defaultSessions,
+                        totalSessions: selectedPackage.sessions,
                         isComplete
                       };
                     }).filter(item => !item.isComplete);
@@ -1072,7 +1086,7 @@ export const AppointmentFormPage: React.FC = () => {
                           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                           </svg>
-                          <span>Se creará un nuevo paquete de {selectedService.defaultSessions} sesiones automáticamente</span>
+                          <span>Se creará un nuevo paquete de {selectedPackage.sessions} sesiones automáticamente</span>
                         </div>
                       );
                     }
@@ -1120,7 +1134,7 @@ export const AppointmentFormPage: React.FC = () => {
                             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                             </svg>
-                            <span>Se creará un nuevo paquete de {selectedService.defaultSessions} sesiones automáticamente</span>
+                            <span>Se creará un nuevo paquete de {selectedPackage.sessions} sesiones automáticamente</span>
                           </div>
                         )}
                       </div>

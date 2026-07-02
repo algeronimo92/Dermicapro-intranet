@@ -10,7 +10,7 @@ import { Service, Order } from '../types';
 // ============================================
 
 export interface SessionItem {
-  serviceId: string;
+  servicePackageId: string;
   orderId?: string;
   sessionNumber?: number;
   appointmentServiceId?: string;
@@ -103,7 +103,7 @@ export const useAppointmentForm = () => {
   useEffect(() => {
     if (preselectedServiceId && preselectedOrderId && allSessions.length === 0) {
       setAllSessions([{
-        serviceId: preselectedServiceId,
+        servicePackageId: preselectedServiceId,
         orderId: preselectedOrderId,
         sessionNumber: undefined
       }]);
@@ -156,9 +156,9 @@ export const useAppointmentForm = () => {
 
       if (appointment.appointmentServices && appointment.appointmentServices.length > 0) {
         const sessions = appointment.appointmentServices
-          .filter(appSvc => appSvc.serviceInstance?.serviceTemplateId)
+          .filter(appSvc => appSvc.serviceInstance?.servicePackageId)
           .map(appSvc => ({
-            serviceId: appSvc.serviceInstance!.serviceTemplateId as string,
+            servicePackageId: appSvc.serviceInstance!.servicePackageId as string,
             orderId: appSvc.serviceInstance!.id as string | undefined,
             sessionNumber: appSvc.sessionNumber || undefined,
             appointmentServiceId: appSvc.id

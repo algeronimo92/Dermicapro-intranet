@@ -5,7 +5,7 @@ export interface AnalyticsFilters {
   period?: 'today' | 'week' | 'month' | 'year' | 'custom';
   startDate?: Date;
   endDate?: Date;
-  serviceTemplateId?: string;
+  serviceId?: string;
   salesPersonId?: string;
 }
 
@@ -155,7 +155,7 @@ export interface SalesAnalyticsData {
     }[];
   };
   topServices: {
-    serviceTemplateId: string;
+    serviceId: string;
     serviceName: string;
     unitsSold: number;
     revenue: number;
@@ -221,7 +221,7 @@ export interface ServiceAnalyticsData {
     totalRevenue: number;
   };
   performance: {
-    serviceTemplateId: string;
+    serviceId: string;
     serviceName: string;
     timesOrdered: number;
     revenue: number;
@@ -238,8 +238,8 @@ export interface ServiceAnalyticsData {
   packages: {
     packageId: string;
     packageName: string;
-    serviceCount: number;
-    totalPrice: number;
+    serviceName: string;
+    price: number;
     popularity: number;
   }[];
 }

@@ -4,6 +4,7 @@ import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { prepareDateRange } from '../utils/dateUtils';
 import { ROLES } from '../constants/roles';
+import { resolveEffectiveCommission, calculateCommissionAmount } from '../services/commission.service';
 
 export const getAllAppointments = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -80,7 +81,14 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
                     select: {
                       id: true,
                       name: true,
-                      basePrice: true,
+                    },
+                  },
+                  servicePackage: {
+                    select: {
+                      id: true,
+                      label: true,
+                      sessions: true,
+                      price: true,
                     },
                   },
                 },
@@ -145,6 +153,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
             serviceInstance: {
               include: {
                 service: true,
+                servicePackage: true,
               },
             },
           },
@@ -193,8 +202,8 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
 
     // Validar que todas las sesiones tengan los campos requeridos
     for (const session of services) {
-      if (!session.serviceId || session.sessionNumber === undefined) {
-        throw new AppError('Cada sesión debe tener serviceId y sessionNumber', 400);
+      if (!session.servicePackageId || session.sessionNumber === undefined) {
+        throw new AppError('Cada sesión debe tener servicePackageId y sessionNumber', 400);
       }
     }
 
@@ -230,32 +239,33 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
 
       for (const [tempPackageId, sessionsInPackage] of tempPackageGroups.entries()) {
         const firstSession = sessionsInPackage[0];
-        const service = await tx.serviceTemplate.findUnique({
-          where: { id: firstSession.serviceId },
+        const servicePackage = await tx.servicePackage.findUnique({
+          where: { id: firstSession.servicePackageId },
         });
 
-        if (!service) {
-          throw new AppError(`Servicio no encontrado: ${firstSession.serviceId}`, 404);
+        if (!servicePackage) {
+          throw new AppError(`Paquete de servicio no encontrado: ${firstSession.servicePackageId}`, 404);
         }
 
-        // Determinar precio final: usar customPrice si está disponible, sino basePrice
+        // Determinar precio final: usar customPrice si está disponible, sino el precio del paquete
         const customPrice = firstSession.customPrice;
         const finalPrice = customPrice !== undefined && customPrice !== null
           ? parseFloat(customPrice.toString())
-          : Number(service.basePrice);
+          : Number(servicePackage.price);
 
         // Calcular descuento si hay precio personalizado
         const discount = customPrice !== undefined && customPrice !== null
-          ? Number(service.basePrice) - finalPrice
+          ? Number(servicePackage.price) - finalPrice
           : 0;
 
         // Crear el nuevo Order
         const createdOrder = await tx.serviceInstance.create({
           data: {
             patientId,
-            serviceTemplateId: firstSession.serviceId,
-            totalSessions: service.defaultSessions || sessionsInPackage.length,
-            originalPrice: service.basePrice,
+            serviceId: servicePackage.serviceId,
+            servicePackageId: servicePackage.id,
+            totalSessions: servicePackage.sessions || sessionsInPackage.length,
+            originalPrice: servicePackage.price,
             discount,
             finalPrice,
             createdById: req.user!.id,
@@ -323,6 +333,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
               serviceInstance: {
                 include: {
                   service: true,
+                  servicePackage: true,
                 },
               },
             },
@@ -421,12 +432,12 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
 
       if (sessionOperations?.newOrders && sessionOperations.newOrders.length > 0) {
         for (const newOrder of sessionOperations.newOrders) {
-          const service = await tx.serviceTemplate.findUnique({
-            where: { id: newOrder.serviceId },
+          const servicePackage = await tx.servicePackage.findUnique({
+            where: { id: newOrder.servicePackageId },
           });
 
-          if (!service) {
-            throw new AppError(`Servicio no encontrado: ${newOrder.serviceId}`, 404);
+          if (!servicePackage) {
+            throw new AppError(`Paquete de servicio no encontrado: ${newOrder.servicePackageId}`, 404);
           }
 
           // Obtener el paciente de la cita
@@ -443,11 +454,12 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
           const createdOrder = await tx.serviceInstance.create({
             data: {
               patientId: apt.patientId,
-              serviceTemplateId: newOrder.serviceId,
+              serviceId: servicePackage.serviceId,
+              servicePackageId: servicePackage.id,
               totalSessions: newOrder.totalSessions,
-              originalPrice: service.basePrice,
+              originalPrice: servicePackage.price,
               discount: 0,
-              finalPrice: service.basePrice,
+              finalPrice: servicePackage.price,
               createdById: req.user!.id,
             },
           });
@@ -544,6 +556,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
               serviceInstance: {
                 include: {
                   service: true,
+                  servicePackage: true,
                 },
               },
             },
@@ -604,7 +617,7 @@ const APPOINTMENT_INCLUDE_WITH_ATTENDEES = {
   patientRecords: { orderBy: { createdAt: 'desc' as const } },
   appointmentServices: {
     where: { deletedAt: null },
-    include: { serviceInstance: { include: { service: true } } },
+    include: { serviceInstance: { include: { service: true, servicePackage: true } } },
   },
   payments: {
     where: { paymentType: 'reservation' as const, voidedAt: null },
@@ -630,7 +643,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
           createdBy: true,
           appointmentServices: {
             where: { deletedAt: null },
-            include: { serviceInstance: { include: { service: true } } },
+            include: { serviceInstance: { include: { service: true, servicePackage: true } } },
           },
         },
       });
@@ -684,24 +697,17 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
 
         if (!existingCommission) {
           const baseAmount = order.finalPrice;
-          let commissionAmount = 0;
-          let commissionRate = null;
-          const commissionType = order.service.commissionType || 'percentage';
-
-          if (commissionType === 'percentage') {
-            commissionRate = order.service.commissionRate || 0.05;
-            commissionAmount = Number(baseAmount) * Number(commissionRate);
-          } else if (commissionType === 'fixed') {
-            commissionAmount = Number(order.service.commissionFixedAmount || 0);
-          }
+          const effectiveCommission = resolveEffectiveCommission(order.service, order.servicePackage);
+          const { commissionRate, commissionAmount } = calculateCommissionAmount(baseAmount, effectiveCommission);
 
           await tx.commission.create({
             data: {
               salesPersonId: existingAppointment.createdBy.id,
               appointmentId: id,
               serviceInstanceId,
-              serviceTemplateId: order.serviceTemplateId,
-              commissionRate: commissionRate || 0,
+              serviceId: order.serviceId,
+              servicePackageId: order.servicePackageId,
+              commissionRate,
               baseAmount,
               commissionAmount,
               status: 'pending',
@@ -1002,6 +1008,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
             serviceInstance: {
               include: {
                 service: true,
+                servicePackage: true,
               },
             },
           },
@@ -1070,7 +1077,7 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
         attendedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         patientRecords: { orderBy: { createdAt: 'desc' as const } },
         appointmentServices: {
-          include: { serviceInstance: { include: { service: true } } },
+          include: { serviceInstance: { include: { service: true, servicePackage: true } } },
         },
       },
     });
@@ -1161,6 +1168,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
             serviceInstance: {
               include: {
                 service: true,
+                servicePackage: true,
               },
             },
           },

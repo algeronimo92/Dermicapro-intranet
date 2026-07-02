@@ -15,7 +15,7 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
       salesPersonId,
       startDate,
       endDate,
-      serviceTemplateId,
+      serviceId,
     } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -37,8 +37,8 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
     }
 
     // Filtro por servicio
-    if (serviceTemplateId) {
-      where.serviceTemplateId = serviceTemplateId;
+    if (serviceId) {
+      where.serviceId = serviceId;
     }
 
     // Filtro por rango de fechas
@@ -83,11 +83,18 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
               },
             },
           },
-          serviceTemplate: {
+          service: {
             select: {
               id: true,
               name: true,
-              basePrice: true,
+            },
+          },
+          servicePackage: {
+            select: {
+              id: true,
+              label: true,
+              sessions: true,
+              price: true,
             },
           },
           serviceInstance: {
@@ -171,10 +178,12 @@ export const getCommissionById = async (req: Request, res: Response): Promise<vo
             patient: true,
           },
         },
-        serviceTemplate: true,
+        service: true,
+        servicePackage: true,
         serviceInstance: {
           include: {
             service: true,
+            servicePackage: true,
           },
         },
         approvedBy: {
@@ -354,7 +363,8 @@ export const approveCommission = async (req: Request, res: Response): Promise<vo
             email: true,
           },
         },
-        serviceTemplate: true,
+        service: true,
+        servicePackage: true,
         approvedBy: {
           select: {
             id: true,
@@ -419,7 +429,8 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
             email: true,
           },
         },
-        serviceTemplate: true,
+        service: true,
+        servicePackage: true,
       },
     });
 
@@ -475,7 +486,8 @@ export const markAsPaid = async (req: Request, res: Response): Promise<void> => 
             email: true,
           },
         },
-        serviceTemplate: true,
+        service: true,
+        servicePackage: true,
         paidBy: {
           select: {
             id: true,
@@ -641,7 +653,8 @@ export const cancelCommission = async (req: Request, res: Response): Promise<voi
             email: true,
           },
         },
-        serviceTemplate: true,
+        service: true,
+        servicePackage: true,
       },
     });
 

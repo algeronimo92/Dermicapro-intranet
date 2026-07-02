@@ -6,6 +6,90 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg(process.env.DATABASE_URL!),
 });
 
+interface RawServiceTemplate {
+  name: string;
+  basePrice: number;
+  defaultSessions: number;
+  commissionType?: string;
+  commissionRate?: number;
+  commissionFixedAmount?: number;
+  commissionNotes?: string;
+}
+
+interface GroupedServicePackage {
+  sessions: number;
+  price: number;
+  label: string;
+  commissionType: string | null;
+  commissionRate: number | null;
+  commissionFixedAmount: number | null;
+}
+
+interface GroupedService {
+  name: string;
+  commissionType: string;
+  commissionRate: number | null;
+  commissionFixedAmount: number | null;
+  commissionNotes: string | null;
+  packages: GroupedServicePackage[];
+}
+
+// Los templates legacy codificaban cada paquete de sesiones como una fila
+// separada, con el sufijo "(xN)" en el nombre. Esta función agrupa esas
+// filas por tratamiento base para poblar Service + ServicePackage.
+function stripPackageSuffix(name: string): string {
+  return name.replace(/\s*\(x\d+\)\s*$/i, "").trim();
+}
+
+function packageLabel(name: string): string {
+  const match = name.match(/\(x(\d+)\)\s*$/i);
+  return match ? `x${match[1]}` : "Individual";
+}
+
+function sameCommission(a: RawServiceTemplate, b: RawServiceTemplate): boolean {
+  return (
+    (a.commissionType ?? null) === (b.commissionType ?? null) &&
+    (a.commissionRate ?? null) === (b.commissionRate ?? null) &&
+    (a.commissionFixedAmount ?? null) === (b.commissionFixedAmount ?? null)
+  );
+}
+
+function groupServiceTemplates(raw: RawServiceTemplate[]): GroupedService[] {
+  const groups = new Map<string, RawServiceTemplate[]>();
+  for (const item of raw) {
+    const baseName = stripPackageSuffix(item.name);
+    if (!groups.has(baseName)) groups.set(baseName, []);
+    groups.get(baseName)!.push(item);
+  }
+
+  return Array.from(groups.entries()).map(([baseName, items]) => {
+    // La comisión default del Service es la de la variante de 1 sesión
+    // (o la primera del grupo si no hay variante individual).
+    const canonical = items.find((i) => i.defaultSessions === 1) ?? items[0];
+
+    return {
+      name: baseName,
+      commissionType: canonical.commissionType ?? "percentage",
+      commissionRate: canonical.commissionRate ?? null,
+      commissionFixedAmount: canonical.commissionFixedAmount ?? null,
+      commissionNotes: canonical.commissionNotes ?? null,
+      packages: items.map((item) => {
+        const inheritsDefault = sameCommission(item, canonical);
+        return {
+          sessions: item.defaultSessions,
+          price: item.basePrice,
+          label: packageLabel(item.name),
+          // Solo se guarda override si la comisión del paquete difiere
+          // de la del servicio (ej. Hollywood Peel x1=S/8 vs x3=S/18).
+          commissionType: inheritsDefault ? null : item.commissionType ?? null,
+          commissionRate: inheritsDefault ? null : item.commissionRate ?? null,
+          commissionFixedAmount: inheritsDefault ? null : item.commissionFixedAmount ?? null,
+        };
+      }),
+    };
+  });
+}
+
 async function main() {
   console.log("Starting seed...");
 
@@ -186,17 +270,18 @@ async function main() {
   });
   console.log("System settings created");
 
-  // ===== STEP 3: Clear and Recreate Service Templates =====
+  // ===== STEP 3: Clear and Recreate Services =====
   console.log("Clearing existing service data...");
   await prisma.commission.deleteMany({});
   await prisma.session.deleteMany({});
   await prisma.serviceInstance.deleteMany({});
-  await prisma.serviceTemplate.deleteMany({});
+  await prisma.servicePackage.deleteMany({});
+  await prisma.service.deleteMany({});
   console.log("Service data cleared");
 
-  console.log("Creating service templates...");
+  console.log("Creating services...");
 
-  const serviceTemplates = [
+  const rawServiceTemplates: RawServiceTemplate[] = [
     // ─── GENERAL ───
     {
       name: "Consulta",
@@ -1074,8 +1159,24 @@ async function main() {
     },
   ];
 
-  await prisma.serviceTemplate.createMany({ data: serviceTemplates });
-  console.log(`${serviceTemplates.length} service templates created`);
+  const groupedServices = groupServiceTemplates(rawServiceTemplates);
+
+  for (const service of groupedServices) {
+    await prisma.service.create({
+      data: {
+        name: service.name,
+        commissionType: service.commissionType,
+        commissionRate: service.commissionRate,
+        commissionFixedAmount: service.commissionFixedAmount,
+        commissionNotes: service.commissionNotes,
+        packages: { create: service.packages },
+      },
+    });
+  }
+
+  console.log(
+    `${groupedServices.length} services created (${rawServiceTemplates.length} packages)`
+  );
 
   console.log("Seed completed!");
 }

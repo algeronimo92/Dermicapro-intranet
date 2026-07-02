@@ -149,42 +149,67 @@ model Patient {
   @@map("patients")
 }
 
-model ServiceTemplate {
-  id              String    @id @default(uuid())
-  name            String
-  description     String?
-  basePrice       Decimal   @map("base_price") @db.Decimal(10, 2)
-  defaultSessions Int       @default(1) @map("default_sessions")
-  icon            String? // Nombre del icono para identificación visual
-  isActive        Boolean   @default(true) @map("is_active")
-  deletedAt       DateTime? @map("deleted_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+model Service {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  icon        String? // Nombre del icono para identificación visual
+  isActive    Boolean   @default(true) @map("is_active")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  // Commission settings
+  // Commission settings (default; ServicePackage puede sobreescribir)
   commissionType        String?   @default("percentage") @map("commission_type") // 'percentage' o 'fixed'
-  commissionRate        Decimal?  @map("commission_rate") @db.Decimal(5, 4) // Porcentaje de comisión para este servicio (ej: 0.1000 = 10%)
+  commissionRate        Decimal?  @map("commission_rate") @db.Decimal(5, 4) // Porcentaje de comisión (ej: 0.1000 = 10%)
   commissionFixedAmount Decimal?  @map("commission_fixed_amount") @db.Decimal(10, 2) // Monto fijo de comisión
   commissionNotes       String?   @map("commission_notes") // Notas sobre la comisión de este servicio
 
   // Relations
-  orders                 ServiceInstance[]
-  commissions            Commission[]
+  packages         ServicePackage[]
+  serviceInstances ServiceInstance[]
+  commissions      Commission[]
 
-  @@index([deletedAt, name], map: "service_templates_deleted_at_name_idx")
-  @@index([isActive, deletedAt, name], map: "service_templates_active_lookup_idx")
-  @@map("service_templates")
+  @@index([deletedAt, name], map: "services_deleted_at_name_idx")
+  @@index([isActive, deletedAt, name], map: "services_active_lookup_idx")
+  @@map("services")
+}
+
+model ServicePackage {
+  id        String    @id @default(uuid())
+  serviceId String    @map("service_id")
+  sessions  Int
+  price     Decimal   @db.Decimal(10, 2)
+  label     String? // ej. "x6", "Paquete Premium"
+  isActive  Boolean   @default(true) @map("is_active")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Override de comisión: si commissionType es null, hereda el bloque completo del Service padre
+  commissionType        String?  @map("commission_type")
+  commissionRate        Decimal? @map("commission_rate") @db.Decimal(5, 4)
+  commissionFixedAmount Decimal? @map("commission_fixed_amount") @db.Decimal(10, 2)
+
+  // Relations
+  service          Service           @relation(fields: [serviceId], references: [id])
+  serviceInstances ServiceInstance[]
+  commissions      Commission[]
+
+  @@index([serviceId, isActive, deletedAt], map: "service_packages_service_lookup_idx")
+  @@map("service_packages")
 }
 
 model ServiceInstance {
-  id                String   @id @default(uuid())
-  patientId         String   @map("patient_id")
-  serviceTemplateId String   @map("service_template_id")
-  totalSessions     Int      @map("total_sessions")
-  completedSessions Int      @default(0) @map("completed_sessions")
-  originalPrice     Decimal  @map("original_price") @db.Decimal(10, 2)
-  discount          Decimal  @default(0) @map("discount") @db.Decimal(10, 2)
-  finalPrice        Decimal  @map("final_price") @db.Decimal(10, 2)
+  id                String    @id @default(uuid())
+  patientId         String    @map("patient_id")
+  serviceId         String    @map("service_id")
+  servicePackageId  String    @map("service_package_id")
+  totalSessions     Int       @map("total_sessions")
+  completedSessions Int       @default(0) @map("completed_sessions")
+  originalPrice     Decimal   @map("original_price") @db.Decimal(10, 2)
+  discount          Decimal   @default(0) @map("discount") @db.Decimal(10, 2)
+  finalPrice        Decimal   @map("final_price") @db.Decimal(10, 2)
   notes             String?
   paymentOrderId    String?   @map("payment_order_id")
   concludedAt       DateTime? @map("concluded_at")   // Tratamiento concluido antes de completar todas las sesiones
@@ -196,7 +221,8 @@ model ServiceInstance {
 
   // Relations
   patient             Patient              @relation(fields: [patientId], references: [id])
-  service             ServiceTemplate      @relation(fields: [serviceTemplateId], references: [id])
+  service             Service              @relation(fields: [serviceId], references: [id])
+  servicePackage      ServicePackage       @relation(fields: [servicePackageId], references: [id])
   createdBy           User                 @relation("OrderCreatedBy", fields: [createdById], references: [id])
   concludedBy         User?                @relation("OrderConcludedBy", fields: [concludedById], references: [id])
   paymentOrder        PaymentOrder?        @relation(fields: [paymentOrderId], references: [id])
@@ -204,7 +230,8 @@ model ServiceInstance {
   commissions         Commission[]
 
   @@index([patientId, createdAt(sort: Desc)], map: "service_instances_patient_created_at_idx")
-  @@index([serviceTemplateId], map: "service_instances_service_template_id_idx")
+  @@index([serviceId], map: "service_instances_service_id_idx")
+  @@index([servicePackageId], map: "service_instances_service_package_id_idx")
   @@index([createdById], map: "service_instances_created_by_id_idx")
   @@index([concludedById], map: "service_instances_concluded_by_id_idx")
   @@index([paymentOrderId], map: "service_instances_payment_order_id_idx")
@@ -302,7 +329,8 @@ model Commission {
   salesPersonId     String           @map("sales_person_id")
   appointmentId     String           @map("appointment_id")
   serviceInstanceId String?          @map("service_instance_id") // El paquete/orden específico que generó la comisión
-  serviceTemplateId String?          @map("service_template_id") // El servicio que generó la comisión
+  serviceId         String?          @map("service_id") // El tratamiento base que generó la comisión
+  servicePackageId  String?          @map("service_package_id") // El paquete de catálogo que generó la comisión
   commissionRate    Decimal          @map("commission_rate") @db.Decimal(5, 4) // Tasa aplicada (copia del servicio al momento de la venta)
   baseAmount        Decimal          @map("base_amount") @db.Decimal(10, 2) // Monto sobre el cual se calcula (precio del paquete)
   commissionAmount  Decimal          @map("commission_amount") @db.Decimal(10, 2) // Monto final de comisión
@@ -326,14 +354,16 @@ model Commission {
   salesPerson      User              @relation("SalesPersonCommissions", fields: [salesPersonId], references: [id])
   appointment      Appointment       @relation(fields: [appointmentId], references: [id])
   serviceInstance  ServiceInstance?  @relation(fields: [serviceInstanceId], references: [id])
-  serviceTemplate  ServiceTemplate?  @relation(fields: [serviceTemplateId], references: [id])
+  service          Service?          @relation(fields: [serviceId], references: [id])
+  servicePackage   ServicePackage?   @relation(fields: [servicePackageId], references: [id])
   approvedBy       User?             @relation("CommissionApprovals", fields: [approvedById], references: [id])
   paidBy           User?             @relation("CommissionPayments", fields: [paidById], references: [id])
 
   @@index([salesPersonId, status, createdAt(sort: Desc)], map: "commissions_sales_status_created_at_idx")
   @@index([appointmentId], map: "commissions_appointment_id_idx")
   @@index([serviceInstanceId], map: "commissions_service_instance_id_idx")
-  @@index([serviceTemplateId], map: "commissions_service_template_id_idx")
+  @@index([serviceId], map: "commissions_service_id_idx")
+  @@index([servicePackageId], map: "commissions_service_package_id_idx")
   @@index([approvedById], map: "commissions_approved_by_id_idx")
   @@index([paidById], map: "commissions_paid_by_id_idx")
   @@index([status, createdAt(sort: Desc)], map: "commissions_status_created_at_idx")

@@ -121,7 +121,7 @@ export class MedicalDashboardStrategy extends BaseDashboardStrategy {
     return sessions.map((s) => {
       const inst = instances.find((i) => i.id === s.serviceInstanceId);
       return {
-        serviceTemplateId: inst?.service?.id || '',
+        serviceId: inst?.service?.id || '',
         name: inst?.service?.name || 'Desconocido',
         count: s._count,
       };

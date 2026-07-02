@@ -14,7 +14,7 @@
 // ============================================
 
 export interface SessionInput {
-  serviceId: string;
+  servicePackageId: string;
   orderId?: string;
   sessionNumber?: number;
   appointmentServiceId?: string;
@@ -23,16 +23,16 @@ export interface SessionInput {
 }
 
 export interface ServiceMetadata {
-  id: string;
-  name: string;
-  basePrice: number;
-  defaultSessions: number;
+  id: string; // id del ServicePackage
+  name: string; // nombre del Service (tratamiento) al que pertenece
+  price: number;
+  sessions: number;
 }
 
 export interface OrderMetadata {
   id: string;
   totalSessions: number;
-  serviceId?: string;
+  servicePackageId?: string;
   createdAt: string;
   finalPrice?: number;
   paymentOrderId?: string | null;
@@ -54,7 +54,7 @@ export interface SimulatedSession extends SessionInput {
 export interface PackageGroup {
   id: string; // unique identifier
   type: 'existing' | 'new';
-  serviceId: string;
+  servicePackageId: string;
   serviceName: string;
   orderId?: string;
   totalSessions: number;
@@ -162,10 +162,10 @@ class PackageGroupFactory {
     customPrices?: Record<string, number>
   ): PackageGroup {
     const firstSession = sessions[0];
-    const service = services.find((s) => s.id === firstSession.serviceId);
+    const service = services.find((s) => s.id === firstSession.servicePackageId);
 
     if (!service) {
-      throw new Error(`Service not found: ${firstSession.serviceId}`);
+      throw new Error(`Service not found: ${firstSession.servicePackageId}`);
     }
 
     const isExistingPackage = packageKey.startsWith('existing-');
@@ -186,7 +186,7 @@ class PackageGroupFactory {
       };
     });
 
-    const totalSessions = order?.totalSessions || service.defaultSessions || sessions.length;
+    const totalSessions = order?.totalSessions || service.sessions || sessions.length;
     const hasNewSessions = sessionsWithNumbers.some((s) => s.isNew);
 
     // Calculate additional context for existing packages
@@ -236,7 +236,7 @@ class PackageGroupFactory {
       isComplete = nonCancelledSessions + sessionsWithNumbers.length >= totalSessions;
     }
 
-    // Determinar el precio final: prioridad a precio personalizado, luego order.finalPrice, luego service.basePrice
+    // Determinar el precio final: prioridad a precio personalizado, luego order.finalPrice, luego service.price
     let finalPrice: number | undefined;
     if (customPrices && customPrices[packageKey] !== undefined) {
       // Precio personalizado para paquetes nuevos
@@ -245,8 +245,8 @@ class PackageGroupFactory {
       // Precio de order existente
       finalPrice = Number(order.finalPrice);
     } else if (!isExistingPackage) {
-      // Precio base del servicio para paquetes nuevos sin precio personalizado
-      finalPrice = service.basePrice;
+      // Precio de catálogo del paquete para paquetes nuevos sin precio personalizado
+      finalPrice = service.price;
     }
 
     // paymentOrderId está disponible aunque el objeto paymentOrder no esté incluido en el query
@@ -256,7 +256,7 @@ class PackageGroupFactory {
     return {
       id: packageKey,
       type: isExistingPackage ? 'existing' : 'new',
-      serviceId: service.id,
+      servicePackageId: service.id,
       serviceName: service.name,
       orderId: order?.id,
       totalSessions,
@@ -351,8 +351,8 @@ export class PackageSimulator {
       return session.tempPackageId;
     }
 
-    // Fallback: group by serviceId (should not happen with proper tempPackageId assignment)
-    return `new-${session.serviceId}`;
+    // Fallback: group by servicePackageId (should not happen with proper tempPackageId assignment)
+    return `new-${session.servicePackageId}`;
   }
 }
 

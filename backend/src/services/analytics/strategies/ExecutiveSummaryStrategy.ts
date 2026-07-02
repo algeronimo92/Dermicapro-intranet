@@ -87,16 +87,16 @@ export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSum
   }
 
   private async getTopServices(dateRange: { gte: Date; lte: Date }) {
-    const services = await this.prisma.serviceTemplate.findMany({
+    const services = await this.prisma.service.findMany({
       where: {
-        orders: {
+        serviceInstances: {
           some: { createdAt: dateRange }
         }
       },
       select: {
         id: true,
         name: true,
-        orders: {
+        serviceInstances: {
           where: { createdAt: dateRange },
           select: { finalPrice: true }
         }
@@ -107,8 +107,8 @@ export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSum
       .map((service) => ({
         id: service.id,
         name: service.name,
-        count: service.orders.length,
-        revenue: service.orders.reduce(
+        count: service.serviceInstances.length,
+        revenue: service.serviceInstances.reduce(
           (sum, order) => sum + this.decimalToNumber(order.finalPrice),
           0
         )

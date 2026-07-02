@@ -16,7 +16,7 @@ export class SessionManagerService {
    */
   addSession(
     sessions: SessionItem[],
-    serviceId: string,
+    servicePackageId: string,
     orderId: string | undefined,
     patientOrders: Order[],
     _services: Service[],
@@ -42,12 +42,12 @@ export class SessionManagerService {
       }
     } else {
       // Caso 3: Crear NUEVO paquete
-      tempPackageId = `temp-${serviceId}-${tempPackageCounter}`;
+      tempPackageId = `temp-${servicePackageId}-${tempPackageCounter}`;
       tempPackageCounter++;
     }
 
     const newSession: SessionItem = {
-      serviceId,
+      servicePackageId,
       orderId: finalOrderId,
       sessionNumber,
       tempPackageId
@@ -167,7 +167,7 @@ export class SessionManagerService {
   }
 
   /**
-   * Agrupa sesiones por paquete (mismo serviceId + orderId/tempPackageId)
+   * Agrupa sesiones por paquete (mismo servicePackageId + orderId/tempPackageId)
    */
   private groupSessionsByPackage(sessions: SessionItem[]): Map<string, number[]> {
     const packageGroups = new Map<string, number[]>();
@@ -179,7 +179,7 @@ export class SessionManagerService {
       } else if (session.tempPackageId) {
         packageKey = session.tempPackageId;
       } else {
-        packageKey = `new-${session.serviceId}`;
+        packageKey = `new-${session.servicePackageId}`;
       }
 
       if (!packageGroups.has(packageKey)) {
@@ -242,12 +242,12 @@ export class SessionManagerService {
     const toDelete: string[] = [];
     const toCreate: Array<{
       orderId?: string;
-      serviceId: string;
+      servicePackageId: string;
       sessionNumber: number;
       tempPackageId?: string;
     }> = [];
     const newOrders: Array<{
-      serviceId: string;
+      servicePackageId: string;
       totalSessions: number;
       tempPackageId: string;
     }> = [];
@@ -266,23 +266,25 @@ export class SessionManagerService {
           // Sesión de paquete existente
           toCreate.push({
             orderId: session.orderId,
-            serviceId: session.serviceId,
+            servicePackageId: session.servicePackageId,
             sessionNumber: session.sessionNumber || 1,
           });
         } else if (session.tempPackageId) {
           // Sesión de paquete nuevo
           if (!addedNewOrders.has(session.tempPackageId)) {
-            const service = services.find((s) => s.id === session.serviceId);
+            const servicePackage = services
+              .flatMap((s) => s.packages ?? [])
+              .find((p) => p.id === session.servicePackageId);
             newOrders.push({
-              serviceId: session.serviceId,
-              totalSessions: service?.defaultSessions || 1,
+              servicePackageId: session.servicePackageId,
+              totalSessions: servicePackage?.sessions || 1,
               tempPackageId: session.tempPackageId,
             });
             addedNewOrders.add(session.tempPackageId);
           }
 
           toCreate.push({
-            serviceId: session.serviceId,
+            servicePackageId: session.servicePackageId,
             sessionNumber: session.sessionNumber || 1,
             tempPackageId: session.tempPackageId,
           });

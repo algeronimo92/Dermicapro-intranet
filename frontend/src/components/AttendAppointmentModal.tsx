@@ -10,7 +10,7 @@ import { Appointment, Service } from '../types';
 interface ConfirmedService {
   appointmentServiceId?: string;
   serviceInstanceId?: string;
-  serviceTemplateId: string;
+  serviceId: string;
   serviceName: string;
   sessionNumber?: number | null;
   totalSessions?: number;
@@ -50,7 +50,7 @@ export const AttendAppointmentModal: React.FC<AttendAppointmentModalProps> = ({
     const initialServices: ConfirmedService[] = appointment.appointmentServices?.map(appSvc => ({
       appointmentServiceId: appSvc.id,
       serviceInstanceId: appSvc.serviceInstanceId,
-      serviceTemplateId: appSvc.serviceInstance.serviceTemplateId || '',
+      serviceId: appSvc.serviceInstance.serviceId || '',
       serviceName: appSvc.serviceInstance.service?.name || 'Servicio',
       sessionNumber: appSvc.sessionNumber,
       totalSessions: appSvc.serviceInstance.totalSessions,

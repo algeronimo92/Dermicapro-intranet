@@ -3,7 +3,7 @@ import { Appointment, PaginatedResponse, AppointmentStatus } from '../types';
 import { getLocalDateString } from '../utils/dateUtils';
 
 export interface AppointmentServiceDto {
-  serviceId: string;
+  servicePackageId: string;
   orderId?: string;
   sessionNumber?: number;
 }
