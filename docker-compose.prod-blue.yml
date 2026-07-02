@@ -79,4 +79,5 @@ networks:
 
 volumes:
   backend_uploads:
+    external: true
     name: dermicapro_backend_uploads
