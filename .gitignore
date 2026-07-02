@@ -139,11 +139,8 @@ pnpm-lock.yaml
 # ================================
 # Superpowers Plans
 # ================================
-docs/superpowers/
-<<<<<<< HEAD
 .superpowers/
-=======
->>>>>>> main
+.playwright-mcp/
 
 # ================================
 # Misc
