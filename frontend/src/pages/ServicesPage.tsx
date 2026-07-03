@@ -7,6 +7,7 @@ import { ServicePackageFormModal } from '../components/ServicePackageFormModal';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { PageListLayout } from '../components/templates';
+import '../styles/services-page.css';
 
 export function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -292,77 +293,55 @@ export function ServicesPage() {
                       <tr key={`${service.id}-packages`} className="row-nested">
                         <td />
                         <td colSpan={6} style={{ padding: 0 }}>
-                          <div style={{ padding: 'var(--spacing-sm) var(--spacing-lg) var(--spacing-lg)', background: 'rgba(0, 0, 0, 0.16)' }}>
-                            <div
-                              style={{
-                                border: '1px solid var(--color-border-secondary)',
-                                borderLeft: '3px solid var(--color-primary)',
-                                borderRadius: 'var(--radius-lg)',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              {packages.length === 0 ? (
-                                <div className="table-empty" style={{ padding: 'var(--spacing-lg)' }}>Sin paquetes</div>
-                              ) : (
+                          <div className="services-package-detail">
+                            <div className="services-package-panel">
+                              <div className="services-package-panel__header">
                                 <div>
-                                  <div
-                                    style={{
-                                      display: 'grid',
-                                      gridTemplateColumns: '1.4fr 0.8fr 0.9fr 1.1fr 0.8fr 1.4fr',
-                                      gap: 'var(--spacing-sm)',
-                                      padding: 'var(--spacing-xs) var(--spacing-md)',
-                                      background: 'rgba(0, 0, 0, 0.22)',
-                                      fontSize: 'var(--font-size-xs)',
-                                      fontWeight: 'var(--font-weight-semibold)',
-                                      color: 'var(--color-text-tertiary)',
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.03em',
-                                    }}
-                                  >
-                                    <span>Etiqueta</span>
-                                    <span style={{ textAlign: 'center' }}>Sesiones</span>
-                                    <span style={{ textAlign: 'right' }}>Precio</span>
-                                    <span style={{ textAlign: 'center' }}>Comisión</span>
-                                    <span style={{ textAlign: 'center' }}>Estado</span>
-                                    <span style={{ textAlign: 'center' }}>Acciones</span>
-                                  </div>
+                                  <div className="services-package-panel__eyebrow">Detalle de paquetes</div>
+                                  <h3 className="services-package-panel__title">{service.name}</h3>
+                                </div>
+                                <div className="services-package-panel__summary">
+                                  <span>{packages.length}</span>
+                                  {packages.length === 1 ? 'paquete' : 'paquetes'}
+                                </div>
+                              </div>
+                              {packages.length === 0 ? (
+                                <div className="services-package-empty">Sin paquetes configurados</div>
+                              ) : (
+                                <div className="services-package-list">
                                   {packages.map((pkg) => {
                                     const pkgDeleted = !!pkg.deletedAt;
                                     const hasOverride = !!pkg.commissionType;
                                     return (
                                       <div
                                         key={pkg.id}
-                                        className={pkgDeleted ? 'row-deleted' : ''}
-                                        style={{
-                                          display: 'grid',
-                                          gridTemplateColumns: '1.4fr 0.8fr 0.9fr 1.1fr 0.8fr 1.4fr',
-                                          gap: 'var(--spacing-sm)',
-                                          alignItems: 'center',
-                                          padding: 'var(--spacing-sm) var(--spacing-md)',
-                                          borderTop: '1px solid var(--color-border-secondary)',
-                                          fontSize: 'var(--font-size-sm)',
-                                        }}
+                                        className={`services-package-item${pkgDeleted ? ' row-deleted' : ''}`}
                                       >
-                                        <span>{pkg.label || 'Individual'}</span>
-                                        <span style={{ textAlign: 'center' }}>{pkg.sessions}</span>
-                                        <span style={{ textAlign: 'right', fontWeight: 'var(--font-weight-bold)' }}>{formatPrice(pkg.price)}</span>
-                                        <span style={{ textAlign: 'center' }}>
-                                          {hasOverride ? (
-                                            <span className="badge" style={{ background: 'var(--color-warning-alpha-10)', color: 'var(--color-warning-dark)' }}>
-                                              {formatCommission(pkg)}
-                                            </span>
-                                          ) : (
-                                            <span className="badge" style={{ background: 'var(--color-info-alpha-10)', color: 'var(--color-info-dark)' }}>
-                                              Hereda ({formatCommission(service)})
-                                            </span>
-                                          )}
-                                        </span>
-                                        <span style={{ textAlign: 'center' }}>
+                                        <div className="services-package-item__main">
+                                          <span className="services-package-item__label">{pkg.label || 'Individual'}</span>
                                           <span className={pkg.isActive ? 'badge badge-success' : 'badge badge-error'}>
                                             {pkg.isActive ? 'Activo' : 'Inactivo'}
                                           </span>
-                                        </span>
-                                        <span className="table-actions" style={{ justifyContent: 'center' }}>
+                                        </div>
+                                        <div className="services-package-item__stats">
+                                          <div className="services-package-stat">
+                                            <span>Sesiones</span>
+                                            <strong>{pkg.sessions}</strong>
+                                          </div>
+                                          <div className="services-package-stat">
+                                            <span>Precio</span>
+                                            <strong>{formatPrice(pkg.price)}</strong>
+                                          </div>
+                                          <div className="services-package-stat services-package-stat--commission">
+                                            <span>Comisión</span>
+                                            {hasOverride ? (
+                                              <strong>{formatCommission(pkg)}</strong>
+                                            ) : (
+                                              <strong>Hereda {formatCommission(service)}</strong>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="services-package-item__actions">
                                           {pkgDeleted ? (
                                             <button className="btn btn-success btn-sm" onClick={() => handleRestorePackage(pkg.id)}>
                                               Restaurar
@@ -384,28 +363,18 @@ export function ServicesPage() {
                                               </button>
                                             </>
                                           )}
-                                        </span>
+                                        </div>
                                       </div>
                                     );
                                   })}
                                 </div>
                               )}
                               {!isDeleted && (
-                                <div style={{ padding: 'var(--spacing-sm) var(--spacing-md)', borderTop: '1px solid var(--color-border-secondary)' }}>
+                                <div className="services-package-add">
                                   <button
                                     type="button"
                                     onClick={() => setPackageModal({ service })}
-                                    style={{
-                                      width: '100%',
-                                      padding: 'var(--spacing-sm)',
-                                      background: 'rgba(0, 0, 0, 0.12)',
-                                      border: '1px dashed var(--color-border-primary)',
-                                      borderRadius: 'var(--radius-md)',
-                                      color: 'var(--color-primary)',
-                                      fontSize: 'var(--font-size-sm)',
-                                      fontWeight: 'var(--font-weight-medium)',
-                                      cursor: 'pointer',
-                                    }}
+                                    className="services-package-add__button"
                                   >
                                     + Agregar Paquete
                                   </button>
