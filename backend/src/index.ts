@@ -14,7 +14,17 @@ const app = express();
 // Confiar en proxy (nginx) para headers X-Forwarded-*
 app.set('trust proxy', 1);
 
-app.use(cors({ origin: config.cors.origin, credentials: true }));
+// El catálogo público no usa cookies/credenciales y permite cualquier origen;
+// el resto de la API usa el CORS restringido con credenciales.
+// Se separan por completo (en vez de solapar dos app.use(cors())) para que
+// nunca convivan Allow-Origin: * y Allow-Credentials: true en la misma respuesta.
+const restrictedCors = cors({ origin: config.cors.origin, credentials: true });
+const publicCors = cors({ origin: '*', credentials: false });
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/public')) return publicCors(req, res, next);
+  return restrictedCors(req, res, next);
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);

@@ -71,6 +71,21 @@ export const createLimiter = rateLimit({
   }
 });
 
+// Rate limiter para el catálogo público — por IP, ya que no hay usuario autenticado.
+export const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: 'Demasiadas peticiones',
+      message: 'Has excedido el límite de peticiones. Por favor intenta de nuevo más tarde.',
+      retryAfter: '15 minutos'
+    });
+  }
+});
+
 // Rate limiter para uploads — por usuario autenticado.
 // validate.keyGeneratorIpFallback=false: el keyGenerator usa user ID (no IP) en rutas autenticadas.
 export const uploadLimiter = rateLimit({

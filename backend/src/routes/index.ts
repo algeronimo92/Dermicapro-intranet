@@ -12,7 +12,11 @@ import dashboardRoutes from './dashboard.routes';
 import analyticsRoutes from './analytics.routes';
 import rolesRoutes from './roles.routes';
 import settingsRoutes from './settings.routes';
+import publicRoutes from './public.routes';
 const router = Router();
+
+// Público (sin autenticación, consumo externo)
+router.use('/public', publicRoutes);
 
 // Staff authentication
 router.use('/auth', authRoutes);
