@@ -216,6 +216,13 @@ obs-secrets: ## Generar ficheros de secretos del stack de observabilidad
 		echo "Genera uno con: $(YELLOW)openssl rand -hex 32$(NC)"; \
 		exit 1; \
 	fi; \
+	if [ -n "$$DB_EXPORTER_USER" ] && [ -z "$$DB_EXPORTER_PASSWORD" ]; then \
+		echo "$(RED)DB_EXPORTER_USER está definido pero DB_EXPORTER_PASSWORD está vacía$(NC)"; \
+		echo "El DSN caería a la contraseña del dueño de la base, el exporter no"; \
+		echo "podría conectar y saltaría PostgresCaido (critical) siendo falso."; \
+		echo "Crea el rol y rellena la contraseña con: $(YELLOW)make obs-db-role-rotate$(NC)"; \
+		exit 1; \
+	fi; \
 	printf '%s' "$$METRICS_TOKEN" > observability/prometheus/metrics_token; \
 	printf '%s' "$${N8N_ALERT_WEBHOOK:?define N8N_ALERT_WEBHOOK en .env}" > observability/alertmanager/n8n_webhook_url; \
 	chmod 644 observability/prometheus/metrics_token observability/alertmanager/n8n_webhook_url; \
