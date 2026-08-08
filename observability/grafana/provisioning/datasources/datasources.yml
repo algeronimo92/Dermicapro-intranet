@@ -10,7 +10,11 @@ datasources:
     jsonData:
       timeInterval: 15s
       httpMethod: POST
-      manageAlerts: false
+      # Deja que Grafana lea (solo lectura: Prometheus no soporta ruler API de
+      # escritura) las 19 reglas de alerts.yml y las muestre en Alerting >
+      # Alert rules. Sin esto la sección de alertas de Grafana aparece vacía
+      # aunque Prometheus las esté evaluando correctamente.
+      manageAlerts: true
     editable: false
 
   - name: Loki

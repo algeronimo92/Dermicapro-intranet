@@ -1,0 +1,13 @@
+# Deliberadamente sin reglas Grafana-managed: las 19 reglas de alerta viven en
+# Prometheus (observability/prometheus/alerts.yml) y las evalúa Prometheus,
+# no Grafana. Este fichero solo existe para que la carpeta
+# /etc/grafana/provisioning/alerting no falte (Grafana logueaba un error en
+# el arranque al no encontrarla) y como sitio donde añadir, si algún día hace
+# falta, contact points o notification policies gestionados por Grafana.
+#
+# Para ver las alertas de Prometheus en Grafana: Alerting > Alert rules,
+# filtrar por la fuente de datos "Prometheus" (visibles gracias a
+# jsonData.manageAlerts: true en datasources.yml). Para ver el estado actual
+# de Alertmanager (firing/silenced): Alerting > Alertmanager, cambiar el
+# selector de arriba de "Grafana" a "Alertmanager".
+apiVersion: 1

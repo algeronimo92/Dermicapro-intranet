@@ -34,7 +34,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": ".*",
+        "allValue": ".+",
         "multi": true,
         "sort": 1,
         "current": {
