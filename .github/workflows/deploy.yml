@@ -18,17 +18,20 @@ jobs:
             set -e
             cd /docker/dermicapro-intranet
 
-            # Si alguien editó ficheros directamente en el servidor, `git pull`
-            # aborta y el deploy no llega a correr. En vez de exigir entrar por
-            # SSH a limpiarlo, se deja constancia en este log y se aparta con
-            # stash: el contenido no se pierde y se puede recuperar luego con
-            # `git stash list` / `git stash pop`.
+            # El clon del VPS es un espejo de origin/main, no un repo de
+            # trabajo: aquí nunca se desarrolla. Por eso NO se usa `git pull`,
+            # que intenta mezclar historias y aborta en cuanto el servidor se
+            # desvía (por un merge, un commit suelto o un fichero editado a
+            # mano). Se hace fetch + reset, que siempre converge.
             #
-            # A propósito NO se usa `reset --hard`: convertiría un cambio hecho
-            # a mano en producción en una pérdida silenciosa, y este log es la
-            # única señal de que alguien tocó el servidor.
+            # Nada se descarta en silencio: lo que haya en el servidor queda
+            # guardado y anotado en este log, que es la única señal de que
+            # alguien tocó producción a mano.
+            git fetch origin main
+
+            # 1. Cambios sin commitear -> stash, con el diff en el log.
             if ! git diff --quiet || ! git diff --cached --quiet; then
-              echo "::warning::Hay cambios locales en el VPS; se apartan con stash antes del pull"
+              echo "::warning::Cambios sin commitear en el VPS; se apartan con stash"
               echo "----- ficheros modificados en el servidor -----"
               git status --short
               echo "----- diff completo -----"
@@ -37,5 +40,18 @@ jobs:
               git stash push -m "auto-stash deploy $(date -Iseconds)"
             fi
 
-            git pull origin main
+            git checkout main 2>/dev/null || git checkout -b main
+
+            # 2. Commits locales que no están en GitHub -> rama de respaldo.
+            #    Sin esto, el reset del paso 3 los borraría sin dejar rastro.
+            if [ -n "$(git rev-list origin/main..HEAD)" ]; then
+              BACKUP="vps-local-$(date +%Y%m%d-%H%M%S)"
+              echo "::warning::Commits locales en el VPS; se guardan en la rama $BACKUP"
+              git log --oneline origin/main..HEAD
+              git branch "$BACKUP"
+            fi
+
+            # 3. Alinear con origin. Reproducible sea cual sea el estado previo.
+            git reset --hard origin/main
+
             bash scripts/deploy-prod.sh
