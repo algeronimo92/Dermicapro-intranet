@@ -20,8 +20,15 @@ const createPatientAndAppointment = (token: string, uniqueSuffix: string) => {
           url: "/api/services",
           headers: { Authorization: `Bearer ${token}` },
         })
-        .then(({ body: services }) =>
-          cy.request({
+        .then(({ body: services }) => {
+          // La sesión se identifica por el paquete, no por el servicio: el
+          // backend deriva serviceId, totalSessions y precio del ServicePackage.
+          const servicePackage = services.find((s: any) => s.packages?.length)
+            ?.packages[0];
+          expect(servicePackage, "el seed debe crear al menos un paquete").to
+            .exist;
+
+          return cy.request({
             method: "POST",
             url: "/api/appointments",
             headers: { Authorization: `Bearer ${token}` },
@@ -32,14 +39,14 @@ const createPatientAndAppointment = (token: string, uniqueSuffix: string) => {
               ).toISOString(),
               services: [
                 {
-                  serviceId: services[0].id,
+                  servicePackageId: servicePackage.id,
                   sessionNumber: 1,
                   tempPackageId: "pkg-test-1",
                 },
               ],
             },
-          }),
-        ),
+          });
+        }),
     );
 };
 

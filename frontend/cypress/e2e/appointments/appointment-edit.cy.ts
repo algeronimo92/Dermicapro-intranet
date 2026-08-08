@@ -26,6 +26,13 @@ describe("Editar cita", () => {
           url: "/api/services",
           headers: { Authorization: `Bearer ${token}` },
         }).then(({ body: services }) => {
+          // La sesión se identifica por el paquete, no por el servicio: el
+          // backend deriva serviceId, totalSessions y precio del ServicePackage.
+          const servicePackage = services.find((s: any) => s.packages?.length)
+            ?.packages[0];
+          expect(servicePackage, "el seed debe crear al menos un paquete").to
+            .exist;
+
           cy.request({
             method: "POST",
             url: "/api/appointments",
@@ -37,7 +44,7 @@ describe("Editar cita", () => {
               ).toISOString(),
               services: [
                 {
-                  serviceId: services[0].id,
+                  servicePackageId: servicePackage.id,
                   sessionNumber: 1,
                   tempPackageId: "pkg-edit-1",
                 },
