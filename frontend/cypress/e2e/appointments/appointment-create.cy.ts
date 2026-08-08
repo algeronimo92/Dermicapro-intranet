@@ -80,8 +80,20 @@ describe("Creación de cita", () => {
       .first()
       .click({ force: true });
 
-    // Agregar el servicio seleccionado a la lista de sesiones de la cita
-    cy.contains("button", "Agregar a la Lista").click();
+    // Segundo paso: el desplegable ahora lista los paquetes del servicio
+    // elegido. Lo que se selecciona es el paquete, no el servicio, y hasta
+    // hacerlo el botón "Agregar a la Lista" sigue deshabilitado.
+    // Se excluye ".service-dropdown-back" ("‹ Cambiar servicio"), que es el
+    // primer elemento de esa lista y sólo vuelve al paso anterior.
+    cy.get(
+      ".service-dropdown-item:not(.service-dropdown-empty):not(.service-dropdown-back)",
+      { timeout: 8000 },
+    )
+      .first()
+      .click({ force: true });
+
+    // Agregar el paquete seleccionado a la lista de sesiones de la cita
+    cy.contains("button", "Agregar a la Lista").should("not.be.disabled").click();
 
     // Seleccionar fecha
     cy.get(".datetime-input-button").first().click();
