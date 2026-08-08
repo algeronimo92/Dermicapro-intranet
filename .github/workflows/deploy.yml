@@ -17,5 +17,25 @@ jobs:
           script: |
             set -e
             cd /docker/dermicapro-intranet
+
+            # Si alguien editó ficheros directamente en el servidor, `git pull`
+            # aborta y el deploy no llega a correr. En vez de exigir entrar por
+            # SSH a limpiarlo, se deja constancia en este log y se aparta con
+            # stash: el contenido no se pierde y se puede recuperar luego con
+            # `git stash list` / `git stash pop`.
+            #
+            # A propósito NO se usa `reset --hard`: convertiría un cambio hecho
+            # a mano en producción en una pérdida silenciosa, y este log es la
+            # única señal de que alguien tocó el servidor.
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "::warning::Hay cambios locales en el VPS; se apartan con stash antes del pull"
+              echo "----- ficheros modificados en el servidor -----"
+              git status --short
+              echo "----- diff completo -----"
+              git diff
+              echo "----------------------------------------------"
+              git stash push -m "auto-stash deploy $(date -Iseconds)"
+            fi
+
             git pull origin main
             bash scripts/deploy-prod.sh
