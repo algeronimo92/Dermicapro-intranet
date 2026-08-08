@@ -3,7 +3,9 @@
 # ================================
 # Simplifica comandos de Docker Compose
 
-.PHONY: help build up down restart logs clean migrate seed studio test
+.PHONY: help build up down restart logs clean migrate seed studio test \
+        obs-secrets obs-check obs-up obs-down obs-restart obs-ps obs-logs \
+        obs-reload obs-targets obs-alerts obs-clean obs-db-role obs-db-role-rotate
 
 # Default target
 .DEFAULT_GOAL := help
@@ -198,3 +200,108 @@ prod-up: ## Iniciar en modo producción
 
 prod-down: ## Detener modo producción
 	@docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+# ================================
+# Observabilidad (Grafana + Loki + Prometheus)
+# ================================
+# Stack independiente: se levanta con su propio project name para que los
+# deploys blue-green no lo toquen.
+
+OBS := docker compose -p dermicapro-obs -f docker-compose.observability.yml
+
+obs-secrets: ## Generar ficheros de secretos del stack de observabilidad
+	@set -a; . ./.env; set +a; \
+	if [ -z "$$METRICS_TOKEN" ]; then \
+		echo "$(RED)Falta METRICS_TOKEN en .env$(NC)"; \
+		echo "Genera uno con: $(YELLOW)openssl rand -hex 32$(NC)"; \
+		exit 1; \
+	fi; \
+	printf '%s' "$$METRICS_TOKEN" > observability/prometheus/metrics_token; \
+	printf '%s' "$${N8N_ALERT_WEBHOOK:?define N8N_ALERT_WEBHOOK en .env}" > observability/alertmanager/n8n_webhook_url; \
+	chmod 644 observability/prometheus/metrics_token observability/alertmanager/n8n_webhook_url; \
+	echo "$(GREEN)Secretos generados$(NC)"
+
+# NOTA sobre el 644: Alertmanager y Prometheus corren como nobody (UID 65534),
+# que no coincide con ningún usuario del host. Con 600 y el fichero en manos de
+# root, el proceso no puede leerlo: Alertmanager no sólo falla la notificación,
+# se cae con un nil pointer al intentar usar url_file. Mismo criterio que
+# cualquier .env de este repo: sólo root escribe, todos pueden leer.
+
+obs-db-role: ## Crear/verificar el rol de sólo lectura de postgres-exporter
+	@./scripts/monitoring-setup.sh
+
+obs-db-role-rotate: ## Rotar la contraseña del rol de postgres-exporter
+	@./scripts/monitoring-setup.sh --rotate-secret
+
+obs-check: obs-secrets ## Validar configs de Prometheus, Alertmanager y Alloy
+	@echo "$(BLUE)Prometheus y reglas de alerta...$(NC)"
+	@docker run --rm -v "$(CURDIR)/observability/prometheus:/etc/prometheus:ro" \
+		--entrypoint promtool prom/prometheus:v3.2.1 \
+		check config /etc/prometheus/prometheus.yml
+	@echo "$(BLUE)Alertmanager...$(NC)"
+	@docker run --rm -v "$(CURDIR)/observability/alertmanager:/etc/alertmanager:ro" \
+		--entrypoint amtool prom/alertmanager:v0.28.1 \
+		check-config /etc/alertmanager/alertmanager.yml
+	@echo "$(BLUE)Alloy...$(NC)"
+	@docker run --rm -v "$(CURDIR)/observability/alloy:/cfg:ro" grafana/alloy:v1.7.5 \
+		fmt /cfg/config.alloy > /dev/null
+	@echo "$(BLUE)Dashboards de Grafana...$(NC)"
+	@# Se prueba a ejecutar el intérprete, no sólo a localizarlo: en Windows
+	@# 'command -v python3' encuentra el stub de la Microsoft Store, que existe
+	@# como fichero pero no es Python y hace fallar el check entero.
+	@if python3 -c "pass" > /dev/null 2>&1; then \
+		for f in observability/grafana/dashboards/*.json; do \
+			python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$$f" || exit 1; \
+		done; \
+	elif node -e "0" > /dev/null 2>&1; then \
+		for f in observability/grafana/dashboards/*.json; do \
+			node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$$f" || exit 1; \
+		done; \
+	else \
+		echo "$(YELLOW)  (omitido: no hay python3 ni node)$(NC)"; \
+	fi
+	@echo "$(GREEN)Todas las configuraciones son válidas$(NC)"
+
+obs-up: obs-secrets ## Iniciar stack de observabilidad
+	@echo "$(GREEN)Iniciando observabilidad...$(NC)"
+	@$(OBS) up -d
+	@echo ""
+	@set -a; . ./.env; set +a; \
+	echo "  Grafana:   $(BLUE)https://$${GRAFANA_DOMAIN:-grafana.dermicapro.app}$(NC)"
+	@echo "  Túnel SSH: $(BLUE)ssh -L 3000:localhost:3000 <vps>  →  http://localhost:3000$(NC)"
+	@echo ""
+
+obs-down: ## Detener stack de observabilidad (conserva los datos)
+	@$(OBS) down
+
+obs-restart: ## Reiniciar stack de observabilidad
+	@$(OBS) restart
+
+obs-ps: ## Ver estado del stack de observabilidad
+	@$(OBS) ps
+
+obs-logs: ## Ver logs del stack de observabilidad
+	@$(OBS) logs -f --tail=100
+
+obs-reload: ## Recargar configuración de Prometheus sin reiniciar
+	@$(OBS) exec prometheus wget --quiet --post-data='' -O - http://localhost:9090/-/reload \
+		&& echo "$(GREEN)Configuración recargada$(NC)"
+
+obs-targets: ## Ver qué targets está scrapeando Prometheus
+	@$(OBS) exec prometheus wget -qO - 'http://localhost:9090/api/v1/targets?state=any' \
+		| python3 -m json.tool 2>/dev/null || $(OBS) exec prometheus wget -qO - 'http://localhost:9090/api/v1/targets?state=any'
+
+obs-alerts: ## Ver alertas activas
+	@$(OBS) exec alertmanager wget -qO - http://localhost:9093/api/v2/alerts \
+		| python3 -m json.tool 2>/dev/null || $(OBS) exec alertmanager wget -qO - http://localhost:9093/api/v2/alerts
+
+obs-clean: ## Eliminar el stack de observabilidad Y SUS DATOS (métricas e histórico de logs)
+	@echo "$(RED)ADVERTENCIA: esto borra el histórico de métricas y logs!$(NC)"
+	@read -p "¿Estás seguro? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		$(OBS) down -v; \
+		echo "$(GREEN)Stack de observabilidad eliminado$(NC)"; \
+	else \
+		echo "$(YELLOW)Operación cancelada$(NC)"; \
+	fi

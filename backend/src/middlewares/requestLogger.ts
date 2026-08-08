@@ -20,6 +20,9 @@ function truncate(data: unknown): unknown {
 }
 
 export function requestLogger(req: Request, res: Response, next: NextFunction): void {
+  // El scrape de Prometheus llega cada 15s; loguearlo sólo llenaría Loki de ruido.
+  if (req.path === '/metrics') return next();
+
   const startAt = process.hrtime();
   const originalJson = res.json.bind(res);
   let responseBody: unknown;
@@ -36,6 +39,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
 
     const entry: Record<string, unknown> = {
       event: 'http_request',
+      request_id: req.id,
       method: req.method,
       uri: req.originalUrl,
       status: res.statusCode,
@@ -43,12 +47,18 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
       ip: req.ip,
     };
 
-    if (req.body && Object.keys(req.body).length > 0) {
-      entry.request_body = truncate(sanitize(req.body));
-    }
+    // Los cuerpos sólo se registran cuando algo falló. En una petición correcta
+    // no aportan nada para depurar y en cambio vuelcan datos clínicos (nombres,
+    // DNI, teléfonos, historias) en los logs, que acaban indexados en Loki y
+    // visibles para cualquiera con acceso a Grafana.
+    if (isError) {
+      if (req.body && Object.keys(req.body).length > 0) {
+        entry.request_body = truncate(sanitize(req.body));
+      }
 
-    if (responseBody !== undefined) {
-      entry.response_body = JSON.stringify(truncate(responseBody));
+      if (responseBody !== undefined) {
+        entry.response_body = JSON.stringify(truncate(sanitize(responseBody)));
+      }
     }
 
     if (isError) {

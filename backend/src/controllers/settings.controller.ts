@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 
 const VALID_KEYS = ['session_timeout_minutes'] as const;
 type SettingKey = typeof VALID_KEYS[number];
@@ -62,6 +62,7 @@ export const updateSetting = async (req: Request, res: Response): Promise<void> 
 
     res.json({ data: { [updated.key]: updated.value } });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

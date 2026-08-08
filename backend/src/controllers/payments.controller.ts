@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { parseStartOfDay } from '../utils/dateUtils';
 
 export const getAllPayments = async (req: Request, res: Response): Promise<void> => {
@@ -93,6 +93,7 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener pagos' });
   }
 };
@@ -135,6 +136,7 @@ export const getPaymentById = async (req: Request, res: Response): Promise<void>
 
     res.json(payment);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -243,6 +245,7 @@ export const createPayment = async (req: Request, res: Response): Promise<void> 
 
     res.status(201).json(result);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -297,6 +300,7 @@ export const addCredit = async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json(result);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -326,6 +330,7 @@ export const updatePayment = async (req: Request, res: Response): Promise<void> 
 
     res.json(payment);
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al actualizar pago' });
   }
 };
@@ -412,6 +417,7 @@ export const voidPayment = async (req: Request, res: Response): Promise<void> =>
 
     res.json({ message: 'Pago anulado correctamente' });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -461,6 +467,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
     res.json(payment);
   } catch (error) {
+    logUnexpectedError(req, error);
     const files = req.files as Express.Multer.File[] | undefined;
     if (files) files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     if (error instanceof AppError) {

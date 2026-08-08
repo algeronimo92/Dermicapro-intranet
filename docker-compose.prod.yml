@@ -27,14 +27,14 @@ services:
     networks:
       - dermicapro-network
     logging:
-      driver: splunk
+      # json-file en lugar de splunk: Alloy lee los logs por la API de
+      # Docker y los reenvia a Loki. Con el driver splunk `docker logs` no
+      # devuelve nada y el contenedor se bloquea al arrancar si Splunk no
+      # responde.
+      driver: json-file
       options:
-        splunk-token: "${SPLUNK_TOKEN}"
-        splunk-url: "${SPLUNK_URL}"
-        splunk-insecureskipverify: "true"
-        splunk-format: "json"
-        splunk-sourcetype: "docker:db"
-        tag: "{{.Name}}"
+        max-size: "20m"
+        max-file: "5"
 
   # ================================
   # Backend API (Production)
@@ -55,6 +55,15 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      # Protege GET /metrics; el mismo valor lo lee Prometheus.
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      # Umbrales de las métricas de negocio. Tienen que declararse aquí: el
+      # contenedor sólo ve lo que se le pasa, así que ponerlos en .env sin esto
+      # no haría nada y el backend usaría siempre los valores por defecto.
+      METRICS_STUCK_APPOINTMENT_HOURS: ${METRICS_STUCK_APPOINTMENT_HOURS:-6}
+      METRICS_AGED_COMMISSION_DAYS: ${METRICS_AGED_COMMISSION_DAYS:-7}
+      METRICS_OVER_PACKAGE_WINDOW_HOURS: ${METRICS_OVER_PACKAGE_WINDOW_HOURS:-24}
+      METRICS_BUSINESS_INTERVAL_MS: ${METRICS_BUSINESS_INTERVAL_MS:-60000}
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     volumes:
@@ -69,14 +78,14 @@ services:
     networks:
       - dermicapro-network
     logging:
-      driver: splunk
+      # json-file en lugar de splunk: Alloy lee los logs por la API de
+      # Docker y los reenvia a Loki. Con el driver splunk `docker logs` no
+      # devuelve nada y el contenedor se bloquea al arrancar si Splunk no
+      # responde.
+      driver: json-file
       options:
-        splunk-token: "${SPLUNK_TOKEN}"
-        splunk-url: "${SPLUNK_URL}"
-        splunk-insecureskipverify: "true"
-        splunk-format: "json"
-        splunk-sourcetype: "docker:backend"
-        tag: "{{.Name}}"
+        max-size: "20m"
+        max-file: "5"
 
   # ================================
   # Frontend (Production)
@@ -107,14 +116,14 @@ services:
       - dermicapro-network
       - traefik-network
     logging:
-      driver: splunk
+      # json-file en lugar de splunk: Alloy lee los logs por la API de
+      # Docker y los reenvia a Loki. Con el driver splunk `docker logs` no
+      # devuelve nada y el contenedor se bloquea al arrancar si Splunk no
+      # responde.
+      driver: json-file
       options:
-        splunk-token: "${SPLUNK_TOKEN}"
-        splunk-url: "${SPLUNK_URL}"
-        splunk-insecureskipverify: "true"
-        splunk-format: "json"
-        splunk-sourcetype: "docker:frontend"
-        tag: "{{.Name}}"
+        max-size: "20m"
+        max-file: "5"
 
 # ================================
 # Networks

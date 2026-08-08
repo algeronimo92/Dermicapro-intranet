@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { comparePassword, hashPassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { PatientJwtPayload } from '../types/auth.types';
 
 /**
@@ -72,6 +72,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -124,6 +125,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
       refreshToken: newRefreshToken,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -169,6 +171,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
 
     res.json(patient);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -182,12 +185,13 @@ export const me = async (req: Request, res: Response): Promise<void> => {
  * POST /api/patient-auth/logout
  * Logout del paciente (limpieza de tokens en cliente)
  */
-export const logout = async (_req: Request, res: Response): Promise<void> => {
+export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     // El logout es principalmente client-side (eliminar tokens del localStorage)
     // Aquí podríamos registrar el evento si lo necesitamos
     res.json({ message: 'Sesión cerrada correctamente' });
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Patient logout error:', error);
     res.status(500).json({ error: 'Error al cerrar sesión' });
   }
@@ -267,6 +271,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     res.json({ message: 'Contraseña cambiada correctamente' });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

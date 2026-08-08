@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { dashboardService } from '../services/dashboard/dashboard.service';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 
 /**
  * Controller para endpoints de dashboards
@@ -43,6 +43,7 @@ export const getDashboard = async (
 
     res.json({ data });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -59,13 +60,14 @@ export const getDashboard = async (
  * Útil para debugging y documentación
  */
 export const getAvailableRoles = async (
-  _req: Request,
+  req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const roles = dashboardService.getAvailableRoles();
     res.json({ roles });
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Error al obtener roles disponibles:', error);
     res.status(500).json({ error: 'Error al obtener roles disponibles' });
   }

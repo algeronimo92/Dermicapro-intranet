@@ -24,14 +24,14 @@ services:
     networks:
       - dermicapro-prod-network
     logging:
-      driver: splunk
+      # json-file en lugar de splunk: Alloy lee los logs por la API de
+      # Docker y los reenvia a Loki. Con el driver splunk `docker logs` no
+      # devuelve nada y el contenedor se bloquea al arrancar si Splunk no
+      # responde.
+      driver: json-file
       options:
-        splunk-token: "${SPLUNK_TOKEN}"
-        splunk-url: "${SPLUNK_URL}"
-        splunk-insecureskipverify: "true"
-        splunk-format: "json"
-        splunk-sourcetype: "docker:db"
-        tag: "{{.Name}}"
+        max-size: "20m"
+        max-file: "5"
 
 networks:
   dermicapro-prod-network:

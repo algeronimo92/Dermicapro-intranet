@@ -1,0 +1,100 @@
+// ================================
+// Grafana Alloy - Recolección de logs de Docker hacia Loki
+// ================================
+// Sustituye a Promtail (EOL marzo 2026). Lee los logs vía la API de Docker,
+// por eso los contenedores tienen que usar el driver json-file: con el driver
+// splunk el socket de Docker no devuelve nada.
+
+logging {
+  level  = "warn"
+  format = "logfmt"
+}
+
+// ================================
+// Descubrimiento de contenedores
+// ================================
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "15s"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  // El nombre viene como "/dermicapro-backend-blue"; se quita la barra inicial.
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Etiquetas que docker compose pone en cada contenedor. Permiten filtrar en
+  // Grafana por stack (dermicapro-blue, dermicapro-db, observability...).
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "stack"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+// ================================
+// Lectura de logs
+// ================================
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  labels     = { job = "docker" }
+  forward_to = [loki.process.dermicapro.receiver]
+}
+
+// ================================
+// Procesado
+// ================================
+loki.process "dermicapro" {
+  // requestLogger ya emite JSON por request, así que se extraen status y método
+  // como etiquetas y se pueden filtrar en Grafana sin escribir regex.
+  // uri y duration_ms NO se convierten en etiqueta a propósito: son de alta
+  // cardinalidad y harían explotar el número de streams de Loki. Se consultan
+  // con el parser | json en tiempo de query.
+  stage.match {
+    selector = "{container=~\"dermicapro-backend.*\"}"
+
+    stage.json {
+      expressions = {
+        event       = "event",
+        http_status = "status",
+        http_method = "method",
+      }
+    }
+
+    stage.labels {
+      values = {
+        event       = "event",
+        http_status = "http_status",
+        http_method = "http_method",
+      }
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ================================
+// Escritura en Loki
+// ================================
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+
+  // Misma etiqueta que usa Prometheus para las métricas, para que una consulta
+  // en Grafana pueda filtrar logs y métricas con el mismo criterio.
+  external_labels = {
+    system = "erp",
+    host   = "vps-erp",
+  }
+}

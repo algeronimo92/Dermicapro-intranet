@@ -1,0 +1,296 @@
+# ================================
+# Reglas de alerta
+# ================================
+# Las alertas van a Alertmanager, que las reenvía al webhook de n8n.
+# Convención: severity=critical despierta a alguien, severity=warning no.
+#
+# Este stack monitorea el ERP. El CRM tiene el suyo propio, independiente, en
+# el otro VPS; ambos notifican al mismo n8n pero por webhooks distintos.
+#
+# Toda serie lleva system="erp" y host="vps-erp", y los resúmenes empiezan por
+# [{{ $labels.system }}]: si no, al recibir "Disco casi lleno" en el móvil no
+# sabrías de qué máquina te están hablando.
+
+groups:
+  # ================================
+  # API (ERP)
+  # ================================
+  - name: dermicapro-api
+    rules:
+      - alert: BackendCaido
+        expr: up{job="dermicapro-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "[{{ $labels.system }}] El backend {{ $labels.instance }} no responde"
+          description: "Prometheus lleva 2 minutos sin poder hacer scrape de {{ $labels.instance }}. La API puede estar caída."
+
+      - alert: SinBackendActivo
+        expr: absent(up{job="dermicapro-backend"} == 1)
+        for: 2m
+        labels:
+          severity: critical
+          system: erp
+        annotations:
+          summary: "[erp] No hay ningún backend activo"
+          description: "Ni el color blue ni el green están respondiendo. dermicapro.app está caído."
+
+      - alert: TasaDeErrores5xxAlta
+        expr: |
+          sum by (system, instance) (rate(http_requests_total{status=~"5.."}[5m]))
+            /
+          sum by (system, instance) (rate(http_requests_total[5m]))
+            > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "[{{ $labels.system }}] Más del 5% de las peticiones fallan en {{ $labels.instance }}"
+          description: "Tasa de 5xx: {{ $value | humanizePercentage }} durante los últimos 5 minutos."
+
+      - alert: LatenciaP95Alta
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, system, instance) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Latencia p95 por encima de 2s en {{ $labels.instance }}"
+          description: "p95 actual: {{ $value | humanizeDuration }}. Revisar queries lentas o endpoints de analytics."
+
+      - alert: EndpointLento
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, system, route) (rate(http_request_duration_seconds_bucket[10m]))
+          ) > 5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] El endpoint {{ $labels.route }} tarda más de 5s (p95)"
+          description: "p95 de {{ $labels.route }}: {{ $value | humanizeDuration }}."
+
+      - alert: PicoDeAutenticacionesFallidas
+        expr: sum by (system) (rate(http_requests_total{status="401"}[5m])) * 60 > 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Más de 30 respuestas 401 por minuto"
+          description: "Puede ser fuerza bruta contra /api/auth/login, o tokens caducando en masa tras un deploy."
+
+      - alert: RateLimitActivandose
+        expr: sum by (system) (rate(http_requests_total{status="429"}[5m])) * 60 > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] El rate limiter está rechazando tráfico"
+          description: "{{ $value | humanize }} respuestas 429 por minuto. Revisar si es un abuso o si el límite se quedó corto."
+
+      - alert: EventLoopBloqueado
+        expr: nodejs_eventloop_lag_p99_seconds{job="dermicapro-backend"} > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Event loop de Node bloqueado en {{ $labels.instance }}"
+          description: "Lag p99 de {{ $value | humanizeDuration }}. Suele indicar trabajo síncrono pesado (sharp, JSON grandes, queries sin paginar)."
+
+  # ================================
+  # Negocio
+  # ================================
+  # Fallas silenciosas: no tumban nada, no generan un 5xx y no aparecen en
+  # ningún log de error, pero cuestan dinero o dejan datos inconsistentes.
+  # Las alimenta services/business-metrics.service.ts.
+  - name: dermicapro-negocio
+    rules:
+      - alert: CitasAtascadasEnProgreso
+        expr: dermicapro_appointments_stuck_in_progress > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] {{ $value }} citas llevan horas en in_progress"
+          description: "Se abrieron y nadie las cerró. No generan historia clínica ni facturan hasta que se marquen como atendidas."
+
+      - alert: ComisionesPendientesAntiguas
+        expr: dermicapro_commissions_pending_aged > 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] {{ $value }} comisiones llevan más de una semana sin aprobar"
+          description: "El equipo de ventas no cobra hasta que un admin las apruebe. Revisar en el módulo de comisiones."
+
+      # Sobre la métrica _recent, no sobre el acumulado. El acumulado sólo baja
+      # si alguien corrige la sesión a mano, así que una sola violación vieja
+      # dejaría esta alerta encendida indefinidamente y el equipo aprendería a
+      # ignorarla. Con la ventana móvil, la alerta se apaga sola una vez
+      # revisada y vuelve a sonar si el problema se repite.
+      - alert: SesionesPorEncimaDelPaquete
+        expr: dermicapro_sessions_over_package_recent > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] {{ $value }} sesiones nuevas exceden el total de su paquete"
+          description: "Sesiones creadas en las últimas 24h con sessionNumber mayor que totalSessions: se están regalando sesiones o hay un error de datos. Es la validación que CLAUDE.md marca como ausente. El acumulado histórico está en el dashboard de Negocio."
+
+      - alert: MetricasDeNegocioObsoletas
+        expr: time() - dermicapro_business_metrics_last_success_timestamp_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Las métricas de negocio llevan 5 minutos sin refrescarse"
+          description: "El recolector en segundo plano falla. Sin esto las gauges se quedan congeladas en su último valor y las alertas de negocio dejan de ser fiables sin avisar."
+
+  # ================================
+  # Base de datos
+  # ================================
+  - name: dermicapro-postgres
+    rules:
+      - alert: PostgresCaido
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "[{{ $labels.system }}] PostgreSQL no responde"
+          description: "El exporter no consigue conectar con la base de datos en {{ $labels.host }}. Todo el sistema está caído."
+
+      - alert: ConexionesPostgresAltas
+        expr: |
+          sum by (system) (pg_stat_database_numbackends)
+            /
+          max by (system) (pg_settings_max_connections)
+            > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Más del 80% de las conexiones de PostgreSQL en uso"
+          description: "Uso actual: {{ $value | humanizePercentage }}. Riesgo de 'too many clients already'."
+
+      # Esto sólo se ve desde la aplicación: postgres-exporter mira el lado del
+      # servidor y nunca ve la cola de espera del pool del cliente.
+      - alert: PoolDeConexionesSaturado
+        expr: dermicapro_pg_pool_waiting > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Peticiones haciendo cola por una conexión libre en {{ $labels.instance }}"
+          description: "{{ $value }} peticiones esperando. El pool se quedó corto: se están encolando antes siquiera de llegar a la base."
+
+      - alert: DeadlocksEnPostgres
+        expr: increase(pg_stat_database_deadlocks[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Deadlocks detectados en la base de datos"
+          description: "{{ $value | humanize }} deadlocks en los últimos 10 minutos."
+
+  # ================================
+  # Host y contenedores
+  # ================================
+  - name: dermicapro-infra
+    rules:
+      - alert: DiscoCasiLleno
+        expr: |
+          node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}
+            /
+          node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}
+            < 0.15
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "[{{ $labels.system }}] Queda menos del 15% de disco en {{ $labels.host }}"
+          description: "Disponible: {{ $value | humanizePercentage }}. Candidatos habituales: uploads, volúmenes de Loki/Prometheus e imágenes de Docker sin usar."
+
+      - alert: DiscoSeLlenaEn24h
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}[6h], 24 * 3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] {{ $labels.host }} se quedará sin disco en menos de 24 horas"
+          description: "Proyección basada en las últimas 6 horas de crecimiento."
+
+      - alert: MemoriaDelHostAlta
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Memoria de {{ $labels.host }} por encima del 90%"
+          description: "Uso actual: {{ $value | humanizePercentage }}. Riesgo de que el OOM killer mate contenedores."
+
+      - alert: CPUDelHostAlta
+        expr: 100 - (avg by (system, host, instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] CPU de {{ $labels.host }} por encima del 85%"
+          description: "Uso medio: {{ $value | humanize }}% durante 15 minutos."
+
+      - alert: ContenedorReiniciandose
+        expr: changes(container_start_time_seconds{name=~".+"}[15m]) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "[{{ $labels.system }}] El contenedor {{ $labels.name }} está en bucle de reinicio"
+          description: "{{ $value | humanize }} reinicios en 15 minutos en {{ $labels.host }}. Revisar los logs en Grafana."
+
+      - alert: ContenedorSinMemoria
+        expr: |
+          container_memory_usage_bytes{name=~".+"}
+            /
+          container_spec_memory_limit_bytes{name=~".+"}
+            > 0.9
+          and container_spec_memory_limit_bytes{name=~".+"} > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] {{ $labels.name }} cerca de su límite de memoria"
+          description: "Uso: {{ $value | humanizePercentage }} del límite. El siguiente paso es un OOM kill."
+
+  # ================================
+  # Traefik / TLS
+  # ================================
+  - name: dermicapro-traefik
+    rules:
+      - alert: CertificadoTLSPorCaducar
+        expr: (min by (system) (traefik_tls_certs_not_after) - time()) < 14 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] Certificado TLS caduca en menos de 14 días"
+          description: "La renovación automática de Let's Encrypt puede estar fallando. Revisar los logs de Traefik."
+
+  # ================================
+  # El propio stack de observabilidad
+  # ================================
+  - name: observabilidad
+    rules:
+      - alert: ExporterCaido
+        expr: up{job=~"node-exporter|cadvisor|postgres-exporter|loki|alloy|traefik"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "[{{ $labels.system }}] {{ $labels.job }} no responde en {{ $labels.host }}"
+          description: "Sin este componente hay un punto ciego en el monitoreo."
