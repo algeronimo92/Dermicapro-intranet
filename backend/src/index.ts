@@ -5,6 +5,10 @@ import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { generalLimiter } from './middlewares/rateLimiter';
 import { requestLogger } from './middlewares/requestLogger';
+import { metricsMiddleware, metricsHandler } from './middlewares/metrics';
+import { registerDbMetrics } from './middlewares/db-metrics';
+import { requestId } from './middlewares/requestId';
+import { startBusinessMetrics, stopBusinessMetrics } from './services/business-metrics.service';
 import prisma from './config/database';
 import fs from 'fs';
 import path from 'path';
@@ -27,7 +31,11 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Antes que requestLogger: el id tiene que existir cuando se escriba la línea.
+app.use(requestId);
 app.use(requestLogger);
+app.use(metricsMiddleware);
+registerDbMetrics();
 
 // Rate limiting global (disabled in development)
 if (config.env === 'production') {
@@ -60,6 +68,10 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+// Scrape de Prometheus. Fuera de /api a propósito: el nginx del frontend sólo
+// proxea /api y /uploads, así que no queda expuesto a través de Traefik.
+app.get('/metrics', metricsHandler);
+
 app.use('/api', routes);
 
 app.use(errorHandler);
@@ -73,6 +85,9 @@ const startServer = async () => {
       console.log(`Server running on port ${config.port}`);
       console.log(`Environment: ${config.nodeEnv}`);
     });
+
+    // Arranca después de conectar a la base: la primera lectura es inmediata.
+    startBusinessMetrics();
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -80,11 +95,13 @@ const startServer = async () => {
 };
 
 process.on('SIGINT', async () => {
+  stopBusinessMetrics();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
+  stopBusinessMetrics();
   await prisma.$disconnect();
   process.exit(0);
 });

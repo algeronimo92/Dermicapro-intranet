@@ -42,6 +42,15 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-dermicapro}:${DB_PASSWORD:-dermicapro123}@db:5432/${DB_NAME:-dermicapro_db}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      # Protege GET /metrics; el mismo valor lo lee Prometheus.
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      # Umbrales de las métricas de negocio. Tienen que declararse aquí: el
+      # contenedor sólo ve lo que se le pasa, así que ponerlos en .env sin esto
+      # no haría nada y el backend usaría siempre los valores por defecto.
+      METRICS_STUCK_APPOINTMENT_HOURS: ${METRICS_STUCK_APPOINTMENT_HOURS:-6}
+      METRICS_AGED_COMMISSION_DAYS: ${METRICS_AGED_COMMISSION_DAYS:-7}
+      METRICS_OVER_PACKAGE_WINDOW_HOURS: ${METRICS_OVER_PACKAGE_WINDOW_HOURS:-24}
+      METRICS_BUSINESS_INTERVAL_MS: ${METRICS_BUSINESS_INTERVAL_MS:-60000}
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     volumes:

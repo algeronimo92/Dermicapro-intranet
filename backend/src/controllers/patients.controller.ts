@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { parseStartOfDay } from '../utils/dateUtils';
 import { hashPassword } from '../utils/password';
 
@@ -113,6 +113,7 @@ export const getAllPatients = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener pacientes' });
   }
 };
@@ -224,6 +225,7 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
 
     res.json(patient);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -272,6 +274,7 @@ export const createPatient = async (req: Request, res: Response): Promise<void> 
 
     res.status(201).json(patient);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -307,6 +310,7 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
 
     res.json(patient);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -340,6 +344,7 @@ export const resetPatientPassword = async (req: Request, res: Response): Promise
 
     res.json({ message: 'Contraseña del paciente actualizada correctamente' });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -358,6 +363,7 @@ export const deletePatient = async (req: Request, res: Response): Promise<void> 
 
     res.json({ message: 'Paciente eliminado correctamente' });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al eliminar paciente' });
   }
 };
@@ -490,6 +496,7 @@ export const getPatientHistory = async (req: Request, res: Response): Promise<vo
 
     res.json(history);
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Error fetching patient history:', error);
     res.status(500).json({ error: 'Error al obtener historial del paciente' });
   }
@@ -524,6 +531,7 @@ export const getCreditHistory = async (req: Request, res: Response): Promise<voi
 
     res.json({ accountBalance: patient.accountBalance, credits });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener historial de crédito' });
   }
 };
@@ -558,6 +566,7 @@ export const closeServiceInstance = async (req: Request, res: Response): Promise
 
     res.json(updated);
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al concluir tratamiento' });
   }
 };
@@ -579,6 +588,7 @@ export const reopenServiceInstance = async (req: Request, res: Response): Promis
 
     res.json(updated);
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al reabrir tratamiento' });
   }
 };

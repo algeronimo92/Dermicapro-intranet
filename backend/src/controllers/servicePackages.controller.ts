@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logUnexpectedError } from '../middlewares/errorHandler';
 import prisma from '../config/database';
 import { validateCommissionFields } from './services.controller';
 
@@ -17,6 +18,7 @@ export const getPackagesByService = async (req: Request, res: Response) => {
 
     return res.json(packages);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al obtener paquetes', error: error.message });
   }
 };
@@ -63,6 +65,7 @@ export const createPackage = async (req: Request, res: Response) => {
 
     return res.status(201).json(servicePackage);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al crear paquete', error: error.message });
   }
 };
@@ -106,6 +109,7 @@ export const updatePackage = async (req: Request, res: Response) => {
 
     return res.json(servicePackage);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al actualizar paquete', error: error.message });
   }
 };
@@ -130,6 +134,7 @@ export const deletePackage = async (req: Request, res: Response) => {
 
     return res.status(204).send();
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al eliminar paquete', error: error.message });
   }
 };
@@ -154,6 +159,7 @@ export const restorePackage = async (req: Request, res: Response) => {
 
     return res.json(servicePackage);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al restaurar paquete', error: error.message });
   }
 };

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { prepareDateRange } from '../utils/dateUtils';
 import { ROLES } from '../constants/roles';
 import { resolveEffectiveCommission, calculateCommissionAmount } from '../services/commission.service';
@@ -115,6 +115,7 @@ export const getAllAppointments = async (req: Request, res: Response): Promise<v
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener citas' });
   }
 };
@@ -180,6 +181,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
 
     res.json(withReservationPayment(appointment));
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -368,6 +370,7 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
 
     res.status(201).json(appointment);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -569,6 +572,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
 
     res.json(appointment);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -591,6 +595,7 @@ export const deleteAppointment = async (req: Request, res: Response): Promise<vo
 
     res.json({ message: 'Cita cancelada correctamente' });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al cancelar cita' });
   }
 };
@@ -722,6 +727,7 @@ export const markAsAttended = async (req: Request, res: Response): Promise<void>
 
     res.json(withReservationPayment(appointment));
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -772,6 +778,7 @@ export const addAttendee = async (req: Request, res: Response): Promise<void> =>
 
     res.json(withReservationPayment(updated));
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Error adding attendee:', error);
     res.status(500).json({ error: 'Error al agregar asistente' });
   }
@@ -813,6 +820,7 @@ export const removeAttendee = async (req: Request, res: Response): Promise<void>
 
     res.json(withReservationPayment(updated));
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Error removing attendee:', error);
     res.status(500).json({ error: 'Error al eliminar asistente' });
   }
@@ -890,6 +898,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
     res.json({ urls: receiptUrls, appointment: withReservationPayment(fresh ?? appointment) });
   } catch (error) {
+    logUnexpectedError(req, error);
     const files = req.files as Express.Multer.File[] | undefined;
     if (files) files.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
     if (error instanceof AppError) {
@@ -911,6 +920,7 @@ export const uploadTreatmentPhotos = async (req: Request, res: Response): Promis
     const urls = files.map(file => `/uploads/${file.filename}`);
     res.json({ urls });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -1018,6 +1028,7 @@ export const addPhotosToAppointment = async (req: Request, res: Response): Promi
 
     res.json(updatedAppointment);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -1084,6 +1095,7 @@ export const removePhotoFromAppointment = async (req: Request, res: Response): P
 
     res.json(updatedAppointment);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -1192,6 +1204,7 @@ export const updateBodyMeasurements = async (req: Request, res: Response): Promi
 
     res.json(updatedAppointment);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -1239,6 +1252,7 @@ export const createAppointmentNote = async (req: Request, res: Response): Promis
 
     res.status(201).json(appointmentNote);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

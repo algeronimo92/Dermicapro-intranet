@@ -1,0 +1,15 @@
+apiVersion: 1
+
+providers:
+  - name: DermicaPro
+    orgId: 1
+    folder: DermicaPro
+    type: file
+    disableDeletion: false
+    # Los dashboards se editan en el repo, no en la UI; los cambios hechos a
+    # mano en Grafana se sobreescriben en cada recarga.
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

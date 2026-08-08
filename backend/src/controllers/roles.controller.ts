@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
+import { logUnexpectedError } from '../middlewares/errorHandler';
 import prisma from '../config/database';
 
-export const getAllRoles = async (_req: Request, res: Response): Promise<void> => {
+export const getAllRoles = async (req: Request, res: Response): Promise<void> => {
   try {
     const roles = await prisma.role.findMany({
       orderBy: { name: 'asc' },
@@ -14,6 +15,7 @@ export const getAllRoles = async (_req: Request, res: Response): Promise<void> =
     });
     res.json(roles);
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener roles' });
   }
 };

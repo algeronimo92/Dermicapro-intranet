@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { paymentOrderService } from '../services/paymentOrder.service';
 import { PaymentOrderFactory } from '../services/paymentOrder.factory';
 import { parseStartOfDay } from '../utils/dateUtils';
@@ -95,6 +95,7 @@ export const getAllPaymentOrders = async (req: Request, res: Response): Promise<
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener órdenes de pago' });
   }
 };
@@ -118,6 +119,7 @@ export const getPaymentOrderById = async (req: Request, res: Response): Promise<
       balance,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -151,6 +153,7 @@ export const updatePaymentOrderStatus = async (req: Request, res: Response): Pro
 
     res.json(paymentOrder);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -182,6 +185,7 @@ export const getPaymentOrdersByPatient = async (req: Request, res: Response): Pr
 
     res.json(paymentOrdersWithBalance);
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener órdenes de pago del paciente' });
   }
 };
@@ -281,6 +285,7 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
       })),
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener resumen de orden de pago' });
   }
 };
@@ -325,6 +330,7 @@ export const createPaymentOrder = async (req: Request, res: Response): Promise<v
 
     res.status(201).json(paymentOrder);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -344,6 +350,7 @@ export const getOrdersWithoutPaymentOrder = async (req: Request, res: Response):
 
     res.json(orders);
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener órdenes sin orden de pago' });
   }
 };
@@ -359,6 +366,7 @@ export const cancelPaymentOrder = async (req: Request, res: Response): Promise<v
 
     res.json(paymentOrder);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -378,6 +386,7 @@ export const autoUpdatePaymentOrderStatus = async (req: Request, res: Response):
 
     res.json(paymentOrder);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {

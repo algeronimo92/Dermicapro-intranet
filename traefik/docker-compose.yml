@@ -6,12 +6,22 @@ services:
       - "80:80"
       - "443:443"
     command:
-      - --log.level=DEBUG                                                                                                                                                                                                                                                                                            
-      - --api.insecure=true 
+      # DEBUG generaba varias líneas por petición; ahora que los logs se envían
+      # a Loki eso llenaría el disco del VPS en días.
+      - --log.level=INFO
+      - --api.insecure=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
+      # Métricas para Prometheus. El puerto 8082 no se publica al host: sólo es
+      # accesible desde traefik-network, donde vive Prometheus.
+      - --entrypoints.metrics.address=:8082
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=metrics
+      - --metrics.prometheus.addEntryPointsLabels=true
+      - --metrics.prometheus.addServicesLabels=true
+      - --metrics.prometheus.addRoutersLabels=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
@@ -27,6 +37,11 @@ services:
       - ./dynamic:/etc/traefik/dynamic
     networks:
       - traefik-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   traefik-network:
