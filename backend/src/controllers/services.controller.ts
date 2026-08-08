@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logUnexpectedError } from '../middlewares/errorHandler';
 import prisma from '../config/database';
 
 const PACKAGES_ORDER = { sessions: 'asc' as const };
@@ -37,11 +38,12 @@ export const getServices = async (req: Request, res: Response) => {
     });
     res.json(services);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     res.status(500).json({ message: 'Error al obtener servicios', error: error.message });
   }
 };
 
-export const getActiveServices = async (_req: Request, res: Response) => {
+export const getActiveServices = async (req: Request, res: Response) => {
   try {
     const services = await prisma.service.findMany({
       where: {
@@ -58,6 +60,7 @@ export const getActiveServices = async (_req: Request, res: Response) => {
     });
     res.json(services);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     res.status(500).json({ message: 'Error al obtener servicios activos', error: error.message });
   }
 };
@@ -76,6 +79,7 @@ export const getService = async (req: Request, res: Response) => {
 
     return res.json(service);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al obtener servicio', error: error.message });
   }
 };
@@ -109,6 +113,7 @@ export const createService = async (req: Request, res: Response) => {
 
     return res.status(201).json(service);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al crear servicio', error: error.message });
   }
 };
@@ -146,6 +151,7 @@ export const updateService = async (req: Request, res: Response) => {
 
     return res.json(service);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al actualizar servicio', error: error.message });
   }
 };
@@ -172,6 +178,7 @@ export const deleteService = async (req: Request, res: Response) => {
 
     return res.status(204).send();
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al eliminar servicio', error: error.message });
   }
 };
@@ -198,6 +205,7 @@ export const restoreService = async (req: Request, res: Response) => {
 
     return res.json(service);
   } catch (error: any) {
+    logUnexpectedError(req, error);
     return res.status(500).json({ message: 'Error al restaurar servicio', error: error.message });
   }
 };

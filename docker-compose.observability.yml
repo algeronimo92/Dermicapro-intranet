@@ -1,0 +1,307 @@
+# ================================
+# Stack de observabilidad
+# ================================
+# Arranca aparte de la aplicación a propósito: los deploys blue-green tumban y
+# levantan los contenedores de la app, y el monitoreo tiene que seguir en pie
+# justo cuando algo falla.
+#
+#   docker compose -p dermicapro-obs -f docker-compose.observability.yml up -d
+#
+# o, más corto:  make obs-up
+#
+# Las versiones están fijadas a propósito. Para actualizar, cambiar el tag y
+# levantar de nuevo; nunca usar :latest en un stack que tiene que ser fiable.
+
+services:
+  # ================================
+  # Loki - almacén de logs
+  # ================================
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: dermicapro-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ================================
+  # Alloy - recolector de logs de Docker
+  # ================================
+  alloy:
+    image: grafana/alloy:v1.7.5
+    container_name: dermicapro-alloy
+    restart: unless-stopped
+    # Necesita leer /var/run/docker.sock, que pertenece a root:docker.
+    user: root
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ================================
+  # Prometheus - almacén de métricas
+  # ================================
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: dermicapro-prometheus
+    restart: unless-stopped
+    # El socket de Docker se usa para descubrir el backend activo (blue/green).
+    user: root
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=90d
+      - --storage.tsdb.retention.size=8GB
+      - --web.enable-lifecycle
+      - --web.external-url=http://localhost:9090
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      # Generado por `make obs-up` a partir de METRICS_TOKEN en .env.
+      - ./observability/prometheus/metrics_token:/etc/prometheus/metrics_token:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - observability
+      - app-network
+      - traefik-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ================================
+  # Alertmanager - enrutado de alertas hacia n8n
+  # ================================
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: dermicapro-alertmanager
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      # Generado por `make obs-up` a partir de N8N_ALERT_WEBHOOK en .env.
+      - ./observability/alertmanager/n8n_webhook_url:/etc/alertmanager/n8n_webhook_url:ro
+      - alertmanager_data:/alertmanager
+    # El webhook de n8n es una URL pública (n8n.dermicapro.online), así que
+    # basta con salida a internet. extra_hosts se mantiene por si algún día se
+    # apunta a un n8n corriendo en el propio host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9093/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ================================
+  # Grafana - dashboards y exploración
+  # ================================
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: dermicapro-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?define GRAFANA_ADMIN_PASSWORD en .env}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.dermicapro.app}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      # Los datos son de pacientes: sin anónimos ni enlaces públicos.
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_COOKIE_SAMESITE: "strict"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      # Sólo loopback: acceso de emergencia por túnel SSH
+      # (ssh -L 3000:localhost:3000 usuario@vps). El acceso normal es por Traefik.
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_DOMAIN:-grafana.dermicapro.app}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - observability
+      - traefik-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ================================
+  # Exporters
+  # ================================
+  node-exporter:
+    image: prom/node-exporter:v1.9.0
+    container_name: dermicapro-node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      # Sin esto, cada capa de overlayfs de Docker aparece como un filesystem
+      # distinto y el panel de disco se vuelve ilegible.
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|cgroup.*|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$$
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    container_name: dermicapro-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    command:
+      - --housekeeping_interval=15s
+      - --docker_only=true
+      - --store_container_labels=false
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: dermicapro-postgres-exporter
+    restart: unless-stopped
+    environment:
+      # Rol de solo lectura con pg_monitor, NO el dueno de la base. Ver
+      # OBSERVABILIDAD.md para el SQL que lo crea. Si no se define, cae al
+      # usuario de la aplicacion, que es mas permiso del necesario.
+      DATA_SOURCE_NAME: "postgresql://${DB_EXPORTER_USER:-${DB_USER:-dermicapro}}:${DB_EXPORTER_PASSWORD:-${DB_PASSWORD:-dermicapro123}}@${DB_HOST:-dermicapro-db-prod}:5432/${DB_NAME:-dermicapro_db}?sslmode=disable"
+      PG_EXPORTER_EXCLUDE_DATABASES: "template0,template1"
+    networks:
+      - observability
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  # Red privada del stack de observabilidad.
+  observability:
+    name: dermicapro-observability
+
+  # Red donde viven el backend y PostgreSQL. En producción es
+  # dermicapro-prod-network; en local se apunta a la red del compose de dev.
+  app-network:
+    external: true
+    name: ${APP_NETWORK:-dermicapro-prod-network}
+
+  traefik-network:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik-network}
+
+volumes:
+  loki_data:
+    name: dermicapro_loki_data
+  alloy_data:
+    name: dermicapro_alloy_data
+  prometheus_data:
+    name: dermicapro_prometheus_data
+  alertmanager_data:
+    name: dermicapro_alertmanager_data
+  grafana_data:
+    name: dermicapro_grafana_data

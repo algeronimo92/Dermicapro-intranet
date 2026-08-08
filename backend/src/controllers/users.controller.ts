@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
 import { ROLES } from '../constants/roles';
 
@@ -79,6 +79,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener usuarios' });
   }
 };
@@ -130,6 +131,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
     res.json(formattedUser);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -191,6 +193,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       updatedAt: user.updatedAt,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -267,6 +270,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       updatedAt: user.updatedAt,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -301,6 +305,7 @@ export const deactivateUser = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -329,6 +334,7 @@ export const activateUser = async (req: Request, res: Response): Promise<void> =
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al activar usuario' });
   }
 };
@@ -413,6 +419,7 @@ export const getUserStats = async (req: Request, res: Response): Promise<void> =
       ...additionalStats,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -457,6 +464,7 @@ export const uploadUserPhoto = async (req: Request, res: Response): Promise<void
       updatedAt: user.updatedAt,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (req.file?.path) {
       try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
     }

@@ -1,0 +1,51 @@
+# ================================
+# Alertmanager - Enrutado de alertas hacia n8n
+# ================================
+# Aquí es donde encaja n8n: recibe el webhook con la alerta y decide a quién
+# notificar (WhatsApp, Telegram, email), si crear un ticket, o si silenciarla
+# fuera del horario de la clínica.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: n8n
+  # Agrupa por alerta para no recibir 20 mensajes cuando se cae el backend.
+  # 'system' entra en la agrupación para que un problema del CRM y otro del ERP
+  # nunca lleguen mezclados en el mismo mensaje: n8n necesita saber a qué
+  # sistema avisar.
+  group_by: ['alertname', 'system', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    # Las críticas se repiten cada hora hasta que alguien las resuelva.
+    - matchers:
+        - severity = "critical"
+      receiver: n8n
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  - name: n8n
+    webhook_configs:
+      # La URL vive en un fichero para que el path secreto del webhook no acabe
+      # en git. Lo genera `make obs-up` a partir de N8N_ALERT_WEBHOOK en .env.
+      - url_file: /etc/alertmanager/n8n_webhook_url
+        send_resolved: true
+        max_alerts: 0
+
+inhibit_rules:
+  # Si el backend está caído no hace falta avisar además de que va lento.
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    equal: ['alertname', 'instance']
+
+  # Si PostgreSQL cae, el backend caerá detrás: sólo interesa la causa raíz.
+  - source_matchers:
+      - alertname = "PostgresCaido"
+    target_matchers:
+      - alertname =~ "BackendCaido|TasaDeErrores5xxAlta|SinBackendActivo"

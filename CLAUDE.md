@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DermicaPro is a full-stack clinic management system for a dermatology/aesthetics clinic in Trujillo, Peru. It handles patients, appointments, medical records, treatment sessions, invoicing, payments, and sales commissions.
+DermicaPro is a full-stack clinic management system for a dermatology/aesthetics clinic in Trujillo, Peru. It handles patients, appointments, medical records, treatment sessions, payment orders, payments, and sales commissions.
 
 **Tech Stack:**
 - Backend: Node.js + TypeScript, Express, Prisma ORM, PostgreSQL
@@ -133,9 +133,9 @@ routes → controllers → services → repositories → prisma
 The backend uses a service layer for complex business logic:
 - `services/analytics/` - Sales analytics, customer analytics, financial analytics (5 specialized services)
 - `services/dashboard/` - Dashboard metrics aggregation
-- `services/invoicing.service.ts` - Invoice generation from orders
-- `services/role.service.ts` - RBAC permission checking
-- `services/permission.service.ts` - Permission management
+- `services/paymentOrder.service.ts` + `paymentOrder.factory.ts` - PaymentOrder generation
+- `services/commission.service.ts` - Commission calculation
+- `services/business-metrics.service.ts` - Business gauges exposed on `/metrics`
 
 ### Frontend Architecture
 
@@ -164,33 +164,42 @@ App.tsx (routing) → Pages → Components
 
 ### Database Schema (Prisma)
 
-**Core Models:**
+**Core Models** (as defined in `prisma/schema.prisma`):
+- `Role` - Roles with permissions (RBAC)
 - `User` - System users with roles (admin, medical_staff, assistant, sales)
-- `SystemRole` - Roles with permissions (RBAC)
-- `Permission` - Granular permissions for RBAC
 - `Patient` - Customer records with DNI (Peruvian ID)
 - `Service` - Treatment services (HIFU, laser, etc.)
-- `Order` - Treatment packages (multi-session services)
-- `Appointment` - Scheduled visits (can have multiple services)
-- `AppointmentService` - Links appointments to orders/sessions
+- `ServicePackage` - Purchasable variants of a `Service` (price, number of sessions)
+- `ServiceInstance` - A package sold to a patient; tracks `totalSessions` vs `completedSessions`
+- `Appointment` - Scheduled visits (can have multiple sessions)
+- `AppointmentAttendee` - Staff assigned to an appointment
 - `AppointmentNote` - Notes attached to appointments
+- `Session` - Links an appointment to a `ServiceInstance` and its `sessionNumber`
 - `PatientRecord` - Medical history, photos, measurements
-- `Invoice` - Bills for multiple orders (1:N relationship)
+- `PaymentOrder` - Bills covering one or more `ServiceInstance`s
 - `Payment` - Payment records with various types
-- `Commission` - Sales commissions (auto-generated)
+- `Commission` - Sales commissions
+- `SystemSetting` - Key/value configuration
+
+> Naming note: `ServiceInstance` was previously called `Order` and `Session` was
+> called `AppointmentService`; `PaymentOrder` replaced `Invoice`. Older docs in
+> this repo may still use the old names.
 
 **Key Relationships:**
-- One Appointment can have multiple AppointmentServices (multi-service visits)
-- One Invoice can have multiple Orders (N:1)
-- Orders are auto-created when creating appointments without orderId
-- Commissions auto-generate when orders are created (based on service commission settings)
+- One Appointment can have multiple Sessions (multi-service visits)
+- One PaymentOrder can cover multiple ServiceInstances
+- A ServiceInstance is auto-created when an appointment is created with
+  `tempPackageId` instead of an existing `orderId`
+- Commissions are generated when an appointment is marked as `attended`, not
+  when the ServiceInstance is created
 
 **Important Enums:**
 - `AppointmentStatus`: reserved, in_progress, attended, cancelled, no_show
-- `InvoiceStatus`: pending, partial, paid, cancelled
-- `PaymentType`: invoice_payment, reservation, service_payment, account_credit, penalty, other
+- `PaymentOrderStatus`: pending, partial, paid, cancelled
+- `PaymentType`: payment_order_payment, reservation, service_payment, account_credit, penalty, other
 - `CommissionStatus`: pending, approved, paid, cancelled, rejected
-- `PaymentMethod`: cash, card, transfer, yape, plin
+- `PaymentMethod`: cash, card, transfer, yape, plin, account_credit
+- `Sex`: M, F, Other
 
 ### Authentication & Authorization
 
@@ -215,66 +224,31 @@ App.tsx (routing) → Pages → Components
 
 **Auto-Generation Rules (CRITICAL):**
 
-1. **Order Auto-Creation:** When creating an appointment WITHOUT `orderId`, the system automatically creates an Order:
-   ```typescript
-   // In appointments.controller.ts
-   if (!orderId) {
-     const newOrder = await tx.order.create({
-       data: {
-         patientId,
-         serviceId: service.serviceId,
-         totalSessions: service.defaultSessions,
-         completedSessions: 0,
-         originalPrice: service.basePrice,
-         discount: 0,
-         finalPrice: service.basePrice,
-         createdById: req.user!.id,
-       },
-     });
-   }
-   ```
+1. **ServiceInstance Auto-Creation:** A session in the request carries either an
+   existing `orderId` (a `ServiceInstance` id) or a `tempPackageId`. With a
+   `tempPackageId`, `appointments.controller.ts` creates the `ServiceInstance`
+   inside the transaction, deriving `totalSessions`, `originalPrice` and
+   `discount` from the chosen `ServicePackage`, then maps the temp id to the
+   real one before creating the `Session` rows.
 
-2. **Commission Auto-Creation:** Commissions are created based on service commission settings:
-   ```typescript
-   // When an order is created
-   if (service.commissionType && service.commissionRate) {
-     await prisma.commission.create({
-       data: {
-         salesPersonId: req.user!.id,
-         appointmentId: appointment.id,
-         orderId: order.id,
-         serviceId: service.id,
-         commissionRate: service.commissionRate,
-         baseAmount: order.finalPrice,
-         commissionAmount: calculateCommission(order.finalPrice, service.commissionRate, service.commissionType),
-         status: 'pending',
-       },
-     });
-   }
-   ```
+2. **sessionNumber is required, not inferred.** The controller rejects any
+   session without `servicePackageId` and `sessionNumber`
+   (`'Cada sesión debe tener servicePackageId y sessionNumber'`). The caller
+   decides the number; the backend does not pick the next free slot.
 
-3. **SessionNumber Auto-Calculation:** When adding a service to an appointment with an existing `orderId` but no `sessionNumber`, the system finds the next available session:
-   ```typescript
-   const existingServices = await tx.appointmentService.findMany({
-     where: { orderId },
-     select: { sessionNumber: true },
-   });
-
-   const occupiedNumbers = new Set(existingServices.map(s => s.sessionNumber));
-   let sessionNumber = 1;
-   while (occupiedNumbers.has(sessionNumber)) sessionNumber++;
-   ```
+3. **Commission Creation:** Commissions are created when an appointment is
+   marked as `attended`, not when the `ServiceInstance` is created. See
+   `services/commission.service.ts`.
 
 **Soft Deletes:**
 - Appointments: Changed to status `cancelled` (not deleted)
 - Services: Set `deletedAt` timestamp (can be restored)
-- AppointmentServices: Have soft delete fields (`deletedAt`, `deletedById`, `deleteReason`)
+- Sessions: Have soft delete fields (`deletedAt`, `deletedById`, `deleteReason`)
 
-**Invoice Generation:**
-Uses factory pattern in `services/invoice.factory.ts`:
-- Creates invoices from multiple orders
-- Calculates totals, applies discounts
-- Manages invoice status based on payments
+**PaymentOrder Generation:**
+Uses factory pattern in `services/paymentOrder.factory.ts`, with methods for a
+single instance, a consolidated order, creation from a list of
+`ServiceInstance` ids, and creation with an automatic payment date.
 
 **Analytics System:**
 Complex analytics architecture in `services/analytics/`:
@@ -293,8 +267,8 @@ Complex analytics architecture in `services/analytics/`:
    - `services[]` array with serviceId (required)
    - `orderId` (optional - auto-creates if missing)
    - `durationMinutes` (optional, default 60)
-2. System auto-creates Order if needed
-3. System creates AppointmentService links
+2. System auto-creates the ServiceInstance when `tempPackageId` is used
+3. System creates the Session rows
 4. System creates Commission based on service settings
 
 ### Attending an Appointment
@@ -305,16 +279,20 @@ Complex analytics architecture in `services/analytics/`:
 3. Creates PatientRecord with medical data
 4. Records attendedBy and attendedAt
 
-### Creating an Invoice
-Uses service layer:
+### Creating a PaymentOrder
+The factory builds the DTO; it does not touch the database itself:
 ```typescript
-import { InvoiceFactory } from '../services/invoice.factory';
+import { PaymentOrderFactory } from '../services/paymentOrder.factory';
 
-const invoice = await InvoiceFactory.createFromOrders(orderIds, {
-  createdById: req.user.id,
-  dueDate: new Date(),
-});
+const dto = PaymentOrderFactory.createFromServiceInstanceIds(
+  serviceInstanceIds,
+  patientId,
+  req.user.id,
+  dueDate, // opcional
+);
 ```
+Other methods: `createSingleServiceInstancePaymentOrder`,
+`createConsolidatedPaymentOrder`, `createWithAutoPaymentDate`.
 
 ### Managing Commissions
 Commissions have a workflow: pending → approved → paid
@@ -402,9 +380,9 @@ make migrate-reset
 ## Known Issues & Incomplete Features
 
 1. **Appointment Conflicts:** No validation to prevent double-booking the same time slot
-2. **Session Validation:** No validation that sessionNumber <= Order.totalSessions
+2. **Session Validation:** No validation that `sessionNumber <= ServiceInstance.totalSessions`. A Postgres CHECK cannot express it (it spans two tables); the `dermicapro_sessions_over_package` metric detects violations after the fact.
 3. **Service Permissions:** Some service endpoints should be admin-only but currently allow all authenticated users
-4. **Payment Workflow:** Payment creation is implemented but invoice status updates could be more automated
+4. **Payment Workflow:** Payment creation is implemented but PaymentOrder status updates could be more automated
 
 ## Code Conventions
 
@@ -449,3 +427,4 @@ For detailed business rules, see `REGLAS_DE_NEGOCIO.md` in the project root.
 For Docker setup details, see `DOCKER-README.md`.
 For analytics implementation, see `ANALYTICS_ARCHITECTURE.md`.
 For commission system details, see `MODULO_COMISIONES.md`.
+For monitoring, logs, dashboards and alerting, see `OBSERVABILIDAD.md`.

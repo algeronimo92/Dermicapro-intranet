@@ -1,6 +1,8 @@
 declare global {
   namespace Express {
     interface Request {
+      /** Identificador único de la petición; aparece en todas sus líneas de log. */
+      id?: string;
       user?: {
         id: string;
         email: string;

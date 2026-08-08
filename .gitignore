@@ -151,3 +151,9 @@ pnpm-lock.yaml
 
 # Blue-green deployment state (VPS only)
 active-color.txt
+
+# ================================
+# Observabilidad - secretos generados por `make obs-secrets`
+# ================================
+observability/prometheus/metrics_token
+observability/alertmanager/n8n_webhook_url

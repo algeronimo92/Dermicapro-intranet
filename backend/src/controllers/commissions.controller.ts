@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { ROLES } from '../constants/roles';
 
 /**
@@ -150,6 +150,7 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
       },
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Error fetching commissions:', error);
     res.status(500).json({ error: 'Error al obtener comisiones' });
   }
@@ -216,6 +217,7 @@ export const getCommissionById = async (req: Request, res: Response): Promise<vo
 
     res.json(commission);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -305,6 +307,7 @@ export const getCommissionsSummaryBySales = async (req: Request, res: Response):
 
     res.json(result);
   } catch (error) {
+    logUnexpectedError(req, error);
     console.error('Error fetching commissions summary:', error);
     res.status(500).json({ error: 'Error al obtener resumen de comisiones' });
   }
@@ -377,6 +380,7 @@ export const approveCommission = async (req: Request, res: Response): Promise<vo
 
     res.json(commission);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -436,6 +440,7 @@ export const rejectCommission = async (req: Request, res: Response): Promise<voi
 
     res.json(commission);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -500,6 +505,7 @@ export const markAsPaid = async (req: Request, res: Response): Promise<void> => 
 
     res.json(commission);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -566,6 +572,7 @@ export const batchApprove = async (req: Request, res: Response): Promise<void> =
       count: result.count,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -607,6 +614,7 @@ export const batchMarkAsPaid = async (req: Request, res: Response): Promise<void
       count: result.count,
     });
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
@@ -660,6 +668,7 @@ export const cancelCommission = async (req: Request, res: Response): Promise<voi
 
     res.json(commission);
   } catch (error) {
+    logUnexpectedError(req, error);
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
