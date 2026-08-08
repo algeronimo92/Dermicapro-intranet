@@ -23,6 +23,11 @@ describe('Cancelar cita', () => {
           url: '/api/services',
           headers: { Authorization: `Bearer ${token}` },
         }).then(({ body: services }) => {
+          // La sesión se identifica por el paquete, no por el servicio: el
+          // backend deriva serviceId, totalSessions y precio del ServicePackage.
+          const servicePackage = services.find((s: any) => s.packages?.length)?.packages[0];
+          expect(servicePackage, 'el seed debe crear al menos un paquete').to.exist;
+
           cy.request({
             method: 'POST',
             url: '/api/appointments',
@@ -30,7 +35,7 @@ describe('Cancelar cita', () => {
             body: {
               patientId: patient.id,
               scheduledDate: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-              services: [{ serviceId: services[0].id, sessionNumber: 1, tempPackageId: 'pkg-test-1' }],
+              services: [{ servicePackageId: servicePackage.id, sessionNumber: 1, tempPackageId: 'pkg-test-1' }],
             },
           }).then(({ body: appointment }) => {
             appointmentId = appointment.id;
