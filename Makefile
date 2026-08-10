@@ -243,14 +243,14 @@ obs-db-role-rotate: ## Rotar la contraseña del rol de postgres-exporter
 obs-check: obs-secrets ## Validar configs de Prometheus, Alertmanager y Alloy
 	@echo "$(BLUE)Prometheus y reglas de alerta...$(NC)"
 	@docker run --rm -v "$(CURDIR)/observability/prometheus:/etc/prometheus:ro" \
-		--entrypoint promtool prom/prometheus:v3.2.1 \
+		--entrypoint promtool prom/prometheus:v3.13.2 \
 		check config /etc/prometheus/prometheus.yml
 	@echo "$(BLUE)Alertmanager...$(NC)"
 	@docker run --rm -v "$(CURDIR)/observability/alertmanager:/etc/alertmanager:ro" \
-		--entrypoint amtool prom/alertmanager:v0.28.1 \
+		--entrypoint amtool prom/alertmanager:v0.33.1 \
 		check-config /etc/alertmanager/alertmanager.yml
 	@echo "$(BLUE)Alloy...$(NC)"
-	@docker run --rm -v "$(CURDIR)/observability/alloy:/cfg:ro" grafana/alloy:v1.7.5 \
+	@docker run --rm -v "$(CURDIR)/observability/alloy:/cfg:ro" grafana/alloy:v1.18.1 \
 		fmt /cfg/config.alloy > /dev/null
 	@echo "$(BLUE)Dashboards de Grafana...$(NC)"
 	@# Se prueba a ejecutar el intérprete, no sólo a localizarlo: en Windows
