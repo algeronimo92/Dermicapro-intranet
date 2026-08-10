@@ -240,6 +240,99 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 }
 
 // ============================================
+// HORA LOCAL DE LA CLÍNICA (America/Lima)
+// ============================================
+
+/**
+ * Perú (America/Lima) es UTC-5 todo el año: no aplica horario de verano,
+ * por lo que un offset fijo es exacto y evita depender de la TZ del contenedor.
+ */
+export const CLINIC_UTC_OFFSET_MINUTES = -300;
+const CLINIC_OFFSET_MS = CLINIC_UTC_OFFSET_MINUTES * 60 * 1000;
+
+/**
+ * Devuelve un Date "desplazado" cuyos getters UTC representan la hora de pared
+ * en la clínica. Solo para extraer día/mes/día-de-semana, nunca para almacenar.
+ */
+function toClinicWallClock(date: Date): Date {
+  return new Date(date.getTime() + CLINIC_OFFSET_MS);
+}
+
+/**
+ * Clave de día (YYYY-MM-DD) en hora de la clínica.
+ *
+ * Necesario para métricas diarias: una venta del lunes 20:00 en Trujillo se
+ * almacena como martes 01:00 UTC y agruparla por UTC la contaría en el día
+ * equivocado.
+ */
+export function clinicDateKey(date: Date): string {
+  return toClinicWallClock(date).toISOString().slice(0, 10);
+}
+
+/**
+ * Día de la semana en hora de la clínica: 1 = lunes ... 7 = domingo (ISO-8601)
+ */
+export function clinicWeekday(date: Date): number {
+  const jsDay = toClinicWallClock(date).getUTCDay(); // 0 = domingo
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+/**
+ * Día de la semana (1 = lunes ... 7 = domingo) de una clave YYYY-MM-DD.
+ * La clave ya es una fecha de calendario, así que no interviene la zona horaria.
+ */
+export function weekdayOfDateKey(dateKey: string): number {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const jsDay = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+/**
+ * Instante UTC en que empieza (00:00) un día de la clínica dado por su clave
+ */
+export function clinicDayStartUtc(dateKey: string): Date {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day) - CLINIC_OFFSET_MS);
+}
+
+/**
+ * Clave del día actual en hora de la clínica
+ */
+export function clinicTodayKey(now: Date = new Date()): string {
+  return clinicDateKey(now);
+}
+
+/**
+ * Suma (o resta, con valores negativos) días a una clave YYYY-MM-DD
+ */
+export function shiftDateKey(dateKey: string, days: number): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return shifted.toISOString().slice(0, 10);
+}
+
+/**
+ * Clave del lunes de la semana a la que pertenece la clave dada
+ */
+export function weekStartKey(dateKey: string): string {
+  return shiftDateKey(dateKey, -(weekdayOfDateKey(dateKey) - 1));
+}
+
+/**
+ * Lista inclusiva de claves de día entre dos claves (fromKey <= toKey)
+ */
+export function enumerateDateKeys(fromKey: string, toKey: string): string[] {
+  const keys: string[] = [];
+  let cursor = fromKey;
+  // Guarda de seguridad: máx. ~5 años, evita un bucle infinito ante datos corruptos
+  for (let i = 0; cursor <= toKey && i < 2000; i++) {
+    keys.push(cursor);
+    cursor = shiftDateKey(cursor, 1);
+  }
+  return keys;
+}
+
+// ============================================
 // HELPERS DE MIGRACIÓN
 // ============================================
 
