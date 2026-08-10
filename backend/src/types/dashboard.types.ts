@@ -7,6 +7,68 @@ export interface DashboardFilters {
 }
 
 // ============================================
+// Ritmo del negocio — series diarias/semanales (hora de la clínica, UTC-5)
+// ============================================
+
+/** Un día del calendario de la clínica */
+export interface DailyActivityPoint {
+  date: string;        // YYYY-MM-DD
+  sold: number;        // valor de los servicios vendidos ese día
+  collected: number;   // pagos efectivamente cobrados (no anulados)
+  salesCount: number;  // nº de servicios vendidos
+  scheduled: number;   // citas agendadas (excluye canceladas)
+  attended: number;    // citas atendidas
+  noShow: number;
+}
+
+/** Una semana ISO (lunes a domingo) */
+export interface WeeklyActivityPoint {
+  weekStart: string;   // lunes, YYYY-MM-DD
+  weekEnd: string;     // domingo, YYYY-MM-DD
+  sold: number;
+  collected: number;
+  salesCount: number;
+  scheduled: number;
+  attended: number;
+}
+
+/** Patrón acumulado por día de la semana en todo el período */
+export interface WeekdayActivityPoint {
+  weekday: number;      // 1 = lunes ... 7 = domingo (ISO-8601)
+  label: string;        // 'Lun', 'Mar', ...
+  sold: number;
+  collected: number;
+  scheduled: number;
+  attended: number;
+  occurrences: number;  // nº de veces que ese día cayó dentro del período
+  avgSold: number;
+  avgScheduled: number;
+  avgAttended: number;
+}
+
+export interface ActivityMetrics {
+  daily: DailyActivityPoint[];
+  weekly: WeeklyActivityPoint[];
+  byWeekday: WeekdayActivityPoint[];
+  summary: {
+    todaySold: number;
+    todayCollected: number;
+    todayScheduled: number;
+    todayAttended: number;
+    weekSold: number;
+    weekCollected: number;
+    weekScheduled: number;
+    weekAttended: number;
+    avgDailySold: number;
+    avgDailyAttended: number;
+    attendanceRate: number;      // atendidas / agendadas del período, en %
+    bestWeekday: string | null;  // día con mayor venta promedio
+    periodDays: number;          // días cubiertos por weekly/byWeekday
+    dailyRangeDays: number;      // días cubiertos por la serie diaria
+  };
+}
+
+// ============================================
 // Admin Dashboard — visión global del negocio
 // ============================================
 export interface AdminDashboardData {
@@ -44,6 +106,7 @@ export interface AdminDashboardData {
     byPeriod: Array<{ period: string; count: number }>;
     granularity: 'day' | 'month';
   };
+  activity: ActivityMetrics;
 }
 
 // ============================================

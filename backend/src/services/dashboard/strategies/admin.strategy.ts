@@ -3,7 +3,8 @@ import {
   AdminDashboardData,
   DashboardFilters,
 } from '../../../types/dashboard.types';
-import { Prisma } from '@prisma/client';
+import { ActivityMetricsService } from '../activity.metrics';
+import { Prisma, PrismaClient } from '@prisma/client';
 type Decimal = Prisma.Decimal;
 
 /**
@@ -11,6 +12,13 @@ type Decimal = Prisma.Decimal;
  * Proporciona vista global del negocio: ingresos, citas, ventas, comisiones
  */
 export class AdminDashboardStrategy extends BaseDashboardStrategy {
+  private activityMetrics: ActivityMetricsService;
+
+  constructor(prisma: PrismaClient) {
+    super(prisma);
+    this.activityMetrics = new ActivityMetricsService(prisma);
+  }
+
   async execute(
     _userId: string,
     filters?: DashboardFilters
@@ -18,13 +26,15 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
     const dateRange = this.getDateRange(filters?.period);
 
     // Ejecutar todas las queries en paralelo para mejor performance
-    const [financials, appointments, sales, commissions, patients] = await Promise.all([
-      this.getFinancials(dateRange),
-      this.getAppointments(dateRange),
-      this.getSales(dateRange),
-      this.getCommissions(dateRange),
-      this.getPatients(dateRange, filters?.period),
-    ]);
+    const [financials, appointments, sales, commissions, patients, activity] =
+      await Promise.all([
+        this.getFinancials(dateRange),
+        this.getAppointments(dateRange),
+        this.getSales(dateRange),
+        this.getCommissions(dateRange),
+        this.getPatients(dateRange, filters?.period),
+        this.activityMetrics.getActivity(filters?.period),
+      ]);
 
     return {
       financials,
@@ -32,6 +42,7 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
       sales,
       commissions,
       patients,
+      activity,
     };
   }
 
