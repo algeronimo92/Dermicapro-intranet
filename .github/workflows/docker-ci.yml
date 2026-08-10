@@ -365,6 +365,18 @@ jobs:
 
             git checkout main 2>/dev/null || git checkout -b main
 
+            # Los workflows de distintos commits terminan el CI en un orden no
+            # determinista. `concurrency` evita dos deploys simultáneos, pero no
+            # impide que el job de un commit antiguo quede en cola y se ejecute
+            # después de uno nuevo. Como esta rama queda apuntando al último
+            # commit cuyo deploy se intentó, no permitimos moverla hacia atrás.
+            CURRENT_SHA="$(git rev-parse HEAD)"
+            if [ "$CURRENT_SHA" != "$DEPLOY_SHA" ] && \
+               git merge-base --is-ancestor "$DEPLOY_SHA" "$CURRENT_SHA"; then
+              echo "::notice::Deploy obsoleto omitido: $DEPLOY_SHA es anterior a $CURRENT_SHA"
+              exit 0
+            fi
+
             # 2. Commits locales que no están en GitHub -> rama de respaldo.
             #    Sin esto, el reset del paso 3 los borraría sin dejar rastro.
             if [ -n "$(git rev-list origin/main..HEAD)" ]; then
