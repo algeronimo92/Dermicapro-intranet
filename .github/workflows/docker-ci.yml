@@ -304,3 +304,97 @@ jobs:
           name: cypress-screenshots
           path: frontend/cypress/screenshots
           retention-days: 7
+
+  # ================================
+  # Deploy a producción
+  # ================================
+  # Vive dentro de este workflow, y no en uno propio encadenado con
+  # `workflow_run`, para que `needs` garantice que el CI pasó. Con workflow_run
+  # el job correría en el contexto de la rama por defecto: `github.sha` no sería
+  # el commit validado y habría que rescatarlo de `workflow_run.head_sha`.
+  #
+  # security-scan queda fuera de `needs` a propósito: Trivy sube los resultados
+  # a GitHub Security pero no falla por vulnerabilidades (no lleva exit-code),
+  # así que como puerta no aporta nada y sólo añadiría un punto de fallo.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend, e2e-tests-cypress]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Dos deploys a la vez dejarían el blue-green en un estado indefinido.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      DEPLOY_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Deploy blue-green a producción
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 15m
+          envs: DEPLOY_SHA
+          script: |
+            set -e
+            cd /docker/dermicapro-intranet
+
+            # El clon del VPS es un espejo de origin/main, no un repo de
+            # trabajo: aquí nunca se desarrolla. Por eso NO se usa `git pull`,
+            # que intenta mezclar historias y aborta en cuanto el servidor se
+            # desvía (por un merge, un commit suelto o un fichero editado a
+            # mano). Se hace fetch + reset, que siempre converge.
+            #
+            # Nada se descarta en silencio: lo que haya en el servidor queda
+            # guardado y anotado en este log, que es la única señal de que
+            # alguien tocó producción a mano.
+            git fetch origin main
+
+            # 1. Cambios sin commitear -> stash, con el diff en el log.
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "::warning::Cambios sin commitear en el VPS; se apartan con stash"
+              echo "----- ficheros modificados en el servidor -----"
+              git status --short
+              echo "----- diff completo -----"
+              git diff
+              echo "----------------------------------------------"
+              git stash push -m "auto-stash deploy $(date -Iseconds)"
+            fi
+
+            git checkout main 2>/dev/null || git checkout -b main
+
+            # 2. Commits locales que no están en GitHub -> rama de respaldo.
+            #    Sin esto, el reset del paso 3 los borraría sin dejar rastro.
+            if [ -n "$(git rev-list origin/main..HEAD)" ]; then
+              BACKUP="vps-local-$(date +%Y%m%d-%H%M%S)"
+              echo "::warning::Commits locales en el VPS; se guardan en la rama $BACKUP"
+              git log --oneline origin/main..HEAD
+              git branch "$BACKUP"
+            fi
+
+            # 3. Alinear con el commit exacto que validó el CI, no con la punta
+            #    de main: si mientras corría el CI entró otro push, su código
+            #    todavía no está verificado y no debe llegar a producción.
+            #    Ese push lanzará su propio CI y su propio deploy.
+            git reset --hard "$DEPLOY_SHA"
+
+            bash scripts/deploy-prod.sh
+
+      # Step aparte, y no un paso más dentro de deploy-prod.sh, porque
+      # `make obs-up` aborta si faltan METRICS_TOKEN o DB_EXPORTER_PASSWORD en
+      # el .env del VPS: dentro del script (con `set -e`) un problema de
+      # monitoreo tumbaría el deploy de la aplicación. Separado, cada mitad se
+      # ve en verde o rojo por su cuenta.
+      - name: Desplegar stack de observabilidad
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 10m
+          script: |
+            set -e
+            bash /docker/dermicapro-intranet/scripts/deploy-obs.sh
