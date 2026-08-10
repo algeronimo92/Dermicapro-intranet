@@ -299,11 +299,14 @@ Hay dos reglas de inhibición para no recibir cascadas: si PostgreSQL cae no se
 notifica además que el backend falla, y una alerta `critical` silencia la
 `warning` equivalente.
 
-Tras editar `alerts.yml`:
+Tras editar `alerts.yml` en local:
 
 ```bash
 make obs-check && make obs-reload
 ```
+
+En producción no hace falta: un push a `main` lo aplica solo (ver
+[Despliegue automático](#despliegue-automático)).
 
 ## Dónde encaja n8n
 
@@ -363,6 +366,28 @@ make obs-targets   # ver qué está scrapeando Prometheus y si algo falla
 make obs-alerts    # alertas activas ahora mismo
 make obs-clean     # borrar TODO incluido el histórico
 ```
+
+### Despliegue automático
+
+En producción no se corre nada de lo anterior a mano. El job `deploy` de
+`.github/workflows/docker-ci.yml`, tras desplegar la aplicación, ejecuta
+`scripts/deploy-obs.sh` en el VPS: valida las configs, aplica los cambios de
+imagen y de compose, recarga Prometheus y reinicia Alertmanager y Alloy.
+
+Antes esto no ocurría y el despliegue quedaba a medias de una forma difícil de
+notar. Las configs son bind mounts desde el repo, así que el `git reset --hard`
+del deploy sí cambiaba los archivos en disco, pero cada uno se comportaba
+distinto: los dashboards de Grafana se aplicaban solos (los relee cada 30 s),
+`prometheus.yml` y compañía cambiaban en disco sin que nadie los releyera, y
+las versiones de imagen no se aplicaban en absoluto. Lo peor no era el cambio
+que no llegaba, sino la config inválida: la stack seguía funcionando con la
+versión vieja en memoria y reventaba semanas después, en cuanto algo reiniciaba
+ese contenedor, ya sin relación visible con el commit culpable.
+
+El paso de observabilidad va en un step separado del deploy de la aplicación
+porque `make obs-up` aborta si faltan `METRICS_TOKEN` o `DB_EXPORTER_PASSWORD`
+en el `.env` del VPS, y un problema de monitoreo no debe tumbar el despliegue
+de la aplicación.
 
 ### Consultas útiles en Grafana
 
