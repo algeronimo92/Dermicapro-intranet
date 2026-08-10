@@ -54,6 +54,21 @@
   line-height: 1;
 }
 
+/* Cabecera título + subtítulo (usado en ActivityChart) */
+.revenue-chart__heading {
+  margin-bottom: var(--spacing-lg);
+}
+
+.revenue-chart__title--tight {
+  margin-bottom: 0;
+}
+
+.revenue-chart__subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin: 4px 0 0 0;
+}
+
 .revenue-chart__empty {
   display: flex;
   align-items: center;

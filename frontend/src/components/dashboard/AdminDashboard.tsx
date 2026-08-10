@@ -3,12 +3,14 @@ import {
   TrendingUp, Clock, CheckCircle, BarChart2,
   Calendar, CalendarDays, CalendarRange,
   ShoppingBag, Banknote, CreditCard, Users,
+  Activity, Gauge,
 } from 'lucide-react';
 import { AdminDashboardData } from '../../types/dashboard.types';
 import { StatCard } from './widgets/StatCard';
 import { RevenueChart } from './widgets/RevenueChart';
 import { PieChartWidget } from './widgets/PieChartWidget';
 import { NewPatientsChart } from './widgets/NewPatientsChart';
+import { ActivityChart } from './widgets/ActivityChart';
 
 const STATUS_LABELS: Record<string, string> = {
   reserved:    'Reservada',
@@ -30,6 +32,45 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   transfer: 'Transferencia',
   yape:     'Yape',
   plin:     'Plin',
+};
+
+const MONTH_NAMES = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+];
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+/** Parsea YYYY-MM-DD al mediodía local: evita que la zona horaria corra el día */
+const parseDateKey = (key: string) => new Date(`${key}T12:00:00`);
+
+const formatDayTick = (key: string) => {
+  const date = parseDateKey(key);
+  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
+};
+
+const formatDayLabel = (key: string) => {
+  const date = parseDateKey(key);
+  return `${DAY_NAMES[date.getDay()]} ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
+};
+
+const formatWeekTick = (key: string) => formatDayTick(key);
+
+const formatWeekLabel = (key: string) => {
+  const start = parseDateKey(key);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return `Semana ${start.getDate()} ${MONTH_NAMES[start.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]}`;
+};
+
+/** Eje Y de soles: abrevia los miles para que las marcas no se solapen */
+const formatSolesTick = (value: number) =>
+  Math.abs(value) >= 1000 ? `S/${Math.round(value / 1000)}k` : `S/${value}`;
+
+const ACTIVITY_COLORS = {
+  sold:      '#0F766E',
+  collected: '#10b981',
+  scheduled: '#3b82f6',
+  attended:  '#8b5cf6',
 };
 
 interface AdminDashboardProps {
@@ -73,6 +114,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
     }).format(value);
 
   const revenueTrend = computeRevenueTrend(data.financials.monthlyRevenue);
+
+  // Puede faltar si el backend aún no expone la sección de ritmo
+  const activity = data.activity;
 
   // Pie: citas por estado (orden fijo)
   const appointmentStatusPieData = STATUS_ORDER
@@ -157,6 +201,121 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           )}
         </div>
       </section>
+
+      {/* ── Ritmo diario y semanal ── */}
+      {activity && (
+        <section className="dashboard__section">
+          <h2 className="dashboard__section-title">Ritmo Diario y Semanal</h2>
+
+          <div className="stats-grid stats-grid--4">
+            <StatCard
+              title="Ventas de Hoy"
+              value={formatCurrency(activity.summary.todaySold)}
+              subtitle={`Cobrado hoy: ${formatCurrency(activity.summary.todayCollected)}`}
+              icon={<Activity size={20} />}
+              color="success"
+              variant="solid"
+            />
+            <StatCard
+              title="Ventas de la Semana"
+              value={formatCurrency(activity.summary.weekSold)}
+              subtitle={`Cobrado: ${formatCurrency(activity.summary.weekCollected)}`}
+              icon={<CalendarRange size={20} />}
+              color="primary"
+              variant="soft"
+            />
+            <StatCard
+              title="Promedio Diario"
+              value={formatCurrency(activity.summary.avgDailySold)}
+              subtitle={`Últimos ${activity.summary.periodDays} días`}
+              icon={<BarChart2 size={20} />}
+              color="info"
+              variant="soft"
+            />
+            <StatCard
+              title="Tasa de Asistencia"
+              value={`${activity.summary.attendanceRate}%`}
+              subtitle={`${activity.summary.avgDailyAttended} citas atendidas/día`}
+              icon={<Gauge size={20} />}
+              color="warning"
+              variant="soft"
+            />
+          </div>
+
+          <div className="dashboard__card dashboard__card--no-margin">
+            <ActivityChart
+              data={activity.daily}
+              xKey="date"
+              title="Ventas por Día"
+              subtitle={`Servicios vendidos vs. dinero cobrado — últimos ${activity.summary.dailyRangeDays} días`}
+              series={[
+                { key: 'sold',      name: 'Vendido', color: ACTIVITY_COLORS.sold },
+                { key: 'collected', name: 'Cobrado', color: ACTIVITY_COLORS.collected },
+              ]}
+              xTickFormatter={formatDayTick}
+              xLabelFormatter={formatDayLabel}
+              formatLeft={formatCurrency}
+              tickFormatLeft={formatSolesTick}
+              height={260}
+            />
+          </div>
+
+          <div className="dashboard__card">
+            <ActivityChart
+              data={activity.weekly}
+              xKey="weekStart"
+              title="Ventas por Semana"
+              subtitle="Semanas de lunes a domingo"
+              series={[
+                { key: 'sold',      name: 'Vendido', color: ACTIVITY_COLORS.sold },
+                { key: 'collected', name: 'Cobrado', color: ACTIVITY_COLORS.collected },
+              ]}
+              xTickFormatter={formatWeekTick}
+              xLabelFormatter={formatWeekLabel}
+              formatLeft={formatCurrency}
+              tickFormatLeft={formatSolesTick}
+              height={240}
+            />
+          </div>
+
+          <div className="dashboard__card">
+            <ActivityChart
+              data={activity.daily}
+              xKey="date"
+              title="Citas por Día: Agendadas vs. Atendidas"
+              subtitle={`Hoy: ${activity.summary.todayScheduled} agendadas, ${activity.summary.todayAttended} atendidas — no incluye canceladas`}
+              series={[
+                { key: 'scheduled', name: 'Agendadas', color: ACTIVITY_COLORS.scheduled },
+                { key: 'attended',  name: 'Atendidas', color: ACTIVITY_COLORS.attended },
+              ]}
+              xTickFormatter={formatDayTick}
+              xLabelFormatter={formatDayLabel}
+              height={240}
+            />
+          </div>
+
+          <div className="dashboard__card">
+            <ActivityChart
+              data={activity.byWeekday}
+              xKey="label"
+              title="Patrón por Día de la Semana"
+              subtitle={
+                activity.summary.bestWeekday
+                  ? `Promedio por día en los últimos ${activity.summary.periodDays} días — mejor día de venta: ${activity.summary.bestWeekday}`
+                  : `Promedio por día en los últimos ${activity.summary.periodDays} días`
+              }
+              series={[
+                { key: 'avgScheduled', name: 'Citas agendadas (prom.)', color: ACTIVITY_COLORS.scheduled },
+                { key: 'avgAttended',  name: 'Citas atendidas (prom.)', color: ACTIVITY_COLORS.attended },
+                { key: 'avgSold',      name: 'Venta (prom.)', color: ACTIVITY_COLORS.sold, type: 'line', axis: 'right' },
+              ]}
+              formatRight={formatCurrency}
+              tickFormatRight={formatSolesTick}
+              height={260}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── Citas ── */}
       <section className="dashboard__section">
