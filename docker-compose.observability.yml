@@ -164,6 +164,14 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SECURITY_COOKIE_SECURE: "true"
       GF_SECURITY_COOKIE_SAMESITE: "strict"
+      # Datasource Leads: Postgres de otro VPS, se alcanza por internet.
+      # Si se dejan vacías, Grafana arranca igual y sólo ese datasource falla.
+      LEADS_DB_HOST: ${LEADS_DB_HOST:-}
+      LEADS_DB_PORT: ${LEADS_DB_PORT:-5432}
+      LEADS_DB_NAME: ${LEADS_DB_NAME:-}
+      LEADS_DB_USER: ${LEADS_DB_USER:-}
+      LEADS_DB_PASSWORD: ${LEADS_DB_PASSWORD:-}
+      LEADS_DB_SSLMODE: ${LEADS_DB_SSLMODE:-require}
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro

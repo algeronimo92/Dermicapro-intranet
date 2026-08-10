@@ -1,0 +1,2057 @@
+{
+  "uid": "dermicapro-leads",
+  "title": "DermicaPro - Leads y agenda",
+  "description": "Agenda comercial leída directamente de la tabla leads_grafana (Postgres del otro VPS). No hay columna de estado, así que no hay métricas de asistencia ni de no-show.",
+  "tags": [
+    "dermicapro",
+    "leads",
+    "comercial"
+  ],
+  "timezone": "America/Lima",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "5m",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "vendedor",
+        "label": "Vendedor",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "leads"
+        },
+        "query": "SELECT DISTINCT vendedor FROM leads_grafana ORDER BY 1",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1
+      },
+      {
+        "name": "tratamiento",
+        "label": "Tratamiento",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "leads"
+        },
+        "query": "SELECT DISTINCT tratamiento FROM leads_grafana ORDER BY 1",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Resumen",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Citas en el rango",
+      "description": "Filas de leads_grafana dentro del rango de tiempo y de los filtros de arriba.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Pacientes únicos",
+      "description": "DNIs distintos. La diferencia con el total son personas que agendaron más de una vez.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT dni) AS \"Pacientes\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "% que repite",
+      "description": "Porcentaje de DNIs con más de una cita dentro del rango. Mide fidelización, no captación.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "WITH por_dni AS (\n  SELECT dni, count(*) AS citas\n  FROM leads_grafana\n  WHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  GROUP BY dni\n)\nSELECT round(100.0 * count(*) FILTER (WHERE citas > 1) / NULLIF(count(*), 0), 1) AS \"Repiten\"\nFROM por_dni"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Citas por día con actividad",
+      "description": "Total dividido entre los días que tuvieron al menos una cita. No cuenta los días cerrados.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT round(count(*)::numeric / NULLIF(count(DISTINCT fecha), 0), 1) AS \"Citas/día\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Vendedores activos",
+      "description": "Vendedores con al menos una cita en el rango.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT vendedor) AS \"Vendedores\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Tratamientos distintos",
+      "description": "Contados tras normalizar mayúsculas y espacios, para que 'HIFU' y 'hifu ' no cuenten dos veces.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(DISTINCT lower(trim(tratamiento))) AS \"Tratamientos\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Agenda próxima (no depende del rango de tiempo)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Hoy",
+      "description": "Citas de hoy. Ignora el selector de tiempo a propósito: es un dato operativo, no histórico.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Hoy\"\nFROM leads_grafana\nWHERE vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  AND fecha = (now() AT TIME ZONE 'America/Lima')::date"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Mañana",
+      "description": "Citas de mañana. Sirve para saber con un día de antelación si hay que reforzar personal.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Mañana\"\nFROM leads_grafana\nWHERE vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  AND fecha = (now() AT TIME ZONE 'America/Lima')::date + 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Próximos 7 días",
+      "description": "Agenda comprometida de la semana que viene, sin contar hoy.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"7 días\"\nFROM leads_grafana\nWHERE vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  AND fecha > (now() AT TIME ZONE 'America/Lima')::date\n  AND fecha <= (now() AT TIME ZONE 'America/Lima')::date + 7"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 12,
+      "type": "row",
+      "title": "Ritmo",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Citas por día",
+      "description": "Una barra por día. Los huecos son días sin ninguna cita, no fallos de datos.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (fecha::timestamp AT TIME ZONE 'America/Lima') AS \"time\",\n  count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "barchart",
+      "title": "Citas por semana",
+      "description": "Agrupado por semana ISO (lunes a domingo). La etiqueta es el lunes de esa semana.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  to_char(date_trunc('week', fecha), 'DD/MM') AS \"Semana\",\n  count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY date_trunc('week', fecha)\nORDER BY date_trunc('week', fecha)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "axisLabel": ""
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "xTickLabelSpacing": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Cuándo se agenda",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "barchart",
+      "title": "Citas por día de la semana",
+      "description": "Suma de todo el rango. Si el lunes está vacío y el sábado saturado, el horario de atención no está donde está la demanda.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 22
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (ARRAY['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'])[extract(isodow FROM fecha)::int] AS \"Día\",\n  count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY extract(isodow FROM fecha)\nORDER BY extract(isodow FROM fecha)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "axisLabel": ""
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "barchart",
+      "title": "Citas por hora del día",
+      "description": "Distribución por hora de inicio. Marca las franjas donde hace falta más personal.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 8,
+        "y": 22
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  lpad(extract(hour FROM hora)::text, 2, '0') || ':00' AS \"Hora\",\n  count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY extract(hour FROM hora)\nORDER BY extract(hour FROM hora)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "axisLabel": ""
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": -45,
+        "xTickLabelSpacing": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "piechart",
+      "title": "Franja horaria",
+      "description": "Mañana, tarde y noche sobre el total del rango.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 22
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN extract(hour FROM hora) < 12 THEN 'Mañana'\n    WHEN extract(hour FROM hora) < 18 THEN 'Tarde'\n    ELSE 'Noche'\n  END AS \"Franja\",\n  count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Mapa de calor: hora x día de la semana",
+      "description": "El panel más accionable del dashboard: cruza hora de inicio con día de la semana. Las celdas rojas son las franjas que se saturan; las blancas, horas de apertura que nadie usa.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  lpad(extract(hour FROM hora)::text, 2, '0') || ':00' AS \"Hora\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 1) AS \"Lunes\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 2) AS \"Martes\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 3) AS \"Miércoles\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 4) AS \"Jueves\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 5) AS \"Viernes\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 6) AS \"Sábado\",\n  count(*) FILTER (WHERE extract(isodow FROM fecha) = 7) AS \"Domingo\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY extract(hour FROM hora)\nORDER BY extract(hour FROM hora)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "gradient"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "color": {
+            "mode": "continuous-BlYlRd"
+          },
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hora"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Vendedores",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "barchart",
+      "title": "Citas por vendedor",
+      "description": "Ranking dentro del rango y los filtros activos.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 43
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT vendedor AS \"Vendedor\", count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "axisLabel": ""
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "piechart",
+      "title": "Reparto entre vendedores",
+      "description": "Cuánto del total agenda cada uno. Si uno solo se lleva más de la mitad, el negocio depende de esa persona.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 43
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT vendedor AS \"Vendedor\", count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Tendencia por vendedor",
+      "description": "Una línea por vendedor, por día. Detecta al que dejó de agendar antes de que se note en el total.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 43
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (fecha::timestamp AT TIME ZONE 'America/Lima') AS \"time\",\n  vendedor AS metric,\n  count(*) AS citas\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "table",
+      "title": "Qué vende cada vendedor",
+      "description": "Mix de tratamientos por vendedor. La última columna es el peso dentro de las citas de esa persona, no del total.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  vendedor AS \"Vendedor\",\n  tratamiento AS \"Tratamiento\",\n  count(*) AS \"Citas\",\n  round(100.0 * count(*) / sum(count(*)) OVER (PARTITION BY vendedor), 1) AS \"% del vendedor\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1, 2\nORDER BY \"Vendedor\", \"Citas\" DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% del vendedor"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "row",
+      "title": "Tratamientos",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "panels": []
+    },
+    {
+      "id": 26,
+      "type": "barchart",
+      "title": "Tratamientos más agendados",
+      "description": "Top 15, normalizando espacios y mayúsculas para no partir el mismo tratamiento en varias barras.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT initcap(trim(tratamiento)) AS \"Tratamiento\", count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nORDER BY 2 DESC\nLIMIT 15"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "axisLabel": ""
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.8,
+        "fullHighlight": false,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Evolución de los 8 principales",
+      "description": "Sólo los ocho tratamientos con más citas del rango; el resto ensucia el gráfico sin aportar.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (fecha::timestamp AT TIME ZONE 'America/Lima') AS \"time\",\n  initcap(trim(tratamiento)) AS metric,\n  count(*) AS citas\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  AND initcap(trim(tratamiento)) IN (\n    SELECT initcap(trim(tratamiento))\n    FROM leads_grafana\n    WHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n    GROUP BY 1\n    ORDER BY count(*) DESC\n    LIMIT 8\n  )\nGROUP BY 1, 2\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "type": "row",
+      "title": "Pacientes",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 71
+      },
+      "panels": []
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Nuevos vs recurrentes",
+      "description": "Nuevo = es la primera vez que ese DNI aparece en toda la tabla, no sólo en el rango. Si la franja de nuevos se encoge, la captación está cayendo aunque el total aguante.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 72
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "WITH primera AS (\n  SELECT dni, min(fecha + hora) AS primera_cita\n  FROM leads_grafana\n  GROUP BY dni\n)\nSELECT\n  (l.fecha::timestamp AT TIME ZONE 'America/Lima') AS \"time\",\n  count(*) FILTER (WHERE (l.fecha + l.hora) = p.primera_cita) AS \"Nuevos\",\n  count(*) FILTER (WHERE (l.fecha + l.hora) > p.primera_cita) AS \"Recurrentes\"\nFROM leads_grafana l\nJOIN primera p ON p.dni = l.dni\nWHERE $__timeFilter((l.fecha + l.hora) AT TIME ZONE 'America/Lima')\n  AND l.vendedor IN (${vendedor:sqlstring})\n  AND l.tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 70,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "type": "table",
+      "title": "Pacientes que más repiten",
+      "description": "Sólo DNIs con más de una cita en el rango. Contiene datos personales: este dashboard no debe compartirse fuera de Grafana.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 12,
+        "y": 72
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  nombre AS \"Paciente\",\n  dni AS \"DNI\",\n  count(*) AS \"Citas\",\n  to_char(max(fecha), 'DD/MM/YYYY') AS \"Última cita\",\n  string_agg(DISTINCT vendedor, ', ') AS \"Vendedores\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY nombre, dni\nHAVING count(*) > 1\nORDER BY 3 DESC\nLIMIT 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 31,
+      "type": "stat",
+      "title": "Días entre citas",
+      "description": "Media de días entre dos citas consecutivas del mismo DNI. Es el intervalo real de recompra, útil para decidir cuándo llamar.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 4,
+        "x": 20,
+        "y": 72
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "WITH ordenadas AS (\n  SELECT dni, fecha,\n         lag(fecha) OVER (PARTITION BY dni ORDER BY fecha, hora) AS anterior\n  FROM leads_grafana\n  WHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n)\nSELECT round(avg(fecha - anterior), 1) AS \"Días\"\nFROM ordenadas\nWHERE anterior IS NOT NULL"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 32,
+      "type": "row",
+      "title": "Calidad de los datos",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 81
+      },
+      "panels": []
+    },
+    {
+      "id": 33,
+      "type": "stat",
+      "title": "DNI con formato inválido",
+      "description": "No son 8 dígitos. Rompe el cruce con el ERP y el conteo de pacientes únicos.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 82
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"DNI inválidos\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  AND trim(dni) !~ '^[0-9]{8}$'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 34,
+      "type": "stat",
+      "title": "Teléfonos inválidos",
+      "description": "No son un móvil peruano de 9 dígitos empezando por 9, ni con prefijo 51. Son leads a los que no se puede llamar.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 82
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"Teléfonos inválidos\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  AND regexp_replace(regexp_replace(telefono, '[^0-9]', '', 'g'), '^51', '') !~ '^9[0-9]{8}$'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 35,
+      "type": "stat",
+      "title": "Filas duplicadas",
+      "description": "Mismo DNI, misma fecha y misma hora más de una vez. Inflan todas las métricas de este dashboard.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 82
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "WITH dup AS (\n  SELECT dni, fecha, hora, count(*) AS n\n  FROM leads_grafana\n  WHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  GROUP BY dni, fecha, hora\n  HAVING count(*) > 1\n)\nSELECT coalesce(sum(n - 1), 0) AS \"Duplicadas\"\nFROM dup"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 36,
+      "type": "stat",
+      "title": "Choques de agenda",
+      "description": "Un mismo vendedor con dos citas a la misma fecha y hora. O es un error de captura, o alguien va a quedarse esperando.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 82
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "WITH choques AS (\n  SELECT vendedor, fecha, hora\n  FROM leads_grafana\n  WHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\n  GROUP BY vendedor, fecha, hora\n  HAVING count(*) > 1\n)\nSELECT count(*) AS \"Choques\"\nFROM choques"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "orientation": "auto",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 37,
+      "type": "table",
+      "title": "Tratamientos escritos de varias formas",
+      "description": "El mismo tratamiento con distinta escritura. Cada variante se cuenta aparte en cualquier informe que no normalice, así que aquí es donde se ve por qué los números no cuadran.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "leads"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 87
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  lower(trim(tratamiento)) AS \"Tratamiento normalizado\",\n  count(DISTINCT tratamiento) AS \"Variantes\",\n  string_agg(DISTINCT tratamiento, '  |  ') AS \"Cómo se escribió\",\n  count(*) AS \"Citas\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nGROUP BY 1\nHAVING count(DISTINCT tratamiento) > 1\nORDER BY 2 DESC, 4 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "inspect": false
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 39,
+      "type": "row",
+      "title": "Detalle",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 95
+      },
+      "panels": [
+        {
+          "id": 38,
+          "type": "table",
+          "title": "Citas del rango",
+          "description": "Las 500 más recientes del rango, con los filtros aplicados. Contiene nombre, DNI y teléfono: datos de paciente.",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "leads"
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 96
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "leads"
+              },
+              "format": "table",
+              "editorMode": "code",
+              "rawQuery": true,
+              "rawSql": "SELECT\n  to_char(fecha, 'DD/MM/YYYY') AS \"Fecha\",\n  to_char(hora, 'HH24:MI') AS \"Hora\",\n  nombre AS \"Paciente\",\n  dni AS \"DNI\",\n  telefono AS \"Teléfono\",\n  tratamiento AS \"Tratamiento\",\n  vendedor AS \"Vendedor\"\nFROM leads_grafana\nWHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')\n  AND vendedor IN (${vendedor:sqlstring})\n  AND tratamiento IN (${tratamiento:sqlstring})\nORDER BY fecha DESC, hora DESC\nLIMIT 500"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "color": {
+                "mode": "thresholds"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false,
+              "reducer": [
+                "sum"
+              ],
+              "countRows": false,
+              "fields": ""
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -86,6 +86,15 @@ N8N_ALERT_WEBHOOK=https://n8n.dermicapro.online/webhook/erp/health
 # Rol de solo lectura para postgres-exporter (ver más abajo)
 DB_EXPORTER_USER=dermicapro_monitor
 DB_EXPORTER_PASSWORD=<contraseña fuerte>
+
+# Datasource "Leads": tabla leads_grafana, en la Postgres del OTRO VPS.
+# Se alcanza por internet, no por la red de Docker.
+LEADS_DB_HOST=panel.dermicapro.online
+LEADS_DB_PORT=5432
+LEADS_DB_NAME=dermicapro_leads
+LEADS_DB_USER=<rol de solo lectura>
+LEADS_DB_PASSWORD=<contraseña>
+LEADS_DB_SSLMODE=require
 ```
 
 El backend ya recibe `METRICS_TOKEN` desde `.env` en los cuatro ficheros de
@@ -183,6 +192,71 @@ que caduque el certificado TLS.
 **DermicaPro - Negocio** — citas atascadas, comisiones sin aprobar y sesiones
 por encima del paquete, con su evolución en el tiempo. Si una línea sube y no
 vuelve a bajar, hay un proceso que nadie está cerrando.
+
+**DermicaPro - Leads y agenda** — el único dashboard que no lee de Prometheus:
+consulta por SQL la tabla `leads_grafana`. Ver la sección siguiente.
+
+## Leads: el datasource SQL
+
+`leads_grafana` vive en la Postgres del VPS del CRM
+(`panel.dermicapro.online/dermicapro_leads`) y no la escribe este backend, así
+que no hay dónde colgar un exporter de Prometheus: son filas de agenda ya
+escritas, no series temporales que alguien publique. Por eso este dashboard
+consulta la base directamente con SQL en vez de con PromQL, y es la única
+excepción a la regla del resto del stack.
+
+La tabla tiene ocho columnas: `id`, `nombre`, `dni`, `telefono`, `tratamiento`,
+`fecha`, `hora`, `vendedor`. **No hay columna de estado**, así que el dashboard
+no puede decir nada sobre asistencia: "agendadas vs atendidas", "% de asistencia"
+y "% de no-show" son imposibles hasta que la tabla guarde si la cita ocurrió.
+Todo lo demás sale de las ocho columnas.
+
+### Zona horaria
+
+`fecha` es DATE y `hora` es TIME, ambas en hora de Trujillo. Grafana envía los
+límites del rango en UTC, así que comparar contra `fecha + hora` a secas
+desplazaría todo cinco horas. Las consultas usan siempre el mismo par de
+patrones:
+
+```sql
+-- filtrar por el rango del dashboard
+WHERE $__timeFilter((fecha + hora) AT TIME ZONE 'America/Lima')
+
+-- devolver una columna de tiempo que caiga en el día correcto
+SELECT (fecha::timestamp AT TIME ZONE 'America/Lima') AS "time"
+```
+
+Sin el `AT TIME ZONE`, las citas de después de las 19:00 aparecen contadas en el
+día siguiente.
+
+### Rol de sólo lectura
+
+Quien entra a Grafana puede escribir SQL arbitrario contra este datasource desde
+**Explore**: no queda limitado a los paneles. Con el usuario dueño de la base eso
+es un `DROP TABLE` a un descuido de distancia. En la Postgres del CRM:
+
+```sql
+CREATE ROLE grafana_leads_ro LOGIN PASSWORD '<contraseña fuerte>';
+GRANT CONNECT ON DATABASE dermicapro_leads TO grafana_leads_ro;
+GRANT USAGE ON SCHEMA public TO grafana_leads_ro;
+GRANT SELECT ON public.leads_grafana TO grafana_leads_ro;
+```
+
+Sólo esa tabla, y sólo `SELECT`.
+
+### TLS
+
+La conexión sale del VPS del ERP y cruza internet hasta el del CRM. Con
+`sslmode=disable` viajan en claro la contraseña y los datos de los pacientes
+(nombre, DNI y teléfono). Debe ser `require` como mínimo; si el servidor remoto
+no tiene TLS configurado, la alternativa es no exponer el 5432 y llegar por
+túnel o por red privada.
+
+### Datos personales
+
+Este dashboard muestra nombre, DNI y teléfono. Es el único del stack que lo
+hace. Grafana no tiene acceso anónimo ni enlaces públicos habilitados
+(`GF_AUTH_ANONYMOUS_ENABLED=false`), y así debe quedarse.
 
 ## Métricas de negocio
 
@@ -487,3 +561,11 @@ alertas `DiscoCasiLleno`, `MemoriaDelHostAlta`, `CPUDelHostAlta`,
 actualizar, cambiar el tag en `docker-compose.observability.yml`, correr
 `make obs-check` y `make obs-up`. Los dashboards usan `schemaVersion: 39`,
 compatible con Grafana 11.x.
+
+**El datasource Leads conecta con el dueño de la base y sin TLS.** Las dos cosas
+están explicadas arriba y las dos se arreglan en la Postgres del CRM, no aquí:
+crear `grafana_leads_ro` y pasar `LEADS_DB_SSLMODE` a `require`.
+
+**Al dashboard de leads le falta el estado de la cita.** En cuanto
+`leads_grafana` tenga una columna que diga si la cita se atendió, entran los
+paneles de asistencia y de no-show, que hoy no existen porque el dato no está.

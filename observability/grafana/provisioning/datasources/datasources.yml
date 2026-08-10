@@ -36,6 +36,30 @@ datasources:
           urlDisplayLabel: 'Ver la petición completa'
     editable: false
 
+  # Tabla leads_grafana, que vive en la Postgres de otro VPS. Es la única fuente
+  # de este stack que se consulta con SQL en vez de con PromQL: no son series
+  # temporales que alguien exporte, son filas de agenda que ya están escritas.
+  # El usuario debe ser de sólo lectura y con SELECT únicamente sobre esa tabla:
+  # cualquier persona con acceso a Grafana puede escribir SQL arbitrario contra
+  # este datasource desde Explore.
+  - name: Leads
+    type: grafana-postgresql-datasource
+    uid: leads
+    url: ${LEADS_DB_HOST}:${LEADS_DB_PORT}
+    user: ${LEADS_DB_USER}
+    jsonData:
+      database: ${LEADS_DB_NAME}
+      # Va por internet entre dos VPS, así que TLS no es opcional.
+      sslmode: ${LEADS_DB_SSLMODE}
+      postgresVersion: 1400
+      timescaledb: false
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: ${LEADS_DB_PASSWORD}
+    editable: false
+
   - name: Alertmanager
     type: alertmanager
     uid: alertmanager
