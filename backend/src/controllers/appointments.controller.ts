@@ -1,10 +1,92 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
+import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { prepareDateRange } from '../utils/dateUtils';
 import { ROLES } from '../constants/roles';
 import { resolveEffectiveCommission, calculateCommissionAmount } from '../services/commission.service';
+
+/**
+ * Si una ServiceInstance se queda sin sesiones activas (en ninguna cita), intenta
+ * cancelar su PaymentOrder cuando esta no tiene pagos registrados (o recalcula su
+ * total si sigue cubriendo otras ServiceInstances). Si la orden de pago ya tiene
+ * pagos, no se toca — queda para revisión manual vía cancelPaymentOrder.
+ */
+async function releaseOrphanedServiceInstanceDebt(
+  tx: Prisma.TransactionClient,
+  serviceInstanceId: string,
+): Promise<void> {
+  const order = await tx.serviceInstance.findUnique({
+    where: { id: serviceInstanceId },
+    include: {
+      appointmentServices: { where: { deletedAt: null } },
+      paymentOrder: { include: { payments: true, orders: true } },
+    },
+  });
+
+  if (!order || order.appointmentServices.length > 0 || !order.paymentOrder) {
+    return;
+  }
+
+  if (order.paymentOrder.payments.length > 0) {
+    return;
+  }
+
+  await tx.serviceInstance.update({
+    where: { id: order.id },
+    data: { paymentOrderId: null },
+  });
+
+  const remainingOrders = order.paymentOrder.orders.filter((o) => o.id !== order.id);
+
+  if (remainingOrders.length === 0) {
+    await tx.paymentOrder.update({
+      where: { id: order.paymentOrder.id },
+      data: { status: 'cancelled' },
+    });
+  } else {
+    const totalAmount = remainingOrders.reduce((sum, o) => sum + Number(o.finalPrice), 0);
+    await tx.paymentOrder.update({
+      where: { id: order.paymentOrder.id },
+      data: { totalAmount },
+    });
+  }
+}
+
+/**
+ * Al cancelar una cita: da de baja (soft delete) sus sesiones activas y, para
+ * cada ServiceInstance que quede sin sesiones activas en ninguna cita, libera
+ * la deuda pendiente asociada (ver releaseOrphanedServiceInstanceDebt).
+ */
+async function cancelAppointmentSessions(
+  tx: Prisma.TransactionClient,
+  appointmentId: string,
+  userId: string,
+): Promise<void> {
+  const activeSessions = await tx.session.findMany({
+    where: { appointmentId, deletedAt: null },
+    select: { id: true, serviceInstanceId: true },
+  });
+
+  if (activeSessions.length === 0) {
+    return;
+  }
+
+  await tx.session.updateMany({
+    where: { id: { in: activeSessions.map((s) => s.id) } },
+    data: {
+      deletedAt: new Date(),
+      deletedById: userId,
+      deleteReason: 'Cita cancelada',
+    },
+  });
+
+  const affectedServiceInstanceIds = [...new Set(activeSessions.map((s) => s.serviceInstanceId))];
+  for (const serviceInstanceId of affectedServiceInstanceIds) {
+    await releaseOrphanedServiceInstanceDebt(tx, serviceInstanceId);
+  }
+}
 
 export const getAllAppointments = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -521,6 +603,13 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
       }
 
       // ============================================
+      // PASO 3.6: Si la cita se está cancelando, liberar sesiones y deuda pendiente
+      // ============================================
+      if (status === 'cancelled') {
+        await cancelAppointmentSessions(tx, id, req.user!.id);
+      }
+
+      // ============================================
       // PASO 4: Actualizar datos básicos del Appointment
       // ============================================
       const updatedAppointment = await tx.appointment.update({
@@ -588,9 +677,13 @@ export const deleteAppointment = async (req: Request, res: Response): Promise<vo
 
     // Soft delete: marca la cita como cancelada en lugar de eliminarla
     // Esto preserva el historial, comisiones y registros asociados
-    await prisma.appointment.update({
-      where: { id },
-      data: { status: 'cancelled' },
+    await prisma.$transaction(async (tx) => {
+      await tx.appointment.update({
+        where: { id },
+        data: { status: 'cancelled' },
+      });
+
+      await cancelAppointmentSessions(tx, id, req.user!.id);
     });
 
     res.json({ message: 'Cita cancelada correctamente' });
