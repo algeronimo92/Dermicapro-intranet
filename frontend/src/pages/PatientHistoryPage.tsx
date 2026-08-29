@@ -144,11 +144,11 @@ export const PatientHistoryPage: React.FC = () => {
     <div className="page-container">
 
       {/* ── Back + Header ── */}
-      <button className="pd-back" onClick={() => navigate(`/patients/${id}`)}>
+      <button className="pd-back" onClick={() => navigate(-1)}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Volver al Perfil
+        Volver
       </button>
 
       <h1 style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: '0 0 var(--spacing-xs)' }}>
@@ -311,7 +311,12 @@ export const PatientHistoryPage: React.FC = () => {
                    apt.status === 'no_show'     ? '!' : '?'}
                 </div>
 
-                <div className="timeline-content">
+                <div
+                  className="timeline-content"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/appointments/${apt.id}`)}
+                  title="Ver detalle de la cita"
+                >
                   {/* Header */}
                   <div className="timeline-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
@@ -399,7 +404,7 @@ export const PatientHistoryPage: React.FC = () => {
                                   <img key={i} src={`${photoBase}${url}`} alt={`Antes ${i + 1}`}
                                     className="timeline-photo"
                                     style={{ cursor: 'zoom-in' }}
-                                    onClick={() => openViewer((record.beforePhotoUrls ?? []).map((u: string) => `${photoBase}${u}`), i)} />
+                                    onClick={(e) => { e.stopPropagation(); openViewer((record.beforePhotoUrls ?? []).map((u: string) => `${photoBase}${u}`), i); }} />
                                 ))}
                               </div>
                             </div>
@@ -420,7 +425,7 @@ export const PatientHistoryPage: React.FC = () => {
                                   <img key={i} src={`${photoBase}${url}`} alt={`Después ${i + 1}`}
                                     className="timeline-photo"
                                     style={{ cursor: 'zoom-in' }}
-                                    onClick={() => openViewer((record.afterPhotoUrls ?? []).map((u: string) => `${photoBase}${u}`), i)} />
+                                    onClick={(e) => { e.stopPropagation(); openViewer((record.afterPhotoUrls ?? []).map((u: string) => `${photoBase}${u}`), i); }} />
                                 ))}
                               </div>
                             </div>
