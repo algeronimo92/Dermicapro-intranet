@@ -208,7 +208,7 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
         select: { accountBalance: true },
       }),
       prisma.serviceInstance.findMany({
-        where: { patientId, paymentOrderId: null },
+        where: { patientId, paymentOrderId: null, concludedAt: null },
         include: { service: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'desc' },
       }),
