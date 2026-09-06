@@ -99,6 +99,7 @@ model User {
   commissionsApproved        Commission[]         @relation("CommissionApprovals")
   commissionsPaid            Commission[]         @relation("CommissionPayments")
   paymentOrdersCreated       PaymentOrder[]       @relation("PaymentOrderCreatedBy")
+  paymentOrdersCancelled     PaymentOrder[]       @relation("PaymentOrderCancelledBy")
   paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
   paymentsVoided             Payment[]            @relation("PaymentVoidedBy")
   appointmentServicesDeleted Session[] @relation("AppointmentSessionDeletedBy")
@@ -394,24 +395,29 @@ model Session {
 }
 
 model PaymentOrder {
-  id          String        @id @default(uuid())
-  patientId   String        @map("patient_id")
-  totalAmount Decimal       @map("total_amount") @db.Decimal(10, 2)
-  status      PaymentOrderStatus @default(pending)
-  dueDate     DateTime?     @map("due_date")
-  createdById String        @map("created_by_id")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id            String        @id @default(uuid())
+  patientId     String        @map("patient_id")
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  status        PaymentOrderStatus @default(pending)
+  dueDate       DateTime?     @map("due_date")
+  createdById   String        @map("created_by_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  cancelledAt   DateTime?     @map("cancelled_at")
+  cancelledById String?       @map("cancelled_by_id")
+  cancelReason  String?       @map("cancel_reason")
 
   // Relations
-  orders    ServiceInstance[]
-  patient   Patient      @relation(fields: [patientId], references: [id])
-  createdBy User         @relation("PaymentOrderCreatedBy", fields: [createdById], references: [id])
-  payments  Payment[]
+  orders      ServiceInstance[]
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  createdBy   User         @relation("PaymentOrderCreatedBy", fields: [createdById], references: [id])
+  cancelledBy User?        @relation("PaymentOrderCancelledBy", fields: [cancelledById], references: [id])
+  payments    Payment[]
 
   @@index([patientId, status, createdAt(sort: Desc)], map: "ordenes_de_pago_patient_status_created_at_idx")
   @@index([createdById], map: "ordenes_de_pago_created_by_id_idx")
   @@index([status, createdAt(sort: Desc)], map: "ordenes_de_pago_status_created_at_idx")
+  @@index([cancelledById], map: "ordenes_de_pago_cancelled_by_id_idx")
   @@map("ordenes_de_pago")
 }
 

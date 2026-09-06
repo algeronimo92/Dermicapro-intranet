@@ -8,9 +8,10 @@ import {
   createPaymentOrder,
   getOrdersWithoutPaymentOrder,
   cancelPaymentOrder,
+  voidPaymentOrder,
   autoUpdatePaymentOrderStatus,
 } from '../controllers/paymentOrders.controller';
-import { authenticate } from '../middlewares/auth';
+import { authenticate, authorize } from '../middlewares/auth';
 
 const router = Router();
 
@@ -43,5 +44,8 @@ router.post('/:id/auto-update-status', autoUpdatePaymentOrderStatus);
 
 // POST /api/payment-orders/:id/cancel - Cancelar una orden de pago
 router.post('/:id/cancel', cancelPaymentOrder);
+
+// POST /api/payment-orders/:id/void - Anular una orden de pago con pagos asociados (solo admin)
+router.post('/:id/void', authorize('admin'), voidPaymentOrder);
 
 export default router;
