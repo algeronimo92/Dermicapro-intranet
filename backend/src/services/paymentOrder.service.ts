@@ -255,6 +255,7 @@ export class PaymentOrderService {
       where: {
         patientId,
         paymentOrderId: null,
+        concludedAt: null,
       },
       include: {
         service: true,

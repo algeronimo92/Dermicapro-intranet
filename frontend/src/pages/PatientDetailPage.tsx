@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
+import { paymentOrdersService } from '../services/paymentOrders.service';
 import { Patient, Sex, Role, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
@@ -42,6 +43,7 @@ export const PatientDetailPage: React.FC = () => {
   const [concludingOrderId, setConcludingOrderId]   = useState<string | null>(null);
   const [concludeReason, setConcludeReason]         = useState('');
   const [isConcluding, setIsConcluding]             = useState(false);
+  const [alsoVoidPaymentOrder, setAlsoVoidPaymentOrder] = useState(false);
 
   useEffect(() => { if (id) loadPatient(id); }, [id]);
 
@@ -64,11 +66,19 @@ export const PatientDetailPage: React.FC = () => {
 
   const handleConclude = async () => {
     if (!id || !concludingOrderId) return;
+    const order = (patient?.orders || []).find(o => o.id === concludingOrderId);
     try {
       setIsConcluding(true);
       await patientsService.concludeOrder(id, concludingOrderId, concludeReason.trim() || undefined);
+      if (alsoVoidPaymentOrder && order?.paymentOrder?.id) {
+        await paymentOrdersService.voidPaymentOrder(
+          order.paymentOrder.id,
+          concludeReason.trim() || 'Tratamiento cancelado'
+        );
+      }
       setConcludingOrderId(null);
       setConcludeReason('');
+      setAlsoVoidPaymentOrder(false);
       await loadPatient(id);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al concluir tratamiento');
@@ -117,7 +127,8 @@ export const PatientDetailPage: React.FC = () => {
     (o.appointmentServices || []).filter(as => as.appointment?.status === AppointmentStatus.attended).length;
 
   const activeOrders    = allOrders.filter(o => !o.concludedAt && countAttended(o) < o.totalSessions);
-  const completedOrders = allOrders.filter(o => o.concludedAt || countAttended(o) >= o.totalSessions);
+  const completedOrders = allOrders.filter(o => countAttended(o) >= o.totalSessions || (!!o.concludedAt && countAttended(o) > 0));
+  // Cancelados (concluidos sin ninguna sesión atendida) no se listan aquí — quedan visibles en el Historial Médico.
 
   // Todas las citas únicas con su estado
   const allApts = allOrders
@@ -555,13 +566,12 @@ export const PatientDetailPage: React.FC = () => {
                         <div style={{ width: `${pctReserved}%`, background: 'var(--color-primary)', opacity: 0.6, transition: 'width 0.4s', borderRadius: firstSeg === 'reserved' ? 'var(--radius-full) 0 0 var(--radius-full)' : '0' }} />
                       </div>
 
-                      {/* Botón concluir tratamiento — solo si hay al menos 1 sesión atendida */}
-                      {attended > 0 && (
+                      {/* Botón concluir/cancelar tratamiento */}
                       <div style={{ marginTop: 6, display: 'flex', justifyContent: 'flex-end' }}>
                         <button
                           type="button"
                           onClick={() => { setConcludingOrderId(order.id); setConcludeReason(''); }}
-                          title="Concluir este tratamiento anticipadamente"
+                          title={attended > 0 ? 'Concluir este tratamiento anticipadamente' : 'Cancelar este tratamiento'}
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             padding: '3px 10px', borderRadius: 'var(--radius-md)',
@@ -576,10 +586,9 @@ export const PatientDetailPage: React.FC = () => {
                           <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
                             <path d="M2 8h12M8 2v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" transform="rotate(45 8 8)"/>
                           </svg>
-                          Concluir tratamiento
+                          {attended > 0 ? 'Concluir tratamiento' : 'Cancelar tratamiento'}
                         </button>
                       </div>
-                      )}
 
                       {/* Puntos por sesión */}
                       <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
@@ -780,8 +789,14 @@ export const PatientDetailPage: React.FC = () => {
         if (!order) return null;
         const attended = countAttended(order);
         const remaining = order.totalSessions - attended;
+        const isCancellation = attended === 0;
+        const modalTitle = isCancellation ? 'Cancelar tratamiento' : 'Concluir tratamiento';
+        const activePaymentOrder = order.paymentOrder && order.paymentOrder.status !== 'cancelled'
+          ? order.paymentOrder
+          : null;
+        const closeModal = () => { setConcludingOrderId(null); setAlsoVoidPaymentOrder(false); };
         return (
-          <Modal isOpen={true} title="Concluir tratamiento" onClose={() => setConcludingOrderId(null)}>
+          <Modal isOpen={true} title={modalTitle} onClose={closeModal}>
             <div style={{ padding: '4px 0' }}>
 
               {/* ── Banner de advertencia ── */}
@@ -803,7 +818,10 @@ export const PatientDetailPage: React.FC = () => {
                     Esta acción no se puede deshacer fácilmente
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                    Las <strong>{remaining} sesión{remaining > 1 ? 'es' : ''} restante{remaining > 1 ? 's' : ''}</strong> del tratamiento quedarán bloqueadas y no podrán agendarse. Solo un administrador puede reabrir el tratamiento.
+                    {isCancellation
+                      ? 'Este tratamiento se marcará como cancelado: no podrá agendarse ni facturarse. Solo un administrador puede reabrirlo.'
+                      : <>Las <strong>{remaining} sesión{remaining > 1 ? 'es' : ''} restante{remaining > 1 ? 's' : ''}</strong> del tratamiento quedarán bloqueadas y no podrán agendarse. Solo un administrador puede reabrir el tratamiento.</>
+                    }
                   </div>
                 </div>
               </div>
@@ -837,12 +855,36 @@ export const PatientDetailPage: React.FC = () => {
                 />
               </div>
 
+              {canDelete && activePaymentOrder && (
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 8,
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  background: 'var(--color-error-alpha-10)',
+                  border: '1.5px solid var(--color-border-primary)',
+                  borderRadius: 'var(--radius-lg)',
+                  marginBottom: 'var(--spacing-lg)',
+                  cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={alsoVoidPaymentOrder}
+                    onChange={e => setAlsoVoidPaymentOrder(e.target.checked)}
+                    style={{ marginTop: 3 }}
+                  />
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                    También anular la orden de pago asociada
+                    (#{activePaymentOrder.id?.slice(0, 8).toUpperCase()}, S/. {Number(activePaymentOrder.totalAmount).toFixed(2)}, estado {activePaymentOrder.status}).
+                    Esto anulará sus pagos registrados y revertirá saldo a favor si corresponde.
+                  </span>
+                </label>
+              )}
+
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <Button variant="secondary" onClick={() => setConcludingOrderId(null)} disabled={isConcluding}>
+                <Button variant="secondary" onClick={closeModal} disabled={isConcluding}>
                   Cancelar
                 </Button>
                 <Button variant="danger" onClick={handleConclude} disabled={isConcluding}>
-                  {isConcluding ? 'Concluyendo...' : 'Concluir tratamiento'}
+                  {isConcluding ? 'Procesando...' : modalTitle}
                 </Button>
               </div>
             </div>
