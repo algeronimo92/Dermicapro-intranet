@@ -128,6 +128,14 @@ export const paymentOrdersService = {
   },
 
   /**
+   * Anula una orden de pago con pagos asociados (solo admin)
+   */
+  async voidPaymentOrder(id: string, reason: string): Promise<PaymentOrder> {
+    const response = await api.post<PaymentOrder>(`/payment-orders/${id}/void`, { reason });
+    return response.data;
+  },
+
+  /**
    * Actualiza el estado de una orden de pago basándose en los pagos
    */
   async autoUpdatePaymentOrderStatus(id: string): Promise<PaymentOrder> {

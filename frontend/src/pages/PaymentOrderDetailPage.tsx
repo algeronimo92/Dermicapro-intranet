@@ -10,6 +10,8 @@ import { Loading } from '../components/Loading';
 import { Button } from '../components/Button';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { CameraCapture } from '../components/CameraCapture';
+import { VoidPaymentOrderModal } from '../components/VoidPaymentOrderModal';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/patient-payment-orders.css';
 
 const getReceiptUrl = (url: string | null | undefined): string | null => {
@@ -40,11 +42,15 @@ const StatusBadge: React.FC<{ status: PaymentOrderStatus }> = ({ status }) => {
 export const PaymentOrderDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const roleName = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
+  const isAdmin = roleName === 'admin';
 
   const [paymentOrder, setPaymentOrder] = useState<PaymentOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showVoidModal, setShowVoidModal] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [cameraPaymentId, setCameraPaymentId] = useState<string | null>(null);
   const [lightboxUrls, setLightboxUrls] = useState<string[]>([]);
@@ -110,11 +116,23 @@ export const PaymentOrderDetailPage: React.FC = () => {
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
-          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
-            Orden de Pago #{paymentOrder.id.slice(0, 8).toUpperCase()}
-          </h1>
-          <StatusBadge status={paymentOrder.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
+              Orden de Pago #{paymentOrder.id.slice(0, 8).toUpperCase()}
+            </h1>
+            <StatusBadge status={paymentOrder.status} />
+          </div>
+          {isAdmin && paymentOrder.status !== 'cancelled' && (
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={() => setShowVoidModal(true)}
+              style={{ color: 'var(--color-error, #dc2626)', borderColor: 'var(--color-error, #dc2626)' }}
+            >
+              Anular Orden
+            </Button>
+          )}
         </div>
         {paymentOrder.patient && (
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
@@ -187,6 +205,23 @@ export const PaymentOrderDetailPage: React.FC = () => {
             <span className="pd-info-label">Estado</span>
             <span className="pd-info-value"><StatusBadge status={paymentOrder.status} /></span>
           </div>
+          {paymentOrder.status === 'cancelled' && paymentOrder.cancelledAt && (
+            <>
+              <div className="pd-info-row">
+                <span className="pd-info-label">Anulada</span>
+                <span className="pd-info-value">
+                  {formatDate(paymentOrder.cancelledAt)}
+                  {paymentOrder.cancelledBy && ` · ${paymentOrder.cancelledBy.firstName} ${paymentOrder.cancelledBy.lastName}`}
+                </span>
+              </div>
+              {paymentOrder.cancelReason && (
+                <div className="pd-info-row">
+                  <span className="pd-info-label">Motivo</span>
+                  <span className="pd-info-value">{paymentOrder.cancelReason}</span>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -428,6 +463,14 @@ export const PaymentOrderDetailPage: React.FC = () => {
       {lightboxUrls.length > 0 && (
         <ImageViewer images={lightboxUrls} alt="Comprobante" onClose={() => setLightboxUrls([])} />
       )}
+
+      {/* ── Modal de anulación de orden ── */}
+      <VoidPaymentOrderModal
+        isOpen={showVoidModal}
+        onClose={() => setShowVoidModal(false)}
+        paymentOrder={paymentOrder}
+        onSuccess={updated => setPaymentOrder(updated)}
+      />
     </div>
   );
 };
