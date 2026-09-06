@@ -208,7 +208,7 @@ export const getPaymentOrderSummary = async (req: Request, res: Response): Promi
         select: { accountBalance: true },
       }),
       prisma.serviceInstance.findMany({
-        where: { patientId, paymentOrderId: null },
+        where: { patientId, paymentOrderId: null, concludedAt: null },
         include: { service: { select: { id: true, name: true } } },
         orderBy: { createdAt: 'desc' },
       }),
@@ -371,6 +371,37 @@ export const cancelPaymentOrder = async (req: Request, res: Response): Promise<v
       res.status(error.statusCode).json({ error: error.message });
     } else {
       res.status(500).json({ error: 'Error al cancelar orden de pago' });
+    }
+  }
+};
+
+/**
+ * Anula una orden de pago con pagos asociados (solo admins). Anula en cascada
+ * los pagos registrados, revierte saldo a favor cuando corresponde, desasocia
+ * las órdenes y marca la orden de pago como cancelada con auditoría.
+ */
+export const voidPaymentOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || !String(reason).trim()) {
+      throw new AppError('Debe indicar un motivo de anulación', 400);
+    }
+
+    const paymentOrder = await paymentOrderService.voidPaymentOrderWithPayments(
+      id,
+      req.user!.id,
+      String(reason).trim()
+    );
+
+    res.json(paymentOrder);
+  } catch (error) {
+    logUnexpectedError(req, error);
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al anular orden de pago' });
     }
   }
 };

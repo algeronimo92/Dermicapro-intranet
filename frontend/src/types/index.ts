@@ -266,9 +266,13 @@ export interface PaymentOrder {
   createdById: string;
   createdAt: string;
   updatedAt: string;
+  cancelledAt?: string | null;
+  cancelledById?: string | null;
+  cancelReason?: string | null;
   orders?: (Order & { service?: Service })[]; // N:1 - Una orden de pago tiene muchas órdenes
   patient?: Partial<Patient>;
   createdBy?: Partial<User>;
+  cancelledBy?: Partial<User> | null;
   payments?: Payment[];
 }
 
