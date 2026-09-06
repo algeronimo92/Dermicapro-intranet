@@ -153,6 +153,14 @@ export class PaymentOrderService {
             email: true,
           },
         },
+        cancelledBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -306,6 +314,74 @@ export class PaymentOrderService {
       return await tx.paymentOrder.update({
         where: { id: paymentOrderId },
         data: { status: PaymentOrderStatus.cancelled },
+      });
+    });
+  }
+
+  /**
+   * Anula una orden de pago que ya tiene pagos registrados (solo admins).
+   * Anula en cascada cada pago activo (revirtiendo saldo a favor cuando corresponde),
+   * desasocia las órdenes y marca la orden de pago como cancelada con auditoría.
+   */
+  async voidPaymentOrderWithPayments(
+    paymentOrderId: string,
+    adminUserId: string,
+    reason: string
+  ): Promise<PaymentOrder> {
+    const paymentOrder = await prisma.paymentOrder.findUnique({
+      where: { id: paymentOrderId },
+      include: {
+        payments: { where: { voidedAt: null } },
+      },
+    });
+
+    if (!paymentOrder) {
+      throw new AppError('Orden de pago no encontrada', 404);
+    }
+
+    if (paymentOrder.status === PaymentOrderStatus.cancelled) {
+      throw new AppError('La orden de pago ya está cancelada', 400);
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      for (const payment of paymentOrder.payments) {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            voidedAt: new Date(),
+            voidedById: adminUserId,
+            voidReason: reason,
+          },
+        });
+
+        if (payment.paymentType === 'reservation') {
+          await tx.patient.update({
+            where: { id: payment.patientId },
+            data: { accountBalance: { decrement: Number(payment.amountPaid) } },
+          });
+        }
+
+        if (payment.paymentMethod === 'account_credit') {
+          await tx.patient.update({
+            where: { id: payment.patientId },
+            data: { accountBalance: { increment: Number(payment.amountPaid) } },
+          });
+        }
+      }
+
+      await tx.serviceInstance.updateMany({
+        where: { paymentOrderId },
+        data: { paymentOrderId: null },
+      });
+
+      return await tx.paymentOrder.update({
+        where: { id: paymentOrderId },
+        data: {
+          status: PaymentOrderStatus.cancelled,
+          cancelledAt: new Date(),
+          cancelledById: adminUserId,
+          cancelReason: reason,
+        },
       });
     });
   }
