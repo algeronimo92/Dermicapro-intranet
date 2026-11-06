@@ -98,6 +98,7 @@ model User {
   commissions                Commission[]         @relation("SalesPersonCommissions")
   commissionsApproved        Commission[]         @relation("CommissionApprovals")
   commissionsPaid            Commission[]         @relation("CommissionPayments")
+  invoicesRegistered         RegisteredInvoice[]
   paymentOrdersCreated       PaymentOrder[]       @relation("PaymentOrderCreatedBy")
   paymentOrdersCancelled     PaymentOrder[]       @relation("PaymentOrderCancelledBy")
   paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
@@ -392,6 +393,54 @@ model Session {
   @@index([serviceInstanceId, deletedAt], map: "sessions_service_instance_deleted_at_idx")
   @@index([deletedById], map: "sessions_deleted_by_id_idx")
   @@map("sessions")
+}
+
+model RegisteredInvoice {
+  id                String   @id @default(uuid())
+  documentType      String   @map("document_type")
+  series            String?
+  number            String?
+  numberKey         String?  @map("number_key")
+  issuerRuc         String   @map("issuer_ruc")
+  issuerName        String   @map("issuer_name")
+  customerDocument  String?  @map("customer_document")
+  customerName      String?  @map("customer_name")
+  customerAddress   String?  @map("customer_address")
+  issueDate         DateTime @map("issue_date") @db.Date
+  issueTime         String?  @map("issue_time")
+  currency          String
+  taxableSubtotal   Decimal  @map("taxable_subtotal") @db.Decimal(12, 2)
+  discount          Decimal? @db.Decimal(12, 2)
+  tax               Decimal  @db.Decimal(12, 2)
+  total             Decimal  @db.Decimal(12, 2)
+  paymentCondition  String   @map("payment_condition")
+  bankAccount       String?  @map("bank_account")
+  seller            String?
+  items             String?
+  createdById       String   @map("created_by_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  createdBy   User                          @relation(fields: [createdById], references: [id])
+  attachments RegisteredInvoiceAttachment[]
+
+  @@unique([issuerRuc, documentType, series, numberKey], map: "registered_invoices_document_key")
+  @@index([createdAt, id])
+  @@index([createdById])
+  @@map("registered_invoices")
+}
+
+model RegisteredInvoiceAttachment {
+  id        String @id @default(uuid())
+  invoiceId String @map("invoice_id")
+  fileName  String @map("file_name")
+  mimeType  String @map("mime_type")
+  content   Bytes?
+  objectKey String? @unique @map("object_key")
+
+  invoice RegisteredInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("registered_invoice_attachments")
 }
 
 model PaymentOrder {
