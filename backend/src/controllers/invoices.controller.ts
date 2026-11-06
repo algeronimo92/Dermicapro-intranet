@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { Request, Response } from 'express';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '../config/database';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { hasMagicBytes } from '../middlewares/upload';
+import { invoiceAttachmentStorage } from '../services/invoice-attachment-storage';
 
 const invoiceCustomer = {
   customerDocument: '20615564819',
@@ -56,6 +58,17 @@ const detailSelect = {
 
 const pageInput = z.coerce.number().int().min(1).max(100000).default(1);
 
+type UploadedObject = { key: string; versionId?: string | null };
+
+async function removeUploadedObjects(req: Request, objects: UploadedObject[]) {
+  if (!invoiceAttachmentStorage) return;
+  const storage = invoiceAttachmentStorage;
+  const results = await Promise.allSettled(objects.map(object => storage.remove(object.key, object.versionId)));
+  for (const result of results) {
+    if (result.status === 'rejected') logUnexpectedError(req, result.reason);
+  }
+}
+
 export function getInvoiceDefaults(_req: Request, res: Response): void {
   res.json(invoiceCustomer);
 }
@@ -94,31 +107,66 @@ export async function createInvoice(req: Request, res: Response): Promise<void> 
   }
 
   const files = (req.files ?? []) as Express.Multer.File[];
-  const attachments = files.map(file => {
+  const validatedFiles = files.map(file => {
     if (!hasMagicBytes(file.buffer, file.mimetype)) {
       throw new AppError('El contenido de un adjunto no coincide con su tipo de archivo', 400);
     }
     return {
       fileName: file.originalname.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 255) || 'comprobante',
       mimeType: file.mimetype,
-      content: Uint8Array.from(file.buffer),
+      buffer: file.buffer,
     };
   });
+  const storage = invoiceAttachmentStorage;
+  if (!storage && validatedFiles.length > 0) {
+    throw new AppError('Almacenamiento de adjuntos no disponible', 503);
+  }
   const { issueDate, issueTime, discount, ...fields } = input.data;
 
-  const invoice = await prisma.registeredInvoice.create({
-    data: {
-      ...fields,
-      ...invoiceCustomer,
-      issueDate: new Date(issueDate),
-      issueTime: issueTime || null,
-      discount: discount || null,
-      createdById: req.user!.id,
-      attachments: { create: attachments },
-    },
-    select: { id: true },
-  });
-  res.status(201).json(invoice);
+  const invoiceId = randomUUID();
+  const uploadedObjects: UploadedObject[] = [];
+  const attachments: Prisma.RegisteredInvoiceAttachmentCreateWithoutInvoiceInput[] = [];
+
+  try {
+    if (storage) {
+      for (const { buffer, ...file } of validatedFiles) {
+        const object: UploadedObject = { key: `facturas/${invoiceId}/${randomUUID()}` };
+        uploadedObjects.push(object);
+        const uploaded = await storage.upload(object.key, buffer, file.mimeType);
+        object.versionId = uploaded.versionId;
+        attachments.push({ ...file, objectKey: object.key });
+      }
+    }
+  } catch (error) {
+    await removeUploadedObjects(req, uploadedObjects);
+    logUnexpectedError(req, error);
+    throw new AppError('No se pudieron guardar los adjuntos. Intenta nuevamente.', 502);
+  }
+
+  try {
+    const invoice = await prisma.registeredInvoice.create({
+      data: {
+        id: invoiceId,
+        ...fields,
+        ...invoiceCustomer,
+        issueDate: new Date(issueDate),
+        issueTime: issueTime || null,
+        discount: discount || null,
+        createdById: req.user!.id,
+        attachments: { create: attachments },
+      },
+      select: { id: true },
+    });
+    res.status(201).json(invoice);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2002', 'P2003', 'P2004'].includes(error.code)) {
+      await removeUploadedObjects(req, uploadedObjects);
+    } else if (uploadedObjects.length) {
+      // Si el resultado del commit es incierto, conservar los objetos evita romper un registro confirmado.
+      console.warn(JSON.stringify({ event: 'invoice_attachment_commit_uncertain', invoice_id: invoiceId, request_id: req.id }));
+    }
+    throw error;
+  }
 }
 
 export async function getInvoice(req: Request, res: Response): Promise<void> {
@@ -133,11 +181,25 @@ export async function getInvoice(req: Request, res: Response): Promise<void> {
 export async function downloadInvoiceAttachment(req: Request, res: Response): Promise<void> {
   const attachment = await prisma.registeredInvoiceAttachment.findUnique({
     where: { id: req.params.attachmentId, invoiceId: req.params.id },
-    select: { fileName: true, mimeType: true, content: true },
+    select: { fileName: true, mimeType: true, content: true, objectKey: true },
   });
   if (!attachment) throw new AppError('Adjunto no encontrado', 404);
 
+  let content: Buffer;
+  if (attachment.objectKey) {
+    if (!invoiceAttachmentStorage) throw new AppError('Almacenamiento de adjuntos no disponible', 503);
+    try {
+      content = await invoiceAttachmentStorage.download(attachment.objectKey);
+    } catch (error) {
+      logUnexpectedError(req, error);
+      throw new AppError('No se pudo descargar el adjunto. Intenta nuevamente.', 502);
+    }
+  } else {
+    if (!attachment.content) throw new AppError('Adjunto no encontrado', 404);
+    content = Buffer.from(attachment.content);
+  }
+
   res.attachment(attachment.fileName);
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.type(attachment.mimeType).send(Buffer.from(attachment.content));
+  res.type(attachment.mimeType).send(content);
 }

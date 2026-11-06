@@ -434,7 +434,8 @@ model RegisteredInvoiceAttachment {
   invoiceId String @map("invoice_id")
   fileName  String @map("file_name")
   mimeType  String @map("mime_type")
-  content   Bytes
+  content   Bytes?
+  objectKey String? @unique @map("object_key")
 
   invoice RegisteredInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
