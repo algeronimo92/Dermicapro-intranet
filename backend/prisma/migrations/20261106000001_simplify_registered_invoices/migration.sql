@@ -1,0 +1,5 @@
+ALTER TABLE "registered_invoices"
+  ALTER COLUMN "series" DROP NOT NULL,
+  ALTER COLUMN "number" DROP NOT NULL,
+  ALTER COLUMN "number_key" DROP NOT NULL,
+  ALTER COLUMN "items" DROP NOT NULL;

@@ -68,6 +68,13 @@ const MAGIC: Record<string, { offset: number; bytes: number[] }[]> = {
   'application/pdf': [{ offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] }],
 };
 
+export function hasMagicBytes(buffer: Buffer, mimetype: string): boolean {
+  const checks = MAGIC[mimetype];
+  return !checks || checks.every(({ offset, bytes }) =>
+    bytes.every((byte, index) => buffer[offset + index] === byte)
+  );
+}
+
 function checkMagicBytes(filePath: string, mimetype: string): boolean {
   const checks = MAGIC[mimetype];
   if (!checks) return true;
@@ -77,9 +84,7 @@ function checkMagicBytes(filePath: string, mimetype: string): boolean {
     const buf = Buffer.alloc(needed);
     fs.readSync(fd, buf, 0, needed, 0);
     fs.closeSync(fd);
-    return checks.every(({ offset, bytes }) =>
-      bytes.every((b, i) => buf[offset + i] === b)
-    );
+    return hasMagicBytes(buf, mimetype);
   } catch {
     return false;
   }
