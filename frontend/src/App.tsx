@@ -23,6 +23,7 @@ import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
 import { ServicesPage } from './pages/ServicesPage';
 import CommissionsPage from './pages/CommissionsPage';
 import { PaymentsAdminPage } from './pages/PaymentsAdminPage';
+import { InvoicesPage } from './pages/InvoicesPage';
 import SettingsPage from './pages/SettingsPage';
 import { StyleGuidePage } from './pages/StyleGuidePage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -183,6 +184,7 @@ function DashboardLayout() {
               <Route path="/employees/:id" element={<EmployeeDetailPage />} />
               <Route path="/commissions" element={<CommissionsPage />} />
               <Route path="/payments" element={<PaymentsAdminPage />} />
+              <Route path="/invoices/*" element={isAdmin ? <InvoicesPage /> : <Navigate to="/" replace />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
