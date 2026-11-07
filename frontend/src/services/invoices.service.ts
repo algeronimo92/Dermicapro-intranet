@@ -8,6 +8,27 @@ export interface InvoiceSummary {
   issueDate: string;
   currency: string;
   total: string;
+  _count: { attachments: number };
+}
+
+export interface InvoiceFilters {
+  search?: string;
+  currency?: 'PEN' | 'USD';
+  documentType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface InvoiceReport {
+  currency: string;
+  count: number;
+  withoutAttachments: number;
+  documentsAmount: string;
+  documentsTax: string;
+  creditNotes: { count: number; amount: string };
+  debitNotes: { count: number; amount: string };
+  monthly: { month: string; documentsAmount: string; creditNotes: string; debitNotes: string }[];
+  providers: { ruc: string; name: string; total: string }[];
 }
 
 export interface InvoiceDetail extends InvoiceSummary {
@@ -31,11 +52,21 @@ export const invoicesService = {
     return response.data;
   },
 
-  async list(page: number, signal: AbortSignal) {
-    const response = await api.get<{ data: InvoiceSummary[]; totalPages: number }>('/invoices', {
-      params: { page },
+  async list(page: number, signal: AbortSignal, filters: InvoiceFilters = {}) {
+    const response = await api.get<{ data: InvoiceSummary[]; total: number; totalPages: number }>('/invoices', {
+      params: { ...filters, page },
       signal,
     });
+    return response.data;
+  },
+
+  async report(filters: InvoiceFilters, signal: AbortSignal) {
+    const response = await api.get<InvoiceReport>('/invoices/report', { params: filters, signal });
+    return response.data;
+  },
+
+  async export(filters: InvoiceFilters) {
+    const response = await api.get<Blob>('/invoices/export', { params: filters, responseType: 'blob' });
     return response.data;
   },
 

@@ -1,14 +1,15 @@
 import { isAxiosError } from 'axios';
-import { ArrowLeft, FileText, Plus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Role } from '../types';
-import { invoicesService, type InvoiceDetail, type InvoiceSummary } from '../services/invoices.service';
+import { invoicesService, type InvoiceDetail } from '../services/invoices.service';
+import { InvoiceList } from './InvoiceList';
 import '../styles/invoices.css';
 
 type InvoiceField = {
-  name: Exclude<keyof InvoiceDetail, 'id' | 'attachments' | 'createdBy'>;
+  name: Exclude<keyof InvoiceDetail, 'id' | 'attachments' | 'createdBy' | '_count'>;
   label: string;
   required?: boolean;
   type?: 'date' | 'time' | 'amount';
@@ -79,74 +80,6 @@ export function InvoicesPage() {
         <Route path=":id" element={<InvoiceDetails />} />
       </Routes>
     </div>
-  );
-}
-
-function InvoiceList({ canRegister }: { canRegister: boolean }) {
-  const [page, setPage] = useState(1);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof invoicesService.list>>>();
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const request = new AbortController();
-    invoicesService.list(page, request.signal)
-      .then(data => setResult(data))
-      .catch(err => {
-        if (!request.signal.aborted) setError(errorMessage(err, 'No se pudieron cargar las facturas'));
-      });
-    return () => request.abort();
-  }, [page]);
-
-  const goToPage = (nextPage: number) => {
-    setResult(undefined);
-    setError('');
-    setPage(nextPage);
-  };
-
-  return (
-    <>
-      <header className="invoice-header">
-        <div>
-          <h1><FileText aria-hidden="true" /> Facturas</h1>
-          <p>Consulta los comprobantes registrados en la intranet.</p>
-        </div>
-        {canRegister && <Link to="new" className="btn btn-primary"><Plus size={18} aria-hidden="true" /> Registrar comprobante</Link>}
-      </header>
-      {error && <p className="invoice-error" role="alert">{error}</p>}
-      {!result && !error && <p role="status">Cargando comprobantes…</p>}
-      {result?.data.length === 0 && <p className="invoice-panel">Todavía no hay comprobantes registrados.</p>}
-      {result && result.data.length > 0 && (
-        <div className="invoice-table">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Comprobante</th>
-                <th scope="col">Emisor</th>
-                <th scope="col">Fecha de emisión</th>
-                <th scope="col">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.data.map((invoice: InvoiceSummary) => (
-                <tr key={invoice.id}>
-                  <td><Link to={invoice.id}>{invoice.documentType}</Link></td>
-                  <td>{invoice.issuerName}<small>{invoice.issuerRuc}</small></td>
-                  <td>{formatDate(invoice.issueDate)}</td>
-                  <td>{formatAmount(invoice.total, invoice.currency)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {result && result.totalPages > 1 && (
-        <nav className="invoice-actions" aria-label="Páginas de comprobantes">
-          <button className="btn btn-secondary" disabled={page === 1} onClick={() => goToPage(page - 1)}>Anterior</button>
-          <span>Página {page} de {result.totalPages}</span>
-          <button className="btn btn-secondary" disabled={page >= result.totalPages} onClick={() => goToPage(page + 1)}>Siguiente</button>
-        </nav>
-      )}
-    </>
   );
 }
 
