@@ -1,7 +1,9 @@
 import { isAxiosError } from 'axios';
 import { ArrowLeft, FileText, Plus } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Role } from '../types';
 import { invoicesService, type InvoiceDetail, type InvoiceSummary } from '../services/invoices.service';
 import '../styles/invoices.css';
 
@@ -66,18 +68,21 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export function InvoicesPage() {
+  const { user } = useAuth();
+  const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name;
+  const canRegister = roleName === Role.admin;
   return (
     <div className="invoice-page">
       <Routes>
-        <Route index element={<InvoiceList />} />
-        <Route path="new" element={<InvoiceForm />} />
+        <Route index element={<InvoiceList canRegister={canRegister} />} />
+        <Route path="new" element={canRegister ? <InvoiceForm /> : <Navigate to="/invoices" replace />} />
         <Route path=":id" element={<InvoiceDetails />} />
       </Routes>
     </div>
   );
 }
 
-function InvoiceList() {
+function InvoiceList({ canRegister }: { canRegister: boolean }) {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Awaited<ReturnType<typeof invoicesService.list>>>();
   const [error, setError] = useState('');
@@ -105,7 +110,7 @@ function InvoiceList() {
           <h1><FileText aria-hidden="true" /> Facturas</h1>
           <p>Consulta los comprobantes registrados en la intranet.</p>
         </div>
-        <Link to="new" className="btn btn-primary"><Plus size={18} aria-hidden="true" /> Registrar comprobante</Link>
+        {canRegister && <Link to="new" className="btn btn-primary"><Plus size={18} aria-hidden="true" /> Registrar comprobante</Link>}
       </header>
       {error && <p className="invoice-error" role="alert">{error}</p>}
       {!result && !error && <p role="status">Cargando comprobantes…</p>}

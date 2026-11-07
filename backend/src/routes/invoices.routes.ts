@@ -26,14 +26,14 @@ const uploadAttachments = multer({
   },
 }).array('attachments', 5);
 
-router.use(authenticate, authorize(ROLES.ADMIN));
+router.use(authenticate, authorize(ROLES.ADMIN, ROLES.ACCOUNTANT));
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
 router.get('/', listInvoices);
-router.post('/', uploadLimiter, uploadAttachments, createInvoice);
-router.get('/defaults', getInvoiceDefaults);
+router.post('/', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, createInvoice);
+router.get('/defaults', authorize(ROLES.ADMIN), getInvoiceDefaults);
 router.get('/:id', getInvoice);
 router.get('/:id/attachments/:attachmentId', downloadInvoiceAttachment);
 
