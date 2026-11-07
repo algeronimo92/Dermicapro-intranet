@@ -424,6 +424,7 @@ model RegisteredInvoice {
   attachments RegisteredInvoiceAttachment[]
 
   @@unique([issuerRuc, documentType, series, numberKey], map: "registered_invoices_document_key")
+  @@index([currency, issueDate])
   @@index([createdAt, id])
   @@index([createdById])
   @@map("registered_invoices")

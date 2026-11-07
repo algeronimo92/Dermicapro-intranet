@@ -6,6 +6,8 @@ import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { hasMagicBytes } from '../middlewares/upload';
 import { invoiceAttachmentStorage } from '../services/invoice-attachment-storage';
+import ExcelJS from 'exceljs';
+import { getInvoiceReport, invoiceDate, invoiceDocumentTypes, invoiceWhere, parseInvoiceQuery } from '../services/invoice-report.service';
 
 const invoiceCustomer = {
   customerDocument: '20615564819',
@@ -19,10 +21,10 @@ const amount = z.string().trim().regex(
 );
 
 const invoiceInput = z.object({
-  documentType: z.enum(['Factura', 'Boleta', 'Nota de crédito', 'Nota de débito']),
+  documentType: z.enum(invoiceDocumentTypes),
   issuerRuc: z.string().trim().regex(/^\d{11}$/, 'El RUC debe tener 11 dígitos'),
   issuerName: z.string().trim().min(1).max(200),
-  issueDate: z.iso.date().refine(value => !value.startsWith('0000-')),
+  issueDate: invoiceDate,
   issueTime: z.union([z.iso.time({ precision: -1 }), z.literal('')]).optional(),
   currency: z.enum(['PEN', 'USD']).default('PEN'),
   taxableSubtotal: amount,
@@ -40,6 +42,7 @@ const summarySelect = {
   issueDate: true,
   currency: true,
   total: true,
+  _count: { select: { attachments: true } },
 } satisfies Prisma.RegisteredInvoiceSelect;
 
 const detailSelect = {
@@ -55,8 +58,6 @@ const detailSelect = {
   createdBy: { select: { firstName: true, lastName: true } },
   attachments: { select: { id: true, fileName: true }, orderBy: { id: 'asc' } },
 } satisfies Prisma.RegisteredInvoiceSelect;
-
-const pageInput = z.coerce.number().int().min(1).max(100000).default(1);
 
 type UploadedObject = { key: string; versionId?: string | null };
 
@@ -74,20 +75,80 @@ export function getInvoiceDefaults(_req: Request, res: Response): void {
 }
 
 export async function listInvoices(req: Request, res: Response): Promise<void> {
-  const page = pageInput.safeParse(req.query.page);
-  if (!page.success) throw new AppError('Número de página inválido', 400);
-
+  const query = parseInvoiceQuery(req.query);
+  const where = invoiceWhere(query);
   const limit = 20;
   const [data, total] = await prisma.$transaction([
     prisma.registeredInvoice.findMany({
       select: summarySelect,
+      where,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      skip: (page.data - 1) * limit,
+      skip: (query.page - 1) * limit,
       take: limit,
     }),
-    prisma.registeredInvoice.count(),
-  ]);
-  res.json({ data, totalPages: Math.max(1, Math.ceil(total / limit)) });
+    prisma.registeredInvoice.count({ where }),
+  ], { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  res.json({ data, total, totalPages: Math.max(1, Math.ceil(total / limit)) });
+}
+
+export async function invoiceReport(req: Request, res: Response): Promise<void> {
+  res.json(await getInvoiceReport(parseInvoiceQuery(req.query)));
+}
+
+export async function exportInvoices(req: Request, res: Response): Promise<void> {
+  const query = parseInvoiceQuery(req.query);
+  const where = { ...invoiceWhere(query), createdAt: { lte: new Date() } };
+  res.attachment('facturas.xlsx');
+  res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res, useStyles: true });
+  const sheet = workbook.addWorksheet('Facturas');
+  sheet.columns = [
+    { header: 'Tipo de documento', key: 'documentType', width: 22 },
+    { header: 'RUC emisor', key: 'issuerRuc', width: 16 },
+    { header: 'Razón social emisor', key: 'issuerName', width: 40 },
+    { header: 'Fecha de emisión', key: 'issueDate', width: 18, style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'Moneda', key: 'currency', width: 12 },
+    { header: 'Subtotal gravado', key: 'taxableSubtotal', width: 20, style: { numFmt: '#,##0.00' } },
+    { header: 'Descuento', key: 'discount', width: 16, style: { numFmt: '#,##0.00' } },
+    { header: 'IGV', key: 'tax', width: 16, style: { numFmt: '#,##0.00' } },
+    { header: 'Total', key: 'total', width: 18, style: { numFmt: '#,##0.00' } },
+    { header: 'Condición de pago', key: 'paymentCondition', width: 22 },
+    { header: 'Cantidad de adjuntos', key: 'attachmentCount', width: 22 },
+  ];
+  sheet.getRow(1).font = { bold: true };
+  let cursor: { id: string } | undefined;
+  try {
+    while (!res.destroyed) {
+      const rows = await prisma.registeredInvoice.findMany({
+        where,
+        select: {
+          ...summarySelect, taxableSubtotal: true, discount: true, tax: true, paymentCondition: true,
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        cursor,
+        skip: cursor ? 1 : 0,
+        take: 500,
+      });
+      for (const row of rows) {
+        sheet.addRow({
+          ...row,
+          taxableSubtotal: row.taxableSubtotal.toNumber(),
+          discount: row.discount?.toNumber() ?? 0,
+          tax: row.tax.toNumber(),
+          total: row.total.toNumber(),
+          paymentCondition: row.paymentCondition === 'Contado' ? 'Al contado' : row.paymentCondition,
+          attachmentCount: row._count.attachments,
+        }).commit();
+      }
+      if (rows.length < 500) break;
+      cursor = { id: rows[rows.length - 1].id };
+    }
+    await workbook.commit();
+  } catch (error) {
+    if (!res.headersSent) throw error;
+    logUnexpectedError(req, error);
+    res.destroy();
+  }
 }
 
 export async function createInvoice(req: Request, res: Response): Promise<void> {
