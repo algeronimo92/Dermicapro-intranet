@@ -397,6 +397,7 @@ model Session {
 
 model RegisteredInvoice {
   id                String   @id @default(uuid())
+  revision          Int       @default(0)
   documentType      String   @map("document_type")
   series            String?
   number            String?
@@ -442,6 +443,17 @@ model RegisteredInvoiceAttachment {
 
   @@index([invoiceId])
   @@map("registered_invoice_attachments")
+}
+
+model InvoiceObjectDeletion {
+  id            String   @id @default(uuid())
+  objectKey     String   @unique @map("object_key")
+  versionId     String?  @map("version_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
+
+  @@index([nextAttemptAt])
+  @@map("invoice_object_deletions")
 }
 
 model PaymentOrder {

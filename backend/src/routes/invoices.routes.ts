@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { config } from '../config/env';
 import { ROLES } from '../constants/roles';
-import { createInvoice, downloadInvoiceAttachment, exportInvoices, getInvoice, getInvoiceDefaults, invoiceReport, listInvoices } from '../controllers/invoices.controller';
+import { createInvoice, deleteInvoice, downloadInvoiceAttachment, exportInvoices, getInvoice, getInvoiceDefaults, invoiceReport, listInvoices, updateInvoice } from '../controllers/invoices.controller';
 import { authenticate, authorize } from '../middlewares/auth';
 import { AppError } from '../middlewares/errorHandler';
 import { uploadLimiter } from '../middlewares/rateLimiter';
@@ -37,6 +37,8 @@ router.get('/export', exportInvoices);
 router.post('/', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, createInvoice);
 router.get('/defaults', authorize(ROLES.ADMIN), getInvoiceDefaults);
 router.get('/:id', getInvoice);
+router.put('/:id', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, updateInvoice);
+router.delete('/:id', authorize(ROLES.ADMIN), deleteInvoice);
 router.get('/:id/attachments/:attachmentId', downloadInvoiceAttachment);
 
 export default router;

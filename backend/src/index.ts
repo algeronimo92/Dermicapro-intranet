@@ -10,6 +10,7 @@ import { registerDbMetrics } from './middlewares/db-metrics';
 import { requestId } from './middlewares/requestId';
 import { startBusinessMetrics, stopBusinessMetrics } from './services/business-metrics.service';
 import prisma from './config/database';
+import { startInvoiceObjectCleanup, stopInvoiceObjectCleanup } from './services/invoice-object-cleanup.service';
 import fs from 'fs';
 import path from 'path';
 
@@ -88,6 +89,7 @@ const startServer = async () => {
 
     // Arranca después de conectar a la base: la primera lectura es inmediata.
     startBusinessMetrics();
+    startInvoiceObjectCleanup();
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -96,12 +98,14 @@ const startServer = async () => {
 
 process.on('SIGINT', async () => {
   stopBusinessMetrics();
+  stopInvoiceObjectCleanup();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   stopBusinessMetrics();
+  stopInvoiceObjectCleanup();
   await prisma.$disconnect();
   process.exit(0);
 });
