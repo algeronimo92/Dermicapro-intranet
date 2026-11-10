@@ -137,6 +137,7 @@ function DashboardLayout() {
   const roleName    = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
   const roleDisplay = typeof user?.role === 'string' ? user.role : (user?.role?.displayName ?? '');
   const isAdmin     = roleName === 'admin';
+  const isAccountant = roleName === 'accountant';
 
   const { showWarning, secondsLeft, percentageRemaining, msRemaining, extendSession } = useIdleTimeout({
     timeout:       sessionTimeoutMs,
@@ -167,28 +168,34 @@ function DashboardLayout() {
         <main className="dashboard-main">
           <div className="dashboard-content">
             <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/patients" element={<PatientsPage />} />
-              <Route path="/patients/:id" element={<PatientDetailPage />} />
-              <Route path="/patients/:id/edit" element={<PatientFormPage />} />
-              <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
-              <Route path="/patients/:id/payment-orders" element={<PatientPaymentOrdersPage />} />
-              <Route path="/patients/:id/create-payment-order" element={<CreatePaymentOrderPage />} />
-              <Route path="/payment-orders/:id" element={<PaymentOrderDetailPage />} />
-              <Route path="/appointments" element={<AppointmentsPage />} />
-              <Route path="/appointments/new" element={<AppointmentFormPage />} />
-              <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
-              <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/employees" element={<EmployeesPage />} />
-              <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-              <Route path="/commissions" element={<CommissionsPage />} />
-              <Route path="/payments" element={<PaymentsAdminPage />} />
-              <Route path="/invoices/*" element={isAdmin ? <InvoicesPage /> : <Navigate to="/" replace />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/styleguide" element={<StyleGuidePage />} />
+              <Route path="/invoices/*" element={isAdmin || isAccountant ? <InvoicesPage /> : <Navigate to="/" replace />} />
+              {isAccountant ? (
+                <Route path="*" element={<Navigate to="/invoices" replace />} />
+              ) : (
+                <>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/patients" element={<PatientsPage />} />
+                  <Route path="/patients/:id" element={<PatientDetailPage />} />
+                  <Route path="/patients/:id/edit" element={<PatientFormPage />} />
+                  <Route path="/patients/:id/history" element={<PatientHistoryPage />} />
+                  <Route path="/patients/:id/payment-orders" element={<PatientPaymentOrdersPage />} />
+                  <Route path="/patients/:id/create-payment-order" element={<CreatePaymentOrderPage />} />
+                  <Route path="/payment-orders/:id" element={<PaymentOrderDetailPage />} />
+                  <Route path="/appointments" element={<AppointmentsPage />} />
+                  <Route path="/appointments/new" element={<AppointmentFormPage />} />
+                  <Route path="/appointments/:id" element={<AppointmentDetailPage />} />
+                  <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
+                  <Route path="/services" element={<ServicesPage />} />
+                  <Route path="/employees" element={<EmployeesPage />} />
+                  <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+                  <Route path="/commissions" element={<CommissionsPage />} />
+                  <Route path="/payments" element={<PaymentsAdminPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/styleguide" element={<StyleGuidePage />} />
+                </>
+              )}
             </Routes>
           </div>
         </main>

@@ -8,9 +8,31 @@ export interface InvoiceSummary {
   issueDate: string;
   currency: string;
   total: string;
+  _count: { attachments: number };
+}
+
+export interface InvoiceFilters {
+  search?: string;
+  currency?: 'PEN' | 'USD';
+  documentType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface InvoiceReport {
+  currency: string;
+  count: number;
+  withoutAttachments: number;
+  documentsAmount: string;
+  documentsTax: string;
+  creditNotes: { count: number; amount: string };
+  debitNotes: { count: number; amount: string };
+  monthly: { month: string; documentsAmount: string; creditNotes: string; debitNotes: string }[];
+  providers: { ruc: string; name: string; total: string }[];
 }
 
 export interface InvoiceDetail extends InvoiceSummary {
+  revision: number;
   customerDocument: string | null;
   customerName: string | null;
   customerAddress: string | null;
@@ -31,11 +53,21 @@ export const invoicesService = {
     return response.data;
   },
 
-  async list(page: number, signal: AbortSignal) {
-    const response = await api.get<{ data: InvoiceSummary[]; totalPages: number }>('/invoices', {
-      params: { page },
+  async list(page: number, signal: AbortSignal, filters: InvoiceFilters = {}) {
+    const response = await api.get<{ data: InvoiceSummary[]; total: number; totalPages: number }>('/invoices', {
+      params: { ...filters, page },
       signal,
     });
+    return response.data;
+  },
+
+  async report(filters: InvoiceFilters, signal: AbortSignal) {
+    const response = await api.get<InvoiceReport>('/invoices/report', { params: filters, signal });
+    return response.data;
+  },
+
+  async export(filters: InvoiceFilters) {
+    const response = await api.get<Blob>('/invoices/export', { params: filters, responseType: 'blob' });
     return response.data;
   },
 
@@ -44,6 +76,17 @@ export const invoicesService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
+  },
+
+  async update(id: string, form: FormData) {
+    const response = await api.put<{ id: string; revision: number }>(`/invoices/${id}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async remove(id: string, revision: number) {
+    await api.delete(`/invoices/${id}`, { data: { revision } });
   },
 
   async detail(id: string, signal: AbortSignal) {

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { config } from '../config/env';
 import { ROLES } from '../constants/roles';
-import { createInvoice, downloadInvoiceAttachment, getInvoice, getInvoiceDefaults, listInvoices } from '../controllers/invoices.controller';
+import { createInvoice, deleteInvoice, downloadInvoiceAttachment, exportInvoices, getInvoice, getInvoiceDefaults, invoiceReport, listInvoices, updateInvoice } from '../controllers/invoices.controller';
 import { authenticate, authorize } from '../middlewares/auth';
 import { AppError } from '../middlewares/errorHandler';
 import { uploadLimiter } from '../middlewares/rateLimiter';
@@ -26,15 +26,19 @@ const uploadAttachments = multer({
   },
 }).array('attachments', 5);
 
-router.use(authenticate, authorize(ROLES.ADMIN));
+router.use(authenticate, authorize(ROLES.ADMIN, ROLES.ACCOUNTANT));
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
 router.get('/', listInvoices);
-router.post('/', uploadLimiter, uploadAttachments, createInvoice);
-router.get('/defaults', getInvoiceDefaults);
+router.get('/report', invoiceReport);
+router.get('/export', exportInvoices);
+router.post('/', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, createInvoice);
+router.get('/defaults', authorize(ROLES.ADMIN), getInvoiceDefaults);
 router.get('/:id', getInvoice);
+router.put('/:id', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, updateInvoice);
+router.delete('/:id', authorize(ROLES.ADMIN), deleteInvoice);
 router.get('/:id/attachments/:attachmentId', downloadInvoiceAttachment);
 
 export default router;

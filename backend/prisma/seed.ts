@@ -148,6 +148,19 @@ async function main() {
     },
   });
 
+  await prisma.role.upsert({
+    where: { name: "accountant" },
+    update: {
+      displayName: "Contador",
+      description: "Consulta facturas y descarga sus adjuntos",
+    },
+    create: {
+      name: "accountant",
+      displayName: "Contador",
+      description: "Consulta facturas y descarga sus adjuntos",
+    },
+  });
+
   console.log("Roles created");
 
   // ===== STEP 2: Create Default Users =====
