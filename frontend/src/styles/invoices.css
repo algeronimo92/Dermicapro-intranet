@@ -421,3 +421,7 @@
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+.invoice-existing-files { margin-bottom: 1rem; }
+.invoice-existing-files label { display: flex; align-items: center; gap: .75rem; margin: .75rem 0; overflow-wrap: anywhere; }
+.invoice-existing-files input[type=checkbox] { width: auto; flex-shrink: 0; }

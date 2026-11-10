@@ -32,6 +32,7 @@ export interface InvoiceReport {
 }
 
 export interface InvoiceDetail extends InvoiceSummary {
+  revision: number;
   customerDocument: string | null;
   customerName: string | null;
   customerAddress: string | null;
@@ -75,6 +76,17 @@ export const invoicesService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
+  },
+
+  async update(id: string, form: FormData) {
+    const response = await api.put<{ id: string; revision: number }>(`/invoices/${id}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async remove(id: string, revision: number) {
+    await api.delete(`/invoices/${id}`, { data: { revision } });
   },
 
   async detail(id: string, signal: AbortSignal) {

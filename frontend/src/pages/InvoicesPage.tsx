@@ -4,12 +4,13 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Role } from '../types';
+import { Modal } from '../components/Modal';
 import { invoicesService, type InvoiceDetail } from '../services/invoices.service';
 import { InvoiceList } from './InvoiceList';
 import '../styles/invoices.css';
 
 type InvoiceField = {
-  name: Exclude<keyof InvoiceDetail, 'id' | 'attachments' | 'createdBy' | '_count'>;
+  name: Exclude<keyof InvoiceDetail, 'id' | 'revision' | 'attachments' | 'createdBy' | '_count'>;
   label: string;
   required?: boolean;
   type?: 'date' | 'time' | 'amount';
@@ -77,19 +78,37 @@ export function InvoicesPage() {
       <Routes>
         <Route index element={<InvoiceList canRegister={canRegister} />} />
         <Route path="new" element={canRegister ? <InvoiceForm /> : <Navigate to="/invoices" replace />} />
-        <Route path=":id" element={<InvoiceDetails />} />
+        <Route path=":id/edit" element={canRegister ? <InvoiceEditor /> : <Navigate to="/invoices" replace />} />
+        <Route path=":id" element={<InvoiceDetails canManage={canRegister} />} />
       </Routes>
     </div>
   );
 }
 
-function InvoiceForm() {
+function InvoiceEditor() {
+  const { id = '' } = useParams();
+  const [invoice, setInvoice] = useState<InvoiceDetail>();
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const request = new AbortController();
+    invoicesService.detail(id, request.signal).then(setInvoice).catch(err => {
+      if (!request.signal.aborted) setError(errorMessage(err, 'No se pudo cargar el comprobante'));
+    });
+    return () => request.abort();
+  }, [id]);
+  if (error) return <p className="invoice-error" role="alert">{error}</p>;
+  return invoice?.id === id ? <InvoiceForm key={invoice.id} initialInvoice={invoice} /> : <p role="status">Cargando comprobante…</p>;
+}
+
+function InvoiceForm({ initialInvoice }: { initialInvoice?: InvoiceDetail }) {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [customer, setCustomer] = useState<Awaited<ReturnType<typeof invoicesService.defaults>>>();
+  const [customer, setCustomer] = useState<Pick<InvoiceDetail, 'customerDocument' | 'customerName' | 'customerAddress'> | undefined>(initialInvoice);
+  const [retainedIds, setRetainedIds] = useState(initialInvoice?.attachments.map(file => file.id) ?? []);
 
   useEffect(() => {
+    if (initialInvoice) return;
     const request = new AbortController();
     invoicesService.defaults(request.signal)
       .then(setCustomer)
@@ -97,7 +116,7 @@ function InvoiceForm() {
         if (!request.signal.aborted) setError(errorMessage(err, 'No se pudieron cargar los datos del cliente'));
       });
     return () => request.abort();
-  }, []);
+  }, [initialInvoice]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,16 +124,20 @@ function InvoiceForm() {
 
     const form = new FormData(event.currentTarget);
     const attachments = form.getAll('attachments').filter((file): file is File => file instanceof File && Boolean(file.name));
-    if (attachments.length > 5 || attachments.some(file => file.size > 5 * 1024 * 1024)) {
+    if (attachments.length + retainedIds.length > 5 || attachments.some(file => file.size > 5 * 1024 * 1024)) {
       setError('Adjunta hasta 5 archivos de 5 MB como máximo cada uno.');
       return;
     }
     if (!attachments.length) form.delete('attachments');
+    if (initialInvoice) {
+      form.set('revision', String(initialInvoice.revision));
+      form.set('retainedAttachmentIds', JSON.stringify(retainedIds));
+    }
     setError('');
     setSaving(true);
     try {
-      const invoice = await invoicesService.create(form);
-      navigate(`/invoices/${invoice.id}`, { replace: true, state: { registered: true } });
+      const invoice = initialInvoice ? await invoicesService.update(initialInvoice.id, form) : await invoicesService.create(form);
+      navigate(`/invoices/${invoice.id}`, { replace: true, state: initialInvoice ? { updated: true } : { registered: true } });
     } catch (err) {
       setError(errorMessage(err, 'No se pudo guardar el comprobante'));
     } finally {
@@ -126,7 +149,7 @@ function InvoiceForm() {
     <>
       <Link className="invoice-back" to="/invoices"><ArrowLeft size={16} aria-hidden="true" /> Volver a Facturas</Link>
       <header className="invoice-header">
-        <div><h1>Registrar comprobante</h1><p>Transcribe los datos tal como figuran en el documento.</p></div>
+        <div><h1>{initialInvoice ? 'Editar comprobante' : 'Registrar comprobante'}</h1><p>Transcribe los datos tal como figuran en el documento.</p></div>
       </header>
       <form className="invoice-form" onSubmit={submit}>
         <div className="invoice-form-layout">
@@ -134,7 +157,7 @@ function InvoiceForm() {
             {entryGroups.map(group => (
               <fieldset className="invoice-panel" key={group.title} disabled={saving}>
                 <legend>{group.title}</legend>
-                <InvoiceFormFields fields={group.fields} />
+                <InvoiceFormFields fields={group.fields} values={initialInvoice} />
               </fieldset>
             ))}
           </section>
@@ -142,7 +165,7 @@ function InvoiceForm() {
             <section className="invoice-form-column invoice-form-defaults" aria-labelledby="invoice-defaults-title">
               <fieldset className="invoice-panel" disabled={saving}>
                 <legend>Moneda y pago</legend>
-                <InvoiceFormFields fields={defaultFields} />
+                <InvoiceFormFields fields={defaultFields} values={initialInvoice} />
               </fieldset>
               <section className="invoice-panel invoice-customer" aria-labelledby="invoice-customer-title">
                 <h3 id="invoice-customer-title">Cliente del comprobante</h3>
@@ -157,6 +180,13 @@ function InvoiceForm() {
             </section>
             <fieldset className="invoice-panel" disabled={saving}>
               <legend>Adjuntos <span className="invoice-optional">Opcional</span></legend>
+              {initialInvoice && initialInvoice.attachments.length > 0 && <div className="invoice-existing-files">
+                <p>Conserva los archivos marcados. Los que desmarques se eliminarán al guardar.</p>
+                {initialInvoice.attachments.map(file => <label key={file.id}>
+                  <input type="checkbox" checked={retainedIds.includes(file.id)} onChange={event => setRetainedIds(ids => event.target.checked ? [...ids, file.id] : ids.filter(id => id !== file.id))} />
+                  <span>{file.fileName}</span>
+                </label>)}
+              </div>}
               <div className="invoice-fields">
                 <label className="invoice-field-wide">
                   <span>Fotos o PDF del comprobante</span>
@@ -177,14 +207,14 @@ function InvoiceForm() {
   );
 }
 
-function InvoiceFormFields({ fields }: { fields: InvoiceField[] }) {
+function InvoiceFormFields({ fields, values }: { fields: InvoiceField[]; values?: InvoiceDetail }) {
   return (
     <div className="invoice-fields">
       {fields.map(field => (
         <label key={field.name} className={field.name === 'issuerName' ? 'invoice-field-wide' : undefined}>
           <span>{field.label}{field.required && <span className="invoice-required" aria-hidden="true"> *</span>}</span>
           {field.options ? (
-            <select name={field.name} required={field.required} defaultValue={field.defaultValue ?? ''}>
+            <select name={field.name} required={field.required} defaultValue={values?.[field.name] ?? field.defaultValue ?? ''}>
               {!field.defaultValue && <option value="" disabled>Selecciona una opción</option>}
               {field.options.map(option => (
                 <option key={option} value={option}>{option === 'Contado' ? 'Al contado' : option}</option>
@@ -193,6 +223,7 @@ function InvoiceFormFields({ fields }: { fields: InvoiceField[] }) {
           ) : (
             <input
               name={field.name}
+              defaultValue={field.type === 'date' ? values?.issueDate.slice(0, 10) : values?.[field.name] ?? ''}
               required={field.required}
               type={field.type === 'amount' ? 'number' : field.type ?? 'text'}
               min={field.type === 'amount' ? '0' : undefined}
@@ -209,7 +240,11 @@ function InvoiceFormFields({ fields }: { fields: InvoiceField[] }) {
   );
 }
 
-function InvoiceDetails() {
+function InvoiceDetails({ canManage }: { canManage: boolean }) {
+  const navigate = useNavigate();
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const { id = '' } = useParams();
   const { state } = useLocation();
   const [invoice, setInvoice] = useState<InvoiceDetail>();
@@ -225,6 +260,18 @@ function InvoiceDetails() {
       });
     return () => request.abort();
   }, [id]);
+
+  async function remove() {
+    if (!invoice || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await invoicesService.remove(invoice.id, invoice.revision);
+      navigate('/invoices', { replace: true });
+    } catch (err) {
+      setDeleteError(errorMessage(err, 'No se pudo eliminar el comprobante'));
+    } finally { setDeleting(false); }
+  }
 
   async function download(attachment: InvoiceDetail['attachments'][number]) {
     setDownloadError('');
@@ -245,6 +292,7 @@ function InvoiceDetails() {
     <>
       <Link to="/invoices">← Volver a Facturas</Link>
       {state?.registered && <p role="status">Comprobante registrado correctamente.</p>}
+      {state?.updated && <p role="status">Comprobante actualizado correctamente.</p>}
       {error && <p className="invoice-error" role="alert">{error}</p>}
       {!invoice && !error && <p role="status">Cargando comprobante…</p>}
       {invoice && (
@@ -254,7 +302,19 @@ function InvoiceDetails() {
               <h1>{invoice.documentType} · {invoice.issuerName}</h1>
               <p>Registrado por {invoice.createdBy.firstName} {invoice.createdBy.lastName}</p>
             </div>
+            {canManage && <div className="invoice-actions">
+              <Link className="btn btn-secondary" to={`/invoices/${invoice.id}/edit`}>Editar comprobante</Link>
+              <button className="btn btn-danger" onClick={() => setShowDelete(true)}>Eliminar comprobante</button>
+            </div>}
           </header>
+          {showDelete && canManage && <Modal isOpen={showDelete} onClose={() => { if (!deleting) setShowDelete(false); }} title="Eliminar comprobante">
+            <p>Se eliminará el registro de {invoice.issuerName} por {formatAmount(invoice.total, invoice.currency)} y sus adjuntos. Esta acción no se puede deshacer.</p>
+            {deleteError && <p className="invoice-error" role="alert">{deleteError}</p>}
+            <div className="invoice-actions">
+              <button className="btn btn-secondary" disabled={deleting} onClick={() => setShowDelete(false)}>Cancelar</button>
+              <button className="btn btn-danger" disabled={deleting} onClick={remove}>{deleting ? 'Eliminando…' : 'Confirmar eliminación'}</button>
+            </div>
+          </Modal>}
           {detailGroups.map(group => (
             <section className="invoice-panel" key={group.title}>
               <h2>{group.title}</h2>
