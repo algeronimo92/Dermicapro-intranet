@@ -74,8 +74,9 @@ export interface Patient {
   firstName: string;
   lastName: string;
   dni: string;
-  dateOfBirth: string;
-  sex: Sex;
+  // Vacíos en un paciente que llegó desde el CRM: recepción los completa.
+  dateOfBirth?: string | null;
+  sex?: Sex | null;
   phone?: string;
   email?: string;
   address?: string;
@@ -202,6 +203,8 @@ export interface Appointment {
   reservationPayment?: ReservationPayment | null;
   attendedAt?: string;
   createdAt: string;
+  /** 'crm' cuando la cita se agendó en el CRM y llegó por la integración. */
+  externalSource?: string | null;
   patient?: Patient;
   createdBy?: Partial<User>;
   attendedBy?: Partial<User>;

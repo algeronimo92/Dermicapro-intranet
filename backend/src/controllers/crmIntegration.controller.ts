@@ -70,10 +70,12 @@ export function parseCrmAppointment(body: Request['body'], file?: Express.Multer
     throw new AppError('Falta el nombre del paciente', 400);
   }
 
-  // DNI, carné de extranjería o pasaporte: sin espacios ni guiones.
-  const patientDni = text(body.patientDni).replace(/[\s-]/g, '').toUpperCase();
-  if (!/^[A-Z0-9]{6,15}$/.test(patientDni)) {
-    throw new AppError('Falta el DNI del paciente o no es válido', 400);
+  // La misma regla que la ficha de paciente del ERP (CreatePatientModal): 8
+  // dígitos. Aceptar aquí otro documento crearía una ficha que después no se
+  // puede guardar al completarla.
+  const patientDni = text(body.patientDni).replace(/[\s.-]/g, '');
+  if (!/^\d{8}$/.test(patientDni)) {
+    throw new AppError('El DNI del paciente es obligatorio y debe tener 8 dígitos', 400);
   }
 
   const servicePackageId = text(body.servicePackageId);

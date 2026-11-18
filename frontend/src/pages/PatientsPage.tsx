@@ -48,10 +48,12 @@ const SEX_CONFIG: Record<Sex, { label: string; color: string; bg: string }> = {
 // ── Patient Card ──────────────────────────────────────────────────────────────
 const PatientCard: React.FC<{ patient: Patient; onClick: () => void }> = ({ patient, onClick }) => {
   const navigate = useNavigate();
-  const sex      = SEX_CONFIG[patient.sex] || SEX_CONFIG.Other;
+  const sex      = patient.sex ? SEX_CONFIG[patient.sex] || SEX_CONFIG.Other : null;
   const initials = `${patient.firstName[0] || ''}${patient.lastName[0] || ''}`.toUpperCase();
   const palette  = avatarPalette(`${patient.firstName}${patient.lastName}`);
-  const age      = calculateAge(patient.dateOfBirth);
+  const age      = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
+  // Paciente que llegó desde el CRM: aún sin fecha de nacimiento o sexo.
+  const isIncomplete = !sex || !age;
   const hasBalance = (patient.accountBalance ?? 0) > 0;
 
   return (
@@ -116,12 +118,21 @@ const PatientCard: React.FC<{ patient: Patient; onClick: () => void }> = ({ pati
 
         {/* Chips: sexo + edad */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, color: sex.color, background: sex.bg }}>
-            {sex.label}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', background: 'var(--color-bg-tertiary)' }}>
-            {age}
-          </span>
+          {sex && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, color: sex.color, background: sex.bg }}>
+              {sex.label}
+            </span>
+          )}
+          {age && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, color: 'var(--color-text-secondary)', background: 'var(--color-bg-tertiary)' }}>
+              {age}
+            </span>
+          )}
+          {isIncomplete && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 600, color: 'var(--color-warning-dark)', background: 'var(--color-warning-alpha-10)' }}>
+              Datos por completar
+            </span>
+          )}
         </div>
 
         {/* Teléfono */}

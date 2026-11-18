@@ -96,6 +96,13 @@
   border: 1px solid var(--color-border-primary);
 }
 
+/* Ficha que llegó desde el CRM y aún no tiene fecha de nacimiento o sexo */
+.pd-chip--warning {
+  background: var(--color-warning-alpha-10);
+  color: var(--color-warning-dark);
+  border-color: var(--color-warning);
+}
+
 /* Hero actions */
 .pd-hero__actions {
   display: flex;

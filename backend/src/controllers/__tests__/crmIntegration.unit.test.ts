@@ -34,6 +34,7 @@ describe('Datos de una cita que envía el CRM', () => {
     ['el nombre', { patientName: '   ' }],
     ['el DNI', { patientDni: '' }],
     ['un DNI demasiado corto', { patientDni: '123' }],
+    ['un documento que no es un DNI de 8 dígitos', { patientDni: 'CE001234567' }],
     ['el paquete', { servicePackageId: '' }],
     ['la fecha', { scheduledDate: '' }],
     ['una fecha sin zona horaria', { scheduledDate: '2026-11-20T15:30:00' }],
