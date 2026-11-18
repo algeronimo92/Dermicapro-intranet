@@ -44,9 +44,6 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       # Protege GET /metrics; el mismo valor lo lee Prometheus.
       METRICS_TOKEN: ${METRICS_TOKEN:-}
-      # Token que presenta el CRM en /api/integrations/crm/*. Vacío = integración cerrada.
-      CRM_INTEGRATION_TOKEN: ${CRM_INTEGRATION_TOKEN:-}
-      CRM_INTEGRATION_USER_EMAIL: ${CRM_INTEGRATION_USER_EMAIL:-}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-}
       MINIO_BUCKET: ${MINIO_BUCKET:-}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}

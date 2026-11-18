@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../config/database';
 import { hashPassword } from '../../utils/password';
+import { getCrmFallbackUserId } from '../crmIntegrationConfig.service';
 import {
   CrmAppointmentInput,
   createAppointmentFromCrm,
@@ -23,6 +24,9 @@ jest.mock('../../config/database', () => {
   return { __esModule: true, default: db };
 });
 jest.mock('../../utils/password', () => ({ hashPassword: jest.fn() }));
+jest.mock('../crmIntegrationConfig.service', () => ({ getCrmFallbackUserId: jest.fn() }));
+
+const fallbackUser = getCrmFallbackUserId as jest.Mock;
 
 type Mocked = Record<string, Record<string, jest.Mock>> & { $transaction: jest.Mock };
 const db = prisma as unknown as Mocked;
@@ -44,7 +48,7 @@ const PACKAGE = { id: 'pkg-3', serviceId: 'svc-1', sessions: 3, price: new Prism
 
 beforeEach(() => {
   jest.resetAllMocks();
-  delete process.env.CRM_INTEGRATION_USER_EMAIL;
+  fallbackUser.mockResolvedValue(null);
   (hashPassword as jest.Mock).mockImplementation(async (value: string) => `hash(${value})`);
 
   // La transacción corre contra el mismo doble: lo que se afirma es qué se crea.
@@ -203,17 +207,25 @@ describe('Cita agendada en el CRM', () => {
     expect(db.patient.create).not.toHaveBeenCalled();
   });
 
-  it('deja la cita a nombre del usuario de integración si el vendedor no existe en el ERP', async () => {
-    process.env.CRM_INTEGRATION_USER_EMAIL = 'admin@dermicapro.com';
-    db.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'user-admin' });
+  it('deja la cita a nombre del usuario de respaldo si el vendedor no existe en el ERP', async () => {
+    db.user.findFirst.mockResolvedValue(null);
+    fallbackUser.mockResolvedValue('user-admin');
 
     await createAppointmentFromCrm(INPUT);
 
-    expect(db.user.findFirst).toHaveBeenLastCalledWith(expect.objectContaining({
-      where: { email: { equals: 'admin@dermicapro.com', mode: 'insensitive' }, isActive: true },
-    }));
     expect(db.appointment.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ createdById: 'user-admin' }),
+    }));
+  });
+
+  it('el vendedor con usuario en el ERP tiene prioridad sobre el de respaldo', async () => {
+    fallbackUser.mockResolvedValue('user-admin');
+
+    await createAppointmentFromCrm(INPUT);
+
+    expect(fallbackUser).not.toHaveBeenCalled();
+    expect(db.appointment.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ createdById: 'user-grecia' }),
     }));
   });
 

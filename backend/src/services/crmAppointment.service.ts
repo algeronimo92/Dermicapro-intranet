@@ -2,6 +2,7 @@ import { PaymentMethod, Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
+import { getCrmFallbackUserId } from './crmIntegrationConfig.service';
 
 /**
  * Citas que agenda el CRM (sugerencias-chat) y que deben aparecer en la agenda
@@ -47,16 +48,6 @@ export interface CrmAppointmentResult {
   patientCreated: boolean;
   /** false cuando la cita ya existía: el CRM repitió un envío. */
   created: boolean;
-}
-
-/**
- * Configuración de la integración. Vive en un solo sitio a propósito: hoy son
- * variables de entorno porque el ERP atiende a una sola clínica; cuando sea
- * multiempresa, el token y el usuario pasan a ser de cada negocio y solo
- * cambia esta función (y `requireCrmToken`).
- */
-export function crmFallbackUserEmail(): string {
-  return (process.env.CRM_INTEGRATION_USER_EMAIL ?? '').trim();
 }
 
 /**
@@ -106,25 +97,25 @@ async function findExisting(externalId: string): Promise<CrmAppointmentResult | 
 /**
  * A nombre de quién queda la cita. El vendedor del CRM, si tiene usuario en el
  * ERP con el mismo correo: así la comisión que se genera al atender la cita es
- * suya. Si no, el usuario configurado para la integración.
+ * suya. Si no, el usuario de respaldo elegido en Configuración.
  */
 async function resolveUser(tx: Prisma.TransactionClient, sellerEmail: string | undefined): Promise<string> {
-  const candidates = [sellerEmail?.trim(), crmFallbackUserEmail()].filter(
-    (email): email is string => Boolean(email)
-  );
-
-  for (const email of candidates) {
-    const user = await tx.user.findFirst({
+  const email = sellerEmail?.trim();
+  if (email) {
+    const seller = await tx.user.findFirst({
       where: { email: { equals: email, mode: 'insensitive' }, isActive: true },
       select: { id: true },
     });
-    if (user) return user.id;
+    if (seller) return seller.id;
   }
 
+  const fallbackUserId = await getCrmFallbackUserId();
+  if (fallbackUserId) return fallbackUserId;
+
   throw new AppError(
-    sellerEmail
-      ? `El vendedor ${sellerEmail} no tiene usuario activo en el ERP y no hay un usuario de integración configurado`
-      : 'No hay un usuario de integración configurado en el ERP para registrar la cita',
+    email
+      ? `El vendedor ${email} no tiene usuario activo en el ERP y no hay un usuario de respaldo elegido en Configuración`
+      : 'No hay un usuario de respaldo elegido en Configuración del ERP para registrar la cita',
     422
   );
 }

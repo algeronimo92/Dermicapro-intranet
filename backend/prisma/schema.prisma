@@ -107,6 +107,8 @@ model User {
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
   appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
+  integrationTokensCreated   IntegrationConfig[]  @relation("IntegrationTokenCreatedBy")
+  integrationFallbackFor     IntegrationConfig[]  @relation("IntegrationFallbackUser")
 
   @@index([roleId], map: "users_role_id_idx")
   @@map("users")
@@ -528,6 +530,30 @@ model Payment {
 
 // ==========================================
 // CONFIGURACIÓN DEL SISTEMA
+
+// Conexión con otro sistema del negocio (hoy solo el CRM, que envía sus citas).
+// Tabla aparte de system_settings a propósito: GET /api/settings devuelve todas
+// las filas de esa tabla a cualquier usuario con sesión.
+model IntegrationConfig {
+  integration      String    @id // 'crm'
+  // Solo el hash (SHA-256) del token: el token se muestra una única vez, al
+  // generarlo, y no se puede recuperar. tokenHint son sus últimos 4 caracteres,
+  // para que el admin reconozca cuál está activo.
+  tokenHash        String?   @map("token_hash")
+  tokenHint        String?   @map("token_hint")
+  tokenCreatedAt   DateTime? @map("token_created_at")
+  tokenCreatedById String?   @map("token_created_by_id")
+  // A nombre de quién quedan las citas cuyo vendedor del CRM no tiene usuario aquí.
+  fallbackUserId   String?   @map("fallback_user_id")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  tokenCreatedBy User? @relation("IntegrationTokenCreatedBy", fields: [tokenCreatedById], references: [id])
+  fallbackUser   User? @relation("IntegrationFallbackUser", fields: [fallbackUserId], references: [id])
+
+  @@index([tokenCreatedById], map: "integration_configs_token_created_by_id_idx")
+  @@index([fallbackUserId], map: "integration_configs_fallback_user_id_idx")
+  @@map("integration_configs")
+}
 
 model SystemSetting {
   key         String   @id
