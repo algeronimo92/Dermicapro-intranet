@@ -301,9 +301,13 @@ up on the ERP calendar like any other appointment.
 
 - `POST /api/integrations/crm/appointments` (multipart) and
   `GET /api/integrations/crm/ping`, both under `routes/integrations.routes.ts`.
-- Auth is a shared Bearer token (`CRM_INTEGRATION_TOKEN`), not a staff JWT
-  (`middlewares/integrationAuth.ts`). With the variable unset the endpoints
-  answer `503`: closed by default.
+- Auth is a Bearer token, not a staff JWT (`middlewares/integrationAuth.ts`). An
+  admin generates it in Configuración → "Integración con el CRM" and pastes it
+  in the CRM; it can be regenerated or deactivated there
+  (`services/crmIntegrationConfig.service.ts`, routes under
+  `/api/settings/crm-integration`, admin only). Only its SHA-256 hash is stored
+  (table `integration_configs`), so it is shown once. With no token generated
+  the endpoints answer `503`: closed by default.
 - `services/crmAppointment.service.ts` does everything in one transaction:
   finds the patient by DNI or creates it, creates a new `ServiceInstance` for the
   chosen `ServicePackage` and a `Session` with `sessionNumber: 1`, the
@@ -313,12 +317,14 @@ up on the ERP calendar like any other appointment.
 - Idempotent on `externalId` (`@@unique([externalSource, externalId])`): a
   repeated send returns the same appointment with `200` and creates nothing.
 - The appointment is attributed to the ERP user whose email matches the CRM
-  seller (so the commission is theirs); otherwise to
-  `CRM_INTEGRATION_USER_EMAIL`.
+  seller (so the commission is theirs); otherwise to the fallback user chosen
+  on that same settings section. With neither, the appointment is rejected.
 - A patient created this way has no `dateOfBirth` or `sex` (both nullable). The
   UI labels it "Datos por completar"; manual creation still requires both.
-- The token and fallback user are read in one place on purpose: when the ERP
-  becomes multi-tenant they become per-business settings.
+- Token and fallback user live in the database, not in environment variables,
+  on purpose: when the ERP becomes multi-tenant each business has its own.
+  `integration_configs` is separate from `system_settings` because
+  `GET /api/settings` returns every row of that table to any logged-in user.
 
 ### Managing Commissions
 Commissions have a workflow: pending → approved → paid
@@ -348,8 +354,6 @@ Always configure via `.env` file. Key variables:
 - `CORS_ORIGIN` - Allowed frontend origins
 - `NODE_ENV` - development or production
 - `VITE_API_URL` - Frontend API endpoint
-- `CRM_INTEGRATION_TOKEN` - Shared token the CRM presents on `/api/integrations/crm/*` (empty = integration closed)
-- `CRM_INTEGRATION_USER_EMAIL` - Active ERP user that owns CRM appointments whose seller has no ERP user
 
 ### Date Handling
 The system uses ISO 8601 strings for all date/time values. Key utilities in `frontend/src/utils/`:

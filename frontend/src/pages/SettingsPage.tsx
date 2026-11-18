@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/auth.service';
 import { useSystemSettings } from '../contexts/SystemSettingsContext';
 import { ShieldCheck, Save } from 'lucide-react';
+import { CrmIntegrationSettings } from '../components/CrmIntegrationSettings';
 
 const SettingsPage: React.FC = () => {
   const { mode, resolvedTheme, setMode } = useTheme();
@@ -275,6 +276,8 @@ const SettingsPage: React.FC = () => {
                 <p style={{ fontSize: 12, color: 'var(--color-error)', marginTop: 4 }}>{timeoutError}</p>
               )}
             </div>
+
+            <CrmIntegrationSettings />
           </section>
         )}
 

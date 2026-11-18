@@ -27,3 +27,25 @@ La fecha de nacimiento y el sexo llegan vacíos y son obligatorios.
 El adelanto con su comprobante, la nota con lo que escribió ventas y el origen.
 
 ![Detalle de la cita con adelanto, nota del CRM y origen](erp-4-cita.png)
+
+## Generar el token para el CRM
+
+En Configuración, solo para administradores. Sin token, el ERP no acepta citas
+del CRM.
+
+![Sección Integración con el CRM sin token generado](erp-5-token-sin-generar.png)
+
+Al generarlo se muestra una única vez, junto a la dirección del ERP: son los
+dos datos que se pegan en el CRM. (El de la imagen es de prueba y ya no existe.)
+
+![Token recién generado con botón para copiar](erp-6-token-generado.png)
+
+Después solo se ven sus últimos caracteres, y se puede regenerar o desactivar.
+
+![Token activo con las opciones de regenerar y desactivar](erp-7-token-activo.png)
+
+Regenerar pide confirmación, porque el token anterior deja de funcionar al
+instante.
+
+![Confirmación antes de regenerar el token](erp-8-confirmar-regenerar.png)
+
