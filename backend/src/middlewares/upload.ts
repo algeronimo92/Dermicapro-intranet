@@ -56,6 +56,17 @@ export const receiptUpload = multer({
   limits: { fileSize: config.upload.maxFileSize },
 });
 
+// Tope del comprobante que envía el CRM: su formulario admite hasta 10 MB, más
+// que el límite general del ERP, y rechazarlo aquí dejaría la cita sin pago.
+export const CRM_RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
+
+// For the receipt the CRM attaches to an appointment (images + PDFs)
+export const crmReceiptUpload = multer({
+  storage,
+  fileFilter: receiptFilter,
+  limits: { fileSize: CRM_RECEIPT_MAX_BYTES, files: 1 },
+});
+
 // Magic bytes for each MIME type
 const MAGIC: Record<string, { offset: number; bytes: number[] }[]> = {
   'image/jpeg': [{ offset: 0, bytes: [0xFF, 0xD8, 0xFF] }],

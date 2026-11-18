@@ -117,8 +117,10 @@ model Patient {
   firstName   String   @map("first_name")
   lastName    String   @map("last_name")
   dni         String   @unique
-  dateOfBirth DateTime @map("date_of_birth")
-  sex         Sex
+  // Opcionales: un paciente que llega desde el CRM (services/crmAppointment.service.ts)
+  // solo trae nombre, DNI y teléfono; recepción completa el resto cuando llega.
+  dateOfBirth DateTime? @map("date_of_birth")
+  sex         Sex?
   phone       String?
   email       String?
   address     String?
@@ -251,6 +253,11 @@ model Appointment {
   attendedAt            DateTime?         @map("attended_at")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
+  // Cita creada por un sistema externo (hoy solo 'crm'). externalId es el
+  // identificador de la cita en ese sistema: repetir el envío devuelve esta
+  // misma cita en vez de duplicarla.
+  externalSource        String?           @map("external_source")
+  externalId            String?           @map("external_id")
 
   // Relations
   patient             Patient              @relation(fields: [patientId], references: [id])
@@ -267,6 +274,7 @@ model Appointment {
   @@index([status, scheduledDate(sort: Desc)], map: "appointments_status_scheduled_date_idx")
   @@index([createdById, scheduledDate(sort: Desc)], map: "appointments_created_by_scheduled_date_idx")
   @@index([attendedById], map: "appointments_attended_by_id_idx")
+  @@unique([externalSource, externalId], map: "appointments_external_source_external_id_key")
   @@map("appointments")
 }
 

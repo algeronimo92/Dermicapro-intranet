@@ -104,3 +104,20 @@ export const uploadLimiter = rateLimit({
     });
   }
 });
+
+// Rate limiter para la integración con el CRM — por IP: quien llama es otro
+// servidor con un token compartido, no un usuario. Holgado para un día de
+// agenda cargado más los reintentos, corto para quien pruebe tokens.
+export const integrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: 'Demasiadas peticiones',
+      message: 'Has excedido el límite de peticiones. Por favor intenta de nuevo más tarde.',
+      retryAfter: '15 minutos'
+    });
+  }
+});
