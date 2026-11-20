@@ -18,7 +18,12 @@ interface CreatePatientModalProps {
   patientId?: string;
 }
 
-const EMPTY_FORM: CreatePatientDto = {
+// El sexo puede venir vacío al editar un paciente que llegó desde el CRM: el
+// desplegable lo muestra sin elegir y obliga a completarlo, en vez de
+// preseleccionar uno que nadie confirmó.
+type PatientForm = Omit<CreatePatientDto, 'sex'> & { sex: CreatePatientDto['sex'] | '' };
+
+const EMPTY_FORM: PatientForm = {
   firstName: '',
   lastName: '',
   dni: '',
@@ -68,7 +73,7 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
 }) => {
   const isEditMode = !!patientId;
 
-  const [form, setForm] = useState<CreatePatientDto>(EMPTY_FORM);
+  const [form, setForm] = useState<PatientForm>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingPatient, setIsLoadingPatient] = useState(false);
@@ -97,8 +102,8 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
         firstName: patient.firstName,
         lastName: patient.lastName,
         dni: patient.dni,
-        dateOfBirth: utcToLocalDate(patient.dateOfBirth),
-        sex: patient.sex,
+        dateOfBirth: patient.dateOfBirth ? utcToLocalDate(patient.dateOfBirth) : '',
+        sex: patient.sex ?? '',
         phone: patient.phone || '',
         email: patient.email || '',
         address: patient.address || '',
@@ -126,6 +131,7 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
     if (!form.dni.trim()) e.dni = 'El DNI es requerido';
     else if (!/^\d{8}$/.test(form.dni)) e.dni = 'El DNI debe tener 8 dígitos';
     if (!form.dateOfBirth) e.dateOfBirth = 'La fecha de nacimiento es requerida';
+    if (!form.sex) e.sex = 'El sexo es requerido';
     if (!form.phone?.trim()) e.phone = 'El teléfono es requerido';
     else if (!/^\d{9}$/.test(form.phone)) e.phone = 'El teléfono debe tener 9 dígitos';
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Email inválido';
@@ -166,15 +172,17 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
 
   const handleSubmit = async () => {
     if (!validate()) return;
+    // validate() ya comprobó que el sexo está elegido.
+    const payload = form as CreatePatientDto;
     try {
       setIsSaving(true);
       setSaveError(null);
       if (isEditMode && patientId) {
-        const updated = await patientsService.updatePatient(patientId, form);
+        const updated = await patientsService.updatePatient(patientId, payload);
         handleClose();
         onUpdated?.(updated);
       } else {
-        const created = await patientsService.createPatient(form);
+        const created = await patientsService.createPatient(payload);
         handleClose();
         onCreated?.(created);
       }
@@ -276,6 +284,7 @@ export const CreatePatientModal: React.FC<CreatePatientModalProps> = ({
             name="sex"
             value={form.sex}
             onChange={handleChange}
+            error={errors.sex}
             options={[
               { value: 'F', label: 'Femenino' },
               { value: 'M', label: 'Masculino' },

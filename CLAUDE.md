@@ -167,7 +167,7 @@ App.tsx (routing) → Pages → Components
 **Core Models** (as defined in `prisma/schema.prisma`):
 - `Role` - Roles with permissions (RBAC)
 - `User` - System users with roles (admin, medical_staff, assistant, sales)
-- `Patient` - Customer records with DNI (Peruvian ID)
+- `Patient` - Customer records with DNI (Peruvian ID); `dateOfBirth` and `sex` are optional (patients that arrive from the CRM)
 - `Service` - Treatment services (HIFU, laser, etc.)
 - `ServicePackage` - Purchasable variants of a `Service` (price, number of sessions)
 - `ServiceInstance` - A package sold to a patient; tracks `totalSessions` vs `completedSessions`
@@ -293,6 +293,38 @@ const dto = PaymentOrderFactory.createFromServiceInstanceIds(
 ```
 Other methods: `createSingleServiceInstancePaymentOrder`,
 `createConsolidatedPaymentOrder`, `createWithAutoPaymentDate`.
+
+### Receiving an Appointment from the CRM
+The CRM (`sugerencias-chat`) and this ERP are two parts of the same product. When
+a sales user books an appointment in the CRM, the CRM sends it here so it shows
+up on the ERP calendar like any other appointment.
+
+- `POST /api/integrations/crm/appointments` (multipart) and
+  `GET /api/integrations/crm/ping`, both under `routes/integrations.routes.ts`.
+- Auth is a Bearer token, not a staff JWT (`middlewares/integrationAuth.ts`). An
+  admin generates it in Configuración → "Integración con el CRM" and pastes it
+  in the CRM; it can be regenerated or deactivated there
+  (`services/crmIntegrationConfig.service.ts`, routes under
+  `/api/settings/crm-integration`, admin only). Only its SHA-256 hash is stored
+  (table `integration_configs`), so it is shown once. With no token generated
+  the endpoints answer `503`: closed by default.
+- `services/crmAppointment.service.ts` does everything in one transaction:
+  finds the patient by DNI or creates it, creates a new `ServiceInstance` for the
+  chosen `ServicePackage` and a `Session` with `sessionNumber: 1`, the
+  `Appointment` (`reserved`, `externalSource: 'crm'`), a note, and, if an advance
+  was declared, a `reservation` `Payment` with its receipt plus the increment of
+  `accountBalance`.
+- Idempotent on `externalId` (`@@unique([externalSource, externalId])`): a
+  repeated send returns the same appointment with `200` and creates nothing.
+- The appointment is attributed to the ERP user whose email matches the CRM
+  seller (so the commission is theirs); otherwise to the fallback user chosen
+  on that same settings section. With neither, the appointment is rejected.
+- A patient created this way has no `dateOfBirth` or `sex` (both nullable). The
+  UI labels it "Datos por completar"; manual creation still requires both.
+- Token and fallback user live in the database, not in environment variables,
+  on purpose: when the ERP becomes multi-tenant each business has its own.
+  `integration_configs` is separate from `system_settings` because
+  `GET /api/settings` returns every row of that table to any logged-in user.
 
 ### Managing Commissions
 Commissions have a workflow: pending → approved → paid

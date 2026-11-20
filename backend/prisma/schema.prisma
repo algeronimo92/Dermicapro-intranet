@@ -107,6 +107,8 @@ model User {
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
   appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
+  integrationTokensCreated   IntegrationConfig[]  @relation("IntegrationTokenCreatedBy")
+  integrationFallbackFor     IntegrationConfig[]  @relation("IntegrationFallbackUser")
 
   @@index([roleId], map: "users_role_id_idx")
   @@map("users")
@@ -117,8 +119,10 @@ model Patient {
   firstName   String   @map("first_name")
   lastName    String   @map("last_name")
   dni         String   @unique
-  dateOfBirth DateTime @map("date_of_birth")
-  sex         Sex
+  // Opcionales: un paciente que llega desde el CRM (services/crmAppointment.service.ts)
+  // solo trae nombre, DNI y teléfono; recepción completa el resto cuando llega.
+  dateOfBirth DateTime? @map("date_of_birth")
+  sex         Sex?
   phone       String?
   email       String?
   address     String?
@@ -251,6 +255,11 @@ model Appointment {
   attendedAt            DateTime?         @map("attended_at")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
+  // Cita creada por un sistema externo (hoy solo 'crm'). externalId es el
+  // identificador de la cita en ese sistema: repetir el envío devuelve esta
+  // misma cita en vez de duplicarla.
+  externalSource        String?           @map("external_source")
+  externalId            String?           @map("external_id")
 
   // Relations
   patient             Patient              @relation(fields: [patientId], references: [id])
@@ -267,6 +276,7 @@ model Appointment {
   @@index([status, scheduledDate(sort: Desc)], map: "appointments_status_scheduled_date_idx")
   @@index([createdById, scheduledDate(sort: Desc)], map: "appointments_created_by_scheduled_date_idx")
   @@index([attendedById], map: "appointments_attended_by_id_idx")
+  @@unique([externalSource, externalId], map: "appointments_external_source_external_id_key")
   @@map("appointments")
 }
 
@@ -520,6 +530,30 @@ model Payment {
 
 // ==========================================
 // CONFIGURACIÓN DEL SISTEMA
+
+// Conexión con otro sistema del negocio (hoy solo el CRM, que envía sus citas).
+// Tabla aparte de system_settings a propósito: GET /api/settings devuelve todas
+// las filas de esa tabla a cualquier usuario con sesión.
+model IntegrationConfig {
+  integration      String    @id // 'crm'
+  // Solo el hash (SHA-256) del token: el token se muestra una única vez, al
+  // generarlo, y no se puede recuperar. tokenHint son sus últimos 4 caracteres,
+  // para que el admin reconozca cuál está activo.
+  tokenHash        String?   @map("token_hash")
+  tokenHint        String?   @map("token_hint")
+  tokenCreatedAt   DateTime? @map("token_created_at")
+  tokenCreatedById String?   @map("token_created_by_id")
+  // A nombre de quién quedan las citas cuyo vendedor del CRM no tiene usuario aquí.
+  fallbackUserId   String?   @map("fallback_user_id")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  tokenCreatedBy User? @relation("IntegrationTokenCreatedBy", fields: [tokenCreatedById], references: [id])
+  fallbackUser   User? @relation("IntegrationFallbackUser", fields: [fallbackUserId], references: [id])
+
+  @@index([tokenCreatedById], map: "integration_configs_token_created_by_id_idx")
+  @@index([fallbackUserId], map: "integration_configs_fallback_user_id_idx")
+  @@map("integration_configs")
+}
 
 model SystemSetting {
   key         String   @id

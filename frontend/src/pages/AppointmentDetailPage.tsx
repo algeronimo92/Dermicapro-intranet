@@ -1616,6 +1616,12 @@ export const AppointmentDetailPage: React.FC = () => {
                 : '-'}
             </span>
           </div>
+          {appointment.externalSource === 'crm' && (
+            <div className="system-item">
+              <span className="system-label">Origen</span>
+              <span className="system-value">Agendada desde el CRM</span>
+            </div>
+          )}
           <div className="system-item">
             <span className="system-label">Fecha de Creación</span>
             <span className="system-value">

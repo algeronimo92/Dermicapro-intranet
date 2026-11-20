@@ -19,8 +19,8 @@ export interface PatientProfile {
   lastName: string;
   email: string;
   dni: string;
-  dateOfBirth: string;
-  sex: string;
+  dateOfBirth: string | null;
+  sex: string | null;
   phone: string | null;
   address: string | null;
   hasPortalAccess: boolean;

@@ -14,10 +14,14 @@ import analyticsRoutes from './analytics.routes';
 import rolesRoutes from './roles.routes';
 import settingsRoutes from './settings.routes';
 import publicRoutes from './public.routes';
+import integrationsRoutes from './integrations.routes';
 const router = Router();
 
 // Público (sin autenticación, consumo externo)
 router.use('/public', publicRoutes);
+
+// Integraciones servidor a servidor (token compartido, no JWT de usuario)
+router.use('/integrations', integrationsRoutes);
 
 // Staff authentication
 router.use('/auth', authRoutes);

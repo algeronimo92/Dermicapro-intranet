@@ -120,7 +120,9 @@ export const PatientDetailPage: React.FC = () => {
     ? user.role === Role.admin
     : user?.role?.name === Role.admin;
 
-  const age       = calculateAge(patient.dateOfBirth);
+  const age       = patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
+  // Paciente que llegó desde el CRM: aún sin fecha de nacimiento o sexo.
+  const isIncomplete = !patient.dateOfBirth || !patient.sex;
   const allOrders = patient.orders || [];
 
   const countAttended = (o: typeof allOrders[0]) =>
@@ -186,14 +188,21 @@ export const PatientDetailPage: React.FC = () => {
               </svg>
               {patient.dni}
             </span>
-            <span className="pd-chip">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                <circle cx="6" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M1 11a5 5 0 0110 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              {age} años
-            </span>
-            <span className="pd-chip">{sexIcons[patient.sex]} {sexLabels[patient.sex]}</span>
+            {age !== null && (
+              <span className="pd-chip">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M1 11a5 5 0 0110 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                {age} años
+              </span>
+            )}
+            {patient.sex && (
+              <span className="pd-chip">{sexIcons[patient.sex]} {sexLabels[patient.sex]}</span>
+            )}
+            {isIncomplete && (
+              <span className="pd-chip pd-chip--warning">Datos por completar</span>
+            )}
             {patient.phone && (
               <span className="pd-chip">
                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
@@ -357,7 +366,11 @@ export const PatientDetailPage: React.FC = () => {
               </div>
               <div className="pd-info-row">
                 <span className="pd-info-label">Fecha de Nacimiento</span>
-                <span className="pd-info-value">{formatDate(patient.dateOfBirth)}</span>
+                <span className="pd-info-value">
+                  {patient.dateOfBirth
+                    ? formatDate(patient.dateOfBirth)
+                    : <span className="pd-info-empty">No registrada</span>}
+                </span>
               </div>
               <div className="pd-info-row">
                 <span className="pd-info-label">Dirección</span>
