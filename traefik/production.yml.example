@@ -1,3 +1,5 @@
+# Ejemplo de referencia. El fichero real (traefik/dynamic/production.yml) lo
+# genera scripts/deploy-prod.sh en el VPS y no está en git.
 # Routing de producción — gestionado por scripts/deploy-prod.sh
 # Este archivo se sobreescribe en cada deploy para apuntar al color activo.
 # Traefik lo detecta en ~1-2s sin necesidad de reinicio.
