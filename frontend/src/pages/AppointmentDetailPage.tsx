@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentsService } from '../services/appointments.service';
 import { patientsService } from '../services/patients.service';
-import { usersService } from '../services/users.service';
-import { Appointment, Patient, Role, User } from '../types';
+import { usersService, StaffUser } from '../services/users.service';
+import { Appointment, Patient, Role } from '../types';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { AttendAppointmentModal } from '../components/AttendAppointmentModal';
@@ -59,7 +59,7 @@ export const AppointmentDetailPage: React.FC = () => {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Attendees state
-  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [showAttendeeSelector, setShowAttendeeSelector] = useState(false);
   const [attendeeSearchQuery, setAttendeeSearchQuery] = useState('');
   const [isAddingAttendee, setIsAddingAttendee] = useState(false);
@@ -113,7 +113,7 @@ export const AppointmentDetailPage: React.FC = () => {
 
   // Load staff users once for attendee picker
   useEffect(() => {
-    usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+    usersService.getStaff().then(setStaffUsers).catch(() => {});
   }, []);
 
   useEffect(() => {

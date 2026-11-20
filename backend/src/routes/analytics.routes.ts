@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/auth';
+import { authenticate, authorize } from '../middlewares/auth';
+import { ROLES } from '../constants/roles';
 import * as analyticsController from '../controllers/analytics.controller';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, authorize(ROLES.ADMIN));
 
 // Routes
 router.get('/executive', analyticsController.getExecutiveSummary);
