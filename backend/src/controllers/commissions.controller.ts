@@ -29,11 +29,11 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
     }
 
     // Filtro por vendedor
-    if (salesPersonId) {
-      where.salesPersonId = salesPersonId;
-    } else if (req.user?.roleName === ROLES.SALES) {
+    if (req.user?.roleName === ROLES.SALES) {
       // Si es vendedor, solo ver sus propias comisiones
       where.salesPersonId = req.user.id;
+    } else if (salesPersonId) {
+      where.salesPersonId = salesPersonId;
     }
 
     // Filtro por servicio
@@ -126,7 +126,7 @@ export const getAllCommissions = async (req: Request, res: Response): Promise<vo
     // Calcular totales por estado
     const totals = await prisma.commission.groupBy({
       by: ['status'],
-      where: salesPersonId ? { salesPersonId: salesPersonId as string } : {},
+      where: where.salesPersonId ? { salesPersonId: where.salesPersonId } : {},
       _sum: {
         commissionAmount: true,
       },

@@ -45,6 +45,10 @@ export const authenticate = async (
     }
 
     const roleName = user.role?.name;
+    if (!roleName || !Object.values(ROLES).includes(roleName as typeof ROLES[keyof typeof ROLES])) {
+      res.status(403).json({ error: 'La cuenta no tiene un rol autorizado' });
+      return;
+    }
     // La sesión necesita su cuenta y la configuración del tiempo de inactividad.
     const accountantCanAccess =
       req.baseUrl === '/api/auth' ||
@@ -76,4 +80,17 @@ export const authorize = (...roleNames: string[]) => {
 
     next();
   };
+};
+
+// Se ejecuta antes de procesar archivos para impedir subidas sobre otras cuentas.
+export const authorizeSelfOrAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  if (!req.user) {
+    res.status(401).json({ error: 'No autenticado' });
+    return;
+  }
+  if (req.user.roleName !== ROLES.ADMIN && req.user.id !== req.params.id) {
+    res.status(403).json({ error: 'Permisos insuficientes' });
+    return;
+  }
+  next();
 };

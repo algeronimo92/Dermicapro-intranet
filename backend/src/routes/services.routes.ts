@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/auth';
+import { authenticate, authorize } from '../middlewares/auth';
+import { ROLES } from '../constants/roles';
 import * as servicesController from '../controllers/services.controller';
 import * as servicePackagesController from '../controllers/servicePackages.controller';
 
@@ -18,30 +19,30 @@ router.get('/active', servicesController.getActiveServices);
 router.get('/:id', servicesController.getService);
 
 // POST /api/services - Crear nuevo servicio (solo admin)
-router.post('/', servicesController.createService);
+router.post('/', authorize(ROLES.ADMIN), servicesController.createService);
 
 // PUT /api/services/:id - Actualizar servicio (solo admin)
-router.put('/:id', servicesController.updateService);
+router.put('/:id', authorize(ROLES.ADMIN), servicesController.updateService);
 
 // DELETE /api/services/:id - Eliminar servicio y sus paquetes (solo admin)
-router.delete('/:id', servicesController.deleteService);
+router.delete('/:id', authorize(ROLES.ADMIN), servicesController.deleteService);
 
 // POST /api/services/:id/restore - Restaurar servicio eliminado (solo admin)
-router.post('/:id/restore', servicesController.restoreService);
+router.post('/:id/restore', authorize(ROLES.ADMIN), servicesController.restoreService);
 
 // GET /api/services/:serviceId/packages - Obtener paquetes de un servicio
 router.get('/:serviceId/packages', servicePackagesController.getPackagesByService);
 
 // POST /api/services/:serviceId/packages - Crear paquete para un servicio (solo admin)
-router.post('/:serviceId/packages', servicePackagesController.createPackage);
+router.post('/:serviceId/packages', authorize(ROLES.ADMIN), servicePackagesController.createPackage);
 
 // PUT /api/services/packages/:id - Actualizar paquete (solo admin)
-router.put('/packages/:id', servicePackagesController.updatePackage);
+router.put('/packages/:id', authorize(ROLES.ADMIN), servicePackagesController.updatePackage);
 
 // DELETE /api/services/packages/:id - Eliminar paquete (solo admin)
-router.delete('/packages/:id', servicePackagesController.deletePackage);
+router.delete('/packages/:id', authorize(ROLES.ADMIN), servicePackagesController.deletePackage);
 
 // POST /api/services/packages/:id/restore - Restaurar paquete eliminado (solo admin)
-router.post('/packages/:id/restore', servicePackagesController.restorePackage);
+router.post('/packages/:id/restore', authorize(ROLES.ADMIN), servicePackagesController.restorePackage);
 
 export default router;
