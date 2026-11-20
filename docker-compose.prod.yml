@@ -57,6 +57,11 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
       # Protege GET /metrics; el mismo valor lo lee Prometheus.
       METRICS_TOKEN: ${METRICS_TOKEN:-}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-}
+      MINIO_BUCKET: ${MINIO_BUCKET:-}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
       # Umbrales de las métricas de negocio. Tienen que declararse aquí: el
       # contenedor sólo ve lo que se le pasa, así que ponerlos en .env sin esto
       # no haría nada y el backend usaría siempre los valores por defecto.

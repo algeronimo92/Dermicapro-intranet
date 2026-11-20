@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
-  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings,
+  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, FileText,
   LogOut, ChevronLeft, ChevronRight, LucideIcon, AlertTriangle, Timer, Menu, X, Banknote,
 } from 'lucide-react';
 import { NavItem } from '../config/navigation.config';
@@ -10,7 +10,7 @@ import { APP_VERSION } from '../config/version';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
-  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, Banknote,
+  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, Banknote, FileText,
 };
 
 const COLLAPSED_KEY = 'dermicapro_sidebar_collapsed';

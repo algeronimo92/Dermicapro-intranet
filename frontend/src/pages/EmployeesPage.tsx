@@ -37,6 +37,7 @@ const avatarPalette = (name: string): string => {
 // ── Role config ────────────────────────────────────────────────────────────────
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+  accountant:    { label: 'Contador',          color: 'var(--color-info-dark)',    bg: 'var(--color-info-alpha-10)',    icon: '📄' },
   admin:         { label: 'Administrador',     color: 'var(--color-error-dark)',   bg: 'var(--color-error-alpha-10)',   icon: '🔑' },
   medical_staff: { label: 'Personal Médico',   color: 'var(--color-info-dark)',    bg: 'var(--color-info-alpha-10)',    icon: '🩺' },
   assistant:     { label: 'Personal Asistente',color: 'var(--color-warning-dark)', bg: 'var(--color-warning-alpha-10)', icon: '📋' },

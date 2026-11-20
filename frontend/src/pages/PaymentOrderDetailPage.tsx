@@ -125,10 +125,9 @@ export const PaymentOrderDetailPage: React.FC = () => {
           </div>
           {isAdmin && paymentOrder.status !== 'cancelled' && (
             <Button
-              variant="secondary"
+              variant="danger"
               size="small"
               onClick={() => setShowVoidModal(true)}
-              style={{ color: 'var(--color-error, #dc2626)', borderColor: 'var(--color-error, #dc2626)' }}
             >
               Anular Orden
             </Button>

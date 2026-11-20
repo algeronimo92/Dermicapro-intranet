@@ -72,10 +72,9 @@ export const VoidPaymentOrderModal: React.FC<VoidPaymentOrderModalProps> = ({
       <div className="modal-actions">
         <Button variant="secondary" onClick={onClose} disabled={saving}>Cerrar</Button>
         <Button
-          variant="primary"
+          variant="danger"
           onClick={() => setShowConfirm(true)}
           disabled={saving || !reason.trim()}
-          style={{ background: 'var(--color-error, #dc2626)', borderColor: 'var(--color-error, #dc2626)' }}
         >
           {saving ? 'Anulando...' : 'Anular Orden'}
         </Button>
@@ -95,9 +94,9 @@ export const VoidPaymentOrderModal: React.FC<VoidPaymentOrderModalProps> = ({
               background: 'var(--color-error, #dc2626)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                <path d="M12 9v4M12 17h.01" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ color: 'var(--color-bg-primary)' }}>
+                <path d="M12 9v4M12 17h.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <div style={{ textAlign: 'center' }}>
@@ -113,9 +112,8 @@ export const VoidPaymentOrderModal: React.FC<VoidPaymentOrderModalProps> = ({
           <div className="modal-actions" style={{ marginTop: 'var(--spacing-lg)' }}>
             <Button variant="secondary" onClick={() => setShowConfirm(false)}>Cancelar</Button>
             <Button
-              variant="primary"
+              variant="danger"
               onClick={handleSubmit}
-              style={{ background: 'var(--color-error, #dc2626)', borderColor: 'var(--color-error, #dc2626)' }}
             >
               Sí, anular orden
             </Button>
