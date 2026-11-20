@@ -25,6 +25,9 @@ import { ServicesPage } from './pages/ServicesPage';
 import CommissionsPage from './pages/CommissionsPage';
 import { PaymentsAdminPage } from './pages/PaymentsAdminPage';
 import { InvoicesPage } from './pages/InvoicesPage';
+import { InventoryPage } from './pages/InventoryPage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { DbPrivilegesPage } from './pages/DbPrivilegesPage';
 import SettingsPage from './pages/SettingsPage';
 import { StyleGuidePage } from './pages/StyleGuidePage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -154,6 +157,8 @@ function DashboardLayout() {
   const roleDisplay = typeof user?.role === 'string' ? user.role : (user?.role?.displayName ?? '');
   const isAdmin     = roleName === 'admin';
   const isAccountant = roleName === 'accountant';
+  const isInventory = roleName === 'inventory';
+  const canSeeInventory = ['admin', 'inventory', 'sales', 'assistant'].includes(roleName);
 
   const { showWarning, getMsRemaining, extendSession } = useIdleTimeout({
     timeout:       sessionTimeoutMs,
@@ -176,8 +181,12 @@ function DashboardLayout() {
           <div className="dashboard-content">
             <Routes>
               <Route path="/invoices/*" element={isAdmin || isAccountant ? <InvoicesPage /> : <Navigate to="/" replace />} />
+              <Route path="/inventory" element={canSeeInventory ? <InventoryPage /> : <Navigate to="/" replace />} />
+              <Route path="/inventory/:id" element={canSeeInventory ? <ProductDetailPage /> : <Navigate to="/" replace />} />
               {isAccountant ? (
                 <Route path="*" element={<Navigate to="/invoices" replace />} />
+              ) : isInventory ? (
+                <Route path="*" element={<Navigate to="/inventory" replace />} />
               ) : (
                 <>
                   <Route path="/" element={<DashboardPage />} />
@@ -194,6 +203,7 @@ function DashboardLayout() {
                   <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
                   <Route path="/services" element={<ServicesPage />} />
                   <Route path="/employees" element={<EmployeesPage />} />
+                  <Route path="/employees/privileges" element={isAdmin ? <DbPrivilegesPage /> : <Navigate to="/" replace />} />
                   <Route path="/employees/:id" element={<EmployeeDetailPage />} />
                   <Route path="/commissions" element={<CommissionsPage />} />
                   <Route path="/payments" element={<PaymentsAdminPage />} />

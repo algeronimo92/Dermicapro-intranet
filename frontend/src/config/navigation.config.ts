@@ -18,6 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/employees',   label: 'Empleados',        icon: 'UserCog',                   roles: [Role.admin], section: 'Gestión' },
   { to: '/commissions', label: 'Comisiones',       icon: 'BadgeDollarSign',           roles: [Role.admin], section: 'Gestión' },
   { to: '/payments',    label: 'Pagos',             icon: 'Banknote',                  roles: [Role.admin], section: 'Gestión' },
+  { to: '/inventory',   label: 'Inventario',        icon: 'Package',                   roles: [Role.admin, Role.inventory, Role.sales, Role.assistant], section: 'Gestión' },
   { to: '/invoices',    label: 'Facturas',          icon: 'FileText',                  roles: [Role.admin, Role.accountant], section: 'Gestión' },
   { to: '/analytics',   label: 'Analíticas',       icon: 'BarChart3',                 roles: [Role.admin], section: 'Análisis' },
   { to: '/styleguide',  label: 'Ficha de Estilos', icon: 'Palette',                   roles: [Role.admin], section: 'Análisis' },
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const canAccessNav = (item: NavItem, roleName: string): boolean => {
   if (roleName === Role.accountant) return item.to === '/invoices';
+  if (roleName === Role.inventory) return item.to === '/inventory';
   if (item.roles === 'all') return true;
   return (item.roles as Role[]).includes(roleName as Role);
 };

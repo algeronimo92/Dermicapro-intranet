@@ -4,6 +4,7 @@ export enum Role {
   assistant = 'assistant',
   sales = 'sales',
   accountant = 'accountant',
+  inventory = 'inventory',
 }
 
 export enum Sex {

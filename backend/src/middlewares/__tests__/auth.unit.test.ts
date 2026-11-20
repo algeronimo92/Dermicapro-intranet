@@ -2,12 +2,16 @@ import { Request, Response } from 'express';
 import prisma from '../../config/database';
 import { verifyAccessToken } from '../../utils/jwt';
 import { authenticate, authorize } from '../auth';
+import { dbRoleContext } from '../../config/dbRoleContext';
 
 jest.mock('../../config/database', () => ({
   __esModule: true,
   default: { user: { findUnique: jest.fn() } },
 }));
 jest.mock('../../utils/jwt', () => ({ verifyAccessToken: jest.fn() }));
+jest.mock('../../services/employeeDbRoles.service', () => ({
+  ensureEmployeeDbRole: jest.fn(async (userId: string) => `emp_${userId}`),
+}));
 
 const findUser = prisma.user.findUnique as jest.Mock;
 const verifyToken = verifyAccessToken as jest.Mock;
@@ -94,5 +98,86 @@ describe('Acceso del contador', () => {
     const authorized = jest.fn();
     authorize('admin')(req, res, authorized);
     expect(authorized).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Acceso del rol de inventario', () => {
+  beforeEach(() => {
+    findUser.mockResolvedValue({
+      id: 'user-id', email: 'inventario@example.test', isActive: true,
+      roleId: 'inventory-id', role: { name: 'inventory' },
+    });
+  });
+
+  it.each([
+    ['GET', '/api/inventory'],
+    ['POST', '/api/inventory'],
+    ['PUT', '/api/inventory'],
+    ['GET', '/api/auth'],
+    ['PUT', '/api/auth'],
+    ['GET', '/api/settings'],
+  ])('permite %s en %s', async (method, baseUrl) => {
+    const req = request(method, baseUrl);
+    const next = jest.fn();
+    await authenticate(req, response(), next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(req.user?.roleName).toBe('inventory');
+  });
+
+  it.each([
+    ['GET', '/api/patients'],
+    ['GET', '/api/appointments'],
+    ['GET', '/api/payments'],
+    ['GET', '/api/payment-orders'],
+    ['GET', '/api/invoices'],
+    ['GET', '/api/users'],
+    ['GET', '/api/services'],
+    ['GET', '/api/dashboard'],
+    ['PATCH', '/api/settings'],
+  ])('deniega %s en %s', async (method, baseUrl) => {
+    const res = response();
+    const next = jest.fn();
+    await authenticate(request(method, baseUrl), res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('Rol de base de datos de la petición', () => {
+  const run = async (roleName: string, baseUrl: string) => {
+    findUser.mockResolvedValue({
+      id: 'user-id', email: 'x@example.test', isActive: true, roleId: 'r', role: { name: roleName },
+    });
+    let seen: string | null | undefined;
+    await authenticate(request('GET', baseUrl), response(), () => {
+      seen = dbRoleContext.getStore()?.dbRole;
+    });
+    return seen;
+  };
+
+  it('ventas consulta con el rol propio del empleado', async () => {
+    expect(await run('sales', '/api/patients')).toBe('emp_user-id');
+  });
+
+  it('corta la petición si no puede preparar el rol del empleado', async () => {
+    const { ensureEmployeeDbRole } = jest.requireMock('../../services/employeeDbRoles.service');
+    ensureEmployeeDbRole.mockRejectedValueOnce(new Error('sin CREATEROLE'));
+    findUser.mockResolvedValue({
+      id: 'user-id', email: 'x@example.test', isActive: true, roleId: 'r', role: { name: 'sales' },
+    });
+    const res = response();
+    const next = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    await authenticate(request('GET', '/api/patients'), res, next);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('admin consulta como dueño de la base', async () => {
+    expect(await run('admin', '/api/patients')).toBeNull();
+  });
+
+  it('/api/auth corre como dueño para no bloquear el acceso a la propia cuenta', async () => {
+    expect(await run('sales', '/api/auth')).toBeNull();
   });
 });

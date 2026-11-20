@@ -13,6 +13,8 @@ import prisma from './config/database';
 import { startInvoiceObjectCleanup, stopInvoiceObjectCleanup } from './services/invoice-object-cleanup.service';
 import fs from 'fs';
 import path from 'path';
+import { dbPrivilegeErrors } from './middlewares/dbPrivilegeErrors';
+import { syncAllEmployeeDbRoles } from './services/employeeDbRoles.service';
 
 const app = express();
 
@@ -73,6 +75,8 @@ app.get('/health', async (_req, res) => {
 // proxea /api y /uploads, así que no queda expuesto a través de Traefik.
 app.get('/metrics', metricsHandler);
 
+// Antes de las rutas: traduce los rechazos por privilegios de PostgreSQL a 403.
+app.use('/api', dbPrivilegeErrors);
 app.use('/api', routes);
 
 app.use(errorHandler);
@@ -90,6 +94,15 @@ const startServer = async () => {
     // Arranca después de conectar a la base: la primera lectura es inmediata.
     startBusinessMetrics();
     startInvoiceObjectCleanup();
+
+    // Repara roles de empleados que falten (p. ej. creados por el seed). No es
+    // bloqueante: authenticate también los crea la primera vez que hacen falta.
+    syncAllEmployeeDbRoles()
+      .then((count) => console.log(JSON.stringify({ event: 'employee_db_roles_synced', count })))
+      .catch((error) => console.error(JSON.stringify({
+        event: 'employee_db_roles_sync_failed',
+        error: error instanceof Error ? error.message : String(error),
+      })));
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

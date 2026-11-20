@@ -30,10 +30,12 @@ describe('Control de acceso por rol (RBAC)', () => {
 
   it('admin ve todas las secciones del menú', () => {
     cy.loginAsAdminAndVisit('/');
-    cy.contains('a', 'Empleados').should('be.visible');
-    cy.contains('a', 'Comisiones').should('be.visible');
-    cy.contains('a', 'Analíticas').should('be.visible');
-    cy.contains('a', 'Servicios').should('be.visible');
+    // El menú del admin no entra entero en 720px de alto y la navegación hace
+    // scroll: se comprueba que cada sección sea alcanzable, no que quepa sin
+    // desplazarse.
+    ['Empleados', 'Comisiones', 'Inventario', 'Analíticas', 'Servicios'].forEach((section) => {
+      cy.contains('a', section).scrollIntoView().should('be.visible');
+    });
   });
 
   it('la API de usuarios rechaza tokens inválidos', () => {
