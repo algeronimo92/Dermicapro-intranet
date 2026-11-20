@@ -3,10 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { NAV_ITEMS, canAccessNav } from './config/navigation.config';
 import { Sidebar } from './components/Sidebar';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
-import { Timer } from 'lucide-react';
+import { authService } from './services/auth.service';
+import { IdleWarningModal } from './components/IdleWarningModal';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PatientAuthProvider, usePatientAuth } from './contexts/PatientAuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
 import { PatientsPage } from './pages/PatientsPage';
 import { PatientFormPage } from './pages/PatientFormPage';
@@ -36,6 +37,7 @@ import { PatientLoginPage, PatientDashboardPage, PatientChangePasswordPage } fro
 import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
+import './styles/sidebar.css';
 import './styles/settings.css';
 import './styles/commissions-page.css';
 
@@ -131,29 +133,32 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const IDLE_WARNING_MS = 60 * 1000; // advertencia 1 min antes (fijo)
 
 function DashboardLayout() {
-  const { user, logout, mustChangePassword } = useAuth();
+  const { user, logout, mustChangePassword, updateUser } = useAuth();
   const { sessionTimeoutMs } = useSystemSettings();
+  const { resolvedTheme, setMode } = useTheme();
+
+  // El tema vive en el perfil (themeMode): si solo se cambiara localmente,
+  // el próximo login volvería a aplicar el guardado.
+  const handleToggleTheme = async () => {
+    const next = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setMode(next);
+    try {
+      updateUser(await authService.updateMe({ themeMode: next }));
+    } catch {
+      // el cambio visual ya se aplicó; se reintenta la próxima vez
+    }
+  };
 
   const roleName    = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
   const roleDisplay = typeof user?.role === 'string' ? user.role : (user?.role?.displayName ?? '');
   const isAdmin     = roleName === 'admin';
   const isAccountant = roleName === 'accountant';
 
-  const { showWarning, secondsLeft, percentageRemaining, msRemaining, extendSession } = useIdleTimeout({
+  const { showWarning, getMsRemaining, extendSession } = useIdleTimeout({
     timeout:       sessionTimeoutMs,
     warningBefore: IDLE_WARNING_MS,
     onTimeout:     logout,
   });
-
-  // Anillo de cuenta regresiva del modal
-  const warningTotal  = Math.floor(IDLE_WARNING_MS / 1000); // 60 s
-  const pct           = secondsLeft / warningTotal;
-  const isCritical    = secondsLeft <= 15;
-  const ringColor     = isCritical ? 'var(--color-error)' : 'var(--color-warning)';
-  const r    = 28;
-  const circ = 2 * Math.PI * r;
-
-  const fmtCountdown = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <>
@@ -163,7 +168,8 @@ function DashboardLayout() {
           user={{ firstName: user?.firstName, lastName: user?.lastName, roleDisplay, photoUrl: user?.photoUrl }}
           navItems={NAV_ITEMS.filter(item => canAccessNav(item, roleName))}
           onLogout={logout}
-          idleInfo={isAdmin ? { percentage: percentageRemaining, msRemaining } : undefined}
+          onToggleTheme={handleToggleTheme}
+          idle={isAdmin ? { getMsRemaining, timeout: sessionTimeoutMs } : undefined}
         />
         <main className="dashboard-main">
           <div className="dashboard-content">
@@ -201,97 +207,15 @@ function DashboardLayout() {
         </main>
       </div>
 
-      {/* Modal de inactividad */}
       {showWarning && (
-        <div
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'var(--color-bg-overlay)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 'var(--z-modal-backdrop)' as any,
-            padding: 'var(--spacing-md)',
-          }}
-        >
-          <div style={{
-            background: 'var(--color-bg-primary)',
-            borderRadius: 'var(--radius-2xl)',
-            boxShadow: 'var(--shadow-2xl)',
-            border: '1px solid var(--color-border-secondary)',
-            width: '100%', maxWidth: 360,
-            overflow: 'hidden',
-            padding: 'var(--spacing-xl)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 'var(--spacing-md)', textAlign: 'center',
-          }}>
-            {/* Anillo de cuenta regresiva */}
-            <div style={{ position: 'relative', width: 80, height: 80 }}>
-              <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="40" cy="40" r={r} fill="none"
-                  stroke="var(--color-border-secondary)" strokeWidth="5" />
-                <circle cx="40" cy="40" r={r} fill="none"
-                  stroke={ringColor}
-                  strokeWidth="5"
-                  strokeDasharray={circ}
-                  strokeDashoffset={circ * (1 - pct)}
-                  strokeLinecap="round"
-                  style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
-                />
-              </svg>
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Timer size={22} strokeWidth={1.75} color={ringColor} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', marginBottom: 6 }}>
-                ¿Sigues ahí?
-              </div>
-              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', lineHeight: 'var(--line-height-normal)' }}>
-                La sesión cerrará en{' '}
-                <strong style={{ color: ringColor }}>
-                  {fmtCountdown(secondsLeft)}
-                </strong>{' '}
-                por inactividad.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 'var(--spacing-sm)', width: '100%' }}>
-              <button
-                onClick={logout}
-                style={{
-                  flex: 1, padding: '10px var(--spacing-md)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1.5px solid var(--color-border-primary)',
-                  background: 'var(--color-bg-secondary)',
-                  color: 'var(--color-text-secondary)',
-                  fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)',
-                  cursor: 'pointer',
-                }}
-              >
-                Cerrar sesión
-              </button>
-              <button
-                autoFocus
-                onClick={extendSession}
-                style={{
-                  flex: 2, padding: '10px var(--spacing-md)',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  background: 'var(--color-primary)',
-                  color: '#fff',
-                  fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)',
-                  cursor: 'pointer',
-                }}
-              >
-                Continuar sesión
-              </button>
-            </div>
-          </div>
-        </div>
+        <IdleWarningModal
+          getMsRemaining={getMsRemaining}
+          warningMs={IDLE_WARNING_MS}
+          onLogout={logout}
+          onContinue={extendSession}
+        />
       )}
+
     </>
   );
 }

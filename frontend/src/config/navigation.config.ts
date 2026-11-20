@@ -6,20 +6,21 @@ export interface NavItem {
   icon: string;       // nombre de icono Lucide
   end?: boolean;
   roles: Role[] | 'all';
-  meta?: boolean;     // true = perfil/config, se renderiza en sección inferior
+  meta?: boolean;     // true = perfil/config, se renderiza como icono en el pie
+  section?: string;   // título del grupo en el sidebar; sin valor = grupo principal
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { to: '/',            label: 'Dashboard',       icon: 'LayoutDashboard', end: true, roles: 'all' },
   { to: '/patients',    label: 'Pacientes',        icon: 'Users',                     roles: 'all' },
   { to: '/appointments',label: 'Citas',            icon: 'CalendarDays',              roles: 'all' },
-  { to: '/services',    label: 'Servicios',        icon: 'Syringe',                   roles: [Role.admin, Role.sales] },
-  { to: '/employees',   label: 'Empleados',        icon: 'UserCog',                   roles: [Role.admin] },
-  { to: '/commissions', label: 'Comisiones',       icon: 'BadgeDollarSign',           roles: [Role.admin] },
-  { to: '/payments',    label: 'Pagos',             icon: 'Banknote',                  roles: [Role.admin] },
-  { to: '/invoices',    label: 'Facturas',          icon: 'FileText',                  roles: [Role.admin, Role.accountant] },
-  { to: '/analytics',   label: 'Analíticas',       icon: 'BarChart3',                 roles: [Role.admin] },
-  { to: '/styleguide',  label: 'Ficha de Estilos', icon: 'Palette',                   roles: [Role.admin] },
+  { to: '/services',    label: 'Servicios',        icon: 'Syringe',                   roles: [Role.admin, Role.sales], section: 'Gestión' },
+  { to: '/employees',   label: 'Empleados',        icon: 'UserCog',                   roles: [Role.admin], section: 'Gestión' },
+  { to: '/commissions', label: 'Comisiones',       icon: 'BadgeDollarSign',           roles: [Role.admin], section: 'Gestión' },
+  { to: '/payments',    label: 'Pagos',             icon: 'Banknote',                  roles: [Role.admin], section: 'Gestión' },
+  { to: '/invoices',    label: 'Facturas',          icon: 'FileText',                  roles: [Role.admin, Role.accountant], section: 'Gestión' },
+  { to: '/analytics',   label: 'Analíticas',       icon: 'BarChart3',                 roles: [Role.admin], section: 'Análisis' },
+  { to: '/styleguide',  label: 'Ficha de Estilos', icon: 'Palette',                   roles: [Role.admin], section: 'Análisis' },
   { to: '/profile',     label: 'Mi Perfil',        icon: 'CircleUser',                roles: 'all', meta: true },
   { to: '/settings',    label: 'Configuración',    icon: 'Settings',                  roles: 'all', meta: true },
 ];

@@ -4,7 +4,6 @@ import { Eye, EyeOff, Lock, Mail, Sparkles, ChevronLeft, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext';
 import { getRememberedUsers, removeRememberedUser, RememberedUser } from '../contexts/AuthContext';
 import { Role } from '../types';
-import { APP_VERSION } from '../config/version';
 import { PinInput } from '../components/PinInput';
 
 type LoginView = 'cards' | 'quick' | 'full';
@@ -141,7 +140,7 @@ export function LoginPage() {
         </div>
 
         <div className="login-brand-footer">
-          <span>DermicaPro v{APP_VERSION}</span>
+          <span>DermicaPro</span>
           <span>Trujillo, Perú</span>
         </div>
       </div>
@@ -404,7 +403,6 @@ export function LoginPage() {
             </>
           )}
 
-          <div className="login-form-version">v{APP_VERSION}</div>
         </div>
       </div>
     </div>
