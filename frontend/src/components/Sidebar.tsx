@@ -299,7 +299,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
               </NavLink>
             ))}
             <button
-              className="sidebar-icon-btn sidebar-icon-btn--danger"
+              className="sidebar-icon-btn sidebar-icon-btn--danger sidebar-logout-btn"
               onClick={handleLogoutClick}
               aria-label="Cerrar sesión"
               title="Cerrar sesión"

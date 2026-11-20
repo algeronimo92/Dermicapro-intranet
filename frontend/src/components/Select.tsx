@@ -187,6 +187,7 @@ export const Select: React.FC<SelectProps> = ({
         ref={triggerRef}
         id={triggerId}
         type="button"
+        data-name={name}
         className={`ds-select__trigger${open ? ' is-open' : ''}${error ? ' is-error' : ''}${!value && !hasEmptyOption ? ' is-placeholder' : ''}`}
         onClick={() => (open ? close(false) : openList())}
         onKeyDown={onKeyDown}
@@ -228,6 +229,7 @@ export const Select: React.FC<SelectProps> = ({
                 key={`${opt.value}-${i}`}
                 id={`${listId}-${i}`}
                 data-index={i}
+                data-value={opt.value}
                 role="option"
                 aria-selected={isSelected}
                 aria-disabled={opt.disabled}
