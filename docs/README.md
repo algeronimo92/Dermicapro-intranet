@@ -14,7 +14,7 @@ Toda la documentación del proyecto vive aquí. En la raíz solo quedan
 | [`modulos/`](modulos/) | Documentación por módulo: citas, pacientes, historial médico, roles, iconos, tema dark/light | Referencia |
 | [`infraestructura/`](infraestructura/) | Docker, observabilidad, rate limiting | Vigente |
 | [`guias/`](guias/) | Instalación, inicio rápido, troubleshooting, pruebas de analytics | Parcialmente desactualizado |
-| [`planes/`](planes/) | Planes y propuestas: los antiguos y el plan de rediseño actual | Ver cada archivo |
+| [`planes/`](planes/) | Planes y propuestas antiguos, y el [plan de rediseño actual](planes/PLAN_REDISENO_2027.md) | Ver cada archivo |
 | [`historial/`](historial/) | Resúmenes de implementaciones, fixes y mejoras ya hechas | Histórico, solo consulta |
 
 ## Documentos clave
