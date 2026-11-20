@@ -177,7 +177,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
               <PieChartWidget
                 data={paymentMethodPieData}
                 title="Ingresos por método de pago"
-                subtitle="Cómo pagan los pacientes"
                 formatter={formatCurrency}
                 totalLabel="Cobrado"
                 height={190}
