@@ -157,3 +157,6 @@ active-color.txt
 # ================================
 observability/prometheus/metrics_token
 observability/alertmanager/n8n_webhook_url
+
+# Ruta activa de Traefik: la genera scripts/deploy-prod.sh en el VPS (ver traefik/production.yml.example)
+traefik/dynamic/production.yml

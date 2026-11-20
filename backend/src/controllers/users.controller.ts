@@ -5,6 +5,24 @@ import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { hashPassword } from '../utils/password';
 import { ROLES } from '../constants/roles';
 
+// Datos mínimos para seleccionar asistentes; no expone el expediente del empleado.
+export const getStaffDirectory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { isActive: true, role: { name: { in: [ROLES.ADMIN, ROLES.MEDICAL_STAFF, ROLES.SALES, ROLES.ASSISTANT] } } },
+      select: {
+        id: true, firstName: true, lastName: true, photoUrl: true,
+        role: { select: { name: true, displayName: true } },
+      },
+      orderBy: { firstName: 'asc' },
+    });
+    res.json(users);
+  } catch (error) {
+    logUnexpectedError(req, error);
+    res.status(500).json({ error: 'Error al obtener personal' });
+  }
+};
+
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page = '1', limit = '10', search = '', roleId = '', roleName = '', isActive = '' } = req.query;

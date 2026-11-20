@@ -1,6 +1,10 @@
 import api from './api';
 import { User, PaginatedResponse, RoleInfo } from '../types';
 
+export type StaffUser = Pick<User, 'id' | 'firstName' | 'lastName' | 'photoUrl'> & {
+  role: Pick<RoleInfo, 'name' | 'displayName'> | null;
+};
+
 export interface CreateUserDto {
   email: string;
   password: string;
@@ -52,6 +56,11 @@ export interface UserStats {
 }
 
 export const usersService = {
+  async getStaff(): Promise<StaffUser[]> {
+    const response = await api.get<StaffUser[]>('/users/staff');
+    return response.data;
+  },
+
   async getUsers(params?: GetUsersParams): Promise<PaginatedResponse<User>> {
     const response = await api.get<PaginatedResponse<User>>('/users', { params });
     return response.data;

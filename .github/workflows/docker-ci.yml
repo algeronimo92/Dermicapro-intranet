@@ -352,6 +352,13 @@ jobs:
             # alguien tocó producción a mano.
             git fetch origin main
 
+            # 0. La ruta activa de Traefik la gestiona deploy-prod.sh y no
+            #    está en git. Se aparta una copia para que ni el stash ni el
+            #    reset puedan dejar a Traefik sin ella mientras dura el deploy
+            #    (en el commit que la sacó de git, el reset la borraría).
+            TRAEFIK_CFG=traefik/dynamic/production.yml
+            [ -f "$TRAEFIK_CFG" ] && cp -p "$TRAEFIK_CFG" /tmp/traefik-production.yml
+
             # 1. Cambios sin commitear -> stash, con el diff en el log.
             if ! git diff --quiet || ! git diff --cached --quiet; then
               echo "::warning::Cambios sin commitear en el VPS; se apartan con stash"
@@ -391,6 +398,11 @@ jobs:
             #    todavía no está verificado y no debe llegar a producción.
             #    Ese push lanzará su propio CI y su propio deploy.
             git reset --hard "$DEPLOY_SHA"
+
+            if [ ! -f "$TRAEFIK_CFG" ] && [ -f /tmp/traefik-production.yml ]; then
+              mkdir -p "$(dirname "$TRAEFIK_CFG")"
+              cp -p /tmp/traefik-production.yml "$TRAEFIK_CFG"
+            fi
 
             bash scripts/deploy-prod.sh
 

@@ -1,5 +1,6 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import { servicesService } from '../services/services.service';
+import { useAuth } from '../contexts/AuthContext';
 import { Service, ServicePackage } from '../types';
 import { Modal } from '../components/Modal';
 import { ServiceFormModal } from '../components/ServiceFormModal';
@@ -10,6 +11,8 @@ import { PageListLayout } from '../components/templates';
 import { Pagination } from '../components/Pagination';
 
 export function ServicesPage() {
+  const { user } = useAuth();
+  const isAdmin = (typeof user?.role === 'string' ? user.role : user?.role?.name) === 'admin';
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +158,7 @@ export function ServicesPage() {
   return (
     <PageListLayout
       title="Servicios"
-      actions={
+      actions={isAdmin &&
         <Button variant="primary" onClick={() => setCreateModal(true)}>
           + Nuevo Servicio
         </Button>
@@ -267,7 +270,7 @@ export function ServicesPage() {
                         </span>
                       </td>
                       <td>
-                        <div className="table-actions">
+                        <div className="table-actions" style={isAdmin ? undefined : { display: 'none' }}>
                           {isDeleted ? (
                             <button className="btn btn-success btn-sm" onClick={() => handleRestore(service.id)}>
                               Restaurar
@@ -372,7 +375,7 @@ export function ServicesPage() {
                                             {pkg.isActive ? 'Activo' : 'Inactivo'}
                                           </span>
                                         </span>
-                                        <span className="table-actions" style={{ justifyContent: 'center' }}>
+                                        <span className="table-actions" style={{ justifyContent: 'center', display: isAdmin ? undefined : 'none' }}>
                                           {pkgDeleted ? (
                                             <button className="btn btn-success btn-sm" onClick={() => handleRestorePackage(pkg.id)}>
                                               Restaurar
@@ -400,7 +403,7 @@ export function ServicesPage() {
                                   })}
                                 </div>
                               )}
-                              {!isDeleted && (
+                              {isAdmin && !isDeleted && (
                                 <div style={{ padding: 'var(--spacing-sm) var(--spacing-md)', borderTop: '1px solid var(--color-border-secondary)' }}>
                                   <button
                                     type="button"

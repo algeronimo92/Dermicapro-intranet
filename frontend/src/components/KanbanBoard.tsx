@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Appointment, AppointmentStatus, User } from '../types';
+import { Appointment, AppointmentStatus } from '../types';
 import {
   canTransition,
   requiresConfirmation as needsConfirmation,
@@ -8,7 +8,7 @@ import {
 } from '../config/appointmentStateMachine.config';
 import { useAuth } from '../contexts/AuthContext';
 import { appointmentsService } from '../services/appointments.service';
-import { usersService } from '../services/users.service';
+import { usersService, StaffUser } from '../services/users.service';
 import { CalendarClock, Hourglass, CheckCircle2, UserX, XCircle, Clock, User as UserIcon, GripVertical, LucideIcon } from 'lucide-react';
 
 interface KanbanBoardProps {
@@ -60,13 +60,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   // Attend modal state
   const [pendingAttend, setPendingAttend] = useState<Appointment | null>(null);
-  const [staffUsers, setStaffUsers] = useState<User[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [selectedAttendees, setSelectedAttendees] = useState<Set<string>>(new Set());
   const [isSubmittingAttend, setIsSubmittingAttend] = useState(false);
   const [attendModalError, setAttendModalError] = useState<string | null>(null);
 
   useEffect(() => {
-    usersService.getAllUsers({ isActive: true }).then(setStaffUsers).catch(() => {});
+    usersService.getStaff().then(setStaffUsers).catch(() => {});
   }, []);
 
   useEffect(() => {
