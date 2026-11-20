@@ -273,21 +273,12 @@
   padding: 10px 12px;
 }
 
+/* Colapsado: una sola columna, cada ícono con su espacio (el menú hace scroll si falta alto) */
 .dashboard-sidebar.is-collapsed .sidebar-footer__actions {
-  display: grid;
-  grid-template-columns: repeat(2, 26px);
-  justify-content: center;
-  gap: 2px;
-  padding: 8px 0;
-}
-
-.dashboard-sidebar.is-collapsed .sidebar-footer__actions .sidebar-icon-btn {
-  width: 26px;
-  height: 26px;
-}
-
-.dashboard-sidebar.is-collapsed .sidebar-footer__actions .sidebar-idle {
-  grid-column: 1 / -1;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
 }
 
 /* Contador de inactividad: reloj + tiempo, sin barra */
@@ -315,12 +306,12 @@
 }
 
 .sidebar-idle--compact {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   height: auto;
-  padding: 0;
-  font-size: 10.5px;
+  padding: 4px 0 0;
+  font-size: 11px;
 }
 
 /* Usuario */
