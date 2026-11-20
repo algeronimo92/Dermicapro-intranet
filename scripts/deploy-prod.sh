@@ -79,6 +79,47 @@ bootstrap_if_needed
 ACTIVE=$(cat "$STATE_FILE" 2>/dev/null || echo "blue")
 NEW_COLOR=$([ "$ACTIVE" = "blue" ] && echo "green" || echo "blue")
 
+# Escribe la ruta de Traefik hacia el frontend de un color.
+# El fichero NO está en git: si lo estuviera, el `git reset --hard` del
+# workflow lo devolvería a la versión del repo y Traefik mandaría el tráfico al
+# color equivocado mientras se construye el nuevo (caída real del 2026-11-20).
+# Se escribe en un temporal y se renombra para que Traefik, que vigila el
+# directorio, nunca lea un YAML a medio escribir.
+write_traefik_config() {
+  local color="$1"
+  mkdir -p "$(dirname "$TRAEFIK_DYNAMIC")"
+  cat > "${TRAEFIK_DYNAMIC}.tmp" << YAML
+# Gestionado por scripts/deploy-prod.sh — no editar manualmente
+http:
+  routers:
+    production:
+      rule: "Host(\`dermicapro.app\`) || Host(\`www.dermicapro.app\`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: production-active
+
+  services:
+    production-active:
+      loadBalancer:
+        servers:
+          - url: "http://dermicapro-frontend-${color}:80"
+        healthCheck:
+          path: /health
+          interval: 10s
+          timeout: 3s
+YAML
+  mv -f "${TRAEFIK_DYNAMIC}.tmp" "$TRAEFIK_DYNAMIC"
+}
+
+# 0. Asegurar que el tráfico apunta al color activo antes de empezar. Repara
+#    el fichero si falta o quedó desalineado (p. ej. tras borrarse el
+#    directorio, o en el primer deploy después de sacarlo de git).
+if docker ps --format '{{.Names}}' | grep -qx "dermicapro-frontend-${ACTIVE}"; then
+  write_traefik_config "$ACTIVE"
+fi
+
 echo "[deploy] Activo: $ACTIVE → Desplegando: $NEW_COLOR"
 
 # 1. Build imagen del nuevo color
@@ -137,28 +178,7 @@ done
 
 # 6. Cambiar tráfico — Traefik detecta el archivo en ~1-2s sin reinicio
 echo "[deploy] Cambiando tráfico a $NEW_COLOR..."
-cat > "$TRAEFIK_DYNAMIC" << YAML
-# Gestionado por scripts/deploy-prod.sh — no editar manualmente
-http:
-  routers:
-    production:
-      rule: "Host(\`dermicapro.app\`) || Host(\`www.dermicapro.app\`)"
-      entryPoints:
-        - websecure
-      tls:
-        certResolver: letsencrypt
-      service: production-active
-
-  services:
-    production-active:
-      loadBalancer:
-        servers:
-          - url: "http://dermicapro-frontend-${NEW_COLOR}:80"
-        healthCheck:
-          path: /health
-          interval: 10s
-          timeout: 3s
-YAML
+write_traefik_config "$NEW_COLOR"
 
 echo "$NEW_COLOR" > "$STATE_FILE"
 echo "[deploy] Tráfico → $NEW_COLOR"
