@@ -12,7 +12,8 @@ import {
   reopenServiceInstance,
 } from '../controllers/patients.controller';
 import { addCredit } from '../controllers/payments.controller';
-import { authenticate } from '../middlewares/auth';
+import { authenticate, authorize } from '../middlewares/auth';
+import { ROLES } from '../constants/roles';
 
 const router = Router();
 
@@ -22,7 +23,7 @@ router.get('/', getAllPatients);
 router.get('/:id', getPatientById);
 router.post('/', createPatient);
 router.put('/:id', updatePatient);
-router.delete('/:id', deletePatient);
+router.delete('/:id', authorize(ROLES.ADMIN), deletePatient);
 router.get('/:id/history', getPatientHistory);
 router.get('/:id/credit-history', getCreditHistory);
 router.post('/:id/add-credit', addCredit);
