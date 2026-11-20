@@ -59,6 +59,17 @@ export const authenticate = async (
       return;
     }
 
+    // El rol de inventario sólo ve su módulo; el resto de la API no le aplica.
+    const inventoryCanAccess =
+      req.baseUrl === '/api/auth' ||
+      req.baseUrl === '/api/inventory' ||
+      (req.method === 'GET' && req.baseUrl === '/api/settings');
+
+    if (roleName === ROLES.INVENTORY && !inventoryCanAccess) {
+      res.status(403).json({ error: 'El rol de inventario solo tiene acceso al módulo de inventario' });
+      return;
+    }
+
     req.user = { ...payload, email: user.email, roleId: user.roleId, roleName };
     next();
   } catch (error) {

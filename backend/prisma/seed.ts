@@ -161,6 +161,19 @@ async function main() {
     },
   });
 
+  const inventoryRole = await prisma.role.upsert({
+    where: { name: "inventory" },
+    update: {
+      displayName: "Inventario",
+      description: "Gestiona productos y movimientos de inventario",
+    },
+    create: {
+      name: "inventory",
+      displayName: "Inventario",
+      description: "Gestiona productos y movimientos de inventario",
+    },
+  });
+
   console.log("Roles created");
 
   // ===== STEP 2: Create Default Users =====
@@ -268,6 +281,22 @@ async function main() {
     },
   });
   console.log("Medical staff user: daguilar@dermicapro.com");
+
+  await prisma.user.upsert({
+    where: { email: "inventario@dermicapro.com" },
+    update: { themeMode: "dark" },
+    create: {
+      email: "inventario@dermicapro.com",
+      passwordHash: defaultPassword,
+      firstName: "Inventario",
+      lastName: "DermicaPro",
+      roleId: inventoryRole.id,
+      isActive: true,
+      mustChangePassword: true,
+      themeMode: "dark",
+    },
+  });
+  console.log("Inventory user: inventario@dermicapro.com");
 
   // ===== STEP 2b: System Settings =====
   console.log("Creating system settings...");

@@ -180,6 +180,8 @@ App.tsx (routing) → Pages → Components
 - `Payment` - Payment records with various types
 - `Commission` - Sales commissions
 - `SystemSetting` - Key/value configuration
+- `Product` - Retail products (dermocosmetics) with photo, sale price, `stock` and `minStock`
+- `InventoryMovement` - Immutable stock history (in/out + reason); `Product.stock` only changes together with a movement
 
 > Naming note: `ServiceInstance` was previously called `Order` and `Session` was
 > called `AppointmentService`; `PaymentOrder` replaced `Invoice`. Older docs in
@@ -214,11 +216,14 @@ App.tsx (routing) → Pages → Components
 - `medical_staff` - Medical doctor, performs procedures
 - `assistant` - Attends appointments, records medical data (previously "nurse")
 - `sales` - Creates appointments, manages patients (filtered to own appointments)
+- `accountant` - Read-only access to invoices only
+- `inventory` - Manages products and stock movements only (`/api/inventory`); blocked from the rest of the API in `authenticate`
 
 **Critical Authorization Rules:**
 - Sales users ONLY see appointments they created (`createdById` filter)
 - Only admins can manage users, services, and view all appointments
 - Only assistant/admins can mark appointments as attended and create medical records
+- Inventory: admin and inventory manage; sales and assistant can only consult stock
 
 ### Business Logic Patterns
 

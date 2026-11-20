@@ -96,3 +96,45 @@ describe('Acceso del contador', () => {
     expect(authorized).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Acceso del rol de inventario', () => {
+  beforeEach(() => {
+    findUser.mockResolvedValue({
+      id: 'user-id', email: 'inventario@example.test', isActive: true,
+      roleId: 'inventory-id', role: { name: 'inventory' },
+    });
+  });
+
+  it.each([
+    ['GET', '/api/inventory'],
+    ['POST', '/api/inventory'],
+    ['PUT', '/api/inventory'],
+    ['GET', '/api/auth'],
+    ['PUT', '/api/auth'],
+    ['GET', '/api/settings'],
+  ])('permite %s en %s', async (method, baseUrl) => {
+    const req = request(method, baseUrl);
+    const next = jest.fn();
+    await authenticate(req, response(), next);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(req.user?.roleName).toBe('inventory');
+  });
+
+  it.each([
+    ['GET', '/api/patients'],
+    ['GET', '/api/appointments'],
+    ['GET', '/api/payments'],
+    ['GET', '/api/payment-orders'],
+    ['GET', '/api/invoices'],
+    ['GET', '/api/users'],
+    ['GET', '/api/services'],
+    ['GET', '/api/dashboard'],
+    ['PATCH', '/api/settings'],
+  ])('deniega %s en %s', async (method, baseUrl) => {
+    const res = response();
+    const next = jest.fn();
+    await authenticate(request(method, baseUrl), res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});

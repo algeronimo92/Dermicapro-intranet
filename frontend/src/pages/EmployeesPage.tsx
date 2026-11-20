@@ -42,6 +42,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; ic
   medical_staff: { label: 'Personal Médico',   color: 'var(--color-info-dark)',    bg: 'var(--color-info-alpha-10)',    icon: '🩺' },
   assistant:     { label: 'Personal Asistente',color: 'var(--color-warning-dark)', bg: 'var(--color-warning-alpha-10)', icon: '📋' },
   sales:         { label: 'Vendedor',          color: 'var(--color-success-dark)', bg: 'var(--color-success-alpha-10)', icon: '💼' },
+  inventory:     { label: 'Inventario',        color: 'var(--color-warning-dark)', bg: 'var(--color-warning-alpha-10)', icon: '📦' },
 };
 
 const getRoleConfig = (roleName: string) =>

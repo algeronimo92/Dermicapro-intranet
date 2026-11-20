@@ -107,6 +107,8 @@ model User {
   appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
   appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
+  productsCreated            Product[]            @relation("ProductCreatedBy")
+  inventoryMovements         InventoryMovement[]  @relation("InventoryMovementCreatedBy")
 
   @@index([roleId], map: "users_role_id_idx")
   @@map("users")
@@ -529,6 +531,79 @@ model SystemSetting {
   updatedById String?  @map("updated_by_id")
 
   @@map("system_settings")
+}
+
+// ==========================================
+// INVENTARIO
+// ==========================================
+
+enum ProductCategory {
+  sunscreen // Protector solar
+  serum // Sérum
+  cleanser // Limpieza
+  moisturizer // Hidratación / reparación
+  accessory // Accesorios (mentoneras, fajas...)
+  other
+}
+
+enum InventoryMovementType {
+  in
+  out
+}
+
+enum InventoryMovementReason {
+  initial // Inventario inicial
+  purchase // Compra / reposición
+  sale // Venta
+  internal_use // Muestra o uso interno
+  loss // Merma (dañado / vencido)
+  adjustment // Ajuste por conteo físico
+}
+
+// El stock se guarda en Product.stock y sólo cambia junto con un
+// InventoryMovement en la misma transacción. Los movimientos no se editan ni se
+// borran: un error se corrige con un movimiento de ajuste.
+model Product {
+  id           String          @id @default(uuid())
+  name         String
+  brand        String?
+  category     ProductCategory @default(other)
+  presentation String? // ej. "50 ml", "40 g", "Talla M"
+  salePrice    Decimal         @map("sale_price") @db.Decimal(10, 2)
+  stock        Int             @default(0)
+  minStock     Int             @default(0) @map("min_stock")
+  photoUrl     String?         @map("photo_url")
+  barcode      String?         @unique
+  isActive     Boolean         @default(true) @map("is_active")
+  createdById  String          @map("created_by_id")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  createdBy User                @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  movements InventoryMovement[]
+
+  @@index([isActive, name], map: "products_active_name_idx")
+  @@index([createdById], map: "products_created_by_id_idx")
+  @@map("products")
+}
+
+model InventoryMovement {
+  id          String                  @id @default(uuid())
+  productId   String                  @map("product_id")
+  type        InventoryMovementType
+  reason      InventoryMovementReason
+  quantity    Int
+  stockAfter  Int                     @map("stock_after")
+  note        String?
+  createdById String                  @map("created_by_id")
+  createdAt   DateTime                @default(now()) @map("created_at")
+
+  product   Product @relation(fields: [productId], references: [id])
+  createdBy User    @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id])
+
+  @@index([productId, createdAt(sort: Desc)], map: "inventory_movements_product_created_at_idx")
+  @@index([createdById], map: "inventory_movements_created_by_id_idx")
+  @@map("inventory_movements")
 }
 
 // ==========================================
