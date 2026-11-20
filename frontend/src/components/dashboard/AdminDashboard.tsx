@@ -11,6 +11,8 @@ import { RevenueChart } from './widgets/RevenueChart';
 import { PieChartWidget } from './widgets/PieChartWidget';
 import { NewPatientsChart } from './widgets/NewPatientsChart';
 import { ActivityChart } from './widgets/ActivityChart';
+import { DashboardSkeleton } from '../ui/Skeleton';
+import { useChartTheme, formatPEN, formatPENTick } from './widgets/chartTheme';
 
 const STATUS_LABELS: Record<string, string> = {
   reserved:    'Reservada',
@@ -20,11 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
   no_show:     'No Asistió',
 };
 
-const STATUS_COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#6b7280'];
 const STATUS_ORDER  = ['reserved', 'in_progress', 'attended', 'cancelled', 'no_show'];
-
-const SERVICE_COLORS  = ['#0F766E', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6'];
-const PAYMENT_COLORS  = ['#10b981', '#6366f1', '#3b82f6', '#8b5cf6', '#06b6d4'];
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash:     'Efectivo',
@@ -62,16 +60,8 @@ const formatWeekLabel = (key: string) => {
   return `Semana ${start.getDate()} ${MONTH_NAMES[start.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]}`;
 };
 
-/** Eje Y de soles: abrevia los miles para que las marcas no se solapen */
-const formatSolesTick = (value: number) =>
-  Math.abs(value) >= 1000 ? `S/${Math.round(value / 1000)}k` : `S/${value}`;
-
-const ACTIVITY_COLORS = {
-  sold:      '#0F766E',
-  collected: '#10b981',
-  scheduled: '#3b82f6',
-  attended:  '#8b5cf6',
-};
+const formatSolesTick = formatPENTick;
+const formatCount = (value: number) => value.toLocaleString('es-PE');
 
 interface AdminDashboardProps {
   data: AdminDashboardData | null;
@@ -89,14 +79,10 @@ const computeRevenueTrend = (monthly: Array<{ month: string; amount: number }>) 
 };
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Cargando dashboard...</p>
-      </div>
-    );
-  }
+  const chart = useChartTheme();
+  const ACTIVITY_COLORS = chart.series;
+
+  if (isLoading) return <DashboardSkeleton />;
 
   if (!data) {
     return (
@@ -106,12 +92,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
     );
   }
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0,
-    }).format(value);
+  const formatCurrency = formatPEN;
 
   const revenueTrend = computeRevenueTrend(data.financials.monthlyRevenue);
 
@@ -120,10 +101,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
 
   // Pie: citas por estado (orden fijo)
   const appointmentStatusPieData = STATUS_ORDER
-    .map((status, i) => {
+    .map((status) => {
       const found = data.appointments.byStatus.find((s) => s.status === status);
       return found
-        ? { name: STATUS_LABELS[status] ?? status, value: found.count, color: STATUS_COLORS[i] }
+        ? { name: STATUS_LABELS[status] ?? status, value: found.count, color: chart.status[status] }
         : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null && x.value > 0);
@@ -184,18 +165,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
         <div className={`dashboard__charts-row${paymentMethodPieData.length === 0 ? ' dashboard__charts-row--full' : ''}`}>
           <RevenueChart
             data={data.financials.monthlyRevenue}
-            title="Tendencia de Ingresos"
-            color="#0F766E"
+            title="Tendencia de ingresos"
+            subtitle="Ingresos cobrados por mes"
             height={260}
           />
           {paymentMethodPieData.length > 0 && (
             <div className="dashboard__card dashboard__card--no-margin">
               <PieChartWidget
                 data={paymentMethodPieData}
-                title="Ingresos por Método de Pago"
-                colors={PAYMENT_COLORS}
+                title="Ingresos por método de pago"
+                subtitle="Cómo pagan los pacientes"
                 formatter={formatCurrency}
-                height={220}
+                totalLabel="Cobrado"
+                height={190}
               />
             </div>
           )}
@@ -249,8 +231,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
               title="Ventas por Día"
               subtitle={`Servicios vendidos vs. dinero cobrado — últimos ${activity.summary.dailyRangeDays} días`}
               series={[
-                { key: 'sold',      name: 'Vendido', color: ACTIVITY_COLORS.sold },
-                { key: 'collected', name: 'Cobrado', color: ACTIVITY_COLORS.collected },
+                { key: 'sold',      name: 'Vendido', color: ACTIVITY_COLORS.sold,      formatTotal: formatCurrency },
+                { key: 'collected', name: 'Cobrado', color: ACTIVITY_COLORS.collected, formatTotal: formatCurrency },
               ]}
               xTickFormatter={formatDayTick}
               xLabelFormatter={formatDayLabel}
@@ -267,8 +249,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
               title="Ventas por Semana"
               subtitle="Semanas de lunes a domingo"
               series={[
-                { key: 'sold',      name: 'Vendido', color: ACTIVITY_COLORS.sold },
-                { key: 'collected', name: 'Cobrado', color: ACTIVITY_COLORS.collected },
+                { key: 'sold',      name: 'Vendido', color: ACTIVITY_COLORS.sold,      formatTotal: formatCurrency },
+                { key: 'collected', name: 'Cobrado', color: ACTIVITY_COLORS.collected, formatTotal: formatCurrency },
               ]}
               xTickFormatter={formatWeekTick}
               xLabelFormatter={formatWeekLabel}
@@ -285,8 +267,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
               title="Citas por Día: Agendadas vs. Atendidas"
               subtitle={`Hoy: ${activity.summary.todayScheduled} agendadas, ${activity.summary.todayAttended} atendidas — no incluye canceladas`}
               series={[
-                { key: 'scheduled', name: 'Agendadas', color: ACTIVITY_COLORS.scheduled },
-                { key: 'attended',  name: 'Atendidas', color: ACTIVITY_COLORS.attended },
+                { key: 'scheduled', name: 'Agendadas', color: ACTIVITY_COLORS.scheduled, formatTotal: formatCount },
+                { key: 'attended',  name: 'Atendidas', color: ACTIVITY_COLORS.attended,  formatTotal: formatCount },
               ]}
               xTickFormatter={formatDayTick}
               xLabelFormatter={formatDayLabel}
@@ -348,10 +330,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           <div className="dashboard__card dashboard__card--centered dashboard__card--no-margin">
             <PieChartWidget
               data={appointmentStatusPieData}
-              title="Distribución de Citas por Estado"
-              colors={appointmentStatusPieData.map((d) => d.color)}
-              donut
-              height={280}
+              title="Distribución de citas por estado"
+              subtitle="Citas del período según su estado actual"
+              totalLabel="Citas"
+              height={220}
             />
           </div>
         )}
@@ -365,7 +347,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           data={data.patients?.byPeriod ?? []}
           granularity={data.patients?.granularity ?? 'day'}
           total={data.patients?.total ?? 0}
-          color="#6366f1"
           height={240}
         />
       </section>
@@ -394,10 +375,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
           <div className="dashboard__card dashboard__card--centered dashboard__card--no-margin">
             <PieChartWidget
               data={topServicesPieData}
-              title="Servicios Más Vendidos"
-              colors={SERVICE_COLORS}
+              title="Servicios más vendidos"
+              subtitle="Participación en el valor vendido"
               formatter={formatCurrency}
-              height={280}
+              totalLabel="Vendido"
+              height={220}
             />
           </div>
         )}

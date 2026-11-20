@@ -3,13 +3,14 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
+import { ChartLegend } from './ChartLegend';
+import { useChartTheme } from './chartTheme';
 import './RevenueChart.css';
 
 export interface ActivitySeries {
@@ -20,6 +21,8 @@ export interface ActivitySeries {
   type?: 'bar' | 'line';
   /** Eje al que se ancla. El derecho se usa para mezclar soles con conteos */
   axis?: 'left' | 'right';
+  /** Si se indica, la leyenda muestra el total de la serie con este formato */
+  formatTotal?: (value: number) => string;
 }
 
 interface ActivityChartProps {
@@ -41,13 +44,6 @@ interface ActivityChartProps {
   emptyMessage?: string;
 }
 
-const TOOLTIP_STYLE: React.CSSProperties = {
-  backgroundColor: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-};
-
 export const ActivityChart: React.FC<ActivityChartProps> = ({
   data,
   xKey,
@@ -63,39 +59,51 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
   tickFormatRight,
   emptyMessage = 'Sin datos para el período seleccionado',
 }) => {
+  const theme = useChartTheme();
   const hasRightAxis = series.some((s) => s.axis === 'right');
 
-  // Un punto por eje: sin esto el tooltip no sabe qué formateador aplicar
+  // Un formateador por serie: sin esto el tooltip no sabe cuál aplicar
   const formatterByKey = new Map(
     series.map((s) => [s.key, s.axis === 'right' ? formatRight : formatLeft])
   );
 
+  const legendItems = series.map((s) => {
+    const total = s.formatTotal
+      ? s.formatTotal((data as Record<string, unknown>[]).reduce((sum, d) => sum + (Number(d[s.key]) || 0), 0))
+      : undefined;
+    return { label: s.name, color: s.color, shape: s.type === 'line' ? 'line' as const : 'square' as const, value: total };
+  });
+
   return (
     <div className="revenue-chart">
-      <div className="revenue-chart__heading">
-        <h3 className="revenue-chart__title revenue-chart__title--tight">{title}</h3>
-        {subtitle && <p className="revenue-chart__subtitle">{subtitle}</p>}
+      <div className="chart-card__header">
+        <div>
+          <h3 className="revenue-chart__title">{title}</h3>
+          {subtitle && <p className="revenue-chart__subtitle">{subtitle}</p>}
+        </div>
+        <ChartLegend items={legendItems} />
       </div>
 
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart data={data} margin={{ top: 5, right: hasRightAxis ? 8 : 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+          <ComposedChart data={data} margin={{ top: 5, right: hasRightAxis ? 4 : 8, left: 0, bottom: 0 }} barGap={4}>
+            <CartesianGrid stroke={theme.grid} strokeDasharray="4 4" vertical={false} />
             <XAxis
               dataKey={xKey}
               tickFormatter={xTickFormatter}
-              stroke="#6b7280"
-              style={{ fontSize: '11px' }}
-              interval="preserveStartEnd"
+              tick={theme.tick}
+              axisLine={{ stroke: theme.grid }}
               tickLine={false}
+              tickMargin={8}
+              interval="preserveStartEnd"
+              minTickGap={12}
             />
             <YAxis
               yAxisId="left"
               allowDecimals={false}
               tickFormatter={tickFormatLeft}
-              stroke="#6b7280"
-              style={{ fontSize: '11px' }}
-              width={52}
+              tick={theme.tick}
+              width={56}
               tickLine={false}
               axisLine={false}
             />
@@ -105,18 +113,17 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
                 orientation="right"
                 allowDecimals={false}
                 tickFormatter={tickFormatRight}
-                stroke="#6b7280"
-                style={{ fontSize: '11px' }}
-                width={52}
+                tick={theme.tick}
+                width={56}
                 tickLine={false}
                 axisLine={false}
               />
             )}
             <Tooltip
-              cursor={{ fill: 'rgba(107, 114, 128, 0.08)' }}
-              contentStyle={TOOLTIP_STYLE}
-              formatter={(value: unknown, name: unknown, item: any) => {
-                const format = formatterByKey.get(item?.dataKey) ?? formatLeft;
+              cursor={{ fill: theme.cursor }}
+              {...theme.tooltip}
+              formatter={(value: unknown, name: unknown, item: { dataKey?: unknown }) => {
+                const format = formatterByKey.get(String(item?.dataKey)) ?? formatLeft;
                 return [format(typeof value === 'number' ? value : 0), name as string];
               }}
               labelFormatter={(label: unknown) =>
@@ -124,11 +131,6 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
                   ? xLabelFormatter(label)
                   : String(label ?? '')
               }
-            />
-            <Legend
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
             />
             {series.map((s) =>
               s.type === 'line' ? (
@@ -139,7 +141,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
                   dataKey={s.key}
                   name={s.name}
                   stroke={s.color}
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   dot={{ r: 3, fill: s.color, strokeWidth: 0 }}
                   activeDot={{ r: 5, fill: s.color }}
                   isAnimationActive={false}
@@ -151,8 +153,8 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
                   dataKey={s.key}
                   name={s.name}
                   fill={s.color}
-                  radius={[3, 3, 0, 0]}
-                  maxBarSize={38}
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={30}
                   isAnimationActive={false}
                 />
               )
