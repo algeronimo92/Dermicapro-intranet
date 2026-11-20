@@ -14,6 +14,8 @@ import analyticsRoutes from './analytics.routes';
 import rolesRoutes from './roles.routes';
 import settingsRoutes from './settings.routes';
 import publicRoutes from './public.routes';
+import inventoryRoutes from './inventory.routes';
+import dbPrivilegesRoutes from './dbPrivileges.routes';
 const router = Router();
 
 // Público (sin autenticación, consumo externo)
@@ -38,6 +40,8 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/roles', rolesRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/inventory', inventoryRoutes);
+router.use('/db-privileges', dbPrivilegesRoutes);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

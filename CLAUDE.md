@@ -180,6 +180,8 @@ App.tsx (routing) → Pages → Components
 - `Payment` - Payment records with various types
 - `Commission` - Sales commissions
 - `SystemSetting` - Key/value configuration
+- `Product` - Retail products (dermocosmetics) with photo, sale price, `stock` and `minStock`
+- `InventoryMovement` - Immutable stock history (in/out + reason); `Product.stock` only changes together with a movement
 
 > Naming note: `ServiceInstance` was previously called `Order` and `Session` was
 > called `AppointmentService`; `PaymentOrder` replaced `Invoice`. Older docs in
@@ -214,11 +216,22 @@ App.tsx (routing) → Pages → Components
 - `medical_staff` - Medical doctor, performs procedures
 - `assistant` - Attends appointments, records medical data (previously "nurse")
 - `sales` - Creates appointments, manages patients (filtered to own appointments)
+- `accountant` - Read-only access to invoices only
+- `inventory` - Manages products and stock movements only (`/api/inventory`); blocked from the rest of the API in `authenticate`
+
+**Database Privileges (PostgreSQL):**
+- Every app role except admin has a NOLOGIN Postgres group role `app_<role>` holding the table privileges. Every employee (except admins) has their own NOLOGIN role `emp_<user id without dashes>`, member of their `app_<role>` and commented with their name; `services/employeeDbRoles.service.ts` creates it and keeps the membership in sync on each authentication (and at startup).
+- After `authenticate`, the request runs inside `dbRoleContext` (`config/dbRoleContext.ts`) and the `pg` pool (`config/database.ts`) runs `SET ROLE emp_<id>` when handing out each connection: Postgres enforces the inherited privileges and `current_user` identifies the person (`session_user` stays the app's DB user). Admin, `/api/auth`, own-photo upload, unauthenticated routes and background jobs run as the DB owner.
+- The app's DB user needs `CREATEROLE` (it is the Postgres superuser in our Docker setup).
+- Admins manage object privileges (SELECT/INSERT/UPDATE/DELETE per table) in Empleados → Privilegios de BD (`/api/db-privileges`). Only tables in `constants/dbPrivileges.ts` are manageable; INSERT/UPDATE/DELETE require SELECT (Prisma uses RETURNING).
+- A Postgres `42501` is turned into a 403 `DB_PRIVILEGE_DENIED` by `middlewares/dbPrivilegeErrors.ts`.
+- **New tables are invisible to every app role** until granted: add the GRANTs in the same migration that creates the table, and add the table to `constants/dbPrivileges.ts`.
 
 **Critical Authorization Rules:**
 - Sales users ONLY see appointments they created (`createdById` filter)
 - Only admins can manage users, services, and view all appointments
 - Only assistant/admins can mark appointments as attended and create medical records
+- Inventory: admin and inventory manage; sales and assistant can only consult stock
 
 ### Business Logic Patterns
 

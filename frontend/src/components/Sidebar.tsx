@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
   BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, FileText,
   LogOut, PanelLeftClose, PanelLeftOpen, LucideIcon, AlertTriangle, Timer, Menu, X, Banknote,
-  CalendarPlus, Sun, Moon,
+  CalendarPlus, Sun, Moon, Package,
 } from 'lucide-react';
 import { NavItem } from '../config/navigation.config';
 import { useTheme } from '../contexts/ThemeContext';
@@ -12,7 +12,7 @@ import { useIdleCountdown, formatCountdown } from '../hooks/useIdleTimeout';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
-  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, Banknote, FileText,
+  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, Banknote, FileText, Package,
 };
 
 const COLLAPSED_KEY = 'dermicapro_sidebar_collapsed';

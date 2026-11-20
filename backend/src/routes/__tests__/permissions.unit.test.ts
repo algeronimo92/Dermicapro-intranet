@@ -13,6 +13,11 @@ import patientsRoutes from '../patients.routes';
 import rolesRoutes from '../roles.routes';
 import settingsRoutes from '../settings.routes';
 
+// El rol de PostgreSQL de cada empleado se prueba aparte; aquí sólo importa la
+// autorización de la API.
+jest.mock('../../services/employeeDbRoles.service', () => ({
+  ensureEmployeeDbRole: jest.fn(async () => null),
+}));
 jest.mock('../../config/database', () => ({ __esModule: true, default: { user: { findUnique: jest.fn() }, appointment: { findUnique: jest.fn() } } }));
 jest.mock('../../utils/jwt', () => ({ verifyAccessToken: jest.fn() }));
 jest.mock('../../middlewares/rateLimiter', () => ({ uploadLimiter: (_req: unknown, _res: unknown, next: () => void) => next() }));
