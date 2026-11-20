@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { patientsService, GetPatientsParams } from '../services/patients.service';
 import { Patient, Sex } from '../types';
 import { Pagination } from '../components/Pagination';
-import { Loading } from '../components/Loading';
+import { Select } from '../components/Select';
+import { CardGridSkeleton } from '../components/ui/Skeleton';
 import { CreatePatientModal } from '../components/CreatePatientModal';
 import { formatDate } from '../utils/dateUtils';
 
@@ -108,7 +109,7 @@ const PatientCard: React.FC<{ patient: Patient; onClick: () => void }> = ({ pati
 
           {/* Badge saldo a favor */}
           {hasBalance && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)', border: '1px solid var(--color-primary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
               S/.{Number(patient.accountBalance).toFixed(0)} saldo
             </span>
           )}
@@ -240,37 +241,44 @@ export const PatientsPage: React.FC = () => {
   const [totalPages, setTotalPages]     = useState(1);
   const [total, setTotal]               = useState(0);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const limit = 12;
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const requestIdRef = useRef(0);
+  const [limit, setLimit] = useState(12);
 
   const loadPatients = useCallback(async (q: string, sex: Sex | '', page: number) => {
+    const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
       setError(null);
       const params: GetPatientsParams = { page, limit, search: q || undefined, sex: sex || undefined };
       const response = await patientsService.getPatients(params);
+      if (requestId !== requestIdRef.current) return; // llegó tarde: hay una búsqueda más nueva
       setPatients(response.data);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
     } catch (err: any) {
+      if (requestId !== requestIdRef.current) return;
       setError(err.response?.data?.message || 'Error al cargar pacientes');
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  }, []);
+  }, [limit]);
 
-  // Debounce en búsqueda por texto
+  // Debounce solo del texto: el resto de filtros aplica al instante
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    if (search === debouncedSearch) return;
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
       setCurrentPage(1);
-      loadPatients(search, sexFilter, 1);
     }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, sexFilter]);
+    return () => clearTimeout(t);
+  }, [search, debouncedSearch]);
 
-  // Recarga al cambiar página (sin debounce)
-  useEffect(() => { loadPatients(search, sexFilter, currentPage); }, [currentPage]);
+  // Una sola fuente de carga. Antes había dos efectos y la página cargaba dos
+  // veces al entrar (contenido → spinner → contenido).
+  useEffect(() => {
+    loadPatients(debouncedSearch, sexFilter, currentPage);
+  }, [debouncedSearch, sexFilter, currentPage, loadPatients]);
 
   const clearFilters = () => { setSearch(''); setSexFilter(''); setCurrentPage(1); };
   const hasFilters   = !!(search || sexFilter);
@@ -356,20 +364,18 @@ export const PatientsPage: React.FC = () => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-tertiary)' }}>
               <path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <select
+            <Select
+              size="sm"
+              aria-label="Ordenar pacientes"
               value={sortKey}
               onChange={e => setSortKey(e.target.value as SortKey)}
-              style={{
-                padding: '6px 10px', border: '1.5px solid var(--color-border-primary)',
-                borderRadius: 'var(--radius-lg)', background: 'var(--color-bg-primary)',
-                color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)',
-                fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
-              }}
-            >
-              <option value="createdAt">Más reciente</option>
-              <option value="name">Nombre A–Z</option>
-              <option value="lastAttended">Última atención</option>
-            </select>
+              options={[
+                { value: 'createdAt', label: 'Más reciente' },
+                { value: 'name', label: 'Nombre A–Z' },
+                { value: 'lastAttended', label: 'Última atención' },
+              ]}
+              className="patients-sort"
+            />
           </div>
 
           {hasFilters && (
@@ -383,8 +389,8 @@ export const PatientsPage: React.FC = () => {
       {/* ── Contenido ── */}
       {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-lg)' }}>{error}</div>}
 
-      {isLoading ? (
-        <Loading text="Cargando pacientes..." />
+      {isLoading && patients.length === 0 ? (
+        <CardGridSkeleton count={limit} />
       ) : sorted.length === 0 ? (
         <div className="pd-empty" style={{ background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-3xl)' }}>
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -405,7 +411,16 @@ export const PatientsPage: React.FC = () => {
               <PatientCard key={p.id} patient={p} onClick={() => navigate(`/patients/${p.id}`)} />
             ))}
           </div>
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={total}
+            pageSize={limit}
+            onPageSizeChange={size => { setLimit(size); setCurrentPage(1); }}
+            pageSizeOptions={[12, 24, 48]}
+            itemLabel="pacientes"
+          />
         </>
       )}
 

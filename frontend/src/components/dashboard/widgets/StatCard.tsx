@@ -11,7 +11,14 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
+  /** Texto que acompaña a la tendencia */
+  trendLabel?: string;
+  /** Tono del icono (y del acento de la tarjeta) */
   color?: 'primary' | 'success' | 'warning' | 'error' | 'info';
+  /**
+   * soft: tarjeta de superficie con icono de color.
+   * solid: tarjeta destacada en tinta y dorado, para el KPI principal de cada sección.
+   */
   variant?: 'solid' | 'soft';
 }
 
@@ -21,34 +28,32 @@ export const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   icon,
   trend,
+  trendLabel = 'vs mes anterior',
   color = 'primary',
   variant = 'soft',
-}) => {
-  return (
-    <div className={`stat-card stat-card--${color} ${variant === 'soft' ? 'stat-card--soft' : ''}`}>
-      <div className="stat-card__header">
-        <h3 className="stat-card__title">{title}</h3>
-        {icon && <div className="stat-card__icon">{icon}</div>}
-      </div>
-
-      <div className="stat-card__body">
-        <div className="stat-card__value">{value}</div>
-
-        {subtitle && (
-          <div className="stat-card__subtitle">{subtitle}</div>
-        )}
-
-        {trend && (
-          <div className={`stat-card__trend ${trend.isPositive ? 'stat-card__trend--positive' : 'stat-card__trend--negative'}`}>
-            <span className="stat-card__trend-icon">
-              {trend.isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-            </span>
-            <span className="stat-card__trend-value">
-              {trend.value}% vs mes anterior
-            </span>
-          </div>
-        )}
-      </div>
+}) => (
+  <div className={`stat-card stat-card--${variant} stat-card--${color}`}>
+    <div className="stat-card__header">
+      <h3 className="stat-card__title">{title}</h3>
+      {icon && <div className="stat-card__icon" aria-hidden="true">{icon}</div>}
     </div>
-  );
-};
+
+    <div className="stat-card__value">{value}</div>
+
+    {(subtitle || trend) && (
+      <div className="stat-card__footer">
+        {trend && (
+          <span
+            className={`stat-card__trend ${trend.isPositive ? 'stat-card__trend--up' : 'stat-card__trend--down'}`}
+            aria-label={`${trend.isPositive ? 'Subió' : 'Bajó'} ${trend.value}% ${trendLabel}`}
+          >
+            {trend.isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+            {trend.value}%
+          </span>
+        )}
+        {trend && <span className="stat-card__trend-label">{trendLabel}</span>}
+        {subtitle && <span className="stat-card__subtitle">{subtitle}</span>}
+      </div>
+    )}
+  </div>
+);

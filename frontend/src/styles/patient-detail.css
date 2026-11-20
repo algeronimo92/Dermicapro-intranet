@@ -25,7 +25,7 @@
   margin-bottom: var(--spacing-lg);
   transition: color var(--transition-fast);
 }
-.pd-back:hover { color: var(--color-primary); }
+.pd-back:hover { color: var(--color-primary-text); }
 
 /* ── HERO ── */
 .pd-hero {
@@ -157,7 +157,7 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.pd-card__icon--teal   { background: var(--color-primary-alpha-10); color: var(--color-primary); }
+.pd-card__icon--teal   { background: var(--color-primary-alpha-10); color: var(--color-primary-text); }
 .pd-card__icon--green  { background: var(--color-success-alpha-10);  color: var(--color-success); }
 .pd-card__icon--amber  { background: var(--color-warning-alpha-10);  color: var(--color-warning); }
 .pd-card__icon--red    { background: var(--color-error-alpha-10);    color: var(--color-error); }
@@ -236,7 +236,7 @@
   display: block;
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   line-height: 1;
 }
 
@@ -328,7 +328,7 @@
 .pd-progress__pct {
   font-size: 11px;
   font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   min-width: 30px;
   text-align: right;
 }
@@ -468,7 +468,7 @@
   height: 36px;
   border-radius: var(--radius-lg);
   background: var(--color-primary-alpha-10);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -493,7 +493,7 @@
   width: 100%;
   background: none;
   border: none;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
@@ -502,7 +502,7 @@
   text-align: center;
   transition: color var(--transition-fast);
 }
-.pd-view-all:hover { color: var(--color-primary-dark); }
+.pd-view-all:hover { color: var(--color-primary-text); }
 
 /* ── EMPTY STATE ── */
 .pd-empty {

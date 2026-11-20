@@ -78,7 +78,7 @@ describe("Editar cita", () => {
     cy.get(".datetime-time-select").should("be.visible");
 
     // Duración
-    cy.get('select[name="durationMinutes"]').should("be.visible");
+    cy.get('[data-name="durationMinutes"]').should("be.visible");
 
     // Botones de acción
     cy.contains("button", "Volver").scrollIntoView().should("be.visible");
@@ -99,7 +99,7 @@ describe("Editar cita", () => {
   it("edita la duración de la cita y guarda", () => {
     cy.loginAsAdminAndVisit(`/appointments/${appointmentId}/edit`);
 
-    cy.get('select[name="durationMinutes"]').select("90");
+    cy.chooseOption("durationMinutes", "90");
 
     cy.contains("button", "Guardar Cambios").scrollIntoView().click();
 
@@ -114,7 +114,7 @@ describe("Editar cita", () => {
   it("el botón Cancelar regresa al detalle sin guardar", () => {
     cy.loginAsAdminAndVisit(`/appointments/${appointmentId}/edit`);
 
-    cy.get('select[name="durationMinutes"]').select("30");
+    cy.chooseOption("durationMinutes", "30");
     cy.contains("button", "Cancelar").scrollIntoView().click();
 
     cy.url({ timeout: 8000 }).should(

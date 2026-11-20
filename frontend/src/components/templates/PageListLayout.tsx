@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loading } from '../Loading';
+import { TableSkeleton } from '../ui/Skeleton';
 
 interface PageListLayoutProps {
   title: string;
@@ -20,7 +20,6 @@ export const PageListLayout: React.FC<PageListLayoutProps> = ({
   total,
   totalLabel = 'registros',
   isLoading,
-  loadingText,
   error,
   children,
 }) => (
@@ -47,6 +46,6 @@ export const PageListLayout: React.FC<PageListLayoutProps> = ({
       </div>
     )}
 
-    {isLoading ? <Loading text={loadingText} /> : children}
+    {isLoading ? <TableSkeleton /> : children}
   </div>
 );

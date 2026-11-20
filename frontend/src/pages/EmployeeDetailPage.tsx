@@ -5,7 +5,7 @@ import { CameraCapture } from '../components/CameraCapture';
 import { usersService, UserStats } from '../services/users.service';
 import { User, Role, RoleInfo } from '../types';
 import { Button } from '../components/Button';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/Modal';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
 import { StatCard } from '../components/dashboard/widgets/StatCard';
@@ -107,9 +107,7 @@ export const EmployeeDetailPage: React.FC = () => {
     if (file) await handleUploadFile(file);
   };
 
-  if (isLoading) {
-    return <Loading text="Cargando información del empleado..." />;
-  }
+  if (isLoading && !employee) return <DetailSkeleton cards={3} />;
 
   if (error || !employee) {
     return (

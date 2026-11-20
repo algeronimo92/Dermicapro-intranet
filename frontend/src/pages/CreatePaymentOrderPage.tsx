@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { paymentOrdersService } from '../services/paymentOrders.service';
 import { patientsService } from '../services/patients.service';
 import { Order, Patient } from '../types';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { Button } from '../components/Button';
 import '../styles/patient-payment-orders.css';
 
@@ -114,7 +114,7 @@ const CreatePaymentOrderPage: React.FC = () => {
 
   const goBack = () => navigate(`/patients/${id}/payment-orders`);
 
-  if (loading) return <Loading text="Cargando servicios sin orden de pago..." />;
+  if (loading && !patient) return <DetailSkeleton cards={2} />;
 
   if (error && !patient) {
     return (

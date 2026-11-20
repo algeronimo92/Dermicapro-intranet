@@ -10,6 +10,8 @@ declare global {
       loginAsSalesAndVisit(path: string): Chainable<void>;
       loginAsAssistantAndVisit(path: string): Chainable<void>;
       loginAsMedicalAndVisit(path: string): Chainable<void>;
+      /** Elige una opción del Select propio (no es un <select> nativo) por su name y value */
+      chooseOption(name: string, value: string): Chainable<void>;
       /**
        * Obtiene un accessToken válido gestionando el flujo mustChangePassword.
        * Úsalo en tests que necesitan hacer cy.request con Authorization header.
@@ -110,6 +112,12 @@ Cypress.Commands.add('loginAsAssistantAndVisit', (path: string) => {
 
 Cypress.Commands.add('loginAsMedicalAndVisit', (path: string) => {
   cy.loginAndVisit(path, Cypress.env('medicalEmail'), Cypress.env('medicalPassword'));
+});
+
+Cypress.Commands.add('chooseOption', (name: string, value: string) => {
+  cy.get(`[data-name="${name}"]`).scrollIntoView().click();
+  cy.get(`[role="listbox"] [data-value="${value}"]`).click();
+  cy.get(`input[type="hidden"][name="${name}"]`).should('have.value', value);
 });
 
 export {};

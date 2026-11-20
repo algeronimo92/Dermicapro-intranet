@@ -18,7 +18,7 @@ describe("Creación de paciente", () => {
     cy.get(".dp-trigger").scrollIntoView().should("be.visible");
 
     // Sexo
-    cy.get('select[name="sex"]').should("be.visible");
+    cy.get('[data-name="sex"]').should("be.visible");
 
     // Campos opcionales
     cy.get('input[name="email"]').should("be.visible");
@@ -55,7 +55,7 @@ describe("Creación de paciente", () => {
     cy.get("button.rdp-day_button:not([disabled])").first().click();
 
     // Seleccionar sexo
-    cy.get('select[name="sex"]').select("F");
+    cy.chooseOption("sex", "F");
 
     cy.contains("button", "Crear Paciente").click();
 

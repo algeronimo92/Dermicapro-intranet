@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { patientsService } from '../services/patients.service';
 import { Button } from '../components/Button';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ImageViewer } from '../components/ImageViewer';
 import { AppointmentStatus } from '../types';
 import { formatDate, formatDateTime } from '../utils/dateUtils';
@@ -118,7 +118,7 @@ export const PatientHistoryPage: React.FC = () => {
     }
   };
 
-  if (isLoading) return <Loading text="Cargando historial del paciente..." />;
+  if (isLoading && !history) return <DetailSkeleton cards={3} />;
 
   if (error || !history) {
     return (

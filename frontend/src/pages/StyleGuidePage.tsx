@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import '../styles/appointments-page.css';
 import '../styles/patient-detail.css';
 import '../styles/state-transitions.css';
@@ -10,8 +10,11 @@ import { DatePicker } from '../components/DatePicker';
 import { ServiceSelector } from '../components/ServiceSelector';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
-  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, LogOut,
+  BadgeDollarSign, BarChart3, Palette, Settings, LogOut,
+  CalendarPlus, Moon, Timer, PanelLeftClose,
 } from 'lucide-react';
+import '../styles/sidebar.css';
+import { useTheme } from '../contexts/ThemeContext';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS: sub-components reutilizables sólo en esta guía
@@ -37,34 +40,103 @@ const SectionDivider: React.FC<{ n: string; title: string }> = ({ n, title }) =>
   </div>
 );
 
+/* Lectura de tokens: valores reales de design-tokens.css, no copiados a mano */
+type TokenMap = Map<string, string>;
+interface TokenTables { light: TokenMap; dark: TokenMap }
+
+/** Junta las declaraciones de :root (claro) y [data-theme="dark"] de las hojas cargadas */
+function readTokenTables(): TokenTables {
+  const light: TokenMap = new Map();
+  const dark: TokenMap = new Map();
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try { rules = sheet.cssRules; } catch { continue; }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSStyleRule)) continue;
+      const sel = rule.selectorText.trim();
+      const target = sel.startsWith(':root') ? light : sel === '[data-theme="dark"]' ? dark : null;
+      if (!target) continue;
+      for (let i = 0; i < rule.style.length; i++) {
+        const prop = rule.style[i];
+        if (prop.startsWith('--')) target.set(prop, rule.style.getPropertyValue(prop).trim());
+      }
+    }
+  }
+  return { light, dark };
+}
+
+const TokenContext = createContext<{ tables: TokenTables; theme: 'light' | 'dark' }>({
+  tables: { light: new Map(), dark: new Map() },
+  theme: 'light',
+});
+
+/** Resuelve alias tipo var(--x) y cae al valor claro si el oscuro no lo redefine */
+function resolveToken(tables: TokenTables, theme: 'light' | 'dark', name: string, depth = 0): string {
+  const raw = (theme === 'dark' ? tables.dark.get(name) : undefined) ?? tables.light.get(name) ?? '';
+  const alias = raw.match(/^var\((--[\w-]+)\)$/);
+  return alias && depth < 5 ? resolveToken(tables, theme, alias[1], depth + 1) : raw;
+}
+
+const hexToRgb = (hex: string): [number, number, number] | null => {
+  const m = hex.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+const relLuminance = ([r, g, b]: [number, number, number]) => {
+  const c = [r, g, b].map(v => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+
+/** Contraste WCAG entre dos hex; null si alguno no es un hex sólido */
+const contrastRatio = (a: string, b: string): number | null => {
+  const ra = hexToRgb(a), rb = hexToRgb(b);
+  if (!ra || !rb) return null;
+  const [l1, l2] = [relLuminance(ra), relLuminance(rb)].sort((x, y) => y - x);
+  return (l1 + 0.05) / (l2 + 0.05);
+};
+
+const ratingFor = (ratio: number) => ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA grande' : 'Bajo';
+
 const Swatch: React.FC<{
   name: string;
   variable: string;
-  hex: string;
-  onDark?: boolean;
-  contrast?: string;
-}> = ({ name, variable, hex, onDark = false, contrast }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120, maxWidth: 150 }}>
-    <div style={{
-      height: 80, borderRadius: 10, background: `var(${variable})`,
-      boxShadow: 'var(--shadow-sm)', border: '1px solid var(--color-border-secondary)',
-      display: 'flex', alignItems: 'flex-end', padding: '6px 8px',
-    }}>
-      {contrast && (
-        <span style={{
-          fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-          background: onDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)',
-          color: onDark ? '#fff' : '#000',
-        }}>{contrast}</span>
-      )}
+  /** Token de fondo contra el que se mide el contraste (para colores de texto/acción) */
+  against?: string;
+}> = ({ name, variable, against }) => {
+  const { tables, theme } = useContext(TokenContext);
+  const value = resolveToken(tables, theme, variable);
+  const bg = against ? resolveToken(tables, theme, against) : '';
+  const ratio = against ? contrastRatio(value, bg) : null;
+  const fails = ratio !== null && ratio < 4.5;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120, maxWidth: 150 }}>
+      <div style={{
+        height: 80, borderRadius: 10, background: `var(${variable})`,
+        boxShadow: 'var(--shadow-sm)', border: '1px solid var(--color-border-secondary)',
+        display: 'flex', alignItems: 'flex-end', padding: '6px 8px',
+      }}>
+        {ratio !== null && (
+          <span
+            title={`Contraste contra ${against}`}
+            style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+              background: fails ? '#C42B2B' : 'rgba(255,255,255,0.88)',
+              color: fails ? '#fff' : '#1C1814',
+            }}
+          >{ratio.toFixed(1)}:1 {ratingFor(ratio)}</span>
+        )}
+      </div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2 }}>{name}</div>
+        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)', marginBottom: 1 }}>{value || '—'}</div>
+        <div style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{variable}</div>
+      </div>
     </div>
-    <div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2 }}>{name}</div>
-      <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)', marginBottom: 1 }}>{hex}</div>
-      <div style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{variable}</div>
-    </div>
-  </div>
-);
+  );
+};
 
 const Spinner: React.FC<{ size?: number; color?: string }> = ({ size = 24, color = 'var(--color-primary)' }) => (
   <div style={{
@@ -188,7 +260,8 @@ const InputDemo: React.FC<{
 ───────────────────────────────────────────────────────────────────────────── */
 
 export const StyleGuidePage: React.FC = () => {
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light');
+  const { resolvedTheme } = useTheme();
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>(resolvedTheme);
   const [checked1, setChecked1] = useState(false);
   const [checked2, setChecked2] = useState(true);
   const [selectVal, setSelectVal] = useState('');
@@ -196,8 +269,12 @@ export const StyleGuidePage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const isLight = previewTheme === 'light';
+  const [tokenTables, setTokenTables] = useState<TokenTables>(() => readTokenTables());
+  // Las hojas de Vite pueden terminar de inyectarse después del primer render
+  useEffect(() => { setTokenTables(readTokenTables()); }, []);
 
   return (
+    <TokenContext.Provider value={{ tables: tokenTables, theme: previewTheme }}>
     <div data-theme={previewTheme} style={{
       minHeight: '100vh',
       background: 'var(--color-bg-secondary)',
@@ -224,16 +301,10 @@ export const StyleGuidePage: React.FC = () => {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 8,
-            background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>D</span>
-          </div>
+          <img src="/logo-mark-64.png" alt="" width={34} height={34} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>DermicaPro</div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', letterSpacing: '0.05em' }}>Design System v2.0</div>
+            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-family-display)', color: 'var(--color-text-primary)' }}>DermicaPro</div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', letterSpacing: '0.05em' }}>Sistema de diseño v3</div>
           </div>
         </div>
 
@@ -270,19 +341,19 @@ export const StyleGuidePage: React.FC = () => {
         borderBottom: '1px solid var(--color-border-secondary)',
         maxWidth: 1100, margin: '0 auto',
       }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-primary)', marginBottom: 10 }}>
-          Material Design 3 — Teal + Rose-Mauve
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-primary-text)', marginBottom: 10 }}>
+          Dorado champaña + Gris carbón
         </div>
         <h1 style={{ fontSize: 38, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 12px', lineHeight: 1.15 }}>
           Ficha de Estilos
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 16, margin: '0 0 24px', maxWidth: 580, lineHeight: 1.6 }}>
-          Sistema de diseño centralizado para DermicaPro. Tokens, componentes y patrones reutilizables que garantizan consistencia visual en toda la aplicación.
+          Sistema de diseño de DermicaPro, derivado del logo. Los colores y contrastes de esta página se leen en vivo de design-tokens.css: si un token cambia, la ficha se actualiza sola.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
             { label: 'WCAG AA', color: 'var(--color-success-dark)', bg: 'var(--color-success-alpha-10)' },
-            { label: 'M3 Tokens', color: 'var(--color-primary)', bg: 'var(--color-primary-alpha-10)' },
+            { label: 'M3 Tokens', color: 'var(--color-primary-text)', bg: 'var(--color-primary-alpha-10)' },
             { label: 'Dark/Light', color: 'var(--color-info-dark)', bg: 'var(--color-info-alpha-10)' },
             { label: 'CSS Variables', color: 'var(--color-accent)', bg: 'var(--color-accent-alpha-10)' },
           ].map(({ label, color, bg }) => (
@@ -301,105 +372,90 @@ export const StyleGuidePage: React.FC = () => {
         ══════════════════════════════════════════════ */}
         <SectionDivider n="1" title="Paleta de Colores" />
 
-        {/* Primary */}
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: '-12px 0 24px', lineHeight: 1.6, maxWidth: 680 }}>
+          La etiqueta de cada muestra es el contraste real contra el fondo indicado. En rojo, combinaciones que
+          no llegan a 4.5:1 y no deben usarse para texto normal.
+        </p>
+
+        {/* Marca */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Primario — Teal M3 (salud, confianza, profesionalismo)
+            Primario — Dorado champaña
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Swatch name="Primary" variable="--color-primary"
-              hex={isLight ? '#0F766E' : '#2DD4BF'}
-              contrast={isLight ? '6.2:1 AA' : '8.5:1 AA'} />
-            <Swatch name="Primary Dark" variable="--color-primary-dark"
-              hex={isLight ? '#115E59' : '#14B8A6'}
-              contrast={isLight ? '7.8:1 AAA' : '6.9:1 AA'} />
-            <Swatch name="Primary Light" variable="--color-primary-light"
-              hex={isLight ? '#14B8A6' : '#5EEAD4'} />
-            <Swatch name="Primary Container" variable="--color-primary-container"
-              hex={isLight ? '#CCFBF1' : '#0D3D38'} />
+            <Swatch name="Brand" variable="--color-brand" against="--color-bg-primary" />
+            <Swatch name="Primary" variable="--color-primary" against="--color-bg-primary" />
+            <Swatch name="Primary Dark" variable="--color-primary-dark" against="--color-bg-primary" />
+            <Swatch name="Primary Container" variable="--color-primary-container" />
+            <Swatch name="On Primary" variable="--color-on-primary" against="--color-primary" />
           </div>
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '12px 0 0', lineHeight: 1.6, maxWidth: 680 }}>
+            <strong>Brand</strong> es el dorado del logo suavizado: úsalo en acentos, gráficos e iconos, nunca para
+            texto sobre fondo claro. Para botones, enlaces y texto en modo claro usa <code>--color-primary</code>.
+          </p>
         </div>
 
-        {/* Accent */}
+        {/* Acento */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Acento — Rose/Mauve (estética, piel, cuidado feminino-neutro)
-          </div>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-            <Swatch name="Accent" variable="--color-accent"
-              hex={isLight ? '#BE185D' : '#C084FC'}
-              onDark={!isLight} contrast={isLight ? '7.1:1 AA' : '6.8:1 AA'} />
-            <Swatch name="Accent Dark" variable="--color-accent-dark"
-              hex={isLight ? '#9D174D' : '#A855F7'} />
-            <Swatch name="Accent Light" variable="--color-accent-light"
-              hex={isLight ? '#EC4899' : '#E879F9'} />
-            <Swatch name="Accent Container" variable="--color-accent-container"
-              hex={isLight ? '#FCE7F3' : '#2E1065'} />
-          </div>
-          {/* Uso del acento */}
-          <div style={{
-            padding: '16px 20px', borderRadius: 10,
-            background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)',
-            display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
-          }}>
-            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginRight: 4 }}>Ejemplos de uso:</span>
-            <button className="sg-btn-hover" style={{
-              padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'var(--color-accent)', color: '#fff', boxShadow: '0 2px 6px var(--color-accent-alpha-20)',
-            }}>Nuevo Paciente</button>
-            <button className="sg-btn-hover" style={{
-              padding: '7px 16px', borderRadius: 6, border: '1.5px solid var(--color-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'transparent', color: 'var(--color-accent)',
-            }}>Outlined</button>
-            <button className="sg-btn-hover" style={{
-              padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'var(--color-accent-alpha-10)', color: 'var(--color-accent)',
-            }}>Tonal</button>
-            <Badge label="Destacado" color="var(--color-accent)" bg="var(--color-accent-alpha-10)" />
-            <div style={{
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--color-accent-light), var(--color-accent))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 16, boxShadow: '0 4px 12px var(--color-accent-alpha-20)',
-            }}>♥</div>
-          </div>
-        </div>
-
-        {/* Semantic */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Colores Semánticos (estados)
+            Acento — Rosa piel
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Swatch name="Success" variable="--color-success"
-              hex={isLight ? '#059669' : '#34D399'}
-              contrast={isLight ? '4.7:1 AA' : '7.2:1 AAA'} />
-            <Swatch name="Warning" variable="--color-warning"
-              hex={isLight ? '#D97706' : '#FCD34D'}
-              contrast={isLight ? '5.3:1 AA' : '9.1:1 AAA'} />
-            <Swatch name="Error" variable="--color-error"
-              hex={isLight ? '#DC2626' : '#F87171'}
-              contrast={isLight ? '5.9:1 AA' : '6.4:1 AA'} />
-            <Swatch name="Info" variable="--color-info"
-              hex={isLight ? '#0284C7' : '#38BDF8'}
-              contrast={isLight ? '5.7:1 AA' : '8.3:1 AAA'} />
+            <Swatch name="Accent" variable="--color-accent" against="--color-bg-primary" />
+            <Swatch name="Accent Dark" variable="--color-accent-dark" against="--color-bg-primary" />
+            <Swatch name="Accent Container" variable="--color-accent-container" />
           </div>
         </div>
 
-        {/* Backgrounds */}
+        {/* Semánticos */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+            Colores semánticos (estados)
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Swatch name="Success" variable="--color-success" against="--color-bg-primary" />
+            <Swatch name="Warning" variable="--color-warning" against="--color-bg-primary" />
+            <Swatch name="Error" variable="--color-error" against="--color-bg-primary" />
+            <Swatch name="Info" variable="--color-info" against="--color-bg-primary" />
+          </div>
+        </div>
+
+        {/* Texto */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+            Texto (contraste contra el fondo de página)
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Swatch name="Text Primary" variable="--color-text-primary" against="--color-bg-secondary" />
+            <Swatch name="Text Secondary" variable="--color-text-secondary" against="--color-bg-secondary" />
+            <Swatch name="Text Tertiary" variable="--color-text-tertiary" against="--color-bg-secondary" />
+            <Swatch name="Text Disabled" variable="--color-text-disabled" against="--color-bg-secondary" />
+          </div>
+        </div>
+
+        {/* Fondos */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+            Fondos y superficie
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Swatch name="BG Primary" variable="--color-bg-primary" />
+            <Swatch name="BG Secondary" variable="--color-bg-secondary" />
+            <Swatch name="BG Tertiary" variable="--color-bg-tertiary" />
+            <Swatch name="Border" variable="--color-border-primary" />
+          </div>
+        </div>
+
+        {/* Sidebar */}
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Fondos y Superficie
+            Sidebar (gris carbón en ambos modos)
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Swatch name="BG Primary" variable="--color-bg-primary"
-              hex={isLight ? '#FFFFFF' : '#0D1E1D'} />
-            <Swatch name="BG Secondary" variable="--color-bg-secondary"
-              hex={isLight ? '#F0FDFA' : '#071615'} />
-            <Swatch name="BG Tertiary" variable="--color-bg-tertiary"
-              hex={isLight ? '#CCFBF1' : '#152A28'} />
-            <Swatch name="Border" variable="--color-border-primary"
-              hex={isLight ? '#99F6E4' : '#214D49'} />
+            <Swatch name="Sidebar BG" variable="--sidebar-bg" />
+            <Swatch name="Sidebar Text" variable="--sidebar-text" against="--sidebar-bg" />
+            <Swatch name="Sidebar Section" variable="--sidebar-section" against="--sidebar-bg" />
+            <Swatch name="Sidebar Active" variable="--sidebar-active" against="--sidebar-bg" />
           </div>
         </div>
 
@@ -428,7 +484,7 @@ export const StyleGuidePage: React.FC = () => {
             }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)' }}>{label}</div>
-                <code style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{token}</code>
+                <code style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{token}</code>
               </div>
               <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)' }}>
                 {size}px / w{weight}<br />lh {lh}
@@ -446,10 +502,10 @@ export const StyleGuidePage: React.FC = () => {
           }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Monospace / Code</div>
-              <code style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>--font-family-mono</code>
+              <code style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>--font-family-mono</code>
             </div>
             <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)' }}>14px / w400</div>
-            <code style={{ fontSize: 14, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
+            <code style={{ fontSize: 14, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>
               patient_id: "a1b2c3d4" · payment_order_status: "partial"
             </code>
           </div>
@@ -475,7 +531,7 @@ export const StyleGuidePage: React.FC = () => {
                 { name: '--spacing-3xl', val: '64px', px: 64 },
               ].map(({ name, val, px }) => (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
+                  <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
                   <div style={{
                     height: 10, width: px, background: 'var(--color-primary)', borderRadius: 2, opacity: 0.7, flexShrink: 0,
                   }} />
@@ -498,7 +554,7 @@ export const StyleGuidePage: React.FC = () => {
                 { name: '--radius-full', val: '9999px', r: 9999 },
               ].map(({ name, val, r }) => (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
+                  <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
                   <div style={{
                     width: 36, height: 24,
                     background: 'linear-gradient(135deg, var(--color-primary-light), var(--color-primary))',
@@ -521,7 +577,7 @@ export const StyleGuidePage: React.FC = () => {
               { name: '--control-height-lg', val: '48px', h: 48, label: 'lg — búsquedas prominentes, CTA' },
             ].map(({ name, val, h, label }) => (
               <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', minWidth: 170 }}>{name}</code>
+                <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', minWidth: 170 }}>{name}</code>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ height: h, width: 100, background: 'var(--color-primary-alpha-10)', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-lg)' }} />
                   <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{val} — {label}</span>
@@ -558,7 +614,7 @@ export const StyleGuidePage: React.FC = () => {
               }}>
                 <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>{name}</span>
               </div>
-              <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
+              <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>
                 --shadow-{name}
               </code>
             </div>
@@ -573,7 +629,7 @@ export const StyleGuidePage: React.FC = () => {
             }}>
               <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>inner</span>
             </div>
-            <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
+            <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>
               --shadow-inner
             </code>
           </div>
@@ -595,8 +651,8 @@ export const StyleGuidePage: React.FC = () => {
               { label: 'Danger', bg: 'var(--color-error)', color: '#fff', shadow: '0 2px 8px var(--color-error-alpha-10)' },
               { label: 'Warning', bg: 'var(--color-warning)', color: '#fff', shadow: 'none' },
               { label: 'Accent', bg: 'var(--color-accent)', color: '#fff', shadow: '0 2px 8px var(--color-accent-alpha-20)' },
-              { label: 'Outlined', bg: 'transparent', color: 'var(--color-primary)', border: '1.5px solid var(--color-primary)', shadow: 'none' },
-              { label: 'Ghost', bg: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)', shadow: 'none' },
+              { label: 'Outlined', bg: 'transparent', color: 'var(--color-primary-text)', border: '1.5px solid var(--color-primary)', shadow: 'none' },
+              { label: 'Ghost', bg: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)', shadow: 'none' },
             ].map(({ label, bg, color, border, shadow }) => (
               <button key={label} className="sg-btn-hover" style={{
                 padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
@@ -618,7 +674,7 @@ export const StyleGuidePage: React.FC = () => {
             ].map(({ label, p, fs }) => (
               <button key={label} className="sg-btn-hover" style={{
                 padding: p, borderRadius: 6, fontSize: fs, fontWeight: 600,
-                border: 'none', background: 'var(--color-primary)', color: '#fff',
+                border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)',
                 boxShadow: '0 2px 6px var(--color-primary-alpha-20)', cursor: 'pointer',
               }}>{label}</button>
             ))}
@@ -631,17 +687,17 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="sg-btn-hover" style={{
               padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer',
+              border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'pointer',
               boxShadow: '0 2px 6px var(--color-primary-alpha-20)',
             }}>Normal</button>
             <button style={{
               padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'not-allowed',
+              border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'not-allowed',
               opacity: 0.45,
             }} disabled>Disabled</button>
             <button style={{
               padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'wait',
+              border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'wait',
               display: 'inline-flex', alignItems: 'center', gap: 8,
               boxShadow: '0 2px 6px var(--color-primary-alpha-20)',
             }}>
@@ -1038,7 +1094,7 @@ export const StyleGuidePage: React.FC = () => {
                 <div className="modal-body">
                   <p style={{ color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.6 }}>
                     Este es el modal real con overlay. Haz clic fuera o en el botón para cerrar.
-                    El z-index usa <code style={{ color: 'var(--color-primary)', fontSize: 13 }}>var(--z-modal-backdrop)</code> y <code style={{ color: 'var(--color-primary)', fontSize: 13 }}>var(--z-modal)</code>.
+                    El z-index usa <code style={{ color: 'var(--color-primary-text)', fontSize: 13 }}>var(--z-modal-backdrop)</code> y <code style={{ color: 'var(--color-primary-text)', fontSize: 13 }}>var(--z-modal)</code>.
                   </p>
                 </div>
                 <div className="modal-actions">
@@ -1152,7 +1208,7 @@ export const StyleGuidePage: React.FC = () => {
               }}>Ver historial</button>
               <button style={{
                 padding: '6px 14px', borderRadius: 6, border: 'none',
-                background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
               }}>Agendar cita</button>
             </div>
           </div>
@@ -1284,7 +1340,7 @@ export const StyleGuidePage: React.FC = () => {
             maxWidth: 600,
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--spacing-sm)' }}>
-              <span style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-extrabold)', color: 'var(--color-primary)', letterSpacing: -1 }}>12</span>
+              <span style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-extrabold)', color: 'var(--color-primary-text)', letterSpacing: -1 }}>12</span>
               <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text-tertiary)' }}>citas encontradas</span>
             </div>
           </div>
@@ -1375,7 +1431,7 @@ export const StyleGuidePage: React.FC = () => {
             </div>
             <button style={{
               padding: '7px 16px', borderRadius: 6, border: 'none',
-              background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}>+ Nueva Cita</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -1428,7 +1484,7 @@ export const StyleGuidePage: React.FC = () => {
                         }}>Ver</button>
                         <button style={{
                           padding: '4px 10px', borderRadius: 5, border: 'none',
-                          background: 'var(--color-primary-alpha-10)', fontSize: 12, cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 500,
+                          background: 'var(--color-primary-alpha-10)', fontSize: 12, cursor: 'pointer', color: 'var(--color-primary-text)', fontWeight: 500,
                         }}>Editar</button>
                       </div>
                     </td>
@@ -1473,7 +1529,7 @@ export const StyleGuidePage: React.FC = () => {
             <div style={{ fontSize: 14, color: 'var(--color-text-tertiary)', marginBottom: 20 }}>No hay citas para los filtros seleccionados</div>
             <button style={{
               padding: '8px 20px', borderRadius: 6, border: 'none',
-              background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}>+ Agendar primera cita</button>
           </div>
         </div>
@@ -1488,10 +1544,10 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Spinners</div>
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {[
-              { size: 16, label: 'XS · 16px', color: 'var(--color-primary)' },
-              { size: 24, label: 'SM · 24px', color: 'var(--color-primary)' },
-              { size: 36, label: 'MD · 36px', color: 'var(--color-primary)' },
-              { size: 48, label: 'LG · 48px', color: 'var(--color-primary)' },
+              { size: 16, label: 'XS · 16px', color: 'var(--color-primary-text)' },
+              { size: 24, label: 'SM · 24px', color: 'var(--color-primary-text)' },
+              { size: 36, label: 'MD · 36px', color: 'var(--color-primary-text)' },
+              { size: 48, label: 'LG · 48px', color: 'var(--color-primary-text)' },
               { size: 24, label: 'Success', color: 'var(--color-success)' },
               { size: 24, label: 'Error', color: 'var(--color-error)' },
               { size: 24, label: 'Warning', color: 'var(--color-warning)' },
@@ -1548,7 +1604,7 @@ export const StyleGuidePage: React.FC = () => {
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Barras de Progreso</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 520 }}>
-            <ProgressBar value={78} color="var(--color-primary)" label="Primary" />
+            <ProgressBar value={78} color="var(--color-primary-text)" label="Primary" />
             <ProgressBar value={62} color="var(--color-success)" label="Success" />
             <ProgressBar value={45} color="var(--color-warning)" label="Warning" />
             <ProgressBar value={28} color="var(--color-error)" label="Error" />
@@ -1558,7 +1614,7 @@ export const StyleGuidePage: React.FC = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Sesiones HIFU 12D — 3/5 completadas</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary)' }}>60%</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary-text)' }}>60%</span>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 {[1, 2, 3, 4, 5].map(i => (
@@ -1584,7 +1640,7 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="13" title="Templates de Página" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Tres patrones de layout reutilizables. Cada wireframe muestra la anatomía del template con sus zonas funcionales. Importar desde <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>src/components/templates/</code>.
+          Tres patrones de layout reutilizables. Cada wireframe muestra la anatomía del template con sus zonas funcionales. Importar desde <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>src/components/templates/</code>.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
@@ -1594,7 +1650,7 @@ export const StyleGuidePage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--color-primary)', background: 'var(--color-primary-alpha-10)',
+                color: 'var(--color-primary-text)', background: 'var(--color-primary-alpha-10)',
                 padding: '3px 8px', borderRadius: 4,
               }}>PageListLayout</span>
               <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Lista + Filtros + Tabla</span>
@@ -1806,7 +1862,7 @@ export const StyleGuidePage: React.FC = () => {
               <code key={i} style={{
                 display: 'block', fontSize: 12, padding: '6px 10px',
                 background: 'var(--color-bg-primary)', borderRadius: 5,
-                color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)',
+                color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)',
                 border: '1px solid var(--color-border-secondary)',
               }}>{line}</code>
             ))}
@@ -1819,15 +1875,15 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="14" title="Detalle de Paciente (patient-detail.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-detail.css</code> y{' '}
-          <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>state-transitions.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-detail.css</code> y{' '}
+          <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>state-transitions.css</code>.
           Todos usan design tokens — funcionan en dark/light sin ajustes.
         </p>
 
         {/* ── Avatar / Photo ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Avatar de paciente (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-avatar</code>) — foto o iniciales
+            Avatar de paciente (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-avatar</code>) — foto o iniciales
           </div>
           <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             {/* Con iniciales */}
@@ -1851,7 +1907,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Hero Card ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Hero Card (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-hero</code>)
+            Hero Card (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-hero</code>)
           </div>
           <div className="pd-hero" style={{ maxWidth: 700 }}>
             <div className="pd-avatar">MG</div>
@@ -1865,7 +1921,7 @@ export const StyleGuidePage: React.FC = () => {
               </div>
             </div>
             <div className="pd-hero__actions">
-              <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Editar</button>
+              <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Editar</button>
               <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-success)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Nueva Cita</button>
             </div>
           </div>
@@ -1877,7 +1933,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Cards Grid ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Cards del dashboard (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-card</code>) con variantes de ícono
+            Cards del dashboard (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-card</code>) con variantes de ícono
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
@@ -1912,7 +1968,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Info List ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Lista de información (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-info-list</code>)
+            Lista de información (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-info-list</code>)
           </div>
           <div className="pd-card" style={{ maxWidth: 360 }}>
             <div className="pd-card__header">
@@ -1955,7 +2011,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Stats */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Stats (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-stats</code>)
+              Stats (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-stats</code>)
             </div>
             <div className="pd-stats">
               <div className="pd-stat">
@@ -1979,7 +2035,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Treatment progress */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Tratamiento (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-treatment</code>)
+              Tratamiento (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-treatment</code>)
             </div>
             <div className="pd-treatment-list">
               <div className="pd-treatment">
@@ -2015,7 +2071,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Completed */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Completado (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-completed</code>)
+              Completado (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-completed</code>)
             </div>
             <div className="pd-completed-list">
               {['Hollywood Peel', 'Bioestimulación', 'Facial Derma'].map(name => (
@@ -2040,7 +2096,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Orden de pago pendiente */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Orden de pago pendiente (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-pending-total · .pd-payment-order</code>)
+              Orden de pago pendiente (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-pending-total · .pd-payment-order</code>)
             </div>
             <div className="pd-pending-total">
               <span className="pd-pending-total__label">Total pendiente</span>
@@ -2070,7 +2126,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Quick actions */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Acciones rápidas (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-actions-grid · .pd-action</code>)
+              Acciones rápidas (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-actions-grid · .pd-action</code>)
             </div>
             <div className="pd-actions-grid">
               {[
@@ -2102,7 +2158,7 @@ export const StyleGuidePage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Estado vacío (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-empty</code>)
+              Estado vacío (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-empty</code>)
             </div>
             <div className="pd-card">
               <div className="pd-card__body">
@@ -2112,7 +2168,7 @@ export const StyleGuidePage: React.FC = () => {
                     <path d="M13 20h14M13 26h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
                   <p>Sin registros disponibles</p>
-                  <button style={{ padding: '6px 14px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <button style={{ padding: '6px 14px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     Agregar primero
                   </button>
                 </div>
@@ -2125,7 +2181,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Botón volver (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-back</code>) y vista-todo (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-view-all</code>)
+              Botón volver (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-back</code>) y vista-todo (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-view-all</code>)
             </div>
             <div className="pd-card">
               <div className="pd-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2147,7 +2203,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── State Transitions ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Transiciones de estado (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>state-transitions.css</code>) — Citas
+            Transiciones de estado (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>state-transitions.css</code>) — Citas
           </div>
 
           {/* Ejemplo: desde "Reservada" */}
@@ -2238,14 +2294,14 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="15" title="Detalle de Cita (appointment-detail.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>appointment-detail.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>appointment-detail.css</code>.
           Todos usan design tokens — compatibles con dark/light.
         </p>
 
         {/* ── Patient Strip ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Patient strip — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-patient-strip</code> — con foto y sin foto
+            Patient strip — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-patient-strip</code> — con foto y sin foto
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 520 }}>
             {/* Con foto */}
@@ -2281,7 +2337,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Bloques de pago ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Bloque de pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-pay-pkg</code>
+            Bloque de pago — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-pay-pkg</code>
           </div>
           <div style={{ maxWidth: 480 }}>
             <div className="adet-pay-pkg">
@@ -2322,7 +2378,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Otras órdenes de pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-other-payment-orders</code>
+              Otras órdenes de pago — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-other-payment-orders</code>
             </div>
             <div className="adet-other-payment-orders">
               <div className="adet-other-payment-orders__header">
@@ -2360,7 +2416,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Reserva pagada y sin reserva — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-reservation</code>
+              Reserva pagada y sin reserva — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-reservation</code>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="adet-reservation adet-reservation--paid">
@@ -2392,7 +2448,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Package Group View ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Package Group View — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pkg-group · .pkg-header · .pkg-sessions · .pkg-session</code>
+            Package Group View — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pkg-group · .pkg-header · .pkg-sessions · .pkg-session</code>
           </div>
           <div style={{ maxWidth: 520 }}>
             {/* Package header */}
@@ -2470,7 +2526,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Medidas corporales ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Medidas corporales — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-measures-grid · .adet-measure-stat · .adet-body-block · .adet-body-item · .adet-health-notes</code>
+            Medidas corporales — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-measures-grid · .adet-measure-stat · .adet-body-block · .adet-body-item · .adet-health-notes</code>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div>
@@ -2519,7 +2575,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Notas de atención ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Notas de atención — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-note-textarea · .adet-notes-list · .adet-note-item</code>
+            Notas de atención — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-note-textarea · .adet-notes-list · .adet-note-item</code>
           </div>
           <div style={{ maxWidth: 520 }}>
             <textarea
@@ -2549,7 +2605,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Status colors ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Status badge colors — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.status-badge-large.status-*</code>
+            Status badge colors — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.status-badge-large.status-*</code>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
@@ -2570,7 +2626,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Glass card pattern ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Glass Card — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.glass-card</code> (styles.css) — card principal del detalle
+            Glass Card — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.glass-card</code> (styles.css) — card principal del detalle
           </div>
           <div className="glass-card" style={{ maxWidth: 480 }}>
             <div className="card-header">
@@ -2607,7 +2663,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── System info ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            System info — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.system-info · .system-item · .system-label · .system-value</code>
+            System info — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.system-info · .system-item · .system-label · .system-value</code>
           </div>
           <div className="glass-card system-card" style={{ maxWidth: 480 }}>
             <div className="card-header card-header--collapsible">
@@ -2640,14 +2696,14 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="16" title="Órdenes de Pago del Paciente (patient-payment-orders.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-payment-orders.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-payment-orders.css</code>.
           100% design tokens — light y dark mode.
         </p>
 
         {/* ── Patient strip en header ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Header con avatar — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-orders-patient-strip · .payment-orders-patient-avatar</code>
+            Header con avatar — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.payment-orders-patient-strip · .payment-orders-patient-avatar</code>
           </div>
           <div style={{ maxWidth: 600, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-xl)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2669,7 +2725,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Summary cards ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Summary cards — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.summary-card + .summary-card-total/paid/pending</code>
+            Summary cards — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.summary-card + .summary-card-total/paid/pending</code>
           </div>
           <div className="payment-orders-summary" style={{ maxWidth: 800 }}>
             <div className="summary-card summary-card-total">
@@ -2698,7 +2754,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Orden de pago items ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Orden de pago item — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-item · .payment-order-status-badge</code>
+            Orden de pago item — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-item · .payment-order-status-badge</code>
           </div>
           <div className="payment-orders-list-container" style={{ maxWidth: 640 }}>
             <div className="payment-orders-list-header">
@@ -2786,7 +2842,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Register Payment Modal ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Modal de Registro de Pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>RegisterPaymentModal</code>
+            Modal de Registro de Pago — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>RegisterPaymentModal</code>
           </div>
           {/* Preview estático del contenido del modal (sin el overlay) */}
           <div style={{ maxWidth: 520, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-xl)', boxShadow: 'var(--shadow-lg)' }}>
@@ -2833,11 +2889,11 @@ export const StyleGuidePage: React.FC = () => {
             <div style={{ background: 'var(--color-primary-alpha-10)', border: '1px solid var(--color-border-primary)', borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-md)', display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-md)' }}>
               <div>
                 <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>Registrando</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-primary)' }}>S/. 80.00</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-primary-text)' }}>S/. 80.00</div>
               </div>
               <div style={{ textAlign: 'right' as const }}>
                 <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>vía</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-primary)' }}>📲 Yape</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-primary-text)' }}>📲 Yape</div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -2854,7 +2910,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Order selection (Create Payment Order) ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Selección de orden — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.cinv-order · .cinv-order--selected · .cinv-summary</code>
+            Selección de orden — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.cinv-order · .cinv-order--selected · .cinv-summary</code>
           </div>
           <div style={{ maxWidth: 560 }}>
             <div className="glass-card">
@@ -2903,7 +2959,7 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="17" title="Detalle de Orden de Pago (PaymentOrderDetailPage)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          La página <code style={{ color: "var(--color-primary)", fontFamily: "var(--font-family-mono)", fontSize: 13 }}>PaymentOrderDetailPage</code> compone
+          La página <code style={{ color: "var(--color-primary-text)", fontFamily: "var(--font-family-mono)", fontSize: 13 }}>PaymentOrderDetailPage</code> compone
           exclusivamente con clases ya documentadas en secciones anteriores. No añade CSS nuevo —
           documenta aquí la <strong>combinación</strong> específica y los patrones de uso.
         </p>
@@ -2911,7 +2967,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Status badges ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Status badge — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-status-badge.payment-order-status-paid/partial/pending/cancelled</code>
+            Status badge — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-status-badge.payment-order-status-paid/partial/pending/cancelled</code>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
             <span className="payment-order-status-badge payment-order-status-paid">Pagada</span>
@@ -3034,13 +3090,13 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="18" title="Historial del Paciente (patient-history.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-history.css</code> — tabs, stat cards del historial, timeline markers y bloques de detalle médico.
+          Módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-history.css</code> — tabs, stat cards del historial, timeline markers y bloques de detalle médico.
         </p>
 
         {/* ── Tabs ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Tabs — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-tabs · .phist-tab · .phist-tab--active · .phist-tab__badge</code>
+            Tabs — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-tabs · .phist-tab · .phist-tab--active · .phist-tab__badge</code>
           </div>
           <div className="phist-tabs" style={{ maxWidth: 500 }}>
             <button className="phist-tab phist-tab--active">
@@ -3062,7 +3118,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Stat cards ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Stat cards del historial — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-stat-card--records/since/last/files</code> (patrón Dashboard sec. 10)
+            Stat cards del historial — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-stat-card--records/since/last/files</code> (patrón Dashboard sec. 10)
           </div>
           <div className="phist-stat-grid" style={{ maxWidth: 900 }}>
             <div className="phist-stat-card phist-stat-card--records">
@@ -3092,7 +3148,7 @@ export const StyleGuidePage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Status badges — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-status-badge--{'{status}'}</code>
+              Status badges — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-status-badge--{'{status}'}</code>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {(['reserved','in_progress','attended','cancelled','no_show'] as const).map(s => (
@@ -3108,7 +3164,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Foto badges — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-photo-badge--before/after</code>
+              Foto badges — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-photo-badge--before/after</code>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span className="phist-photo-badge phist-photo-badge--before">Fotos Antes del Tratamiento</span>
@@ -3161,15 +3217,15 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="19" title="Analytics (analytics.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>analytics.css</code> —
+          Módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>analytics.css</code> —
           período selector, tabs, KPI cards, chart cards, tabla y ranking. Incluye
-          tokens de color para charts (<code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 12 }}>--chart-1…6</code>) compatibles con Recharts en dark/light.
+          tokens de color para charts (<code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 12 }}>--chart-1…6</code>) compatibles con Recharts en dark/light.
         </p>
 
         {/* Period selector */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Period selector — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.period-selector · .period-button · .period-button.active</code>
+            Period selector — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.period-selector · .period-button · .period-button.active</code>
           </div>
           <div className="period-selector">
             {['Hoy','Semana','Mes','Año','Personalizado'].map((l, i) => (
@@ -3184,7 +3240,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* Tabs */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Analytics tabs — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.analytics-tabs · .tab-button · .tab-button.active</code>
+            Analytics tabs — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.analytics-tabs · .tab-button · .tab-button.active</code>
           </div>
           <div className="analytics-tabs">
             {['Resumen Ejecutivo','Finanzas','Operaciones','Ventas','Clientes','Servicios'].map((t, i) => (
@@ -3199,7 +3255,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* KPI cards */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            KPI cards — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.anlx-kpi-card--primary/success/warning/error/info/accent</code>
+            KPI cards — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.anlx-kpi-card--primary/success/warning/error/info/accent</code>
           </div>
           <div className="anlx-kpi-grid">
             {[
@@ -3225,7 +3281,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* Table + ranking */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Tabla analytics — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.anlx-chart-card · .anlx-table · .anlx-rank-badge--gold/silver/bronze</code>
+            Tabla analytics — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.anlx-chart-card · .anlx-table · .anlx-rank-badge--gold/silver/bronze</code>
           </div>
           <div className="anlx-chart-card" style={{ maxWidth: 600 }}>
             <h3 className="anlx-chart-title">Ranking de Vendedores</h3>
@@ -3259,13 +3315,13 @@ export const StyleGuidePage: React.FC = () => {
         {/* Chart colors */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Chart colors — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>--chart-1 … --chart-6</code> (cambian en dark mode)
+            Chart colors — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>--chart-1 … --chart-6</code> (cambian en dark mode)
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
             {['--chart-1','--chart-2','--chart-3','--chart-4','--chart-5','--chart-6'].map((v, i) => (
               <div key={v} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: `var(${v})`, boxShadow: 'var(--shadow-sm)' }} />
-                <code style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>{v}</code>
+                <code style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>{v}</code>
                 <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
                   {['primary','success','warning','error','info','accent'][i]}
                 </span>
@@ -3275,7 +3331,7 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ padding: '12px 16px', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border-secondary)', fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'monospace', lineHeight: 1.8 }}>
             <strong style={{ color: 'var(--color-warning-dark)' }}>⚠ IMPORTANTE — SVG y CSS Variables</strong><br/>
             Los atributos SVG (fill=, stroke=) NO soportan CSS variables directamente.<br/>
-            Recharts usa atributos SVG → usar <code style={{ color: 'var(--color-primary)' }}>getChartColor(n)</code> en lugar de <code style={{ color: 'var(--color-error)' }}>"var(--chart-n)"</code><br/>
+            Recharts usa atributos SVG → usar <code style={{ color: 'var(--color-primary-text)' }}>getChartColor(n)</code> en lugar de <code style={{ color: 'var(--color-error)' }}>"var(--chart-n)"</code><br/>
             <br/>
             <strong>Uso correcto:</strong><br/>
             {'import { getChartColor, getChartColors } from "utils/chartColors";'}<br/>
@@ -3308,81 +3364,35 @@ export const StyleGuidePage: React.FC = () => {
             ))}
           </div>
 
-          {/* Tokens list */}
-          {[
-            { group: 'Primario', tokens: [
-              { name: '--color-primary', light: '#0F766E', dark: '#2DD4BF' },
-              { name: '--color-primary-dark', light: '#115E59', dark: '#14B8A6' },
-              { name: '--color-primary-light', light: '#14B8A6', dark: '#5EEAD4' },
-              { name: '--color-primary-container', light: '#CCFBF1', dark: '#0D3D38' },
-            ]},
-            { group: 'Acento', tokens: [
-              { name: '--color-accent', light: '#BE185D', dark: '#C084FC' },
-              { name: '--color-accent-dark', light: '#9D174D', dark: '#A855F7' },
-              { name: '--color-accent-light', light: '#EC4899', dark: '#E879F9' },
-            ]},
-            { group: 'Semánticos', tokens: [
-              { name: '--color-success', light: '#059669', dark: '#34D399' },
-              { name: '--color-warning', light: '#D97706', dark: '#FCD34D' },
-              { name: '--color-error', light: '#DC2626', dark: '#F87171' },
-              { name: '--color-info', light: '#0284C7', dark: '#38BDF8' },
-            ]},
-            { group: 'Fondos', tokens: [
-              { name: '--color-bg-primary', light: '#FFFFFF', dark: '#0D1E1D' },
-              { name: '--color-bg-secondary', light: '#F0FDFA', dark: '#071615' },
-              { name: '--color-bg-tertiary', light: '#CCFBF1', dark: '#152A28' },
-            ]},
-            { group: 'Texto', tokens: [
-              { name: '--color-text-primary', light: '#134E4A', dark: '#F0FDFA' },
-              { name: '--color-text-secondary', light: '#1F6B64', dark: '#99F6E4' },
-              { name: '--color-text-tertiary', light: '#5EADA5', dark: '#5EEAD4' },
-              { name: '--color-text-disabled', light: '#9CA3AF', dark: '#2D6B65' },
-            ]},
-            { group: 'Bordes', tokens: [
-              { name: '--color-border-primary', light: '#99F6E4', dark: '#214D49' },
-              { name: '--color-border-secondary', light: '#CCFBF1', dark: '#152A28' },
-            ]},
-            { group: 'Espaciado', tokens: [
-              { name: '--spacing-xs', light: '4px', dark: '4px' },
-              { name: '--spacing-sm', light: '8px', dark: '8px' },
-              { name: '--spacing-md', light: '16px', dark: '16px' },
-              { name: '--spacing-lg', light: '24px', dark: '24px' },
-              { name: '--spacing-xl', light: '32px', dark: '32px' },
-            ]},
-            { group: 'Radio', tokens: [
-              { name: '--radius-sm', light: '4px', dark: '4px' },
-              { name: '--radius-md', light: '6px', dark: '6px' },
-              { name: '--radius-lg', light: '8px', dark: '8px' },
-              { name: '--radius-xl', light: '12px', dark: '12px' },
-              { name: '--radius-full', light: '9999px', dark: '9999px' },
-            ]},
-            { group: 'Tipografía', tokens: [
-              { name: '--font-size-xs', light: '12px', dark: '12px' },
-              { name: '--font-size-sm', light: '14px', dark: '14px' },
-              { name: '--font-size-base', light: '16px', dark: '16px' },
-              { name: '--font-size-lg', light: '18px', dark: '18px' },
-              { name: '--font-size-2xl', light: '24px', dark: '24px' },
-              { name: '--font-weight-semibold', light: '600', dark: '600' },
-              { name: '--font-weight-bold', light: '700', dark: '700' },
-            ]},
-            { group: 'Transiciones', tokens: [
-              { name: '--transition-fast', light: '150ms ease-in-out', dark: '150ms ease-in-out' },
-              { name: '--transition-base', light: '200ms ease-in-out', dark: '200ms ease-in-out' },
-              { name: '--transition-slow', light: '300ms ease-in-out', dark: '300ms ease-in-out' },
-            ]},
-            { group: 'Z-Index', tokens: [
-              { name: '--z-dropdown', light: '1000', dark: '1000' },
-              { name: '--z-modal-backdrop', light: '1040', dark: '1040' },
-              { name: '--z-modal', light: '1050', dark: '1050' },
-              { name: '--z-tooltip', light: '1070', dark: '1070' },
-            ]},
-          ].map(({ group, tokens }, gi) => (
+          {/* Tokens list: valores leídos de design-tokens.css */}
+          {([
+            { group: 'Primario', tokens: ['--color-brand', '--color-primary', '--color-primary-dark', '--color-primary-light', '--color-primary-container', '--color-on-primary'] },
+            { group: 'Acento', tokens: ['--color-accent', '--color-accent-dark', '--color-accent-light', '--color-accent-container'] },
+            { group: 'Semánticos', tokens: ['--color-success', '--color-warning', '--color-error', '--color-info'] },
+            { group: 'Fondos', tokens: ['--color-bg-primary', '--color-bg-secondary', '--color-bg-tertiary', '--color-bg-hover', '--color-bg-active'] },
+            { group: 'Texto', tokens: ['--color-text-primary', '--color-text-secondary', '--color-text-tertiary', '--color-text-disabled'] },
+            { group: 'Bordes', tokens: ['--color-border-primary', '--color-border-secondary'] },
+            { group: 'Sidebar', tokens: ['--sidebar-bg', '--sidebar-text', '--sidebar-text-strong', '--sidebar-section', '--sidebar-active'] },
+            { group: 'Gráficos', tokens: ['--chart-grid', '--chart-axis'] },
+            { group: 'Espaciado', tokens: ['--spacing-xs', '--spacing-sm', '--spacing-md', '--spacing-lg', '--spacing-xl'] },
+            { group: 'Radio', tokens: ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-full'] },
+            { group: 'Tipografía', tokens: ['--font-family-display', '--font-size-xs', '--font-size-sm', '--font-size-base', '--font-size-lg', '--font-size-2xl', '--font-weight-semibold', '--font-weight-bold'] },
+            { group: 'Transiciones', tokens: ['--transition-fast', '--transition-base', '--transition-slow'] },
+            { group: 'Z-Index', tokens: ['--z-dropdown', '--z-modal-backdrop', '--z-modal', '--z-tooltip'] },
+          ].map(({ group, tokens }) => ({
+            group,
+            tokens: tokens.map(name => ({
+              name,
+              light: resolveToken(tokenTables, 'light', name) || '—',
+              dark: resolveToken(tokenTables, 'dark', name) || '—',
+            })),
+          }))).map(({ group, tokens }, gi) => (
             <React.Fragment key={group}>
               <div style={{
                 padding: '8px 20px', background: 'var(--color-bg-secondary)',
                 borderTop: gi > 0 ? '1px solid var(--color-border-secondary)' : 'none',
               }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{group}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary-text)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{group}</span>
               </div>
               {tokens.map(({ name, light, dark }, ti) => (
                 <div key={name} style={{
@@ -3391,7 +3401,7 @@ export const StyleGuidePage: React.FC = () => {
                   borderTop: '1px solid var(--color-border-secondary)',
                   background: ti % 2 === 0 ? 'var(--color-bg-primary)' : 'var(--color-bg-secondary)',
                 }}>
-                  <code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>{name}</code>
+                  <code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>{name}</code>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {light.startsWith('#') && (
                       <div style={{ width: 14, height: 14, borderRadius: 3, background: light, border: '1px solid var(--color-border-primary)', flexShrink: 0 }} />
@@ -3416,79 +3426,70 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="21" title="Sidebar de Navegación" />
 
         {(() => {
-          const mainNav = [
-            { Icon: LayoutDashboard,   label: 'Dashboard',       active: false },
-            { Icon: Users,             label: 'Pacientes',        active: false },
-            { Icon: CalendarDays,      label: 'Citas',            active: true  },
-            { Icon: Syringe,           label: 'Servicios',        active: false },
-            { Icon: UserCog,           label: 'Empleados',        active: false },
-            { Icon: BadgeDollarSign,   label: 'Comisiones',       active: false },
-            { Icon: BarChart3,         label: 'Analíticas',       active: false },
-            { Icon: Palette,           label: 'Ficha de Estilos', active: false },
-          ];
-          const metaNav = [
-            { Icon: CircleUser, label: 'Mi Perfil' },
-            { Icon: Settings,   label: 'Configuración' },
+          const groups = [
+            { title: undefined, items: [
+              { Icon: LayoutDashboard, label: 'Dashboard', active: false },
+              { Icon: Users,           label: 'Pacientes', active: false },
+              { Icon: CalendarDays,    label: 'Citas',     active: true  },
+            ]},
+            { title: 'Gestión', items: [
+              { Icon: Syringe,         label: 'Servicios',  active: false },
+              { Icon: UserCog,         label: 'Empleados',  active: false },
+              { Icon: BadgeDollarSign, label: 'Comisiones', active: false },
+            ]},
+            { title: 'Análisis', items: [
+              { Icon: BarChart3, label: 'Analíticas',       active: false },
+              { Icon: Palette,   label: 'Ficha de Estilos', active: false },
+            ]},
           ];
 
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              {(['light', 'dark'] as const).map(theme => (
-                <div key={theme}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-                    {theme === 'light' ? '☀️ Light Mode' : '🌙 Dark Mode'}
-                  </div>
-                  <div data-theme={theme} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--color-border-secondary)', display: 'flex', flexDirection: 'column', background: 'var(--color-bg-primary)' }}>
-                    {/* Header */}
-                    <div style={{ padding: '16px 24px', background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>DermicaPro</div>
-                    </div>
-
-                    {/* User */}
-                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-secondary)', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 9999, background: 'var(--color-primary-alpha-20)', border: '2px solid var(--color-primary)', color: 'var(--color-primary)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>AD</div>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.25 }}>Admin DermicaPro</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 1 }}>Administrador</div>
-                      </div>
-                    </div>
-
-                    {/* Nav principal */}
-                    <nav style={{ padding: '8px 0' }}>
-                      {mainNav.map(({ Icon, label, active }) => (
-                        <div key={label} style={{ padding: '2px 8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, background: active ? 'var(--color-primary-alpha-10)' : 'transparent', color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)', fontWeight: active ? 600 : 500, fontSize: 13, borderLeft: `2.5px solid ${active ? 'var(--color-primary)' : 'transparent'}`, cursor: 'default' }}>
-                            <span style={{ width: 18, display: 'flex', alignItems: 'center', color: 'inherit', flexShrink: 0 }}><Icon size={16} strokeWidth={1.75} /></span>
-                            {label}
-                          </div>
-                        </div>
+            <div className="dashboard-sidebar" style={{ height: 'auto', maxWidth: 'var(--sidebar-width)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="sidebar-header">
+                <span className="sidebar-brand">
+                  <img src="/logo-mark-64.png" alt="" className="sidebar-brand__mark" />
+                  <span className="sidebar-brand__text">
+                    <span className="sidebar-brand__name">DermicaPro</span>
+                    <span className="sidebar-brand__tagline">Skincare Clinic</span>
+                  </span>
+                </span>
+                <span className="sidebar-icon-btn"><PanelLeftClose size={18} strokeWidth={1.75} /></span>
+              </div>
+              <div className="sidebar-nav" style={{ overflow: 'visible' }}>
+                <span className="sidebar-cta"><CalendarPlus size={18} strokeWidth={2} />Nueva cita</span>
+                {groups.map(g => (
+                  <div key={g.title ?? 'main'} className="sidebar-nav-group">
+                    {g.title && <p className="sidebar-nav-section">{g.title}</p>}
+                    <ul className="sidebar-nav-list">
+                      {g.items.map(({ Icon, label, active }) => (
+                        <li key={label}>
+                          <span className={`sidebar-nav-link${active ? ' active' : ''}`}>
+                            <span className="sidebar-nav-icon"><Icon size={20} strokeWidth={1.75} /></span>
+                            <span className="sidebar-nav-label">{label}</span>
+                          </span>
+                        </li>
                       ))}
-
-                      {/* Divider */}
-                      <div style={{ height: 1, background: 'var(--color-border-secondary)', margin: '6px 8px' }} />
-
-                      {/* Meta nav */}
-                      {metaNav.map(({ Icon, label }) => (
-                        <div key={label} style={{ padding: '2px 8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 6, color: 'var(--color-text-tertiary)', fontSize: 12, fontWeight: 500, borderLeft: '2.5px solid transparent', cursor: 'default' }}>
-                            <span style={{ width: 18, display: 'flex', alignItems: 'center', color: 'inherit', flexShrink: 0 }}><Icon size={15} strokeWidth={1.75} /></span>
-                            {label}
-                          </div>
-                        </div>
-                      ))}
-                    </nav>
-
-                    {/* Footer */}
-                    <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border-secondary)', background: 'var(--color-bg-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{ width: '100%', padding: '8px 12px', color: 'var(--color-error)', background: 'transparent', border: '1.5px solid var(--color-error)', borderRadius: 6, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'default' }}>
-                        <LogOut size={15} strokeWidth={2} />
-                        Cerrar Sesión
-                      </div>
-                      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-text-disabled)', fontFamily: 'var(--font-family-mono)' }}>v1.0.0</div>
-                    </div>
+                    </ul>
                   </div>
+                ))}
+              </div>
+              <div className="sidebar-footer">
+                <div className="sidebar-footer__actions">
+                  <span className="sidebar-icon-btn"><Moon size={19} strokeWidth={1.75} /></span>
+                  <span className="sidebar-icon-btn"><Settings size={19} strokeWidth={1.75} /></span>
+                  <span className="sidebar-icon-btn sidebar-icon-btn--danger"><LogOut size={19} strokeWidth={1.75} /></span>
+                  <span className="sidebar-idle sidebar-idle--ok"><Timer size={20} strokeWidth={1.75} /><span>24:59</span></span>
                 </div>
-              ))}
+                <div className="sidebar-user">
+                  <span className="sidebar-user__link">
+                    <span className="sidebar-avatar">AD</span>
+                    <span className="sidebar-user__info">
+                      <span className="sidebar-user__name">Admin DermicaPro</span>
+                      <span className="sidebar-user__role">Administrador</span>
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
           );
         })()}
@@ -3499,11 +3500,12 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <PropRow name="user.firstName / lastName" type="string — nombre e iniciales del avatar" />
             <PropRow name="user.roleDisplay" type="string — rol bajo el nombre (ej. Administrador)" />
-            <PropRow name="navItems" type="NavItem[] — filtrados por rol; meta:true va en sección inferior separada por divisor" />
-            <PropRow name="onLogout" type="() => void — callback del botón ghost de Cerrar Sesión" />
+            <PropRow name="navItems" type="NavItem[] — filtrados por rol; section agrupa con título; meta:true va como icono en el pie (Mi Perfil = bloque de usuario)" />
+            <PropRow name="onLogout" type="() => void — se llama tras confirmar en el diálogo" />
+            <PropRow name="idle" type="{ getMsRemaining, timeout } — opcional; muestra el reloj de inactividad (solo admins)" />
           </div>
           <div style={{ marginTop: 14, fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
-            Íconos: <strong>Lucide React</strong> — monoline SVG, <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>size=18 strokeWidth=1.75</code>. Estado activo via clase <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.active</code> de React Router NavLink + <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>border-left: 2.5px solid var(--color-primary)</code>.
+            Íconos: <strong>Lucide React</strong>, <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>size=20 strokeWidth=1.75</code>. El sidebar es oscuro en ambos temas (tokens <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>--sidebar-*</code>); el item activo usa texto dorado y un fondo dorado al 12 %.
           </div>
         </div>
 
@@ -3514,16 +3516,16 @@ export const StyleGuidePage: React.FC = () => {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
         }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>DermicaPro Design System v2.0</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>DermicaPro · Sistema de diseño v3</div>
             <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-              Material Design 3 · Teal + Rose-Mauve · WCAG AA · Actualizado: 06 May 2026
+              Dorado champaña + Gris carbón · WCAG AA · Actualizado: 20 nov 2026
             </div>
           </div>
           <button
             onClick={() => setPreviewTheme(t => t === 'light' ? 'dark' : 'light')}
             style={{
               padding: '8px 18px', borderRadius: 999, border: '1.5px solid var(--color-primary)',
-              background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)',
+              background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}
           >
@@ -3532,5 +3534,6 @@ export const StyleGuidePage: React.FC = () => {
         </div>
       </div>
     </div>
+    </TokenContext.Provider>
   );
 };

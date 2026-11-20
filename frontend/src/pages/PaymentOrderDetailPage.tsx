@@ -6,7 +6,7 @@ import { paymentsService } from '../services/payments.service';
 import { creditsService } from '../services/credits.service';
 import { PaymentOrder, PaymentOrderStatus } from '../types';
 import { formatDate } from '../utils/dateUtils';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { Button } from '../components/Button';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { CameraCapture } from '../components/CameraCapture';
@@ -88,7 +88,7 @@ export const PaymentOrderDetailPage: React.FC = () => {
     }
   };
 
-  if (loading) return <Loading text="Cargando orden de pago..." />;
+  if (loading && !paymentOrder) return <DetailSkeleton cards={2} />;
 
   if (error || !paymentOrder) {
     return (

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Sparkles, ChevronLeft, X } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ChevronLeft, X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getRememberedUsers, removeRememberedUser, RememberedUser } from '../contexts/AuthContext';
 import { Role } from '../types';
-import { APP_VERSION } from '../config/version';
 import { PinInput } from '../components/PinInput';
 
 type LoginView = 'cards' | 'quick' | 'full';
@@ -118,30 +117,29 @@ export function LoginPage() {
     <div className="login-page">
       {/* ── Panel de marca (izquierda) ── */}
       <div className="login-brand-panel">
-        <div className="login-brand-blobs">
-          <div className="login-blob login-blob-1" />
-          <div className="login-blob login-blob-2" />
-          <div className="login-blob login-blob-3" />
-        </div>
+        <img src="/logo-mark-256.png" alt="" className="login-brand-watermark" aria-hidden="true" />
 
         <div className="login-brand-content">
           <div className="login-brand-logo">
-            <Sparkles className="login-brand-icon" size={32} />
-            <span className="login-brand-name">DermicaPro</span>
+            <img src="/logo-mark-256.png" alt="" className="login-brand-mark" />
+            <span className="login-brand-text">
+              <span className="login-brand-name">DermicaPro</span>
+              <span className="login-brand-tag">Skincare Clinic</span>
+            </span>
           </div>
           <p className="login-brand-tagline">
             Gestión integral para tu clínica de estética y dermatología
           </p>
           <ul className="login-brand-features">
-            <li><span className="login-feature-dot" />Historial clínico y seguimiento de pacientes</li>
-            <li><span className="login-feature-dot" />Agenda y gestión de citas en tiempo real</li>
-            <li><span className="login-feature-dot" />Órdenes de pago y comisiones automáticas</li>
-            <li><span className="login-feature-dot" />Analíticas y reportes ejecutivos</li>
+            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Historial clínico y seguimiento de pacientes</li>
+            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Agenda y gestión de citas en tiempo real</li>
+            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Órdenes de pago y comisiones automáticas</li>
+            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Analíticas y reportes ejecutivos</li>
           </ul>
         </div>
 
         <div className="login-brand-footer">
-          <span>DermicaPro v{APP_VERSION}</span>
+          <span>DermicaPro</span>
           <span>Trujillo, Perú</span>
         </div>
       </div>
@@ -150,7 +148,7 @@ export function LoginPage() {
       <div className="login-form-panel">
         <div className="login-form-container">
           <div className="login-mobile-logo">
-            <Sparkles size={20} />
+            <img src="/logo-mark-64.png" alt="" width={28} height={28} />
             <span>DermicaPro</span>
           </div>
 
@@ -158,7 +156,7 @@ export function LoginPage() {
           {view === 'cards' && (
             <>
               <div className="login-form-header">
-                <h1 className="login-welcome">Bienvenido de vuelta!!</h1>
+                <h1 className="login-welcome">Bienvenido de vuelta</h1>
                 <p className="login-subtitle">Selecciona tu cuenta para continuar</p>
               </div>
 
@@ -404,7 +402,6 @@ export function LoginPage() {
             </>
           )}
 
-          <div className="login-form-version">v{APP_VERSION}</div>
         </div>
       </div>
     </div>

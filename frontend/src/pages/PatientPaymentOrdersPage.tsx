@@ -4,7 +4,7 @@ import { patientsService } from '../services/patients.service';
 import { paymentOrdersService } from '../services/paymentOrders.service';
 import { creditsService } from '../services/credits.service';
 import { Patient, PaymentOrder, PaymentOrderStatus, Order, CreditTransaction, PaymentType, PaymentMethod } from '../types';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ImageViewer } from '../components/ImageViewer';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { PatientDebtSummary } from '../components/PatientDebtSummary';
@@ -100,9 +100,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return <Loading />;
-  }
+  if (isLoading && !patient) return <DetailSkeleton cards={2} />;
 
   if (error || !patient) {
     return (
@@ -369,7 +367,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
         <div className="payment-orders-list-container" style={{ marginTop: 'var(--spacing-xl)' }}>
           <div className="payment-orders-list-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 className="payment-orders-list-title">Movimientos de Saldo a Favor</h3>
-            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-primary)' }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-primary-text)' }}>
               Balance actual: S/. {patientBalance.toFixed(2)}
             </span>
           </div>

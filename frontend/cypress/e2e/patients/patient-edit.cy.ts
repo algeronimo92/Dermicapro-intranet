@@ -48,7 +48,7 @@ describe("Editar paciente", () => {
     cy.get(".dp-trigger").should("be.visible");
 
     // Sexo
-    cy.get('select[name="sex"]').should("be.visible");
+    cy.get('[data-name="sex"]').should("be.visible");
 
     // Campos opcionales
     cy.get('input[name="email"]').should("be.visible");

@@ -49,7 +49,7 @@
 
 .dp-trigger--open .dp-icon,
 .dp-trigger:hover:not(.dp-trigger--disabled) .dp-icon {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .dp-value {
@@ -96,7 +96,7 @@
 
 .dp-chevron--open {
   transform: rotate(180deg);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ============================================================
@@ -199,13 +199,13 @@
 
 .dp-popover .rdp-day_button:hover:not([disabled]) {
   background-color: var(--color-primary-alpha-10);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* Día seleccionado */
 .dp-popover .rdp-selected .rdp-day_button {
   background-color: var(--color-primary);
-  color: var(--color-text-inverse);
+  color: var(--color-on-primary);
   font-weight: var(--font-weight-semibold);
   border-color: transparent;
 }
@@ -213,7 +213,7 @@
 /* Hoy */
 .dp-popover .rdp-today:not(.rdp-selected) .rdp-day_button {
   border: 2px solid var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -256,7 +256,7 @@
 .dp-popover .rdp-button_next:hover:not([disabled]) {
   background-color: var(--color-primary-alpha-10);
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ============================================================

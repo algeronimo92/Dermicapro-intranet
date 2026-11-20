@@ -141,7 +141,7 @@
 .batch-actions span {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   margin-right: auto;
 }
 
@@ -288,7 +288,7 @@
 .commissions-page .pagination button:hover:not(:disabled) {
   background-color: var(--color-primary-alpha-10);
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .commissions-page .pagination button:disabled {

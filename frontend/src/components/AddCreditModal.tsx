@@ -151,7 +151,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
             <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-tertiary)' }}>
               Saldo actual
             </div>
-            <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, color: 'var(--color-primary)', marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 700, color: 'var(--color-primary-text)', marginTop: 2 }}>
               S/. {currentBalance.toFixed(2)}
             </div>
           </div>
@@ -185,7 +185,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
           {parseFloat(amount) > 0 && !amountError && (
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>
               <span>Nuevo saldo:</span>
-              <span style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: 'var(--font-size-sm)' }}>
+              <span style={{ fontWeight: 700, color: 'var(--color-primary-text)', fontSize: 'var(--font-size-sm)' }}>
                 S/. {(currentBalance + parseFloat(amount)).toFixed(2)}
               </span>
             </div>
@@ -388,7 +388,7 @@ export const AddCreditModal: React.FC<AddCreditModalProps> = ({
                 fontSize: 'var(--font-size-sm)', color: 'var(--color-text-tertiary)',
                 margin: '8px 0 0', lineHeight: 1.5,
               }}>
-                Nuevo saldo: <strong style={{ color: 'var(--color-primary)' }}>S/. {(currentBalance + parseFloat(amount)).toFixed(2)}</strong>
+                Nuevo saldo: <strong style={{ color: 'var(--color-primary-text)' }}>S/. {(currentBalance + parseFloat(amount)).toFixed(2)}</strong>
               </p>
             </div>
           </div>

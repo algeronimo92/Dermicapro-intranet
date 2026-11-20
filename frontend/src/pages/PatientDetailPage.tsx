@@ -4,7 +4,7 @@ import { patientsService } from '../services/patients.service';
 import { paymentOrdersService } from '../services/paymentOrders.service';
 import { Patient, Sex, Role, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/Modal';
 import { CreatePatientModal } from '../components/CreatePatientModal';
 import { PatientDebtSummary } from '../components/PatientDebtSummary';
@@ -101,7 +101,7 @@ export const PatientDetailPage: React.FC = () => {
     }
   };
 
-  if (isLoading) return <Loading text="Cargando información del paciente..." />;
+  if (isLoading && !patient) return <DetailSkeleton cards={4} />;
 
   if (error || !patient) {
     return (
@@ -310,7 +310,7 @@ export const PatientDetailPage: React.FC = () => {
                           width: 30, height: 30, borderRadius: 'var(--radius-md)',
                           background: 'var(--color-primary-alpha-10)',
                           border: '1.5px solid var(--color-border-primary)',
-                          color: 'var(--color-primary)', textDecoration: 'none',
+                          color: 'var(--color-primary-text)', textDecoration: 'none',
                           transition: 'background var(--transition-fast)',
                         }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-alpha-20)')}
@@ -446,7 +446,7 @@ export const PatientDetailPage: React.FC = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <div className="pd-last-apt__date">{formatDate(nextReserved.apt!.scheduledDate!)}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)', border: '1px solid var(--color-primary)', flexShrink: 0 }}>
                     ● Reservada →
                   </span>
                 </div>
@@ -628,7 +628,7 @@ export const PatientDetailPage: React.FC = () => {
                   {[
                     { color: 'var(--color-success)',  border: 'var(--color-success)',        label: 'Completada'   },
                     { color: 'var(--color-warning)',  border: 'var(--color-warning)',         label: 'En atención'  },
-                    { color: 'var(--color-primary)',  border: 'var(--color-primary)',         label: 'Reservada'    },
+                    { color: 'var(--color-primary-text)',  border: 'var(--color-primary)',         label: 'Reservada'    },
                     { color: 'transparent',           border: 'var(--color-border-primary)',  label: 'Sin agendar'  },
                   ].map(({ color, border, label }) => (
                     <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--color-text-tertiary)' }}>

@@ -132,7 +132,7 @@
 
 .profile-photo-menu-item:hover {
   background: var(--color-bg-secondary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .profile-photo-menu-item--danger:hover {
@@ -160,7 +160,7 @@
 .profile-hero-role {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   background: var(--color-primary-alpha-10);
   padding: 3px var(--spacing-sm);
   border-radius: var(--radius-full);
@@ -241,7 +241,7 @@
 }
 
 .profile-pw-toggle:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ── Indicador de fortaleza de contraseña ── */

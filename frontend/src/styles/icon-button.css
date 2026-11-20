@@ -1,0 +1,98 @@
+/* Botón de ícono para acciones en tablas */
+.icon-btn {
+  --tone: var(--color-text-secondary);
+  --tone-bg: var(--color-bg-tertiary);
+
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--tone-bg);
+  color: var(--tone);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+              border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.icon-btn--success { --tone: var(--color-success); --tone-bg: var(--color-success-alpha-10); }
+.icon-btn--danger  { --tone: var(--color-error);   --tone-bg: var(--color-error-alpha-10); }
+.icon-btn--primary { --tone: var(--color-primary-text); --tone-bg: var(--color-primary-alpha-10); }
+
+.icon-btn:hover:not([aria-disabled]) {
+  background: var(--tone);
+  color: var(--color-bg-primary);
+  transform: translateY(-1px);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--tone);
+  outline-offset: 2px;
+}
+
+.icon-btn[aria-disabled] {
+  --tone: var(--color-text-disabled);
+  --tone-bg: transparent;
+  border: 1px dashed var(--color-border-primary);
+  cursor: not-allowed;
+}
+
+/* Tooltip (en portal) */
+.icon-btn__tip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  transform: translate(-50%, -100%);
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  animation: icon-btn-tip-in 120ms ease-out;
+}
+
+.icon-btn__tip.is-below {
+  transform: translate(-50%, 0);
+}
+
+/* Flechita */
+.icon-btn__tip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: var(--color-text-primary);
+}
+
+.icon-btn__tip.is-below::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--color-text-primary);
+}
+
+@keyframes icon-btn-tip-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn__tip { animation: none; }
+}
+
+.icon-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

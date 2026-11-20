@@ -1,72 +1,59 @@
 /* ============================================
-   REVENUE CHART WIDGET
+   TARJETAS DE GRÁFICO (RevenueChart, ActivityChart, NewPatientsChart, Pie)
    ============================================ */
 
 .revenue-chart {
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border-secondary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
+  min-width: 0;
 }
 
-.revenue-chart__title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-lg) 0;
-}
-
-/* Recharts overrides */
-.revenue-chart .recharts-text {
-  fill: var(--color-text-secondary);
-}
-
-.revenue-chart .recharts-cartesian-axis-line {
-  stroke: var(--color-border-secondary);
-}
-
-.revenue-chart .recharts-cartesian-grid-horizontal line,
-.revenue-chart .recharts-cartesian-grid-vertical line {
-  stroke: var(--color-border-secondary);
-  opacity: 0.5;
-}
-
-/* KPI header encima del gráfico (usado en NewPatientsChart) */
-.revenue-chart__kpi-header {
-  margin-bottom: var(--spacing-md);
-}
-
-.revenue-chart__kpi-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-tertiary);
-  margin: 0 0 4px 0;
-}
-
-.revenue-chart__kpi-value {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0;
-  line-height: 1;
-}
-
-/* Cabecera título + subtítulo (usado en ActivityChart) */
-.revenue-chart__heading {
+/* Cabecera: título/subtítulo a la izquierda, leyenda o KPI a la derecha */
+.chart-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
   margin-bottom: var(--spacing-lg);
 }
 
-.revenue-chart__title--tight {
-  margin-bottom: 0;
+.revenue-chart__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
 .revenue-chart__subtitle {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
   margin: 4px 0 0 0;
+  line-height: var(--line-height-normal);
+}
+
+/* KPI en la cabecera */
+.chart-card__kpi {
+  text-align: right;
+}
+
+.revenue-chart__kpi-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  margin: 0 0 2px 0;
+}
+
+.revenue-chart__kpi-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .revenue-chart__empty {
@@ -76,16 +63,87 @@
   height: 200px;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-sm);
+  border: 1px dashed var(--color-border-primary);
+  border-radius: var(--radius-lg);
 }
 
-/* Responsive */
+/* Recharts: los colores llegan por props desde chartTheme; aquí solo tipografía */
+.revenue-chart .recharts-text {
+  font-family: var(--font-family-base);
+}
+
+.revenue-chart .recharts-tooltip-wrapper {
+  outline: none;
+}
+
+/* ── Leyenda ── */
+.chart-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.chart-legend__marker {
+  flex-shrink: 0;
+}
+
+.chart-legend__marker--square {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.chart-legend__marker--line {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.chart-legend__value {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Leyenda en columna (dona) */
+.chart-legend--stacked {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.chart-legend--stacked .chart-legend__item {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  gap: 10px;
+  white-space: normal;
+}
+
+.chart-legend__pct {
+  min-width: 38px;
+  text-align: right;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 768px) {
   .revenue-chart {
     padding: var(--spacing-md);
   }
+}
 
-  .revenue-chart__title {
-    font-size: var(--font-size-base);
-    margin-bottom: var(--spacing-md);
-  }
+.chart-legend--spaced {
+  margin-top: 10px;
 }

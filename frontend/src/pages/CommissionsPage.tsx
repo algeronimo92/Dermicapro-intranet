@@ -4,6 +4,11 @@ import { DatePicker } from '../components/DatePicker';
 import commissionsService, { Commission, CommissionsFilters } from '../services/commissions.service';
 import { usersService } from '../services/users.service';
 import '../styles/commissions-page.css';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { Pagination } from '../components/Pagination';
+import { Select } from '../components/Select';
+import { IconButton } from '../components/ui/IconButton';
+import { Check, X, Banknote } from 'lucide-react';
 
 const CommissionsPage = () => {
   
@@ -16,6 +21,7 @@ const CommissionsPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(20);
 
   // Filtros
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -43,7 +49,7 @@ const CommissionsPage = () => {
 
   useEffect(() => {
     loadCommissions();
-  }, [page, statusFilter, salesPersonFilter, startDate, endDate]);
+  }, [page, limit, statusFilter, salesPersonFilter, startDate, endDate]);
 
   const loadSalesPersons = async () => {
     try {
@@ -61,7 +67,7 @@ const CommissionsPage = () => {
 
       const filters: CommissionsFilters = {
         page,
-        limit: 20,
+        limit,
       };
 
       if (statusFilter) filters.status = statusFilter;
@@ -257,9 +263,7 @@ const CommissionsPage = () => {
     });
   };
 
-  if (loading && commissions.length === 0) {
-    return <div className="loading">Cargando comisiones...</div>;
-  }
+  if (loading && commissions.length === 0) return <TableSkeleton rows={8} columns={7} />;
 
   return (
     <div className="commissions-page">
@@ -289,34 +293,32 @@ const CommissionsPage = () => {
 
           <div className="filter-group">
             <label className="field-label">Estado</label>
-            <select
+            <Select
+              aria-label="Filtrar por estado"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input filter-select"
-            >
-              <option value="">Todos</option>
-              <option value="pending">Pendiente</option>
-              <option value="approved">Aprobada</option>
-              <option value="paid">Pagada</option>
-              <option value="rejected">Rechazada</option>
-              <option value="cancelled">Cancelada</option>
-            </select>
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'pending', label: 'Pendiente' },
+                { value: 'approved', label: 'Aprobada' },
+                { value: 'paid', label: 'Pagada' },
+                { value: 'rejected', label: 'Rechazada' },
+                { value: 'cancelled', label: 'Cancelada' },
+              ]}
+            />
           </div>
 
           <div className="filter-group">
             <label className="field-label">Vendedor</label>
-            <select
+            <Select
+              aria-label="Filtrar por vendedor"
               value={salesPersonFilter}
-              onChange={(e) => setSalesPersonFilter(e.target.value)}
-              className="input filter-select"
-            >
-              <option value="">Todos</option>
-              {salesPersons && salesPersons.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.firstName} {person.lastName}
-                </option>
-              ))}
-            </select>
+              onChange={(e) => { setSalesPersonFilter(e.target.value); setPage(1); }}
+              options={[
+                { value: '', label: 'Todos' },
+                ...(salesPersons ?? []).map((person) => ({ value: person.id, label: `${person.firstName} ${person.lastName}` })),
+              ]}
+            />
           </div>
 
           <div className="filter-group">
@@ -431,48 +433,34 @@ const CommissionsPage = () => {
                   </span>
                 </td>
                 <td className="actions">
-                  {commission.status === 'pending' && (
-                    <>
-                      {commission.appointment?.status === 'attended' ? (
-                        <button
-                          className="btn-sm btn-success"
+                  <span className="icon-btn-group">
+                    {commission.status === 'pending' && (
+                      <>
+                        <IconButton
+                          tone="success"
+                          icon={<Check size={16} strokeWidth={2.5} />}
+                          label="Aprobar comisión"
                           onClick={() => handleApprove(commission)}
-                          title="Aprobar"
-                        >
-                          ✓
-                        </button>
-                      ) : (
-                        <span
-                          className="btn-sm"
-                          style={{
-                            backgroundColor: '#6c757d',
-                            color: '#fff',
-                            cursor: 'not-allowed',
-                            opacity: 0.6
-                          }}
-                          title="La cita debe estar atendida para aprobar"
-                        >
-                          ✓
-                        </span>
-                      )}
-                      <button
-                        className="btn-sm btn-danger"
-                        onClick={() => handleReject(commission)}
-                        title="Rechazar"
-                      >
-                        ✗
-                      </button>
-                    </>
-                  )}
-                  {commission.status === 'approved' && (
-                    <button
-                      className="btn-sm btn-primary"
-                      onClick={() => handlePay(commission)}
-                      title="Marcar como pagada"
-                    >
-                      💰
-                    </button>
-                  )}
+                          disabled={commission.appointment?.status !== 'attended'}
+                          disabledReason="Se puede aprobar cuando la cita esté atendida"
+                        />
+                        <IconButton
+                          tone="danger"
+                          icon={<X size={16} strokeWidth={2.5} />}
+                          label="Rechazar comisión"
+                          onClick={() => handleReject(commission)}
+                        />
+                      </>
+                    )}
+                    {commission.status === 'approved' && (
+                      <IconButton
+                        tone="primary"
+                        icon={<Banknote size={16} strokeWidth={2} />}
+                        label="Marcar como pagada"
+                        onClick={() => handlePay(commission)}
+                      />
+                    )}
+                  </span>
                   {commission.status === 'paid' && commission.paidAt && (
                     <small className="text-muted">
                       Pagada: {formatDate(commission.paidAt)}
@@ -491,20 +479,15 @@ const CommissionsPage = () => {
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button onClick={() => setPage(page - 1)} disabled={page === 1}>
-            Anterior
-          </button>
-          <span>
-            Página {page} de {totalPages} ({total} total)
-          </span>
-          <button onClick={() => setPage(page + 1)} disabled={page === totalPages}>
-            Siguiente
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={total}
+        pageSize={limit}
+        onPageSizeChange={(size) => { setLimit(size); setPage(1); }}
+        itemLabel="comisiones"
+      />
 
       {/* Approve Modal */}
       {showApproveModal && selectedCommission && (
@@ -573,13 +556,18 @@ const CommissionsPage = () => {
             </p>
             <div className="form-group">
               <label>Método de pago:</label>
-              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                <option value="cash">Efectivo</option>
-                <option value="card">Tarjeta</option>
-                <option value="transfer">Transferencia</option>
-                <option value="yape">Yape</option>
-                <option value="plin">Plin</option>
-              </select>
+              <Select
+                aria-label="Método de pago"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                options={[
+                  { value: 'cash', label: 'Efectivo' },
+                  { value: 'card', label: 'Tarjeta' },
+                  { value: 'transfer', label: 'Transferencia' },
+                  { value: 'yape', label: 'Yape' },
+                  { value: 'plin', label: 'Plin' },
+                ]}
+              />
             </div>
             <div className="form-group">
               <label>Referencia (opcional):</label>

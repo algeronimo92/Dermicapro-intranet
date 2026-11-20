@@ -35,7 +35,7 @@
 }
 
 .employee-breadcrumb__back:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .employee-breadcrumb__separator {
@@ -255,7 +255,7 @@
 
 .photo-action-sheet__option-icon--camera {
   background: var(--color-primary-alpha-10);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .photo-action-sheet__option-icon--gallery {
