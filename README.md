@@ -80,7 +80,7 @@ docker compose exec backend npx prisma migrate deploy
 - Backend: http://localhost:5000
 - PostgreSQL: localhost:5432
 
-**Documentación completa:** Ver [DOCKER-README.md](DOCKER-README.md)
+**Documentación completa:** Ver [DOCKER-README.md](docs/infraestructura/DOCKER-README.md)
 
 ### Opción 2: Instalación Local
 

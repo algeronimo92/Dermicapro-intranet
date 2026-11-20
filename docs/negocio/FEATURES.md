@@ -402,6 +402,6 @@ Complete feature list for the DermicaPro clinic management system, organized by 
 
 ---
 
-For technical details, see [PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md)
-For installation, see [INSTALLATION.md](./INSTALLATION.md)
-For quick start, see [QUICK_START.md](./QUICK_START.md)
+For technical details, see [PROJECT_SUMMARY.md](../arquitectura/PROJECT_SUMMARY.md)
+For installation, see [INSTALLATION.md](../guias/INSTALLATION.md)
+For quick start, see [QUICK_START.md](../guias/QUICK_START.md)

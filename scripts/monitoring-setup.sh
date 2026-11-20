@@ -5,7 +5,7 @@
 #   ./scripts/monitoring-setup.sh --rotate-secret  # generar contraseña nueva
 #
 # Es idempotente: se puede correr las veces que haga falta. Existe para que el
-# rol no se cree copiando SQL a mano desde OBSERVABILIDAD.md, que es donde se
+# rol no se cree copiando SQL a mano desde docs/infraestructura/OBSERVABILIDAD.md, que es donde se
 # cuela un GRANT de más y el exporter acaba conectándose con permisos de
 # escritura sobre datos de pacientes.
 #

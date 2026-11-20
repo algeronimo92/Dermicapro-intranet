@@ -272,7 +272,7 @@ services:
     restart: unless-stopped
     environment:
       # Rol de solo lectura con pg_monitor, NO el dueno de la base. Ver
-      # OBSERVABILIDAD.md para el SQL que lo crea. Si no se define, cae al
+      # docs/infraestructura/OBSERVABILIDAD.md para el SQL que lo crea. Si no se define, cae al
       # usuario de la aplicacion, que es mas permiso del necesario.
       DATA_SOURCE_NAME: "postgresql://${DB_EXPORTER_USER:-${DB_USER:-dermicapro}}:${DB_EXPORTER_PASSWORD:-${DB_PASSWORD:-dermicapro123}}@${DB_HOST:-dermicapro-db-prod}:5432/${DB_NAME:-dermicapro_db}?sslmode=disable"
       PG_EXPORTER_EXCLUDE_DATABASES: "template0,template1"

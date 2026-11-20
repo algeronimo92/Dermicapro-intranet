@@ -423,8 +423,8 @@ make restart         # Restart all services
 
 ## External Documentation
 
-For detailed business rules, see `REGLAS_DE_NEGOCIO.md` in the project root.
-For Docker setup details, see `DOCKER-README.md`.
-For analytics implementation, see `ANALYTICS_ARCHITECTURE.md`.
-For commission system details, see `MODULO_COMISIONES.md`.
-For monitoring, logs, dashboards and alerting, see `OBSERVABILIDAD.md`.
+For detailed business rules, see `docs/negocio/REGLAS_DE_NEGOCIO.md`.
+For Docker setup details, see `docs/infraestructura/DOCKER-README.md`.
+For analytics implementation, see `docs/arquitectura/ANALYTICS_ARCHITECTURE.md`.
+For commission system details, see `docs/negocio/MODULO_COMISIONES.md`.
+For monitoring, logs, dashboards and alerting, see `docs/infraestructura/OBSERVABILIDAD.md`.

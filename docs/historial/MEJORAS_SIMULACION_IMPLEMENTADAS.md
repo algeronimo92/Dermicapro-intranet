@@ -380,9 +380,9 @@ setTempPackageCounter(prev => prev + 1);
 
 ## 📚 Documentación Relacionada
 
-- [`ESCENARIOS_SIMULACION_PAQUETES.md`](./ESCENARIOS_SIMULACION_PAQUETES.md) - Especificación completa de todos los escenarios
-- [`REGLAS_DE_NEGOCIO.md`](./REGLAS_DE_NEGOCIO.md) - Reglas de negocio del sistema
-- [`frontend/src/config/STATE_MACHINE_README.md`](./frontend/src/config/STATE_MACHINE_README.md) - Máquina de estados de citas
+- [`ESCENARIOS_SIMULACION_PAQUETES.md`](../negocio/ESCENARIOS_SIMULACION_PAQUETES.md) - Especificación completa de todos los escenarios
+- [`REGLAS_DE_NEGOCIO.md`](../negocio/REGLAS_DE_NEGOCIO.md) - Reglas de negocio del sistema
+- [`frontend/src/config/STATE_MACHINE_README.md`](../../frontend/src/config/STATE_MACHINE_README.md) - Máquina de estados de citas
 
 ---
 

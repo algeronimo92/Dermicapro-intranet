@@ -422,9 +422,9 @@ npm run build
 
 ## Getting Help
 
-1. Check [README.md](./README.md) for comprehensive documentation
+1. Check [README.md](../../README.md) for comprehensive documentation
 2. Check [QUICK_START.md](./QUICK_START.md) for common issues
-3. Review [PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md) for architecture
+3. Review [PROJECT_SUMMARY.md](../arquitectura/PROJECT_SUMMARY.md) for architecture
 4. Run `./verify-setup.sh` to diagnose issues
 
 ---

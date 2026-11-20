@@ -263,7 +263,7 @@ open http://localhost:5173
 
 - Documentación del proyecto: README.md
 - Guía rápida: QUICK_START.md
-- Resumen del módulo: PATIENTS_MODULE.md
+- Resumen del módulo: ../modulos/PATIENTS_MODULE.md
 - Fix de filtros: FILTERS_FIX.md
 - Fix de búsqueda: SEARCH_FIX.md
 
