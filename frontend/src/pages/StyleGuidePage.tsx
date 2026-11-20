@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import '../styles/appointments-page.css';
 import '../styles/patient-detail.css';
 import '../styles/state-transitions.css';
@@ -10,8 +10,11 @@ import { DatePicker } from '../components/DatePicker';
 import { ServiceSelector } from '../components/ServiceSelector';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
-  BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, LogOut,
+  BadgeDollarSign, BarChart3, Palette, Settings, LogOut,
+  CalendarPlus, Moon, Timer, PanelLeftClose,
 } from 'lucide-react';
+import '../styles/sidebar.css';
+import { useTheme } from '../contexts/ThemeContext';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPERS: sub-components reutilizables sólo en esta guía
@@ -37,34 +40,103 @@ const SectionDivider: React.FC<{ n: string; title: string }> = ({ n, title }) =>
   </div>
 );
 
+/* Lectura de tokens: valores reales de design-tokens.css, no copiados a mano */
+type TokenMap = Map<string, string>;
+interface TokenTables { light: TokenMap; dark: TokenMap }
+
+/** Junta las declaraciones de :root (claro) y [data-theme="dark"] de las hojas cargadas */
+function readTokenTables(): TokenTables {
+  const light: TokenMap = new Map();
+  const dark: TokenMap = new Map();
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try { rules = sheet.cssRules; } catch { continue; }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSStyleRule)) continue;
+      const sel = rule.selectorText.trim();
+      const target = sel.startsWith(':root') ? light : sel === '[data-theme="dark"]' ? dark : null;
+      if (!target) continue;
+      for (let i = 0; i < rule.style.length; i++) {
+        const prop = rule.style[i];
+        if (prop.startsWith('--')) target.set(prop, rule.style.getPropertyValue(prop).trim());
+      }
+    }
+  }
+  return { light, dark };
+}
+
+const TokenContext = createContext<{ tables: TokenTables; theme: 'light' | 'dark' }>({
+  tables: { light: new Map(), dark: new Map() },
+  theme: 'light',
+});
+
+/** Resuelve alias tipo var(--x) y cae al valor claro si el oscuro no lo redefine */
+function resolveToken(tables: TokenTables, theme: 'light' | 'dark', name: string, depth = 0): string {
+  const raw = (theme === 'dark' ? tables.dark.get(name) : undefined) ?? tables.light.get(name) ?? '';
+  const alias = raw.match(/^var\((--[\w-]+)\)$/);
+  return alias && depth < 5 ? resolveToken(tables, theme, alias[1], depth + 1) : raw;
+}
+
+const hexToRgb = (hex: string): [number, number, number] | null => {
+  const m = hex.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+const relLuminance = ([r, g, b]: [number, number, number]) => {
+  const c = [r, g, b].map(v => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+
+/** Contraste WCAG entre dos hex; null si alguno no es un hex sólido */
+const contrastRatio = (a: string, b: string): number | null => {
+  const ra = hexToRgb(a), rb = hexToRgb(b);
+  if (!ra || !rb) return null;
+  const [l1, l2] = [relLuminance(ra), relLuminance(rb)].sort((x, y) => y - x);
+  return (l1 + 0.05) / (l2 + 0.05);
+};
+
+const ratingFor = (ratio: number) => ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA grande' : 'Bajo';
+
 const Swatch: React.FC<{
   name: string;
   variable: string;
-  hex: string;
-  onDark?: boolean;
-  contrast?: string;
-}> = ({ name, variable, hex, onDark = false, contrast }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120, maxWidth: 150 }}>
-    <div style={{
-      height: 80, borderRadius: 10, background: `var(${variable})`,
-      boxShadow: 'var(--shadow-sm)', border: '1px solid var(--color-border-secondary)',
-      display: 'flex', alignItems: 'flex-end', padding: '6px 8px',
-    }}>
-      {contrast && (
-        <span style={{
-          fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-          background: onDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)',
-          color: onDark ? '#fff' : '#000',
-        }}>{contrast}</span>
-      )}
+  /** Token de fondo contra el que se mide el contraste (para colores de texto/acción) */
+  against?: string;
+}> = ({ name, variable, against }) => {
+  const { tables, theme } = useContext(TokenContext);
+  const value = resolveToken(tables, theme, variable);
+  const bg = against ? resolveToken(tables, theme, against) : '';
+  const ratio = against ? contrastRatio(value, bg) : null;
+  const fails = ratio !== null && ratio < 4.5;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120, maxWidth: 150 }}>
+      <div style={{
+        height: 80, borderRadius: 10, background: `var(${variable})`,
+        boxShadow: 'var(--shadow-sm)', border: '1px solid var(--color-border-secondary)',
+        display: 'flex', alignItems: 'flex-end', padding: '6px 8px',
+      }}>
+        {ratio !== null && (
+          <span
+            title={`Contraste contra ${against}`}
+            style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+              background: fails ? '#C42B2B' : 'rgba(255,255,255,0.88)',
+              color: fails ? '#fff' : '#1C1814',
+            }}
+          >{ratio.toFixed(1)}:1 {ratingFor(ratio)}</span>
+        )}
+      </div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2 }}>{name}</div>
+        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)', marginBottom: 1 }}>{value || '—'}</div>
+        <div style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{variable}</div>
+      </div>
     </div>
-    <div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2 }}>{name}</div>
-      <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)', marginBottom: 1 }}>{hex}</div>
-      <div style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{variable}</div>
-    </div>
-  </div>
-);
+  );
+};
 
 const Spinner: React.FC<{ size?: number; color?: string }> = ({ size = 24, color = 'var(--color-primary)' }) => (
   <div style={{
@@ -188,7 +260,8 @@ const InputDemo: React.FC<{
 ───────────────────────────────────────────────────────────────────────────── */
 
 export const StyleGuidePage: React.FC = () => {
-  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light');
+  const { resolvedTheme } = useTheme();
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>(resolvedTheme);
   const [checked1, setChecked1] = useState(false);
   const [checked2, setChecked2] = useState(true);
   const [selectVal, setSelectVal] = useState('');
@@ -196,8 +269,12 @@ export const StyleGuidePage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
 
   const isLight = previewTheme === 'light';
+  const [tokenTables, setTokenTables] = useState<TokenTables>(() => readTokenTables());
+  // Las hojas de Vite pueden terminar de inyectarse después del primer render
+  useEffect(() => { setTokenTables(readTokenTables()); }, []);
 
   return (
+    <TokenContext.Provider value={{ tables: tokenTables, theme: previewTheme }}>
     <div data-theme={previewTheme} style={{
       minHeight: '100vh',
       background: 'var(--color-bg-secondary)',
@@ -224,16 +301,10 @@ export const StyleGuidePage: React.FC = () => {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 8,
-            background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>D</span>
-          </div>
+          <img src="/logo-mark-64.png" alt="" width={34} height={34} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>DermicaPro</div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', letterSpacing: '0.05em' }}>Design System v2.0</div>
+            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-family-display)', color: 'var(--color-text-primary)' }}>DérmicaPro</div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', letterSpacing: '0.05em' }}>Sistema de diseño v3</div>
           </div>
         </div>
 
@@ -271,13 +342,13 @@ export const StyleGuidePage: React.FC = () => {
         maxWidth: 1100, margin: '0 auto',
       }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-primary)', marginBottom: 10 }}>
-          Material Design 3 — Teal + Rose-Mauve
+          Dorado de marca + Tinta cálida
         </div>
         <h1 style={{ fontSize: 38, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 12px', lineHeight: 1.15 }}>
           Ficha de Estilos
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 16, margin: '0 0 24px', maxWidth: 580, lineHeight: 1.6 }}>
-          Sistema de diseño centralizado para DermicaPro. Tokens, componentes y patrones reutilizables que garantizan consistencia visual en toda la aplicación.
+          Sistema de diseño de DérmicaPro, derivado del logo. Los colores y contrastes de esta página se leen en vivo de design-tokens.css: si un token cambia, la ficha se actualiza sola.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
@@ -301,105 +372,90 @@ export const StyleGuidePage: React.FC = () => {
         ══════════════════════════════════════════════ */}
         <SectionDivider n="1" title="Paleta de Colores" />
 
-        {/* Primary */}
+        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', margin: '-12px 0 24px', lineHeight: 1.6, maxWidth: 680 }}>
+          La etiqueta de cada muestra es el contraste real contra el fondo indicado. En rojo, combinaciones que
+          no llegan a 4.5:1 y no deben usarse para texto normal.
+        </p>
+
+        {/* Marca */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Primario — Teal M3 (salud, confianza, profesionalismo)
+            Primario — Dorado del logo
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Swatch name="Primary" variable="--color-primary"
-              hex={isLight ? '#0F766E' : '#2DD4BF'}
-              contrast={isLight ? '6.2:1 AA' : '8.5:1 AA'} />
-            <Swatch name="Primary Dark" variable="--color-primary-dark"
-              hex={isLight ? '#115E59' : '#14B8A6'}
-              contrast={isLight ? '7.8:1 AAA' : '6.9:1 AA'} />
-            <Swatch name="Primary Light" variable="--color-primary-light"
-              hex={isLight ? '#14B8A6' : '#5EEAD4'} />
-            <Swatch name="Primary Container" variable="--color-primary-container"
-              hex={isLight ? '#CCFBF1' : '#0D3D38'} />
+            <Swatch name="Brand" variable="--color-brand" against="--color-bg-primary" />
+            <Swatch name="Primary" variable="--color-primary" against="--color-bg-primary" />
+            <Swatch name="Primary Dark" variable="--color-primary-dark" against="--color-bg-primary" />
+            <Swatch name="Primary Container" variable="--color-primary-container" />
+            <Swatch name="On Primary" variable="--color-on-primary" against="--color-primary" />
           </div>
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '12px 0 0', lineHeight: 1.6, maxWidth: 680 }}>
+            <strong>Brand</strong> es el dorado exacto del logo: úsalo en acentos, gráficos e iconos, nunca para
+            texto sobre blanco. Para botones, enlaces y texto en modo claro usa <code>--color-primary</code>.
+          </p>
         </div>
 
-        {/* Accent */}
+        {/* Acento */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Acento — Rose/Mauve (estética, piel, cuidado feminino-neutro)
-          </div>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-            <Swatch name="Accent" variable="--color-accent"
-              hex={isLight ? '#BE185D' : '#C084FC'}
-              onDark={!isLight} contrast={isLight ? '7.1:1 AA' : '6.8:1 AA'} />
-            <Swatch name="Accent Dark" variable="--color-accent-dark"
-              hex={isLight ? '#9D174D' : '#A855F7'} />
-            <Swatch name="Accent Light" variable="--color-accent-light"
-              hex={isLight ? '#EC4899' : '#E879F9'} />
-            <Swatch name="Accent Container" variable="--color-accent-container"
-              hex={isLight ? '#FCE7F3' : '#2E1065'} />
-          </div>
-          {/* Uso del acento */}
-          <div style={{
-            padding: '16px 20px', borderRadius: 10,
-            background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)',
-            display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
-          }}>
-            <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginRight: 4 }}>Ejemplos de uso:</span>
-            <button className="sg-btn-hover" style={{
-              padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'var(--color-accent)', color: '#fff', boxShadow: '0 2px 6px var(--color-accent-alpha-20)',
-            }}>Nuevo Paciente</button>
-            <button className="sg-btn-hover" style={{
-              padding: '7px 16px', borderRadius: 6, border: '1.5px solid var(--color-accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'transparent', color: 'var(--color-accent)',
-            }}>Outlined</button>
-            <button className="sg-btn-hover" style={{
-              padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: 'var(--color-accent-alpha-10)', color: 'var(--color-accent)',
-            }}>Tonal</button>
-            <Badge label="Destacado" color="var(--color-accent)" bg="var(--color-accent-alpha-10)" />
-            <div style={{
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--color-accent-light), var(--color-accent))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 16, boxShadow: '0 4px 12px var(--color-accent-alpha-20)',
-            }}>♥</div>
-          </div>
-        </div>
-
-        {/* Semantic */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Colores Semánticos (estados)
+            Acento — Rosa piel
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Swatch name="Success" variable="--color-success"
-              hex={isLight ? '#059669' : '#34D399'}
-              contrast={isLight ? '4.7:1 AA' : '7.2:1 AAA'} />
-            <Swatch name="Warning" variable="--color-warning"
-              hex={isLight ? '#D97706' : '#FCD34D'}
-              contrast={isLight ? '5.3:1 AA' : '9.1:1 AAA'} />
-            <Swatch name="Error" variable="--color-error"
-              hex={isLight ? '#DC2626' : '#F87171'}
-              contrast={isLight ? '5.9:1 AA' : '6.4:1 AA'} />
-            <Swatch name="Info" variable="--color-info"
-              hex={isLight ? '#0284C7' : '#38BDF8'}
-              contrast={isLight ? '5.7:1 AA' : '8.3:1 AAA'} />
+            <Swatch name="Accent" variable="--color-accent" against="--color-bg-primary" />
+            <Swatch name="Accent Dark" variable="--color-accent-dark" against="--color-bg-primary" />
+            <Swatch name="Accent Container" variable="--color-accent-container" />
           </div>
         </div>
 
-        {/* Backgrounds */}
+        {/* Semánticos */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+            Colores semánticos (estados)
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Swatch name="Success" variable="--color-success" against="--color-bg-primary" />
+            <Swatch name="Warning" variable="--color-warning" against="--color-bg-primary" />
+            <Swatch name="Error" variable="--color-error" against="--color-bg-primary" />
+            <Swatch name="Info" variable="--color-info" against="--color-bg-primary" />
+          </div>
+        </div>
+
+        {/* Texto */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+            Texto (contraste contra el fondo de página)
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Swatch name="Text Primary" variable="--color-text-primary" against="--color-bg-secondary" />
+            <Swatch name="Text Secondary" variable="--color-text-secondary" against="--color-bg-secondary" />
+            <Swatch name="Text Tertiary" variable="--color-text-tertiary" against="--color-bg-secondary" />
+            <Swatch name="Text Disabled" variable="--color-text-disabled" against="--color-bg-secondary" />
+          </div>
+        </div>
+
+        {/* Fondos */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
+            Fondos y superficie
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Swatch name="BG Primary" variable="--color-bg-primary" />
+            <Swatch name="BG Secondary" variable="--color-bg-secondary" />
+            <Swatch name="BG Tertiary" variable="--color-bg-tertiary" />
+            <Swatch name="Border" variable="--color-border-primary" />
+          </div>
+        </div>
+
+        {/* Sidebar */}
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Fondos y Superficie
+            Sidebar (oscuro en ambos modos)
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Swatch name="BG Primary" variable="--color-bg-primary"
-              hex={isLight ? '#FFFFFF' : '#0D1E1D'} />
-            <Swatch name="BG Secondary" variable="--color-bg-secondary"
-              hex={isLight ? '#F0FDFA' : '#071615'} />
-            <Swatch name="BG Tertiary" variable="--color-bg-tertiary"
-              hex={isLight ? '#CCFBF1' : '#152A28'} />
-            <Swatch name="Border" variable="--color-border-primary"
-              hex={isLight ? '#99F6E4' : '#214D49'} />
+            <Swatch name="Sidebar BG" variable="--sidebar-bg" />
+            <Swatch name="Sidebar Text" variable="--sidebar-text" against="--sidebar-bg" />
+            <Swatch name="Sidebar Section" variable="--sidebar-section" against="--sidebar-bg" />
+            <Swatch name="Sidebar Active" variable="--sidebar-active" against="--sidebar-bg" />
           </div>
         </div>
 
@@ -3308,75 +3364,29 @@ export const StyleGuidePage: React.FC = () => {
             ))}
           </div>
 
-          {/* Tokens list */}
-          {[
-            { group: 'Primario', tokens: [
-              { name: '--color-primary', light: '#0F766E', dark: '#2DD4BF' },
-              { name: '--color-primary-dark', light: '#115E59', dark: '#14B8A6' },
-              { name: '--color-primary-light', light: '#14B8A6', dark: '#5EEAD4' },
-              { name: '--color-primary-container', light: '#CCFBF1', dark: '#0D3D38' },
-            ]},
-            { group: 'Acento', tokens: [
-              { name: '--color-accent', light: '#BE185D', dark: '#C084FC' },
-              { name: '--color-accent-dark', light: '#9D174D', dark: '#A855F7' },
-              { name: '--color-accent-light', light: '#EC4899', dark: '#E879F9' },
-            ]},
-            { group: 'Semánticos', tokens: [
-              { name: '--color-success', light: '#059669', dark: '#34D399' },
-              { name: '--color-warning', light: '#D97706', dark: '#FCD34D' },
-              { name: '--color-error', light: '#DC2626', dark: '#F87171' },
-              { name: '--color-info', light: '#0284C7', dark: '#38BDF8' },
-            ]},
-            { group: 'Fondos', tokens: [
-              { name: '--color-bg-primary', light: '#FFFFFF', dark: '#0D1E1D' },
-              { name: '--color-bg-secondary', light: '#F0FDFA', dark: '#071615' },
-              { name: '--color-bg-tertiary', light: '#CCFBF1', dark: '#152A28' },
-            ]},
-            { group: 'Texto', tokens: [
-              { name: '--color-text-primary', light: '#134E4A', dark: '#F0FDFA' },
-              { name: '--color-text-secondary', light: '#1F6B64', dark: '#99F6E4' },
-              { name: '--color-text-tertiary', light: '#5EADA5', dark: '#5EEAD4' },
-              { name: '--color-text-disabled', light: '#9CA3AF', dark: '#2D6B65' },
-            ]},
-            { group: 'Bordes', tokens: [
-              { name: '--color-border-primary', light: '#99F6E4', dark: '#214D49' },
-              { name: '--color-border-secondary', light: '#CCFBF1', dark: '#152A28' },
-            ]},
-            { group: 'Espaciado', tokens: [
-              { name: '--spacing-xs', light: '4px', dark: '4px' },
-              { name: '--spacing-sm', light: '8px', dark: '8px' },
-              { name: '--spacing-md', light: '16px', dark: '16px' },
-              { name: '--spacing-lg', light: '24px', dark: '24px' },
-              { name: '--spacing-xl', light: '32px', dark: '32px' },
-            ]},
-            { group: 'Radio', tokens: [
-              { name: '--radius-sm', light: '4px', dark: '4px' },
-              { name: '--radius-md', light: '6px', dark: '6px' },
-              { name: '--radius-lg', light: '8px', dark: '8px' },
-              { name: '--radius-xl', light: '12px', dark: '12px' },
-              { name: '--radius-full', light: '9999px', dark: '9999px' },
-            ]},
-            { group: 'Tipografía', tokens: [
-              { name: '--font-size-xs', light: '12px', dark: '12px' },
-              { name: '--font-size-sm', light: '14px', dark: '14px' },
-              { name: '--font-size-base', light: '16px', dark: '16px' },
-              { name: '--font-size-lg', light: '18px', dark: '18px' },
-              { name: '--font-size-2xl', light: '24px', dark: '24px' },
-              { name: '--font-weight-semibold', light: '600', dark: '600' },
-              { name: '--font-weight-bold', light: '700', dark: '700' },
-            ]},
-            { group: 'Transiciones', tokens: [
-              { name: '--transition-fast', light: '150ms ease-in-out', dark: '150ms ease-in-out' },
-              { name: '--transition-base', light: '200ms ease-in-out', dark: '200ms ease-in-out' },
-              { name: '--transition-slow', light: '300ms ease-in-out', dark: '300ms ease-in-out' },
-            ]},
-            { group: 'Z-Index', tokens: [
-              { name: '--z-dropdown', light: '1000', dark: '1000' },
-              { name: '--z-modal-backdrop', light: '1040', dark: '1040' },
-              { name: '--z-modal', light: '1050', dark: '1050' },
-              { name: '--z-tooltip', light: '1070', dark: '1070' },
-            ]},
-          ].map(({ group, tokens }, gi) => (
+          {/* Tokens list: valores leídos de design-tokens.css */}
+          {([
+            { group: 'Primario', tokens: ['--color-brand', '--color-primary', '--color-primary-dark', '--color-primary-light', '--color-primary-container', '--color-on-primary'] },
+            { group: 'Acento', tokens: ['--color-accent', '--color-accent-dark', '--color-accent-light', '--color-accent-container'] },
+            { group: 'Semánticos', tokens: ['--color-success', '--color-warning', '--color-error', '--color-info'] },
+            { group: 'Fondos', tokens: ['--color-bg-primary', '--color-bg-secondary', '--color-bg-tertiary', '--color-bg-hover', '--color-bg-active'] },
+            { group: 'Texto', tokens: ['--color-text-primary', '--color-text-secondary', '--color-text-tertiary', '--color-text-disabled'] },
+            { group: 'Bordes', tokens: ['--color-border-primary', '--color-border-secondary'] },
+            { group: 'Sidebar', tokens: ['--sidebar-bg', '--sidebar-text', '--sidebar-text-strong', '--sidebar-section', '--sidebar-active'] },
+            { group: 'Gráficos', tokens: ['--chart-grid', '--chart-axis'] },
+            { group: 'Espaciado', tokens: ['--spacing-xs', '--spacing-sm', '--spacing-md', '--spacing-lg', '--spacing-xl'] },
+            { group: 'Radio', tokens: ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-full'] },
+            { group: 'Tipografía', tokens: ['--font-family-display', '--font-size-xs', '--font-size-sm', '--font-size-base', '--font-size-lg', '--font-size-2xl', '--font-weight-semibold', '--font-weight-bold'] },
+            { group: 'Transiciones', tokens: ['--transition-fast', '--transition-base', '--transition-slow'] },
+            { group: 'Z-Index', tokens: ['--z-dropdown', '--z-modal-backdrop', '--z-modal', '--z-tooltip'] },
+          ].map(({ group, tokens }) => ({
+            group,
+            tokens: tokens.map(name => ({
+              name,
+              light: resolveToken(tokenTables, 'light', name) || '—',
+              dark: resolveToken(tokenTables, 'dark', name) || '—',
+            })),
+          }))).map(({ group, tokens }, gi) => (
             <React.Fragment key={group}>
               <div style={{
                 padding: '8px 20px', background: 'var(--color-bg-secondary)',
@@ -3416,79 +3426,70 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="21" title="Sidebar de Navegación" />
 
         {(() => {
-          const mainNav = [
-            { Icon: LayoutDashboard,   label: 'Dashboard',       active: false },
-            { Icon: Users,             label: 'Pacientes',        active: false },
-            { Icon: CalendarDays,      label: 'Citas',            active: true  },
-            { Icon: Syringe,           label: 'Servicios',        active: false },
-            { Icon: UserCog,           label: 'Empleados',        active: false },
-            { Icon: BadgeDollarSign,   label: 'Comisiones',       active: false },
-            { Icon: BarChart3,         label: 'Analíticas',       active: false },
-            { Icon: Palette,           label: 'Ficha de Estilos', active: false },
-          ];
-          const metaNav = [
-            { Icon: CircleUser, label: 'Mi Perfil' },
-            { Icon: Settings,   label: 'Configuración' },
+          const groups = [
+            { title: undefined, items: [
+              { Icon: LayoutDashboard, label: 'Dashboard', active: false },
+              { Icon: Users,           label: 'Pacientes', active: false },
+              { Icon: CalendarDays,    label: 'Citas',     active: true  },
+            ]},
+            { title: 'Gestión', items: [
+              { Icon: Syringe,         label: 'Servicios',  active: false },
+              { Icon: UserCog,         label: 'Empleados',  active: false },
+              { Icon: BadgeDollarSign, label: 'Comisiones', active: false },
+            ]},
+            { title: 'Análisis', items: [
+              { Icon: BarChart3, label: 'Analíticas',       active: false },
+              { Icon: Palette,   label: 'Ficha de Estilos', active: false },
+            ]},
           ];
 
           return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              {(['light', 'dark'] as const).map(theme => (
-                <div key={theme}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-                    {theme === 'light' ? '☀️ Light Mode' : '🌙 Dark Mode'}
-                  </div>
-                  <div data-theme={theme} style={{ borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--color-border-secondary)', display: 'flex', flexDirection: 'column', background: 'var(--color-bg-primary)' }}>
-                    {/* Header */}
-                    <div style={{ padding: '16px 24px', background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>DermicaPro</div>
-                    </div>
-
-                    {/* User */}
-                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-secondary)', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 9999, background: 'var(--color-primary-alpha-20)', border: '2px solid var(--color-primary)', color: 'var(--color-primary)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>AD</div>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.25 }}>Admin DermicaPro</div>
-                        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 1 }}>Administrador</div>
-                      </div>
-                    </div>
-
-                    {/* Nav principal */}
-                    <nav style={{ padding: '8px 0' }}>
-                      {mainNav.map(({ Icon, label, active }) => (
-                        <div key={label} style={{ padding: '2px 8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, background: active ? 'var(--color-primary-alpha-10)' : 'transparent', color: active ? 'var(--color-primary)' : 'var(--color-text-secondary)', fontWeight: active ? 600 : 500, fontSize: 13, borderLeft: `2.5px solid ${active ? 'var(--color-primary)' : 'transparent'}`, cursor: 'default' }}>
-                            <span style={{ width: 18, display: 'flex', alignItems: 'center', color: 'inherit', flexShrink: 0 }}><Icon size={16} strokeWidth={1.75} /></span>
-                            {label}
-                          </div>
-                        </div>
+            <div className="dashboard-sidebar" style={{ height: 'auto', maxWidth: 'var(--sidebar-width)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="sidebar-header">
+                <span className="sidebar-brand">
+                  <img src="/logo-mark-64.png" alt="" className="sidebar-brand__mark" />
+                  <span className="sidebar-brand__text">
+                    <span className="sidebar-brand__name">DérmicaPro</span>
+                    <span className="sidebar-brand__tagline">Skincare Clinic</span>
+                  </span>
+                </span>
+                <span className="sidebar-icon-btn"><PanelLeftClose size={18} strokeWidth={1.75} /></span>
+              </div>
+              <div className="sidebar-nav" style={{ overflow: 'visible' }}>
+                <span className="sidebar-cta"><CalendarPlus size={18} strokeWidth={2} />Nueva cita</span>
+                {groups.map(g => (
+                  <div key={g.title ?? 'main'} className="sidebar-nav-group">
+                    {g.title && <p className="sidebar-nav-section">{g.title}</p>}
+                    <ul className="sidebar-nav-list">
+                      {g.items.map(({ Icon, label, active }) => (
+                        <li key={label}>
+                          <span className={`sidebar-nav-link${active ? ' active' : ''}`}>
+                            <span className="sidebar-nav-icon"><Icon size={20} strokeWidth={1.75} /></span>
+                            <span className="sidebar-nav-label">{label}</span>
+                          </span>
+                        </li>
                       ))}
-
-                      {/* Divider */}
-                      <div style={{ height: 1, background: 'var(--color-border-secondary)', margin: '6px 8px' }} />
-
-                      {/* Meta nav */}
-                      {metaNav.map(({ Icon, label }) => (
-                        <div key={label} style={{ padding: '2px 8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 6, color: 'var(--color-text-tertiary)', fontSize: 12, fontWeight: 500, borderLeft: '2.5px solid transparent', cursor: 'default' }}>
-                            <span style={{ width: 18, display: 'flex', alignItems: 'center', color: 'inherit', flexShrink: 0 }}><Icon size={15} strokeWidth={1.75} /></span>
-                            {label}
-                          </div>
-                        </div>
-                      ))}
-                    </nav>
-
-                    {/* Footer */}
-                    <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border-secondary)', background: 'var(--color-bg-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{ width: '100%', padding: '8px 12px', color: 'var(--color-error)', background: 'transparent', border: '1.5px solid var(--color-error)', borderRadius: 6, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'default' }}>
-                        <LogOut size={15} strokeWidth={2} />
-                        Cerrar Sesión
-                      </div>
-                      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-text-disabled)', fontFamily: 'var(--font-family-mono)' }}>v1.0.0</div>
-                    </div>
+                    </ul>
                   </div>
+                ))}
+              </div>
+              <div className="sidebar-footer">
+                <div className="sidebar-footer__actions">
+                  <span className="sidebar-icon-btn"><Moon size={19} strokeWidth={1.75} /></span>
+                  <span className="sidebar-icon-btn"><Settings size={19} strokeWidth={1.75} /></span>
+                  <span className="sidebar-icon-btn sidebar-icon-btn--danger"><LogOut size={19} strokeWidth={1.75} /></span>
+                  <span className="sidebar-idle sidebar-idle--ok"><Timer size={20} strokeWidth={1.75} /><span>24:59</span></span>
                 </div>
-              ))}
+                <div className="sidebar-user">
+                  <span className="sidebar-user__link">
+                    <span className="sidebar-avatar">AD</span>
+                    <span className="sidebar-user__info">
+                      <span className="sidebar-user__name">Admin DermicaPro</span>
+                      <span className="sidebar-user__role">Administrador</span>
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
           );
         })()}
@@ -3499,11 +3500,12 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <PropRow name="user.firstName / lastName" type="string — nombre e iniciales del avatar" />
             <PropRow name="user.roleDisplay" type="string — rol bajo el nombre (ej. Administrador)" />
-            <PropRow name="navItems" type="NavItem[] — filtrados por rol; meta:true va en sección inferior separada por divisor" />
-            <PropRow name="onLogout" type="() => void — callback del botón ghost de Cerrar Sesión" />
+            <PropRow name="navItems" type="NavItem[] — filtrados por rol; section agrupa con título; meta:true va como icono en el pie (Mi Perfil = bloque de usuario)" />
+            <PropRow name="onLogout" type="() => void — se llama tras confirmar en el diálogo" />
+            <PropRow name="idle" type="{ getMsRemaining, timeout } — opcional; muestra el reloj de inactividad (solo admins)" />
           </div>
           <div style={{ marginTop: 14, fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
-            Íconos: <strong>Lucide React</strong> — monoline SVG, <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>size=18 strokeWidth=1.75</code>. Estado activo via clase <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.active</code> de React Router NavLink + <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>border-left: 2.5px solid var(--color-primary)</code>.
+            Íconos: <strong>Lucide React</strong>, <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>size=20 strokeWidth=1.75</code>. El sidebar es oscuro en ambos temas (tokens <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>--sidebar-*</code>); el item activo usa texto dorado y un fondo dorado al 12 %.
           </div>
         </div>
 
@@ -3514,9 +3516,9 @@ export const StyleGuidePage: React.FC = () => {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
         }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>DermicaPro Design System v2.0</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>DérmicaPro · Sistema de diseño v3</div>
             <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-              Material Design 3 · Teal + Rose-Mauve · WCAG AA · Actualizado: 06 May 2026
+              Dorado de marca + Tinta cálida · WCAG AA · Actualizado: 20 nov 2026
             </div>
           </div>
           <button
@@ -3532,5 +3534,6 @@ export const StyleGuidePage: React.FC = () => {
         </div>
       </div>
     </div>
+    </TokenContext.Provider>
   );
 };
