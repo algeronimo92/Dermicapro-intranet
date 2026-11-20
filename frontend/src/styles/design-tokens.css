@@ -1,18 +1,14 @@
 /**
  * DERMICAPRO - DESIGN TOKENS
- * Paleta de marca: Dorado (logo) + Tinta cálida
+ * Paleta: dorado champaña apagado + grises carbón cálidos
  *
- * Primary: dorado del logo. #C9A13B es el tono de marca, pero sobre blanco
- *          solo da 2.4:1, así que en modo claro las acciones y los textos usan
- *          un dorado profundo (#8C6A1E, 5.0:1) y el tono de marca queda para
- *          acentos, gráficos y fondos.
- * Neutros: tinta cálida (#1C1814) en vez de gris frío, como la tipografía del logo.
+ * Pensada para usarse muchas horas: sin negros puros ni blancos puros,
+ * saturación baja y el dorado del logo suavizado. El dorado exacto del logo
+ * queda solo en el emblema.
  *
- * Contraste WCAG AA verificado:
- *   #8C6A1E sobre #FFFFFF  → 5.0:1  ✓ AA   (primario claro)
- *   #6E6458 sobre #FAF8F4  → 5.5:1  ✓ AA   (texto terciario claro)
- *   #D4AF4F sobre #1A1714  → 8.5:1  ✓ AAA  (primario oscuro)
- *   #A39886 sobre #1A1714  → 6.3:1  ✓ AA   (texto terciario oscuro)
+ * Contraste WCAG AA verificado (texto normal ≥ 4.5:1):
+ *   Claro   #7E6838 sobre #FBFAF8 → 5.1:1   texto terciario #6B675F sobre #F3F2EF → 5.0:1
+ *   Oscuro  #C8AE74 sobre #26272B → 6.9:1   texto terciario #9C998F sobre #26272B → 5.2:1
  *
  * Actualizado: 2026-11-20
  */
@@ -22,105 +18,113 @@
    ======================================== */
 :root,
 [data-theme="light"] {
-  /* === COLORES PRIMARIOS (Dorado de marca) === */
-  --color-brand: #C9A13B;             /* Dorado del logo — acentos, no texto */
-  --color-primary: #8C6A1E;           /* Dorado profundo — acción principal */
-  --color-primary-dark: #6F5316;      /* hover / pressed */
-  --color-primary-light: #C9A13B;     /* Dorado de marca */
-  --color-primary-container: #F5EBD2; /* superficie con tono primario */
+  /* === COLORES PRIMARIOS (Dorado champaña) === */
+  --color-brand: #B49A5E;             /* Dorado suavizado — acentos, no texto */
+  --color-primary: #7E6838;           /* Acción principal — 5.1:1 */
+  --color-primary-dark: #665429;      /* hover / pressed */
+  --color-primary-light: #B49A5E;
+  --color-primary-container: #EFE8D8;
   --color-on-primary: #FFFFFF;
-  --color-on-primary-container: #3D2E0B;
-  --color-primary-alpha-10: rgba(140, 106, 30, 0.10);
-  --color-primary-alpha-20: rgba(140, 106, 30, 0.20);
+  --color-on-primary-container: #3B3020;
+  --color-primary-alpha-10: rgba(126, 104, 56, 0.10);
+  --color-primary-alpha-20: rgba(126, 104, 56, 0.18);
 
-  /* === COLOR DE ACENTO (Rosa piel) === */
-  --color-accent: #A4475E;
-  --color-accent-dark: #86364B;
-  --color-accent-light: #D27F94;
-  --color-accent-container: #F8E6EA;
-  --color-accent-alpha-10: rgba(164, 71, 94, 0.10);
-  --color-accent-alpha-20: rgba(164, 71, 94, 0.20);
+  /* === COLOR DE ACENTO (Rosa empolvado) === */
+  --color-accent: #8E5261;
+  --color-accent-dark: #74404E;
+  --color-accent-light: #C0919C;
+  --color-accent-container: #F2E6E8;
+  --color-accent-alpha-10: rgba(142, 82, 97, 0.10);
+  --color-accent-alpha-20: rgba(142, 82, 97, 0.18);
 
-  /* === COLORES DE ESTADO === */
-  --color-success: #047857;           /* Emerald-700 — 5.5:1 sobre blanco */
-  --color-success-dark: #065F46;
-  --color-success-light: #34D399;
-  --color-success-alpha-10: rgba(4, 120, 87, 0.10);
+  /* === COLORES DE ESTADO (apagados) === */
+  --color-success: #3B7556;
+  --color-success-dark: #2F5E45;
+  --color-success-light: #8DBFA3;
+  --color-success-alpha-10: rgba(59, 117, 86, 0.10);
 
-  --color-warning: #B45309;           /* Amber-700 */
-  --color-warning-dark: #92400E;
-  --color-warning-light: #FBBF24;
-  --color-warning-alpha-10: rgba(180, 83, 9, 0.10);
+  --color-warning: #93602A;
+  --color-warning-dark: #774D21;
+  --color-warning-light: #D9B17E;
+  --color-warning-alpha-10: rgba(147, 96, 42, 0.10);
 
-  --color-error: #C42B2B;
-  --color-error-dark: #9F1F1F;
-  --color-error-light: #F87171;
-  --color-error-alpha-10: rgba(196, 43, 43, 0.10);
+  --color-error: #A8433B;
+  --color-error-dark: #8A3630;
+  --color-error-light: #D99A93;
+  --color-error-alpha-10: rgba(168, 67, 59, 0.10);
 
-  --color-info: #2F6690;
-  --color-info-dark: #234E6F;
-  --color-info-light: #7FB3D9;
-  --color-info-alpha-10: rgba(47, 102, 144, 0.10);
+  --color-info: #466A89;
+  --color-info-dark: #38566F;
+  --color-info-light: #9AB5CC;
+  --color-info-alpha-10: rgba(70, 106, 137, 0.10);
 
-  /* === COLORES DE FONDO === */
-  --color-bg-primary: #FFFFFF;        /* Superficie (tarjetas, modales) */
-  --color-bg-secondary: #FAF8F4;      /* Fondo de página — marfil cálido */
-  --color-bg-tertiary: #F2EDE3;       /* Superficie variante */
-  --color-bg-hover: #F6F2EA;
-  --color-bg-active: #EADFC8;
-  --color-bg-disabled: #F4F2EE;
-  --color-bg-overlay: rgba(28, 24, 20, 0.55);
+  /* === COLORES DE FONDO (gris cálido, sin blanco puro) === */
+  --color-bg-primary: #FBFAF8;        /* Superficie (tarjetas, modales) */
+  --color-bg-secondary: #F3F2EF;      /* Fondo de página */
+  --color-bg-tertiary: #ECEAE5;
+  --color-bg-hover: #F0EEEA;
+  --color-bg-active: #E2DDD2;
+  --color-bg-disabled: #EFEDE9;
+  --color-bg-overlay: rgba(36, 37, 40, 0.50);
 
-  /* === COLORES DE TEXTO === */
-  --color-text-primary: #1C1814;      /* Tinta cálida — 17:1 */
-  --color-text-secondary: #4A433A;    /* 9.2:1 */
-  --color-text-tertiary: #6E6458;     /* 5.5:1 — subtítulos y leyendas */
-  --color-text-disabled: #A8A096;
-  --color-text-inverse: #FFFFFF;
+  /* === COLORES DE TEXTO (sin negro puro) === */
+  --color-text-primary: #2C2B29;      /* 12.6:1 */
+  --color-text-secondary: #4F4C47;    /* 7.6:1 */
+  --color-text-tertiary: #6B675F;     /* 5.0:1 */
+  --color-text-disabled: #A5A19A;
+  --color-text-inverse: #FBFAF8;
   --color-text-link: var(--color-primary);
   --color-text-link-hover: var(--color-primary-dark);
 
   /* === COLORES DE BORDE === */
-  --color-border-primary: #E2D9C9;
-  --color-border-secondary: #EEE8DD;
+  --color-border-primary: #DEDAD2;
+  --color-border-secondary: #E8E5DF;
   --color-border-focus: var(--color-primary);
   --color-border-error: var(--color-error);
   --color-border-success: var(--color-success);
 
-  /* === SOMBRAS (tinta cálida) === */
-  --shadow-xs: 0 1px 2px 0 rgba(28, 24, 20, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(28, 24, 20, 0.08), 0 1px 2px -1px rgba(28, 24, 20, 0.06);
-  --shadow-md: 0 4px 8px -2px rgba(28, 24, 20, 0.08), 0 2px 4px -2px rgba(28, 24, 20, 0.05);
-  --shadow-lg: 0 12px 20px -6px rgba(28, 24, 20, 0.10), 0 4px 8px -4px rgba(28, 24, 20, 0.06);
-  --shadow-xl: 0 20px 28px -8px rgba(28, 24, 20, 0.12), 0 8px 12px -6px rgba(28, 24, 20, 0.06);
-  --shadow-2xl: 0 25px 50px -12px rgba(28, 24, 20, 0.22);
-  --shadow-inner: inset 0 2px 4px 0 rgba(28, 24, 20, 0.05);
+  /* === SOMBRAS (suaves) === */
+  --shadow-xs: 0 1px 2px 0 rgba(44, 43, 41, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(44, 43, 41, 0.06), 0 1px 2px -1px rgba(44, 43, 41, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(44, 43, 41, 0.07), 0 2px 4px -2px rgba(44, 43, 41, 0.04);
+  --shadow-lg: 0 12px 20px -6px rgba(44, 43, 41, 0.09), 0 4px 8px -4px rgba(44, 43, 41, 0.05);
+  --shadow-xl: 0 20px 28px -8px rgba(44, 43, 41, 0.10), 0 8px 12px -6px rgba(44, 43, 41, 0.05);
+  --shadow-2xl: 0 25px 50px -12px rgba(44, 43, 41, 0.18);
+  --shadow-inner: inset 0 2px 4px 0 rgba(44, 43, 41, 0.04);
 
-  /* === SIDEBAR (siempre oscuro, en ambos modos) === */
-  --sidebar-bg: #16130F;
+  /* === SIDEBAR (carbón, no negro) === */
+  --sidebar-bg: #2B2C30;
   --sidebar-border: rgba(255, 255, 255, 0.07);
-  --sidebar-text: #B5AA99;            /* 8.1:1 */
-  --sidebar-text-strong: #F5F0E6;
-  --sidebar-section: #8A817A;         /* 4.9:1 */
+  --sidebar-text: #B4B1AA;            /* 6.5:1 */
+  --sidebar-text-strong: #E8E6E1;
+  --sidebar-section: #9C9991;         /* 4.6:1 */
   --sidebar-hover-bg: rgba(255, 255, 255, 0.05);
-  --sidebar-active: #E5C36A;          /* 10.9:1 */
-  --sidebar-active-bg: rgba(201, 161, 59, 0.12);
+  --sidebar-active: #D4BE8A;          /* 7.7:1 */
+  --sidebar-active-bg: rgba(212, 190, 138, 0.11);
+  --sidebar-avatar-bg: #3A3B40;
+  --sidebar-danger: #E0A39C;
+  --sidebar-warn: #DDBB82;
+  --sidebar-cta-bg: linear-gradient(135deg, #CDB57F 0%, #B09660 100%);
+  --sidebar-cta-text: #2A2418;        /* 5.4:1 */
+  --sidebar-tooltip-bg: #3A3B40;
 
   /* === TARJETA DESTACADA (KPI principal) === */
-  --highlight-bg: linear-gradient(140deg, #1C1814 0%, #2E2618 60%, #4A3A1C 100%);
-  --highlight-text: #F7F1E3;
-  --highlight-muted: #CDBF9F;          /* 8.6:1 sobre el fondo de la tarjeta */
-  --highlight-accent: #E5C36A;
+  --highlight-bg: linear-gradient(140deg, #34353A 0%, #3E3C38 60%, #4A4436 100%);
+  --highlight-text: #F0EDE6;
+  --highlight-muted: #C9C2B2;          /* 6.2:1 */
+  --highlight-accent: #D4BE8A;
+  --highlight-up: #A6D1B7;
+  --highlight-down: #E6ABA4;
 
   /* === GRÁFICOS === */
-  --chart-grid: #EEE8DD;
-  --chart-axis: #6E6458;
-  --chart-1: #B8892B;   /* dorado */
-  --chart-2: #2F6F73;   /* verde azulado */
-  --chart-3: #B4566E;   /* rosa piel */
-  --chart-4: #5B6CB0;   /* índigo */
-  --chart-5: #6E9E6A;   /* salvia */
-  --chart-6: #C46A3A;   /* terracota */
+  --chart-grid: #E8E5DF;
+  --chart-axis: #6B675F;
+  --chart-1: #A88B4E;   /* dorado */
+  --chart-2: #4E7A7C;   /* verde azulado */
+  --chart-3: #A3687A;   /* rosa */
+  --chart-4: #6875A0;   /* índigo */
+  --chart-5: #7C9873;   /* salvia */
+  --chart-6: #B07A55;   /* terracota */
 
   /* === ALTURA DE CONTROLES === */
   --control-height-sm: 32px;
@@ -198,23 +202,23 @@
   --width-full: 100%;
 
   /* === COLORES ESPECÍFICOS DE ESTADOS DE CITA === */
-  --color-status-scheduled: #2F6690;               /* Azul acero — Reservado */
-  --color-status-scheduled-bg: rgba(47, 102, 144, 0.10);
+  --color-status-scheduled: #466A89;               /* Reservado */
+  --color-status-scheduled-bg: rgba(70, 106, 137, 0.10);
 
-  --color-status-confirmed: #7C3AED;               /* Violet-600 — Confirmado */
-  --color-status-confirmed-bg: rgba(124, 58, 237, 0.10);
+  --color-status-confirmed: #6B5E92;               /* Confirmado */
+  --color-status-confirmed-bg: rgba(107, 94, 146, 0.10);
 
-  --color-status-in-progress: #B45309;             /* Ámbar — En progreso */
-  --color-status-in-progress-bg: rgba(180, 83, 9, 0.10);
+  --color-status-in-progress: #93602A;             /* En progreso */
+  --color-status-in-progress-bg: rgba(147, 96, 42, 0.10);
 
-  --color-status-completed: #047857;               /* Esmeralda — Atendido */
-  --color-status-completed-bg: rgba(4, 120, 87, 0.10);
+  --color-status-completed: #3B7556;               /* Atendido */
+  --color-status-completed-bg: rgba(59, 117, 86, 0.10);
 
-  --color-status-cancelled: #C42B2B;               /* Rojo — Cancelado */
-  --color-status-cancelled-bg: rgba(196, 43, 43, 0.10);
+  --color-status-cancelled: #A8433B;               /* Cancelado */
+  --color-status-cancelled-bg: rgba(168, 67, 59, 0.10);
 
-  --color-status-no-show: #6B7280;                 /* Gray-500 — No se presentó */
-  --color-status-no-show-bg: rgba(107, 114, 128, 0.10);
+  --color-status-no-show: #77736C;                 /* No se presentó */
+  --color-status-no-show-bg: rgba(119, 115, 108, 0.10);
 
   /* === COMPONENTES ESPECÍFICOS === */
   --sidebar-width: 250px;
@@ -228,115 +232,118 @@
    DARK MODE
    ======================================== */
 [data-theme="dark"] {
-  /* === COLORES PRIMARIOS (Dorado sobre tinta) === */
-  --color-brand: #C9A13B;
-  --color-primary: #D4AF4F;
-  --color-primary-dark: #BF9A3A;
-  --color-primary-light: #E5C36A;
-  --color-primary-container: #3A2F17;
-  --color-on-primary: #1C1608;
-  --color-on-primary-container: #F2DFA8;
-  --color-primary-alpha-10: rgba(212, 175, 79, 0.14);
-  --color-primary-alpha-20: rgba(212, 175, 79, 0.24);
+  /* === COLORES PRIMARIOS (Dorado champaña) === */
+  --color-brand: #C8AE74;
+  --color-primary: #C8AE74;           /* 6.9:1 */
+  --color-primary-dark: #B39A62;
+  --color-primary-light: #D8C28E;
+  --color-primary-container: #3A3427;
+  --color-on-primary: #1E1F22;
+  --color-on-primary-container: #E6D7B4;
+  --color-primary-alpha-10: rgba(200, 174, 116, 0.12);
+  --color-primary-alpha-20: rgba(200, 174, 116, 0.20);
 
-  /* === COLOR DE ACENTO (Rosa piel) === */
-  --color-accent: #E08EA2;
-  --color-accent-dark: #D27F94;
-  --color-accent-light: #EDB2C0;
-  --color-accent-container: #3B1D25;
-  --color-accent-alpha-10: rgba(224, 142, 162, 0.15);
-  --color-accent-alpha-20: rgba(224, 142, 162, 0.25);
+  /* === COLOR DE ACENTO (Rosa empolvado) === */
+  --color-accent: #D39AA7;
+  --color-accent-dark: #C08592;
+  --color-accent-light: #E3B9C2;
+  --color-accent-container: #3D2E33;
+  --color-accent-alpha-10: rgba(211, 154, 167, 0.12);
+  --color-accent-alpha-20: rgba(211, 154, 167, 0.20);
 
-  /* === COLORES DE ESTADO === */
-  --color-success: #34D399;
-  --color-success-dark: #10B981;
-  --color-success-light: #6EE7B7;
-  --color-success-alpha-10: rgba(52, 211, 153, 0.15);
+  /* === COLORES DE ESTADO (apagados) === */
+  --color-success: #7FB89A;
+  --color-success-dark: #6AA386;
+  --color-success-light: #A6D1B7;
+  --color-success-alpha-10: rgba(127, 184, 154, 0.13);
 
-  --color-warning: #FBBF24;
-  --color-warning-dark: #F59E0B;
-  --color-warning-light: #FDE68A;
-  --color-warning-alpha-10: rgba(251, 191, 36, 0.15);
+  --color-warning: #D4A56A;
+  --color-warning-dark: #C09056;
+  --color-warning-light: #E4C496;
+  --color-warning-alpha-10: rgba(212, 165, 106, 0.13);
 
-  --color-error: #F87171;
-  --color-error-dark: #EF4444;
-  --color-error-light: #FCA5A5;
-  --color-error-alpha-10: rgba(248, 113, 113, 0.15);
+  --color-error: #D98880;
+  --color-error-dark: #C6736B;
+  --color-error-light: #E6ABA4;
+  --color-error-alpha-10: rgba(217, 136, 128, 0.13);
 
-  --color-info: #7FB3D9;
-  --color-info-dark: #5B9BC9;
-  --color-info-light: #A9CCE6;
-  --color-info-alpha-10: rgba(127, 179, 217, 0.15);
+  --color-info: #8DB0CC;
+  --color-info-dark: #789CB9;
+  --color-info-light: #B2CADD;
+  --color-info-alpha-10: rgba(141, 176, 204, 0.13);
 
-  /* === COLORES DE FONDO === */
-  --color-bg-primary: #1A1714;        /* Superficie */
-  --color-bg-secondary: #12100E;      /* Fondo de página */
-  --color-bg-tertiary: #24201B;
-  --color-bg-hover: #2A251F;
-  --color-bg-active: #3A3125;
-  --color-bg-disabled: #1A1714;
-  --color-bg-overlay: rgba(0, 0, 0, 0.72);
+  /* === COLORES DE FONDO (carbón, no negro) === */
+  --color-bg-primary: #26272B;        /* Superficie */
+  --color-bg-secondary: #1E1F22;      /* Fondo de página */
+  --color-bg-tertiary: #2E2F34;
+  --color-bg-hover: #33353A;
+  --color-bg-active: #3C3E44;
+  --color-bg-disabled: #26272B;
+  --color-bg-overlay: rgba(10, 10, 12, 0.62);
 
-  /* === COLORES DE TEXTO === */
-  --color-text-primary: #F5F1EA;
-  --color-text-secondary: #CFC6B8;
-  --color-text-tertiary: #A39886;     /* 6.3:1 */
-  --color-text-disabled: #6B6256;
-  --color-text-inverse: #1C1814;
+  /* === COLORES DE TEXTO (sin blanco puro) === */
+  --color-text-primary: #E6E4DF;      /* 13:1 */
+  --color-text-secondary: #C2BFB8;    /* 8.1:1 */
+  --color-text-tertiary: #9C998F;     /* 5.2:1 */
+  --color-text-disabled: #6E6C66;
+  --color-text-inverse: #1E1F22;
   --color-text-link: var(--color-primary);
   --color-text-link-hover: var(--color-primary-light);
 
   /* === COLORES DE BORDE === */
-  --color-border-primary: #3A332B;
-  --color-border-secondary: #2A251F;
+  --color-border-primary: #3A3C42;
+  --color-border-secondary: #313238;
   --color-border-focus: var(--color-primary);
   --color-border-error: var(--color-error);
   --color-border-success: var(--color-success);
 
   /* === SOMBRAS === */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.65), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
-  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.30), 0 1px 2px -1px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.32), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.38), 0 4px 6px -4px rgba(0, 0, 0, 0.30);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.42), 0 8px 10px -6px rgba(0, 0, 0, 0.30);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.50);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.25);
 
   /* === SIDEBAR === */
-  --sidebar-bg: #0E0C0A;
+  --sidebar-bg: #1A1B1E;
   --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-section: #8F8C85;         /* 5.1:1 */
+  --sidebar-avatar-bg: #2E2F34;
+  --sidebar-tooltip-bg: #2E2F34;
 
   /* === TARJETA DESTACADA === */
-  --highlight-bg: linear-gradient(140deg, #2A2216 0%, #3A2F1C 60%, #54421F 100%);
+  --highlight-bg: linear-gradient(140deg, #2F3034 0%, #3A3730 60%, #463F31 100%);
 
   /* === GRÁFICOS === */
-  --chart-grid: #2A251F;
-  --chart-axis: #A39886;
-  --chart-1: #D9B45A;
-  --chart-2: #5FA8AC;
-  --chart-3: #E08EA2;
-  --chart-4: #93A1E6;
-  --chart-5: #94C68F;
-  --chart-6: #E39462;
+  --chart-grid: #313238;
+  --chart-axis: #9C998F;
+  --chart-1: #CDB27A;
+  --chart-2: #7FA9AA;
+  --chart-3: #CE98A6;
+  --chart-4: #9AA4CF;
+  --chart-5: #A3BF9A;
+  --chart-6: #D1A07E;
 
   /* === COLORES ESPECÍFICOS DE ESTADOS DE CITA === */
-  --color-status-scheduled: #38BDF8;                /* Sky-400 */
-  --color-status-scheduled-bg: rgba(56, 189, 248, 0.18);
+  --color-status-scheduled: #8DB0CC;
+  --color-status-scheduled-bg: rgba(141, 176, 204, 0.15);
 
-  --color-status-confirmed: #A78BFA;                /* Violet-400 */
-  --color-status-confirmed-bg: rgba(167, 139, 250, 0.18);
+  --color-status-confirmed: #ABA0D0;
+  --color-status-confirmed-bg: rgba(171, 160, 208, 0.15);
 
-  --color-status-in-progress: #FCD34D;              /* Amber-300 */
-  --color-status-in-progress-bg: rgba(252, 211, 77, 0.18);
+  --color-status-in-progress: #D4A56A;
+  --color-status-in-progress-bg: rgba(212, 165, 106, 0.15);
 
-  --color-status-completed: #34D399;                /* Emerald-400 */
-  --color-status-completed-bg: rgba(52, 211, 153, 0.18);
+  --color-status-completed: #7FB89A;
+  --color-status-completed-bg: rgba(127, 184, 154, 0.15);
 
-  --color-status-cancelled: #F87171;                /* Red-400 */
-  --color-status-cancelled-bg: rgba(248, 113, 113, 0.18);
+  --color-status-cancelled: #D98880;
+  --color-status-cancelled-bg: rgba(217, 136, 128, 0.15);
 
-  --color-status-no-show: #9CA3AF;                  /* Gray-400 */
-  --color-status-no-show-bg: rgba(156, 163, 175, 0.18);
+  --color-status-no-show: #9C998F;
+  --color-status-no-show-bg: rgba(156, 153, 143, 0.15);
 }
 
 /* ========================================

@@ -3,45 +3,45 @@ import type React from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 /**
- * Colores de gráficos alineados con la marca (dorado + tinta).
+ * Colores de gráficos alineados con la marca (dorado champaña + carbón), con saturación baja.
  * Recharts recibe colores como atributos SVG, así que se resuelven aquí en
  * hex según el tema activo en vez de usar variables CSS.
  */
 
 /** Paleta categórica: tonos separados en matiz y luminosidad para distinguirse sin depender solo del color */
 const CATEGORICAL = {
-  light: ['#B8892B', '#2F6F73', '#B4566E', '#5B6CB0', '#6E9E6A', '#C46A3A', '#7A5C9E', '#8A817A'],
-  dark:  ['#D9B45A', '#5FA8AC', '#E08EA2', '#93A1E6', '#94C68F', '#E39462', '#B394D9', '#B5AA99'],
+  light: ['#A88B4E', '#4E7A7C', '#A3687A', '#6875A0', '#7C9873', '#B07A55', '#83709A', '#8E8A82'],
+  dark:  ['#CDB27A', '#7FA9AA', '#CE98A6', '#9AA4CF', '#A3BF9A', '#D1A07E', '#AE9BC6', '#ABA79E'],
 };
 
 const SEMANTIC = {
   light: {
-    brand:     '#B8892B',
-    sold:      '#B8892B', // vendido — dorado
-    collected: '#2F6F73', // cobrado — verde azulado
-    scheduled: '#5B6CB0', // agendadas — índigo
-    attended:  '#6E9E6A', // atendidas — salvia
-    patients:  '#B4566E', // pacientes — rosa piel
+    brand:     '#A88B4E',
+    sold:      '#A88B4E', // vendido — dorado
+    collected: '#4E7A7C', // cobrado — verde azulado
+    scheduled: '#6875A0', // agendadas — índigo
+    attended:  '#7C9873', // atendidas — salvia
+    patients:  '#A3687A', // pacientes — rosa
   },
   dark: {
-    brand:     '#D9B45A',
-    sold:      '#D9B45A',
-    collected: '#5FA8AC',
-    scheduled: '#93A1E6',
-    attended:  '#94C68F',
-    patients:  '#E08EA2',
+    brand:     '#CDB27A',
+    sold:      '#CDB27A',
+    collected: '#7FA9AA',
+    scheduled: '#9AA4CF',
+    attended:  '#A3BF9A',
+    patients:  '#CE98A6',
   },
 };
 
 /** Estados de cita: mismos tonos que los badges de la app */
 const STATUS = {
-  light: { reserved: '#2F6690', in_progress: '#B45309', attended: '#047857', cancelled: '#C42B2B', no_show: '#8A817A' },
-  dark:  { reserved: '#7FB3D9', in_progress: '#FBBF24', attended: '#34D399', cancelled: '#F87171', no_show: '#A39886' },
+  light: { reserved: '#466A89', in_progress: '#93602A', attended: '#3B7556', cancelled: '#A8433B', no_show: '#8E8A82' },
+  dark:  { reserved: '#8DB0CC', in_progress: '#D4A56A', attended: '#7FB89A', cancelled: '#D98880', no_show: '#9C998F' },
 };
 
 const SURFACE = {
-  light: { grid: '#EEE8DD', axis: '#6E6458', tooltipBg: '#FFFFFF', tooltipBorder: '#E2D9C9', tooltipText: '#1C1814', cursor: 'rgba(140, 106, 30, 0.08)' },
-  dark:  { grid: '#2A251F', axis: '#A39886', tooltipBg: '#24201B', tooltipBorder: '#3A332B', tooltipText: '#F5F1EA', cursor: 'rgba(212, 175, 79, 0.10)' },
+  light: { grid: '#E8E5DF', axis: '#6B675F', tooltipBg: '#FBFAF8', tooltipBorder: '#DEDAD2', tooltipText: '#2C2B29', cursor: 'rgba(126, 104, 56, 0.07)' },
+  dark:  { grid: '#313238', axis: '#9C998F', tooltipBg: '#2E2F34', tooltipBorder: '#3A3C42', tooltipText: '#E6E4DF', cursor: 'rgba(200, 174, 116, 0.08)' },
 };
 
 export interface ChartTheme {

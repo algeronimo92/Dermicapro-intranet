@@ -55,6 +55,12 @@
   width: 34px;
   height: 34px;
   flex-shrink: 0;
+  /* Mismo emblema, algo menos saturado para que no destaque tanto sobre el carbón */
+  filter: saturate(0.72) brightness(0.96);
+}
+
+.sidebar-mobile-logo img {
+  filter: saturate(0.72) brightness(0.96);
 }
 
 .sidebar-brand__text {
@@ -111,8 +117,8 @@
 }
 
 .sidebar-icon-btn--danger:hover {
-  color: #F87171;
-  background: rgba(248, 113, 113, 0.12);
+  color: var(--sidebar-danger);
+  background: rgba(224, 163, 156, 0.12);
 }
 
 .sidebar-icon-btn:focus-visible,
@@ -158,12 +164,12 @@
   height: 40px;
   margin: 4px 0 14px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #D9B654 0%, #B8902F 100%);
-  color: #1C1608;
+  background: var(--sidebar-cta-bg);
+  color: var(--sidebar-cta-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
-  box-shadow: 0 4px 14px -4px rgba(201, 161, 59, 0.55);
+  box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.45);
   transition: filter var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -300,8 +306,8 @@
 }
 
 .sidebar-idle--ok       { color: var(--sidebar-text); }
-.sidebar-idle--warn     { color: #FBBF24; }
-.sidebar-idle--critical { color: #F87171; animation: sidebar-idle-pulse 1.2s ease-in-out infinite; }
+.sidebar-idle--warn     { color: var(--sidebar-warn); }
+.sidebar-idle--critical { color: var(--sidebar-danger); animation: sidebar-idle-pulse 1.2s ease-in-out infinite; }
 
 @keyframes sidebar-idle-pulse {
   0%, 100% { opacity: 1; }
@@ -352,8 +358,8 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background: #2E2820;
-  border: 1px solid rgba(229, 195, 106, 0.35);
+  background: var(--sidebar-avatar-bg);
+  border: 1px solid rgba(212, 190, 138, 0.28);
   color: var(--sidebar-active);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);

@@ -157,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
       <img src="/logo-mark-64.png" alt="" className="sidebar-brand__mark" width={34} height={34} />
       {showLabels && (
         <span className="sidebar-brand__text">
-          <span className="sidebar-brand__name">DérmicaPro</span>
+          <span className="sidebar-brand__name">DermicaPro</span>
           <span className="sidebar-brand__tagline">Skincare Clinic</span>
         </span>
       )}
@@ -199,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
           </button>
           <span className="sidebar-mobile-logo">
             <img src="/logo-mark-64.png" alt="" width={26} height={26} />
-            DérmicaPro
+            DermicaPro
           </span>
           <div className="sidebar-mobile-avatar">{avatarEl}</div>
         </header>

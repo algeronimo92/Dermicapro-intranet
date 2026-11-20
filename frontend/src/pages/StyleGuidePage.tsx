@@ -303,7 +303,7 @@ export const StyleGuidePage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src="/logo-mark-64.png" alt="" width={34} height={34} />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-family-display)', color: 'var(--color-text-primary)' }}>DérmicaPro</div>
+            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-family-display)', color: 'var(--color-text-primary)' }}>DermicaPro</div>
             <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', letterSpacing: '0.05em' }}>Sistema de diseño v3</div>
           </div>
         </div>
@@ -342,13 +342,13 @@ export const StyleGuidePage: React.FC = () => {
         maxWidth: 1100, margin: '0 auto',
       }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-primary)', marginBottom: 10 }}>
-          Dorado de marca + Tinta cálida
+          Dorado champaña + Gris carbón
         </div>
         <h1 style={{ fontSize: 38, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 12px', lineHeight: 1.15 }}>
           Ficha de Estilos
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: 16, margin: '0 0 24px', maxWidth: 580, lineHeight: 1.6 }}>
-          Sistema de diseño de DérmicaPro, derivado del logo. Los colores y contrastes de esta página se leen en vivo de design-tokens.css: si un token cambia, la ficha se actualiza sola.
+          Sistema de diseño de DermicaPro, derivado del logo. Los colores y contrastes de esta página se leen en vivo de design-tokens.css: si un token cambia, la ficha se actualiza sola.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
@@ -380,7 +380,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* Marca */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Primario — Dorado del logo
+            Primario — Dorado champaña
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <Swatch name="Brand" variable="--color-brand" against="--color-bg-primary" />
@@ -390,8 +390,8 @@ export const StyleGuidePage: React.FC = () => {
             <Swatch name="On Primary" variable="--color-on-primary" against="--color-primary" />
           </div>
           <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: '12px 0 0', lineHeight: 1.6, maxWidth: 680 }}>
-            <strong>Brand</strong> es el dorado exacto del logo: úsalo en acentos, gráficos e iconos, nunca para
-            texto sobre blanco. Para botones, enlaces y texto en modo claro usa <code>--color-primary</code>.
+            <strong>Brand</strong> es el dorado del logo suavizado: úsalo en acentos, gráficos e iconos, nunca para
+            texto sobre fondo claro. Para botones, enlaces y texto en modo claro usa <code>--color-primary</code>.
           </p>
         </div>
 
@@ -449,7 +449,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* Sidebar */}
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Sidebar (oscuro en ambos modos)
+            Sidebar (gris carbón en ambos modos)
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <Swatch name="Sidebar BG" variable="--sidebar-bg" />
@@ -3449,7 +3449,7 @@ export const StyleGuidePage: React.FC = () => {
                 <span className="sidebar-brand">
                   <img src="/logo-mark-64.png" alt="" className="sidebar-brand__mark" />
                   <span className="sidebar-brand__text">
-                    <span className="sidebar-brand__name">DérmicaPro</span>
+                    <span className="sidebar-brand__name">DermicaPro</span>
                     <span className="sidebar-brand__tagline">Skincare Clinic</span>
                   </span>
                 </span>
@@ -3516,9 +3516,9 @@ export const StyleGuidePage: React.FC = () => {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
         }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>DérmicaPro · Sistema de diseño v3</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}>DermicaPro · Sistema de diseño v3</div>
             <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-              Dorado de marca + Tinta cálida · WCAG AA · Actualizado: 20 nov 2026
+              Dorado champaña + Gris carbón · WCAG AA · Actualizado: 20 nov 2026
             </div>
           </div>
           <button
