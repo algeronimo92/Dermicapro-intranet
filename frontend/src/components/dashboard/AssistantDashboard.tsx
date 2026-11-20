@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock, CheckCircle, Activity, AlertCircle, Users, Zap } from 'lucide-react';
 import { AssistantDashboardData } from '../../types/dashboard.types';
 import { StatCard } from './widgets/StatCard';
+import { DashboardSkeleton } from '../ui/Skeleton';
 
 const STATUS_LABELS: Record<string, string> = {
   reserved:    'En espera',
@@ -23,14 +24,7 @@ interface AssistantDashboardProps {
 }
 
 export const AssistantDashboard: React.FC<AssistantDashboardProps> = ({ data, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner" />
-        <p>Cargando dashboard...</p>
-      </div>
-    );
-  }
+  if (isLoading) return <DashboardSkeleton />;
 
   if (!data) {
     return <div className="dashboard-empty"><p>No hay datos disponibles</p></div>;

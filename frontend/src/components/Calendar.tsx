@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Appointment, AppointmentStatus } from '../types';
 import { compareDates } from '../utils/dateUtils';
 
@@ -16,6 +16,10 @@ interface CalendarProps {
   onViewChange?: (view: CalendarView) => void;
 }
 
+/** Horario visible por defecto de la agenda */
+const CLINIC_START_HOUR = 8;
+const CLINIC_END_HOUR = 21;
+
 export const Calendar: React.FC<CalendarProps> = ({
   appointments,
   currentDate,
@@ -31,6 +35,29 @@ export const Calendar: React.FC<CalendarProps> = ({
   const activeAppointments = showCancelled
     ? appointments
     : appointments.filter(apt => apt.status !== 'cancelled');
+
+  // Rango visible del día: horario de la clínica (8:00–21:00). Si alguna cita
+  // cae fuera, se amplía para no esconderla. Todo sigue midiéndose en minutos
+  // desde medianoche; solo el dibujo se desplaza VIEW_START minutos.
+  const { VIEW_START, VIEW_END } = useMemo(() => {
+    let startHour = CLINIC_START_HOUR;
+    let endHour = CLINIC_END_HOUR;
+    for (const apt of activeAppointments) {
+      const d = new Date(apt.scheduledDate);
+      const startMin = d.getHours() * 60 + d.getMinutes();
+      const endMin = startMin + (apt.durationMinutes || 60);
+      startHour = Math.min(startHour, Math.floor(startMin / 60));
+      endHour = Math.max(endHour, Math.min(24, Math.ceil(endMin / 60)));
+    }
+    return { VIEW_START: startHour * 60, VIEW_END: endHour * 60 };
+  }, [activeAppointments]);
+  const VIEW_HEIGHT = VIEW_END - VIEW_START;
+  const visibleHours = Array.from({ length: VIEW_HEIGHT / 60 }, (_, i) => VIEW_START / 60 + i);
+  /** minutos desde medianoche → píxeles dentro de la columna */
+  const toPx = (minutes: number) => minutes - VIEW_START;
+  /** píxeles dentro de la columna → minutos desde medianoche, en pasos de 15 */
+  const snapFromPx = (y: number, mode: 'round' | 'floor' = 'round') =>
+    Math.min(VIEW_END - 15, Math.max(VIEW_START, (mode === 'round' ? Math.round(y / 15) : Math.floor(y / 15)) * 15 + VIEW_START));
 
   // Use controlled view if provided, otherwise use local state
   const [internalView, setInternalView] = useState<CalendarView>('week');
@@ -114,6 +141,8 @@ export const Calendar: React.FC<CalendarProps> = ({
   // Check if current time indicator should be shown for a date
   const shouldShowTimeIndicator = (date: Date): boolean => {
     const today = new Date();
+    const nowMin = getCurrentTimePosition();
+    if (nowMin < VIEW_START || nowMin > VIEW_END) return false;
     return (
       date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
@@ -361,7 +390,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     const mouseY = e.clientY - rect.top - dragOffsetY;
 
     // Convert pixel position to minutes, round to 15-minute intervals
-    const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
+    const totalMinutes = snapFromPx(mouseY);
 
     setDragOverDate(date);
     setDragPreviewPosition(totalMinutes);
@@ -389,7 +418,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     const mouseY = e.clientY - rect.top - dragOffsetY;
 
     // Convert pixel position to minutes and round to 15-minute intervals
-    const totalMinutes = Math.max(0, Math.round(mouseY / 15) * 15);
+    const totalMinutes = snapFromPx(mouseY);
 
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -432,7 +461,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     const mouseY = e.clientY - rect.top;
 
     // Convert pixel position to minutes, redondear hacia abajo a intervalos de 15 minutos
-    const totalMinutes = Math.max(0, Math.floor(mouseY / 15) * 15);
+    const totalMinutes = snapFromPx(mouseY, 'floor');
 
     setHoverDate(date);
     setHoverPosition(totalMinutes);
@@ -490,7 +519,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     const mouseY = e.clientY - rect.top;
 
     // Convert mouse position to minutes from start of day
-    const mouseMinutes = Math.round(mouseY);
+    const mouseMinutes = Math.round(mouseY) + VIEW_START;
 
     const aptDate = new Date(resizingAppointment.scheduledDate);
     const startMinutes = aptDate.getHours() * 60 + aptDate.getMinutes();
@@ -505,7 +534,7 @@ export const Calendar: React.FC<CalendarProps> = ({
     if (resizeEdge === 'top') {
       // Resizing from top - adjust start time, keep end time fixed
       const roundedMinutes = Math.round(mouseMinutes / 15) * 15;
-      newTop = Math.max(0, Math.min(roundedMinutes, endMinutes - MIN_DURATION));
+      newTop = Math.max(VIEW_START, Math.min(roundedMinutes, endMinutes - MIN_DURATION));
       newHeight = endMinutes - newTop;
     } else {
       // Resizing from bottom - adjust end time, keep start time fixed
@@ -645,7 +674,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       weekDays.push(date);
     }
 
-    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const hours = visibleHours;
 
     return (
       <div className="calendar-week-view">
@@ -702,7 +731,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                   <div
                     className="drag-preview-indicator"
                     style={{
-                      top: `${dragPreviewPosition}px`,
+                      top: `${toPx(dragPreviewPosition)}px`,
                       height: `${draggedAppointment.durationMinutes || 60}px`,
                     }}
                   >
@@ -726,7 +755,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                   <div
                     className="hover-helper-indicator"
                     style={{
-                      top: `${hoverPosition}px`,
+                      top: `${toPx(hoverPosition)}px`,
                       height: '60px',
                       cursor: onTimeSlotClick ? 'pointer' : 'default',
                     }}
@@ -752,7 +781,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                   <div
                     className={`resize-preview-indicator ${getStatusClass(resizingAppointment.status)}`}
                     style={{
-                      top: `${resizePreviewTop}px`,
+                      top: `${toPx(resizePreviewTop)}px`,
                       height: `${resizePreviewHeight}px`,
                     }}
                   >
@@ -794,7 +823,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                         onDragStart={(e) => handleDragStart(e, apt)}
                         onDragEnd={handleDragEnd}
                         style={{
-                          top: `${top}px`,
+                          top: `${toPx(top)}px`,
                           height: `${height}px`,
                           left: layout.left,
                           width: layout.width,
@@ -856,7 +885,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                   <div
                     className="current-time-indicator"
                     style={{
-                      top: `${getCurrentTimePosition()}px`,
+                      top: `${toPx(getCurrentTimePosition())}px`,
                     }}
                   >
                     <div className="time-indicator-dot"></div>
@@ -879,7 +908,7 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   const renderDayView = () => {
     const dayAppointments = getAppointmentsForDay(currentDate);
-    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const hours = visibleHours;
     const showPreview = draggedAppointment && dragPreviewPosition !== null;
     const showHover = !isDragging && hoverPosition !== null;
 
@@ -902,6 +931,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           </div>
           <div
             className={`events-column ${isToday(currentDate) ? 'today' : ''} ${isPastDay(currentDate) ? 'past-day' : ''}`}
+            style={{ minHeight: VIEW_HEIGHT }}
             onDragOver={(e) => handleDragOver(e, currentDate)}
             onDrop={(e) => handleDrop(e, currentDate)}
             onMouseMove={(e) => handleColumnMouseMove(e, currentDate)}
@@ -921,7 +951,7 @@ export const Calendar: React.FC<CalendarProps> = ({
               <div
                 className="drag-preview-indicator"
                 style={{
-                  top: `${dragPreviewPosition}px`,
+                  top: `${toPx(dragPreviewPosition)}px`,
                   height: `${draggedAppointment.durationMinutes || 60}px`,
                 }}
               >
@@ -945,7 +975,7 @@ export const Calendar: React.FC<CalendarProps> = ({
               <div
                 className="hover-helper-indicator"
                 style={{
-                  top: `${hoverPosition}px`,
+                  top: `${toPx(hoverPosition)}px`,
                   height: '60px',
                   cursor: onTimeSlotClick ? 'pointer' : 'default',
                 }}
@@ -971,7 +1001,7 @@ export const Calendar: React.FC<CalendarProps> = ({
               <div
                 className={`resize-preview-indicator ${getStatusClass(resizingAppointment.status)}`}
                 style={{
-                  top: `${resizePreviewTop}px`,
+                  top: `${toPx(resizePreviewTop)}px`,
                   height: `${resizePreviewHeight}px`,
                 }}
               >
@@ -1013,7 +1043,7 @@ export const Calendar: React.FC<CalendarProps> = ({
                     onDragStart={(e) => handleDragStart(e, apt)}
                     onDragEnd={handleDragEnd}
                     style={{
-                      top: `${top}px`,
+                      top: `${toPx(top)}px`,
                       height: `${height}px`,
                       left: layout.left,
                       width: layout.width,
@@ -1075,7 +1105,7 @@ export const Calendar: React.FC<CalendarProps> = ({
               <div
                 className="current-time-indicator"
                 style={{
-                  top: `${getCurrentTimePosition()}px`,
+                  top: `${toPx(getCurrentTimePosition())}px`,
                 }}
               >
                 <div className="time-indicator-dot"></div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loading } from '../Loading';
+import { DetailSkeleton } from '../ui/Skeleton';
 import { Button } from '../Button';
 
 interface PageDetailLayoutProps {
@@ -22,13 +22,12 @@ export const PageDetailLayout: React.FC<PageDetailLayoutProps> = ({
   backLabel = 'Volver',
   actions,
   isLoading,
-  loadingText,
   error,
   notFoundMessage = 'Registro no encontrado',
   children,
 }) => {
   if (isLoading) {
-    return <Loading text={loadingText} />;
+    return <DetailSkeleton />;
   }
 
   if (error) {

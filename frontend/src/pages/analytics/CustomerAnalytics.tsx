@@ -1,4 +1,5 @@
 import React from 'react';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, CustomerAnalyticsData } from '../../types/analytics.types';
@@ -15,7 +16,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
     filters
   );
 
-  if (isLoading) return <div className="anlx-loading">Cargando datos de clientes...</div>;
+  if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
   if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
@@ -110,7 +111,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
             {[
               { label: 'Tasa de Retención', value: `${data.retention.rate.toFixed(1)}%`, color: 'var(--color-success-dark)' },
-              { label: 'Clientes Recurrentes', value: `${data.retention.repeatCustomerRate.toFixed(1)}%`, color: 'var(--color-primary)' },
+              { label: 'Clientes Recurrentes', value: `${data.retention.repeatCustomerRate.toFixed(1)}%`, color: 'var(--color-primary-text)' },
               { label: 'Días Entre Visitas', value: `${data.retention.averageDaysBetweenVisits.toFixed(0)} días`, color: 'var(--color-accent)' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--spacing-sm) var(--spacing-md)', background: 'var(--color-bg-primary)', borderRadius: 'var(--radius-md)' }}>

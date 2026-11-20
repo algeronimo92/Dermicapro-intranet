@@ -6,12 +6,12 @@
  */
 
 const FALLBACKS: Record<number, string> = {
-  1: '#0F766E', // primary  teal
-  2: '#059669', // success  emerald
-  3: '#D97706', // warning  amber
-  4: '#DC2626', // error    red
-  5: '#0284C7', // info     sky
-  6: '#BE185D', // accent   pink
+  1: '#A88B4E', // dorado
+  2: '#4E7A7C', // verde azulado
+  3: '#A3687A', // rosa
+  4: '#6875A0', // índigo
+  5: '#7C9873', // salvia
+  6: '#B07A55', // terracota
 };
 
 export const getChartColor = (index: 1 | 2 | 3 | 4 | 5 | 6): string => {

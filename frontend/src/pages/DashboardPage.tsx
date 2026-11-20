@@ -36,7 +36,8 @@ const getFormattedDate = (): string => {
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
-  const { data, isLoading, error, refresh } = useDashboard(period);
+  const { data, isLoading, isRefreshing, error, refresh } = useDashboard(period);
+  const busy = isLoading || isRefreshing;
 
   if (!user) {
     return (
@@ -56,16 +57,17 @@ export const DashboardPage: React.FC = () => {
       <div className="dashboard-hero">
         <div className="dashboard-hero__text">
           <h1 className="dashboard-hero__greeting">
-            {getGreeting()}{firstName ? `, ${firstName}` : ''} 👋
+            {getGreeting()}{firstName ? `, ${firstName}` : ''}
           </h1>
           <p className="dashboard-hero__date">{getFormattedDate()}</p>
         </div>
         <div className="dashboard-hero__controls">
-          <div className="period-selector">
+          <div className="period-selector" role="group" aria-label="Período">
             {(['today', 'week', 'month', 'year'] as const).map((p) => (
               <button
                 key={p}
                 className={`period-btn ${period === p ? 'period-btn--active' : ''}`}
+                aria-pressed={period === p}
                 onClick={() => setPeriod(p)}
               >
                 {{ today: 'Hoy', week: 'Semana', month: 'Mes', year: 'Año' }[p]}
@@ -75,16 +77,16 @@ export const DashboardPage: React.FC = () => {
           <button
             className="refresh-btn"
             onClick={refresh}
-            disabled={isLoading}
+            disabled={busy}
             title="Actualizar datos"
           >
-            <RefreshCw size={16} className={isLoading ? 'spin' : ''} />
+            <RefreshCw size={16} className={busy ? 'spin' : ''} />
             <span>Actualizar</span>
           </button>
         </div>
       </div>
 
-      {/* Error State */}
+      {/* Error: si ya hay datos se mantienen y solo se avisa */}
       {error && (
         <div className="dashboard-error">
           <p>{error}</p>
@@ -93,8 +95,8 @@ export const DashboardPage: React.FC = () => {
       )}
 
       {/* Role-based Dashboard */}
-      {!error && (
-        <>
+      {(!error || data) && (
+        <div className={`dashboard-body${isRefreshing ? ' dashboard-body--refreshing' : ''}`} aria-busy={busy}>
           {roleName === Role.admin && (
             <AdminDashboard data={data as AdminDashboardData | null} isLoading={isLoading} />
           )}
@@ -112,7 +114,7 @@ export const DashboardPage: React.FC = () => {
               <p>Dashboard no disponible para el rol: {roleName}</p>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

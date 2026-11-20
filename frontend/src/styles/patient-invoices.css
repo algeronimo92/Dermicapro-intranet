@@ -17,7 +17,7 @@
 .payment-orders-back-button {
   background: none;
   border: none;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   cursor: pointer;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -89,7 +89,7 @@
   margin: var(--spacing-xs) 0;
 }
 
-.payment-orders-summary .summary-card-total   .summary-amount { color: var(--color-primary); }
+.payment-orders-summary .summary-card-total   .summary-amount { color: var(--color-primary-text); }
 .payment-orders-summary .summary-card-paid    .summary-amount { color: var(--color-success-dark); }
 .payment-orders-summary .summary-card-pending .summary-amount { color: var(--color-error); }
 
@@ -316,7 +316,7 @@
   margin-top: var(--spacing-md);
   width: 100%;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
+  color: var(--color-on-primary);
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--radius-md);

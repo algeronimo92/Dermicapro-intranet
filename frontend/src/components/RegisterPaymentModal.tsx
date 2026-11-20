@@ -237,7 +237,7 @@ const [showPartial, setShowPartial] = React.useState(false);
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>
               <span>Progreso actual</span>
-              <span>{pctPaid.toFixed(0)}% → <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{newPct.toFixed(0)}%</span></span>
+              <span>{pctPaid.toFixed(0)}% → <span style={{ color: 'var(--color-primary-text)', fontWeight: 700 }}>{newPct.toFixed(0)}%</span></span>
             </div>
             <div style={{ height: 8, background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden', position: 'relative' }}>
               <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${pctPaid}%`, background: 'linear-gradient(90deg, var(--color-success), var(--color-success-dark))', borderRadius: 'var(--radius-full)', transition: 'width 0.3s' }} />
@@ -312,7 +312,7 @@ const [showPartial, setShowPartial] = React.useState(false);
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-tertiary)' }}>S/.</span>
-                <span style={{ fontSize: 40, fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                <span style={{ fontSize: 40, fontWeight: 800, color: 'var(--color-primary-text)', lineHeight: 1, letterSpacing: '-0.02em' }}>
                   {regularAmt > 0 ? regularAmt.toFixed(2) : amountNum.toFixed(2)}
                 </span>
               </div>

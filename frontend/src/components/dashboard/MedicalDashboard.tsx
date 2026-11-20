@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle, CalendarDays, CalendarRange, Activity, Star } from 'lucide-react';
 import { MedicalDashboardData } from '../../types/dashboard.types';
 import { StatCard } from './widgets/StatCard';
+import { DashboardSkeleton } from '../ui/Skeleton';
 
 const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   reserved:    'Reservada',
@@ -17,14 +18,7 @@ interface MedicalDashboardProps {
 }
 
 export const MedicalDashboard: React.FC<MedicalDashboardProps> = ({ data, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner" />
-        <p>Cargando dashboard...</p>
-      </div>
-    );
-  }
+  if (isLoading) return <DashboardSkeleton />;
 
   if (!data) {
     return <div className="dashboard-empty"><p>No hay datos disponibles</p></div>;

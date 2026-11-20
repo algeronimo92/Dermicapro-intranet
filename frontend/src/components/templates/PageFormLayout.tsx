@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loading } from '../Loading';
+import { DetailSkeleton } from '../ui/Skeleton';
 
 interface PageFormLayoutProps {
   title: string;
@@ -14,14 +14,13 @@ interface PageFormLayoutProps {
 export const PageFormLayout: React.FC<PageFormLayoutProps> = ({
   title,
   isLoading,
-  loadingText,
   error,
   onSubmit,
   formActions,
   children,
 }) => {
   if (isLoading) {
-    return <Loading text={loadingText} />;
+    return <DetailSkeleton cards={2} />;
   }
 
   return (

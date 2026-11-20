@@ -7,7 +7,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
-import { Loading } from '../components/Loading';
+import { CardGridSkeleton } from '../components/ui/Skeleton';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
 import '../styles/employees-page.css';
 
@@ -136,7 +136,7 @@ export const EmployeesPage: React.FC = () => {
   const [totalPages, setTotalPages]   = useState(1);
   const [total, setTotal]             = useState(0);
 
-  const limit = 12;
+  const [limit, setLimit] = useState(12);
 
   const loadRoles = async () => {
     try {
@@ -172,7 +172,7 @@ export const EmployeesPage: React.FC = () => {
   };
 
   useEffect(() => { loadRoles(); }, []);
-  useEffect(() => { loadUsers(); }, [currentPage, roleFilter, statusFilter, activeSearch]);
+  useEffect(() => { loadUsers(); }, [currentPage, limit, roleFilter, statusFilter, activeSearch]);
 
   const handleSearch = () => { setActiveSearch(search); setCurrentPage(1); };
   const handleSearchKeyPress = (e: React.KeyboardEvent) => { if (e.key === 'Enter') handleSearch(); };
@@ -206,11 +206,15 @@ export const EmployeesPage: React.FC = () => {
             onKeyPress={handleSearchKeyPress}
           />
           <Select
+            aria-label="Filtrar por rol"
+            placeholder="Todos los roles"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             options={availableRoles.map(r => ({ value: r.id, label: r.displayName }))}
           />
           <Select
+            aria-label="Filtrar por estado"
+            placeholder="Todos los estados"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
@@ -241,8 +245,8 @@ export const EmployeesPage: React.FC = () => {
       </div>
 
       {/* Grid / Loading / Empty */}
-      {isLoading ? (
-        <Loading text="Cargando empleados..." />
+      {isLoading && users.length === 0 ? (
+        <CardGridSkeleton count={6} />
       ) : users.length === 0 ? (
         <div className="employees-page__empty">
           <div className="employees-page__empty-icon">👥</div>
@@ -266,6 +270,11 @@ export const EmployeesPage: React.FC = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
+            totalItems={total}
+            pageSize={limit}
+            onPageSizeChange={(size) => { setLimit(size); setCurrentPage(1); }}
+            pageSizeOptions={[12, 24, 48]}
+            itemLabel="empleados"
           />
         </>
       )}

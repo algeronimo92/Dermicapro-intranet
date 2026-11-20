@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { SalesDashboardData } from '../../types/dashboard.types';
 import { StatCard } from './widgets/StatCard';
+import { DashboardSkeleton } from '../ui/Skeleton';
 import { RevenueChart } from './widgets/RevenueChart';
 
 const COMMISSION_STATUS_LABELS: Record<string, string> = {
@@ -39,14 +40,7 @@ const computeRevenueTrend = (monthly: Array<{ month: string; amount: number }>) 
 };
 
 export const SalesDashboard: React.FC<SalesDashboardProps> = ({ data, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Cargando dashboard...</p>
-      </div>
-    );
-  }
+  if (isLoading) return <DashboardSkeleton />;
 
   if (!data) {
     return (
@@ -107,7 +101,6 @@ export const SalesDashboard: React.FC<SalesDashboardProps> = ({ data, isLoading 
             <RevenueChart
               data={data.sales.monthlyRevenue}
               title="Mis Ingresos Mensuales"
-              color="#BE185D"
             />
           </div>
         )}

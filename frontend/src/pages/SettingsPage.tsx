@@ -216,7 +216,7 @@ const SettingsPage: React.FC = () => {
           <section className="settings-section">
             <div className="settings-section-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ShieldCheck size={18} strokeWidth={1.75} color="var(--color-primary)" />
+                <ShieldCheck size={18} strokeWidth={1.75} color="var(--color-primary-text)" />
                 <h2 className="settings-section-title" style={{ margin: 0 }}>Configuración del Sistema</h2>
               </div>
               <p className="settings-section-description">
@@ -259,7 +259,7 @@ const SettingsPage: React.FC = () => {
                     borderRadius: 'var(--radius-md)',
                     border: 'none',
                     background: timeoutSaved ? 'var(--color-success)' : 'var(--color-primary)',
-                    color: '#fff',
+                    color: 'var(--color-on-primary)',
                     fontSize: 'var(--font-size-sm)',
                     fontWeight: 600,
                     cursor: timeoutSaving ? 'not-allowed' : 'pointer',

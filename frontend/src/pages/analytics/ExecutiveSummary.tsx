@@ -1,4 +1,5 @@
 import React from 'react';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { ExecutiveSummaryData, AnalyticsFilters } from '../../types/analytics.types';
@@ -17,7 +18,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
     filters
   );
 
-  if (isLoading) return <div className="anlx-loading">Cargando resumen ejecutivo...</div>;
+  if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
   if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 

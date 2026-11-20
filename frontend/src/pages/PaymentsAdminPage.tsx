@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Banknote, Search, Filter, X, AlertTriangle,
-  ChevronLeft, ChevronRight, Receipt, RefreshCw,
+  Receipt, RefreshCw,
   CreditCard, Ban, Eye, EyeOff,
 } from 'lucide-react';
 import { paymentsService, PaymentsFilters } from '../services/payments.service';
 import { Payment } from '../types';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { Pagination } from '../components/Pagination';
+import { Select } from '../components/Select';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -94,7 +97,7 @@ export function PaymentsAdminPage() {
   const [voidLoading, setVoidLoading] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
 
-  const LIMIT = 15;
+  const [limit, setLimit] = useState(15);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,7 +105,7 @@ export function PaymentsAdminPage() {
     try {
       const filters: PaymentsFilters = {
         page,
-        limit: LIMIT,
+        limit,
         includeVoided: showVoided || undefined,
         paymentType: typeFilter || undefined,
       };
@@ -129,7 +132,7 @@ export function PaymentsAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, methodFilter, appliedSearch, showVoided]);
+  }, [page, limit, typeFilter, methodFilter, appliedSearch, showVoided]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -205,7 +208,7 @@ export function PaymentsAdminPage() {
 
       {/* ── Summary Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-md)' }}>
-        <SummaryCard icon={<Receipt size={20} strokeWidth={1.75} color="var(--color-primary)" />} iconBg="var(--color-primary-alpha-10)" label="Total en página" value={String(payments.length)} sub={`de ${total} registros`} />
+        <SummaryCard icon={<Receipt size={20} strokeWidth={1.75} color="var(--color-primary-text)" />} iconBg="var(--color-primary-alpha-10)" label="Total en página" value={String(payments.length)} sub={`de ${total} registros`} />
         <SummaryCard icon={<Banknote size={20} strokeWidth={1.75} color="var(--color-success)" />} iconBg="var(--color-success-alpha-10)" label="Monto activo" value={formatCurrency(totalAmount)} sub="excluye anulados" />
         <SummaryCard icon={<CreditCard size={20} strokeWidth={1.75} color="var(--color-info)" />} iconBg="var(--color-info-alpha-10)" label="Métodos distintos" value={String(new Set(activePayments.map(p => p.paymentMethod)).size)} sub="en esta página" />
         <SummaryCard icon={<Ban size={20} strokeWidth={1.75} color="var(--color-error)" />} iconBg="var(--color-error-alpha-10)" label="Anulados en página" value={String(voidedCount)} sub={showVoided ? 'visibles' : 'ocultos'} valueColor={voidedCount > 0 ? 'var(--color-error)' : undefined} />
@@ -273,7 +276,7 @@ export function PaymentsAdminPage() {
           ]} />
           <button
             onClick={handleSearch}
-            style={{ height: 'var(--control-height)', paddingInline: 'var(--spacing-md)', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'background var(--transition-fast)', whiteSpace: 'nowrap' }}
+            style={{ height: 'var(--control-height)', paddingInline: 'var(--spacing-md)', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'background var(--transition-fast)', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-dark)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary)'}
           >
@@ -303,13 +306,7 @@ export function PaymentsAdminPage() {
           </div>
         )}
 
-        {loading && (
-          <div style={{ padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: 52, borderRadius: 'var(--radius-md)', background: 'var(--color-bg-secondary)', opacity: 1 - i * 0.12 }} />
-            ))}
-          </div>
-        )}
+        {loading && payments.length === 0 && <TableSkeleton rows={8} columns={7} />}
 
         {!loading && !error && payments.length === 0 && (
           <div style={{ padding: 'var(--spacing-3xl)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-md)', color: 'var(--color-text-tertiary)' }}>
@@ -321,7 +318,7 @@ export function PaymentsAdminPage() {
           </div>
         )}
 
-        {!loading && payments.length > 0 && (
+        {payments.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
               <thead>
@@ -342,19 +339,18 @@ export function PaymentsAdminPage() {
           </div>
         )}
 
-        {!loading && totalPages > 1 && (
-          <div style={{ padding: 'var(--spacing-md) var(--spacing-lg)', borderTop: '1px solid var(--color-border-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-bg-secondary)' }}>
-            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>Página {page} de {totalPages}</span>
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-              <PaginationBtn disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} strokeWidth={2.5} /></PaginationBtn>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const n = totalPages <= 5 ? i + 1 : Math.max(1, page - 2) + i;
-                if (n > totalPages) return null;
-                return <PaginationBtn key={n} active={n === page} onClick={() => setPage(n)}>{n}</PaginationBtn>;
-              })}
-              <PaginationBtn disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} strokeWidth={2.5} /></PaginationBtn>
-            </div>
-          </div>
+        {payments.length > 0 && (
+          <Pagination
+            className="pager--in-card"
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={total}
+            pageSize={limit}
+            onPageSizeChange={(size) => { setLimit(size); setPage(1); }}
+            pageSizeOptions={[15, 30, 50, 100]}
+            itemLabel="pagos"
+          />
         )}
       </div>
 
@@ -505,13 +501,7 @@ function FilterSelect({ label, value, onChange, options }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label style={labelStyle}>{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ height: 'var(--control-height)', paddingInline: 12, borderRadius: 'var(--radius-md)', border: '1.5px solid var(--color-border-primary)', background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-sm)', outline: 'none', cursor: 'pointer' }}
-        onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
-        onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border-primary)'}
-      >
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <Select aria-label={label} value={value} onChange={e => onChange(e.target.value)} options={options} className="payments-filter-select" />
     </div>
   );
 }
@@ -603,10 +593,3 @@ function DetailRow({ label, value, valueColor, bold }: { label: string; value: s
   );
 }
 
-function PaginationBtn({ children, onClick, disabled, active }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', border: active ? 'none' : '1.5px solid var(--color-border-primary)', background: active ? 'var(--color-primary)' : 'var(--color-bg-primary)', color: active ? '#fff' : disabled ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', fontWeight: active ? 'var(--font-weight-semibold)' : 'var(--font-weight-medium)', cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {children}
-    </button>
-  );
-}

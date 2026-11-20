@@ -48,7 +48,7 @@ describe("Creación de cita", () => {
     cy.get(".datetime-time-select").should("be.visible");
 
     // Duración
-    cy.get('select[name="durationMinutes"]')
+    cy.get('[data-name="durationMinutes"]')
       .scrollIntoView()
       .should("be.visible");
 
