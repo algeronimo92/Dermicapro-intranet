@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { appointmentsService } from '../services/appointments.service';
 import { usersService } from '../services/users.service';
+import { CalendarClock, Hourglass, CheckCircle2, UserX, XCircle, Clock, User as UserIcon, GripVertical, LucideIcon } from 'lucide-react';
 
 interface KanbanBoardProps {
   appointments: Appointment[];
@@ -21,7 +22,7 @@ interface KanbanBoardProps {
 interface ColumnConfig {
   status: AppointmentStatus;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   colorClass: string;
 }
 
@@ -32,11 +33,11 @@ const FINAL_STATES: AppointmentStatus[] = [
 ];
 
 const COLUMNS: ColumnConfig[] = [
-  { status: AppointmentStatus.reserved,    label: 'Reservada',   icon: '📅', colorClass: 'kanban-col-reserved'   },
-  { status: AppointmentStatus.in_progress, label: 'En Atención', icon: '⏳', colorClass: 'kanban-col-progress'   },
-  { status: AppointmentStatus.attended,    label: 'Atendida',    icon: '✅', colorClass: 'kanban-col-attended'   },
-  { status: AppointmentStatus.no_show,     label: 'No asistió',  icon: '⚠️', colorClass: 'kanban-col-noshow'     },
-  { status: AppointmentStatus.cancelled,   label: 'Cancelada',   icon: '❌', colorClass: 'kanban-col-cancelled'  },
+  { status: AppointmentStatus.reserved,    label: 'Reservada',   icon: CalendarClock, colorClass: 'kanban-col-reserved'  },
+  { status: AppointmentStatus.in_progress, label: 'En atención', icon: Hourglass,     colorClass: 'kanban-col-progress'  },
+  { status: AppointmentStatus.attended,    label: 'Atendida',    icon: CheckCircle2,  colorClass: 'kanban-col-attended'  },
+  { status: AppointmentStatus.no_show,     label: 'No asistió',  icon: UserX,         colorClass: 'kanban-col-noshow'    },
+  { status: AppointmentStatus.cancelled,   label: 'Cancelada',   icon: XCircle,       colorClass: 'kanban-col-cancelled' },
 ];
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -340,7 +341,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               onDrop={e => handleDrop(e, col.status)}
             >
               <div className="kanban-col-header">
-                <span className="kanban-col-icon">{col.icon}</span>
+                <span className="kanban-col-icon"><col.icon size={16} strokeWidth={2} /></span>
                 <span className="kanban-col-title">{col.label}</span>
                 <span className="kanban-col-count">{colCards.length}</span>
               </div>
@@ -379,75 +380,54 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       onClick={() => !justDraggedRef.current && !draggingId && navigate(`/appointments/${apt.id}`)}
                       title={isFinal ? 'Las citas en estado final no se pueden mover' : undefined}
                     >
-                      <div className="kanban-card-top">
-                        <div className="kanban-card-patient">
-                          {patient && (
-                            <div className="kanban-avatar">
-                              {patient.photoUrl
-                                ? <img src={patient.photoUrl} alt={`${patient.firstName} ${patient.lastName}`} />
-                                : getInitials(patient.firstName, patient.lastName)}
-                            </div>
-                          )}
-                          <div className="kanban-card-meta">
-                            <p className="kanban-patient-name">
-                              {patient
-                                ? `${patient.firstName} ${patient.lastName}`
-                                : 'Paciente'}
-                            </p>
-                            <p className="kanban-card-time">
-                              {scheduledDate.toLocaleTimeString('es-PE', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                              {' · '}
-                              {scheduledDate.toLocaleDateString('es-PE', {
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="kanban-drag-handle" title="Arrastrar">
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                            <circle cx="5" cy="3" r="1.2" fill="currentColor"/>
-                            <circle cx="9" cy="3" r="1.2" fill="currentColor"/>
-                            <circle cx="5" cy="7" r="1.2" fill="currentColor"/>
-                            <circle cx="9" cy="7" r="1.2" fill="currentColor"/>
-                            <circle cx="5" cy="11" r="1.2" fill="currentColor"/>
-                            <circle cx="9" cy="11" r="1.2" fill="currentColor"/>
-                          </svg>
-                        </div>
+                      <div className="kanban-card-head">
+                        <span className="kanban-card-when">
+                          <strong>
+                            {scheduledDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </strong>
+                          <span>
+                            {scheduledDate.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          </span>
+                        </span>
+                        {!isFinal && (
+                          <span className="kanban-drag-handle" aria-hidden="true">
+                            <GripVertical size={16} />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="kanban-card-patient">
+                        <span className="kanban-avatar" aria-hidden="true">
+                          {patient?.photoUrl
+                            ? <img src={patient.photoUrl} alt="" />
+                            : patient ? getInitials(patient.firstName, patient.lastName) : '?'}
+                        </span>
+                        <p className="kanban-patient-name">
+                          {patient ? `${patient.firstName} ${patient.lastName}` : 'Paciente'}
+                        </p>
                       </div>
 
                       {services.length > 0 && (
                         <div className="kanban-card-services">
                           {services.slice(0, 2).map((s, i) => (
-                            <span key={i} className="kanban-service-tag">{s}</span>
+                            <span key={i} className="kanban-service-tag" title={s}>{s}</span>
                           ))}
                           {services.length > 2 && (
-                            <span className="kanban-service-tag kanban-service-more">
-                              +{services.length - 2}
-                            </span>
+                            <span className="kanban-service-tag kanban-service-more">+{services.length - 2}</span>
                           )}
                         </div>
                       )}
 
                       <div className="kanban-card-footer">
-                        <div className="kanban-duration">
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5"/>
-                            <path d="M6 3v3l2 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                          </svg>
+                        <span className="kanban-duration">
+                          <Clock size={13} aria-hidden="true" />
                           {apt.durationMinutes} min
-                        </div>
+                        </span>
                         {apt.createdBy && (
-                          <div className="kanban-created-by">
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <circle cx="6" cy="4" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                              <path d="M2 10c0-1.5 1.5-2.5 4-2.5s4 1 4 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                            </svg>
+                          <span className="kanban-created-by" title="Registrada por">
+                            <UserIcon size={13} aria-hidden="true" />
                             {apt.createdBy.firstName}
-                          </div>
+                          </span>
                         )}
                       </div>
                     </div>

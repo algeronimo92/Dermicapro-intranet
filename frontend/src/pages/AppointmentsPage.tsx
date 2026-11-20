@@ -49,7 +49,7 @@ export const AppointmentsPage: React.FC = () => {
   // Estado del calendario
   const [calendarDate, setCalendarDate] = useState(new Date());
 
-  const limit = 10;
+  const [limit, setLimit] = useState(10);
 
   const loadAppointments = async () => {
     try {
@@ -147,7 +147,7 @@ export const AppointmentsPage: React.FC = () => {
     } else {
       loadCalendarAppointments(calendarDate);
     }
-  }, [currentPage, statusFilter, dateFrom, dateTo, viewMode, calendarDate, showCancelled]);
+  }, [currentPage, limit, statusFilter, dateFrom, dateTo, viewMode, calendarDate, showCancelled]);
 
   const handleClearFilters = () => {
     setStatusFilter('');
@@ -314,155 +314,63 @@ export const AppointmentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtros Modernos */}
-      {viewMode === 'list' && (
-        <div className="filters-modern">
-          <div className="filters-header">
-            <div className="filters-title">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M3 6h14M6 10h8M8 14h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              <span>Filtros</span>
-              {activeFiltersCount > 0 && (
-                <span className="filter-badge">{activeFiltersCount}</span>
-              )}
+      {/* Barra de filtros: una sola fila alineada para las tres vistas */}
+      <div className="appt-toolbar">
+        {viewMode !== 'calendar' && (
+          <>
+            <div className="appt-toolbar__field">
+              <span className="appt-toolbar__label">Desde</span>
+              <DatePicker value={dateFrom} onChange={setDateFrom} />
             </div>
-            {activeFiltersCount > 0 && (
-              <button className="btn-clear-filters" onClick={handleClearFilters}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Limpiar filtros
-              </button>
-            )}
-          </div>
-
-          <div className="filters-grid">
-            <label className="checkbox-modern">
-              <input
-                type="checkbox"
-                checked={showCancelled}
-                onChange={(e) => setShowCancelled(e.target.checked)}
-              />
-              <span className="checkbox-custom"></span>
-              <span className="checkbox-label">Mostrar citas canceladas</span>
-            </label>
-
-            <div className="filter-item">
-              <label className="filter-label">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M8 4v4l2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                Estado
-              </label>
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as AppointmentStatus | '')}
-                options={[
-                  { value: '', label: 'Todos' },
-                  { value: 'reserved', label: '📅 Reservada' },
-                  { value: 'in_progress', label: '⏳ En Atención' },
-                  { value: 'attended', label: '✅ Atendida' },
-                  { value: 'cancelled', label: '❌ Cancelada' },
-                  { value: 'no_show', label: '⚠️ No asistió' }
-                ]}
-                className="filter-select-modern"
-              />
-            </div>
-
-            <div className="filter-item">
-              <label className="filter-label">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
-                </svg>
-                Desde
-              </label>
-              <DatePicker
-                value={dateFrom}
-                onChange={setDateFrom}
-              />
-            </div>
-
-            <div className="filter-item">
-              <label className="filter-label">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
-                </svg>
-                Hasta
-              </label>
+            <div className="appt-toolbar__field">
+              <span className="appt-toolbar__label">Hasta</span>
               <DatePicker
                 value={dateTo}
                 onChange={setDateTo}
                 minDate={dateFrom ? new Date(dateFrom + 'T12:00:00') : undefined}
               />
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
 
-      {/* Filtros Simplificados para Calendario */}
-      {viewMode === 'calendar' && (
-        <div className="filters-modern filters-minimal">
-          <label className="checkbox-modern">
-            <input
-              type="checkbox"
-              checked={showCancelled}
-              onChange={(e) => setShowCancelled(e.target.checked)}
+        {viewMode === 'list' && (
+          <div className="appt-toolbar__field appt-toolbar__field--status">
+            <span className="appt-toolbar__label">Estado</span>
+            <Select
+              aria-label="Filtrar por estado"
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as AppointmentStatus | ''); setCurrentPage(1); }}
+              options={[
+                { value: '', label: 'Todos los estados' },
+                { value: 'reserved', label: 'Reservada' },
+                { value: 'in_progress', label: 'En atención' },
+                { value: 'attended', label: 'Atendida' },
+                { value: 'cancelled', label: 'Cancelada' },
+                { value: 'no_show', label: 'No asistió' },
+              ]}
             />
-            <span className="checkbox-custom"></span>
-            <span className="checkbox-label">Mostrar citas canceladas</span>
-          </label>
-        </div>
-      )}
-
-      {/* Filtros para Kanban */}
-      {viewMode === 'kanban' && (
-        <div className="filters-modern">
-          <div className="filters-grid">
-            <label className="checkbox-modern">
-              <input
-                type="checkbox"
-                checked={showCancelled}
-                onChange={(e) => setShowCancelled(e.target.checked)}
-              />
-              <span className="checkbox-custom"></span>
-              <span className="checkbox-label">Mostrar columnas canceladas</span>
-            </label>
-
-            <div className="filter-item">
-              <label className="filter-label">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
-                </svg>
-                Desde
-              </label>
-              <DatePicker
-                value={dateFrom}
-                onChange={setDateFrom}
-              />
-            </div>
-
-            <div className="filter-item">
-              <label className="filter-label">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M2 6h12M5 2v2M11 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="2"/>
-                </svg>
-                Hasta
-              </label>
-              <DatePicker
-                value={dateTo}
-                onChange={setDateTo}
-                minDate={dateFrom ? new Date(dateFrom + 'T12:00:00') : undefined}
-              />
-            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        <label className="appt-switch">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={showCancelled}
+            onChange={(e) => setShowCancelled(e.target.checked)}
+          />
+          <span className="appt-switch__track" aria-hidden="true"><span className="appt-switch__thumb" /></span>
+          <span className="appt-switch__label">
+            {viewMode === 'kanban' ? 'Mostrar canceladas y no asistidas' : 'Mostrar canceladas'}
+          </span>
+        </label>
+
+        {viewMode === 'list' && activeFiltersCount > 0 && (
+          <button type="button" className="appt-toolbar__clear" onClick={handleClearFilters}>
+            Limpiar filtros ({activeFiltersCount})
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="error-alert">
@@ -636,6 +544,10 @@ export const AppointmentsPage: React.FC = () => {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
+                totalItems={total}
+                pageSize={limit}
+                onPageSizeChange={(size) => { setLimit(size); setCurrentPage(1); }}
+                itemLabel="citas"
               />
             </>
           )}
