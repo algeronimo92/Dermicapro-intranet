@@ -109,7 +109,7 @@ const PatientCard: React.FC<{ patient: Patient; onClick: () => void }> = ({ pati
 
           {/* Badge saldo a favor */}
           {hasBalance && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)', border: '1px solid var(--color-primary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
               S/.{Number(patient.accountBalance).toFixed(0)} saldo
             </span>
           )}

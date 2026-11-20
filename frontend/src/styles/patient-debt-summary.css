@@ -64,7 +64,7 @@
 .pds-card__label--debt-clear   { color: var(--color-success-dark); }
 .pds-card__label--paid-active  { color: var(--color-success-dark); }
 .pds-card__label--paid-empty   { color: var(--color-text-tertiary); }
-.pds-card__label--credit-active { color: var(--color-primary); }
+.pds-card__label--credit-active { color: var(--color-primary-text); }
 .pds-card__label--credit-empty  { color: var(--color-text-tertiary); }
 
 .pds-card__icon {
@@ -80,7 +80,7 @@
 .pds-card__icon--debt-clear    { background: var(--color-success-alpha-10); color: var(--color-success); }
 .pds-card__icon--paid-active   { background: var(--color-success-alpha-10); color: var(--color-success); }
 .pds-card__icon--paid-empty    { background: var(--color-bg-secondary); color: var(--color-text-tertiary); }
-.pds-card__icon--credit-active { background: var(--color-primary-alpha-10); color: var(--color-primary); }
+.pds-card__icon--credit-active { background: var(--color-primary-alpha-10); color: var(--color-primary-text); }
 .pds-card__icon--credit-empty  { background: var(--color-bg-secondary); color: var(--color-text-tertiary); }
 
 /* Valor principal */
@@ -94,7 +94,7 @@
 .pds-card__amount--debt-clear   { color: var(--color-success-dark); font-size: var(--font-size-xl); }
 .pds-card__amount--paid-active  { color: var(--color-success-dark); }
 .pds-card__amount--paid-empty   { color: var(--color-text-disabled); }
-.pds-card__amount--credit-active { color: var(--color-primary); }
+.pds-card__amount--credit-active { color: var(--color-primary-text); }
 .pds-card__amount--credit-empty  { color: var(--color-text-disabled); }
 
 .pds-card__sub {
@@ -107,7 +107,7 @@
 .pds-card__sub--debt-clear    { color: var(--color-success-dark); }
 .pds-card__sub--paid-active   { color: var(--color-success-dark); font-weight: 400; }
 .pds-card__sub--paid-empty    { color: var(--color-text-tertiary); font-weight: 400; }
-.pds-card__sub--credit-active { color: var(--color-primary); }
+.pds-card__sub--credit-active { color: var(--color-primary-text); }
 .pds-card__sub--credit-empty  { color: var(--color-text-tertiary); font-weight: 400; }
 
 /* ── SECCIÓN COBROS PENDIENTES (variant full) ───────────────── */
@@ -151,7 +151,7 @@
 .pds-cobros__manage {
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   background: none;
   border: none;
   cursor: pointer;
@@ -289,7 +289,7 @@
 .pds-cobros__see-all {
   font-size: var(--font-size-xs);
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   background: none;
   border: none;
   cursor: pointer;

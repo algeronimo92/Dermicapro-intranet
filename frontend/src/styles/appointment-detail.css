@@ -68,7 +68,7 @@
 }
 .adet-patient-strip:hover .adet-patient-chevron {
   transform: translateX(3px);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ── PAYMENT BLOCKS ── */
@@ -396,7 +396,7 @@
 }
 .adet-reservation__upload-btn:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .adet-reservation__note {
@@ -735,7 +735,7 @@
 .apt-detail__view-btn:hover { color: var(--color-text-secondary); background: var(--color-bg-hover); }
 .apt-detail__view-btn--active {
   background: var(--color-bg-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   box-shadow: var(--shadow-xs);
 }
 
@@ -780,7 +780,7 @@
 .system-item.full { grid-column: 1 / -1; }
 .system-label { font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-tertiary); }
 .system-value { font-size: var(--font-size-sm); color: var(--color-text-primary); font-weight: var(--font-weight-medium); }
-.system-id { font-family: var(--font-family-mono); font-size: var(--font-size-xs); color: var(--color-primary); word-break: break-all; }
+.system-id { font-family: var(--font-family-mono); font-size: var(--font-size-xs); color: var(--color-primary-text); word-break: break-all; }
 
 /* ── COLLAPSIBLE CARD HEADER ── */
 .card-header--collapsible {

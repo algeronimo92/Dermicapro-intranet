@@ -367,7 +367,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
         <div className="payment-orders-list-container" style={{ marginTop: 'var(--spacing-xl)' }}>
           <div className="payment-orders-list-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 className="payment-orders-list-title">Movimientos de Saldo a Favor</h3>
-            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-primary)' }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 700, color: 'var(--color-primary-text)' }}>
               Balance actual: S/. {patientBalance.toFixed(2)}
             </span>
           </div>

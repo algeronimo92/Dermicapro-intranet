@@ -149,7 +149,7 @@
 }
 
 .ds-select__check {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   flex-shrink: 0;
 }
 

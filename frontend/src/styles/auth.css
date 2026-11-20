@@ -204,7 +204,7 @@
   margin-bottom: var(--spacing-2xl);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-extrabold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 @media (max-width: 899px) {
@@ -270,7 +270,7 @@
 }
 
 .login-input-wrapper:focus-within .login-input-icon {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .login-form-input {
@@ -326,7 +326,7 @@
 }
 
 .login-password-toggle:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ==========================================
@@ -371,7 +371,7 @@
   height: var(--control-height-lg);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
-  color: white;
+  color: var(--color-on-primary);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   border: none;
   border-radius: var(--radius-lg);
@@ -574,7 +574,7 @@
   height: 52px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
+  color: var(--color-on-primary);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   display: flex;
@@ -658,7 +658,7 @@
 
 .remembered-other-account:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ==========================================
@@ -681,7 +681,7 @@
 }
 
 .login-back-btn:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .quick-user-hero {
@@ -700,7 +700,7 @@
   height: 48px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
+  color: var(--color-on-primary);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   display: flex;
@@ -845,5 +845,5 @@
 }
 
 .login-pin-fallback-btn:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }

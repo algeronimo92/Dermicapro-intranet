@@ -151,7 +151,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
                     <td>{pkg.serviceName}</td>
                     <td className="anlx-table__right anlx-table__currency">{fmt(pkg.price)}</td>
                     <td className="anlx-table__right">
-                      <span style={{ padding: '3px 8px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)' }}>
+                      <span style={{ padding: '3px 8px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 600, background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)' }}>
                         {pkg.popularity} órdenes
                       </span>
                     </td>

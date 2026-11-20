@@ -208,7 +208,7 @@ export function PaymentsAdminPage() {
 
       {/* ── Summary Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-md)' }}>
-        <SummaryCard icon={<Receipt size={20} strokeWidth={1.75} color="var(--color-primary)" />} iconBg="var(--color-primary-alpha-10)" label="Total en página" value={String(payments.length)} sub={`de ${total} registros`} />
+        <SummaryCard icon={<Receipt size={20} strokeWidth={1.75} color="var(--color-primary-text)" />} iconBg="var(--color-primary-alpha-10)" label="Total en página" value={String(payments.length)} sub={`de ${total} registros`} />
         <SummaryCard icon={<Banknote size={20} strokeWidth={1.75} color="var(--color-success)" />} iconBg="var(--color-success-alpha-10)" label="Monto activo" value={formatCurrency(totalAmount)} sub="excluye anulados" />
         <SummaryCard icon={<CreditCard size={20} strokeWidth={1.75} color="var(--color-info)" />} iconBg="var(--color-info-alpha-10)" label="Métodos distintos" value={String(new Set(activePayments.map(p => p.paymentMethod)).size)} sub="en esta página" />
         <SummaryCard icon={<Ban size={20} strokeWidth={1.75} color="var(--color-error)" />} iconBg="var(--color-error-alpha-10)" label="Anulados en página" value={String(voidedCount)} sub={showVoided ? 'visibles' : 'ocultos'} valueColor={voidedCount > 0 ? 'var(--color-error)' : undefined} />
@@ -276,7 +276,7 @@ export function PaymentsAdminPage() {
           ]} />
           <button
             onClick={handleSearch}
-            style={{ height: 'var(--control-height)', paddingInline: 'var(--spacing-md)', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'background var(--transition-fast)', whiteSpace: 'nowrap' }}
+            style={{ height: 'var(--control-height)', paddingInline: 'var(--spacing-md)', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'background var(--transition-fast)', whiteSpace: 'nowrap' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-dark)'}
             onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary)'}
           >

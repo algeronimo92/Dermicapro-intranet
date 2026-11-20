@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   box-shadow: 0 0 0 8px var(--color-primary-alpha-10);
   animation: flm-icon-pulse 2.5s ease-in-out infinite;
 }
@@ -152,7 +152,7 @@
 }
 
 .flm-input-wrap:focus-within .flm-input-icon {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .flm-input {
@@ -204,7 +204,7 @@
 }
 
 .flm-eye-btn:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* ==========================================

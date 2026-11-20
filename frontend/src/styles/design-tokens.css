@@ -7,7 +7,8 @@
  * queda solo en el emblema.
  *
  * Contraste WCAG AA verificado (texto normal ≥ 4.5:1):
- *   Claro   #7E6838 sobre #FBFAF8 → 5.1:1   texto terciario #6B675F sobre #F3F2EF → 5.0:1
+ *   Claro   texto dorado #7A6436 sobre #FBFAF8 → 5.4:1 · botón #2A2418 sobre #BFA46A → 6.6:1
+ *             texto terciario #6B675F sobre #F3F2EF → 5.0:1
  *   Oscuro  #C8AE74 sobre #26272B → 6.9:1   texto terciario #9C998F sobre #26272B → 5.2:1
  *
  * Actualizado: 2026-11-20
@@ -20,14 +21,16 @@
 [data-theme="light"] {
   /* === COLORES PRIMARIOS (Dorado champaña) === */
   --color-brand: #B49A5E;             /* Dorado suavizado — acentos, no texto */
-  --color-primary: #7E6838;           /* Acción principal — 5.1:1 */
-  --color-primary-dark: #665429;      /* hover / pressed */
-  --color-primary-light: #B49A5E;
+  --color-primary: #BFA46A;           /* Relleno de botones y estados activos (champaña claro) */
+  --color-primary-dark: #AC9058;      /* hover / pressed del relleno */
+  --color-primary-light: #D3BC86;
   --color-primary-container: #EFE8D8;
-  --color-on-primary: #FFFFFF;
+  --color-on-primary: #2A2418;        /* Texto sobre el relleno — 6.6:1 */
   --color-on-primary-container: #3B3020;
-  --color-primary-alpha-10: rgba(126, 104, 56, 0.10);
-  --color-primary-alpha-20: rgba(126, 104, 56, 0.18);
+  /* Dorado para TEXTO, íconos y enlaces sobre fondo claro (el relleno no llega a 4.5:1) */
+  --color-primary-text: #7A6436;      /* 5.4:1 sobre la superficie */
+  --color-primary-alpha-10: rgba(191, 164, 106, 0.16);
+  --color-primary-alpha-20: rgba(191, 164, 106, 0.28);
 
   /* === COLOR DE ACENTO (Rosa empolvado) === */
   --color-accent: #8E5261;
@@ -73,13 +76,13 @@
   --color-text-tertiary: #6B675F;     /* 5.0:1 */
   --color-text-disabled: #A5A19A;
   --color-text-inverse: #FBFAF8;
-  --color-text-link: var(--color-primary);
-  --color-text-link-hover: var(--color-primary-dark);
+  --color-text-link: var(--color-primary-text);
+  --color-text-link-hover: #5F4E2A;
 
   /* === COLORES DE BORDE === */
   --color-border-primary: #DEDAD2;
   --color-border-secondary: #E8E5DF;
-  --color-border-focus: var(--color-primary);
+  --color-border-focus: var(--color-primary-text);
   --color-border-error: var(--color-error);
   --color-border-success: var(--color-success);
 
@@ -239,6 +242,7 @@
   --color-primary-light: #D8C28E;
   --color-primary-container: #3A3427;
   --color-on-primary: #1E1F22;
+  --color-primary-text: var(--color-primary);
   --color-on-primary-container: #E6D7B4;
   --color-primary-alpha-10: rgba(200, 174, 116, 0.12);
   --color-primary-alpha-20: rgba(200, 174, 116, 0.20);

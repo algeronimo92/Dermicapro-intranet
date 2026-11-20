@@ -132,7 +132,7 @@ const Swatch: React.FC<{
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2 }}>{name}</div>
         <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)', marginBottom: 1 }}>{value || '—'}</div>
-        <div style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{variable}</div>
+        <div style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{variable}</div>
       </div>
     </div>
   );
@@ -341,7 +341,7 @@ export const StyleGuidePage: React.FC = () => {
         borderBottom: '1px solid var(--color-border-secondary)',
         maxWidth: 1100, margin: '0 auto',
       }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-primary)', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-primary-text)', marginBottom: 10 }}>
           Dorado champaña + Gris carbón
         </div>
         <h1 style={{ fontSize: 38, fontWeight: 800, color: 'var(--color-text-primary)', margin: '0 0 12px', lineHeight: 1.15 }}>
@@ -353,7 +353,7 @@ export const StyleGuidePage: React.FC = () => {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
             { label: 'WCAG AA', color: 'var(--color-success-dark)', bg: 'var(--color-success-alpha-10)' },
-            { label: 'M3 Tokens', color: 'var(--color-primary)', bg: 'var(--color-primary-alpha-10)' },
+            { label: 'M3 Tokens', color: 'var(--color-primary-text)', bg: 'var(--color-primary-alpha-10)' },
             { label: 'Dark/Light', color: 'var(--color-info-dark)', bg: 'var(--color-info-alpha-10)' },
             { label: 'CSS Variables', color: 'var(--color-accent)', bg: 'var(--color-accent-alpha-10)' },
           ].map(({ label, color, bg }) => (
@@ -484,7 +484,7 @@ export const StyleGuidePage: React.FC = () => {
             }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)' }}>{label}</div>
-                <code style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{token}</code>
+                <code style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>{token}</code>
               </div>
               <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)' }}>
                 {size}px / w{weight}<br />lh {lh}
@@ -502,10 +502,10 @@ export const StyleGuidePage: React.FC = () => {
           }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Monospace / Code</div>
-              <code style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>--font-family-mono</code>
+              <code style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', opacity: 0.8 }}>--font-family-mono</code>
             </div>
             <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-family-mono)' }}>14px / w400</div>
-            <code style={{ fontSize: 14, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
+            <code style={{ fontSize: 14, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>
               patient_id: "a1b2c3d4" · payment_order_status: "partial"
             </code>
           </div>
@@ -531,7 +531,7 @@ export const StyleGuidePage: React.FC = () => {
                 { name: '--spacing-3xl', val: '64px', px: 64 },
               ].map(({ name, val, px }) => (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
+                  <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
                   <div style={{
                     height: 10, width: px, background: 'var(--color-primary)', borderRadius: 2, opacity: 0.7, flexShrink: 0,
                   }} />
@@ -554,7 +554,7 @@ export const StyleGuidePage: React.FC = () => {
                 { name: '--radius-full', val: '9999px', r: 9999 },
               ].map(({ name, val, r }) => (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
+                  <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', minWidth: 130 }}>{name}</code>
                   <div style={{
                     width: 36, height: 24,
                     background: 'linear-gradient(135deg, var(--color-primary-light), var(--color-primary))',
@@ -577,7 +577,7 @@ export const StyleGuidePage: React.FC = () => {
               { name: '--control-height-lg', val: '48px', h: 48, label: 'lg — búsquedas prominentes, CTA' },
             ].map(({ name, val, h, label }) => (
               <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', minWidth: 170 }}>{name}</code>
+                <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', minWidth: 170 }}>{name}</code>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ height: h, width: 100, background: 'var(--color-primary-alpha-10)', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-lg)' }} />
                   <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{val} — {label}</span>
@@ -614,7 +614,7 @@ export const StyleGuidePage: React.FC = () => {
               }}>
                 <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>{name}</span>
               </div>
-              <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
+              <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>
                 --shadow-{name}
               </code>
             </div>
@@ -629,7 +629,7 @@ export const StyleGuidePage: React.FC = () => {
             }}>
               <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>inner</span>
             </div>
-            <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>
+            <code style={{ display: 'block', marginTop: 8, fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>
               --shadow-inner
             </code>
           </div>
@@ -651,8 +651,8 @@ export const StyleGuidePage: React.FC = () => {
               { label: 'Danger', bg: 'var(--color-error)', color: '#fff', shadow: '0 2px 8px var(--color-error-alpha-10)' },
               { label: 'Warning', bg: 'var(--color-warning)', color: '#fff', shadow: 'none' },
               { label: 'Accent', bg: 'var(--color-accent)', color: '#fff', shadow: '0 2px 8px var(--color-accent-alpha-20)' },
-              { label: 'Outlined', bg: 'transparent', color: 'var(--color-primary)', border: '1.5px solid var(--color-primary)', shadow: 'none' },
-              { label: 'Ghost', bg: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)', shadow: 'none' },
+              { label: 'Outlined', bg: 'transparent', color: 'var(--color-primary-text)', border: '1.5px solid var(--color-primary)', shadow: 'none' },
+              { label: 'Ghost', bg: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)', shadow: 'none' },
             ].map(({ label, bg, color, border, shadow }) => (
               <button key={label} className="sg-btn-hover" style={{
                 padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
@@ -674,7 +674,7 @@ export const StyleGuidePage: React.FC = () => {
             ].map(({ label, p, fs }) => (
               <button key={label} className="sg-btn-hover" style={{
                 padding: p, borderRadius: 6, fontSize: fs, fontWeight: 600,
-                border: 'none', background: 'var(--color-primary)', color: '#fff',
+                border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)',
                 boxShadow: '0 2px 6px var(--color-primary-alpha-20)', cursor: 'pointer',
               }}>{label}</button>
             ))}
@@ -687,17 +687,17 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="sg-btn-hover" style={{
               padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer',
+              border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'pointer',
               boxShadow: '0 2px 6px var(--color-primary-alpha-20)',
             }}>Normal</button>
             <button style={{
               padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'not-allowed',
+              border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'not-allowed',
               opacity: 0.45,
             }} disabled>Disabled</button>
             <button style={{
               padding: '8px 18px', borderRadius: 6, fontSize: 14, fontWeight: 600,
-              border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'wait',
+              border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'wait',
               display: 'inline-flex', alignItems: 'center', gap: 8,
               boxShadow: '0 2px 6px var(--color-primary-alpha-20)',
             }}>
@@ -1094,7 +1094,7 @@ export const StyleGuidePage: React.FC = () => {
                 <div className="modal-body">
                   <p style={{ color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.6 }}>
                     Este es el modal real con overlay. Haz clic fuera o en el botón para cerrar.
-                    El z-index usa <code style={{ color: 'var(--color-primary)', fontSize: 13 }}>var(--z-modal-backdrop)</code> y <code style={{ color: 'var(--color-primary)', fontSize: 13 }}>var(--z-modal)</code>.
+                    El z-index usa <code style={{ color: 'var(--color-primary-text)', fontSize: 13 }}>var(--z-modal-backdrop)</code> y <code style={{ color: 'var(--color-primary-text)', fontSize: 13 }}>var(--z-modal)</code>.
                   </p>
                 </div>
                 <div className="modal-actions">
@@ -1208,7 +1208,7 @@ export const StyleGuidePage: React.FC = () => {
               }}>Ver historial</button>
               <button style={{
                 padding: '6px 14px', borderRadius: 6, border: 'none',
-                background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
               }}>Agendar cita</button>
             </div>
           </div>
@@ -1340,7 +1340,7 @@ export const StyleGuidePage: React.FC = () => {
             maxWidth: 600,
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--spacing-sm)' }}>
-              <span style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-extrabold)', color: 'var(--color-primary)', letterSpacing: -1 }}>12</span>
+              <span style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-extrabold)', color: 'var(--color-primary-text)', letterSpacing: -1 }}>12</span>
               <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text-tertiary)' }}>citas encontradas</span>
             </div>
           </div>
@@ -1431,7 +1431,7 @@ export const StyleGuidePage: React.FC = () => {
             </div>
             <button style={{
               padding: '7px 16px', borderRadius: 6, border: 'none',
-              background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}>+ Nueva Cita</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -1484,7 +1484,7 @@ export const StyleGuidePage: React.FC = () => {
                         }}>Ver</button>
                         <button style={{
                           padding: '4px 10px', borderRadius: 5, border: 'none',
-                          background: 'var(--color-primary-alpha-10)', fontSize: 12, cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 500,
+                          background: 'var(--color-primary-alpha-10)', fontSize: 12, cursor: 'pointer', color: 'var(--color-primary-text)', fontWeight: 500,
                         }}>Editar</button>
                       </div>
                     </td>
@@ -1529,7 +1529,7 @@ export const StyleGuidePage: React.FC = () => {
             <div style={{ fontSize: 14, color: 'var(--color-text-tertiary)', marginBottom: 20 }}>No hay citas para los filtros seleccionados</div>
             <button style={{
               padding: '8px 20px', borderRadius: 6, border: 'none',
-              background: 'var(--color-primary)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}>+ Agendar primera cita</button>
           </div>
         </div>
@@ -1544,10 +1544,10 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Spinners</div>
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {[
-              { size: 16, label: 'XS · 16px', color: 'var(--color-primary)' },
-              { size: 24, label: 'SM · 24px', color: 'var(--color-primary)' },
-              { size: 36, label: 'MD · 36px', color: 'var(--color-primary)' },
-              { size: 48, label: 'LG · 48px', color: 'var(--color-primary)' },
+              { size: 16, label: 'XS · 16px', color: 'var(--color-primary-text)' },
+              { size: 24, label: 'SM · 24px', color: 'var(--color-primary-text)' },
+              { size: 36, label: 'MD · 36px', color: 'var(--color-primary-text)' },
+              { size: 48, label: 'LG · 48px', color: 'var(--color-primary-text)' },
               { size: 24, label: 'Success', color: 'var(--color-success)' },
               { size: 24, label: 'Error', color: 'var(--color-error)' },
               { size: 24, label: 'Warning', color: 'var(--color-warning)' },
@@ -1604,7 +1604,7 @@ export const StyleGuidePage: React.FC = () => {
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>Barras de Progreso</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 520 }}>
-            <ProgressBar value={78} color="var(--color-primary)" label="Primary" />
+            <ProgressBar value={78} color="var(--color-primary-text)" label="Primary" />
             <ProgressBar value={62} color="var(--color-success)" label="Success" />
             <ProgressBar value={45} color="var(--color-warning)" label="Warning" />
             <ProgressBar value={28} color="var(--color-error)" label="Error" />
@@ -1614,7 +1614,7 @@ export const StyleGuidePage: React.FC = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Sesiones HIFU 12D — 3/5 completadas</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary)' }}>60%</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-primary-text)' }}>60%</span>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 {[1, 2, 3, 4, 5].map(i => (
@@ -1640,7 +1640,7 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="13" title="Templates de Página" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Tres patrones de layout reutilizables. Cada wireframe muestra la anatomía del template con sus zonas funcionales. Importar desde <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>src/components/templates/</code>.
+          Tres patrones de layout reutilizables. Cada wireframe muestra la anatomía del template con sus zonas funcionales. Importar desde <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>src/components/templates/</code>.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
@@ -1650,7 +1650,7 @@ export const StyleGuidePage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--color-primary)', background: 'var(--color-primary-alpha-10)',
+                color: 'var(--color-primary-text)', background: 'var(--color-primary-alpha-10)',
                 padding: '3px 8px', borderRadius: 4,
               }}>PageListLayout</span>
               <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Lista + Filtros + Tabla</span>
@@ -1862,7 +1862,7 @@ export const StyleGuidePage: React.FC = () => {
               <code key={i} style={{
                 display: 'block', fontSize: 12, padding: '6px 10px',
                 background: 'var(--color-bg-primary)', borderRadius: 5,
-                color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)',
+                color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)',
                 border: '1px solid var(--color-border-secondary)',
               }}>{line}</code>
             ))}
@@ -1875,15 +1875,15 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="14" title="Detalle de Paciente (patient-detail.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-detail.css</code> y{' '}
-          <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>state-transitions.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-detail.css</code> y{' '}
+          <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>state-transitions.css</code>.
           Todos usan design tokens — funcionan en dark/light sin ajustes.
         </p>
 
         {/* ── Avatar / Photo ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Avatar de paciente (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-avatar</code>) — foto o iniciales
+            Avatar de paciente (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-avatar</code>) — foto o iniciales
           </div>
           <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             {/* Con iniciales */}
@@ -1907,7 +1907,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Hero Card ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Hero Card (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-hero</code>)
+            Hero Card (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-hero</code>)
           </div>
           <div className="pd-hero" style={{ maxWidth: 700 }}>
             <div className="pd-avatar">MG</div>
@@ -1921,7 +1921,7 @@ export const StyleGuidePage: React.FC = () => {
               </div>
             </div>
             <div className="pd-hero__actions">
-              <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Editar</button>
+              <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Editar</button>
               <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-success)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Nueva Cita</button>
             </div>
           </div>
@@ -1933,7 +1933,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Cards Grid ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Cards del dashboard (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-card</code>) con variantes de ícono
+            Cards del dashboard (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-card</code>) con variantes de ícono
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
@@ -1968,7 +1968,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Info List ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Lista de información (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-info-list</code>)
+            Lista de información (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-info-list</code>)
           </div>
           <div className="pd-card" style={{ maxWidth: 360 }}>
             <div className="pd-card__header">
@@ -2011,7 +2011,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Stats */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Stats (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-stats</code>)
+              Stats (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-stats</code>)
             </div>
             <div className="pd-stats">
               <div className="pd-stat">
@@ -2035,7 +2035,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Treatment progress */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Tratamiento (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-treatment</code>)
+              Tratamiento (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-treatment</code>)
             </div>
             <div className="pd-treatment-list">
               <div className="pd-treatment">
@@ -2071,7 +2071,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Completed */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Completado (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-completed</code>)
+              Completado (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-completed</code>)
             </div>
             <div className="pd-completed-list">
               {['Hollywood Peel', 'Bioestimulación', 'Facial Derma'].map(name => (
@@ -2096,7 +2096,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Orden de pago pendiente */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Orden de pago pendiente (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-pending-total · .pd-payment-order</code>)
+              Orden de pago pendiente (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-pending-total · .pd-payment-order</code>)
             </div>
             <div className="pd-pending-total">
               <span className="pd-pending-total__label">Total pendiente</span>
@@ -2126,7 +2126,7 @@ export const StyleGuidePage: React.FC = () => {
           {/* Quick actions */}
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Acciones rápidas (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-actions-grid · .pd-action</code>)
+              Acciones rápidas (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-actions-grid · .pd-action</code>)
             </div>
             <div className="pd-actions-grid">
               {[
@@ -2158,7 +2158,7 @@ export const StyleGuidePage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Estado vacío (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-empty</code>)
+              Estado vacío (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-empty</code>)
             </div>
             <div className="pd-card">
               <div className="pd-card__body">
@@ -2168,7 +2168,7 @@ export const StyleGuidePage: React.FC = () => {
                     <path d="M13 20h14M13 26h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
                   <p>Sin registros disponibles</p>
-                  <button style={{ padding: '6px 14px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <button style={{ padding: '6px 14px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     Agregar primero
                   </button>
                 </div>
@@ -2181,7 +2181,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Botón volver (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-back</code>) y vista-todo (<code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pd-view-all</code>)
+              Botón volver (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-back</code>) y vista-todo (<code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pd-view-all</code>)
             </div>
             <div className="pd-card">
               <div className="pd-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2203,7 +2203,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── State Transitions ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Transiciones de estado (<code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>state-transitions.css</code>) — Citas
+            Transiciones de estado (<code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>state-transitions.css</code>) — Citas
           </div>
 
           {/* Ejemplo: desde "Reservada" */}
@@ -2294,14 +2294,14 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="15" title="Detalle de Cita (appointment-detail.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>appointment-detail.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>appointment-detail.css</code>.
           Todos usan design tokens — compatibles con dark/light.
         </p>
 
         {/* ── Patient Strip ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Patient strip — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-patient-strip</code> — con foto y sin foto
+            Patient strip — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-patient-strip</code> — con foto y sin foto
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 520 }}>
             {/* Con foto */}
@@ -2337,7 +2337,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Bloques de pago ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Bloque de pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-pay-pkg</code>
+            Bloque de pago — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-pay-pkg</code>
           </div>
           <div style={{ maxWidth: 480 }}>
             <div className="adet-pay-pkg">
@@ -2378,7 +2378,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Otras órdenes de pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-other-payment-orders</code>
+              Otras órdenes de pago — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-other-payment-orders</code>
             </div>
             <div className="adet-other-payment-orders">
               <div className="adet-other-payment-orders__header">
@@ -2416,7 +2416,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Reserva pagada y sin reserva — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-reservation</code>
+              Reserva pagada y sin reserva — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-reservation</code>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="adet-reservation adet-reservation--paid">
@@ -2448,7 +2448,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Package Group View ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Package Group View — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.pkg-group · .pkg-header · .pkg-sessions · .pkg-session</code>
+            Package Group View — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.pkg-group · .pkg-header · .pkg-sessions · .pkg-session</code>
           </div>
           <div style={{ maxWidth: 520 }}>
             {/* Package header */}
@@ -2526,7 +2526,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Medidas corporales ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Medidas corporales — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-measures-grid · .adet-measure-stat · .adet-body-block · .adet-body-item · .adet-health-notes</code>
+            Medidas corporales — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-measures-grid · .adet-measure-stat · .adet-body-block · .adet-body-item · .adet-health-notes</code>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div>
@@ -2575,7 +2575,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Notas de atención ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Notas de atención — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.adet-note-textarea · .adet-notes-list · .adet-note-item</code>
+            Notas de atención — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.adet-note-textarea · .adet-notes-list · .adet-note-item</code>
           </div>
           <div style={{ maxWidth: 520 }}>
             <textarea
@@ -2605,7 +2605,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Status colors ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Status badge colors — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.status-badge-large.status-*</code>
+            Status badge colors — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.status-badge-large.status-*</code>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
@@ -2626,7 +2626,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Glass card pattern ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Glass Card — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.glass-card</code> (styles.css) — card principal del detalle
+            Glass Card — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.glass-card</code> (styles.css) — card principal del detalle
           </div>
           <div className="glass-card" style={{ maxWidth: 480 }}>
             <div className="card-header">
@@ -2663,7 +2663,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── System info ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            System info — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.system-info · .system-item · .system-label · .system-value</code>
+            System info — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.system-info · .system-item · .system-label · .system-value</code>
           </div>
           <div className="glass-card system-card" style={{ maxWidth: 480 }}>
             <div className="card-header card-header--collapsible">
@@ -2696,14 +2696,14 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="16" title="Órdenes de Pago del Paciente (patient-payment-orders.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Componentes del módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-payment-orders.css</code>.
+          Componentes del módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-payment-orders.css</code>.
           100% design tokens — light y dark mode.
         </p>
 
         {/* ── Patient strip en header ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Header con avatar — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-orders-patient-strip · .payment-orders-patient-avatar</code>
+            Header con avatar — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.payment-orders-patient-strip · .payment-orders-patient-avatar</code>
           </div>
           <div style={{ maxWidth: 600, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-xl)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2725,7 +2725,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Summary cards ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Summary cards — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.summary-card + .summary-card-total/paid/pending</code>
+            Summary cards — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.summary-card + .summary-card-total/paid/pending</code>
           </div>
           <div className="payment-orders-summary" style={{ maxWidth: 800 }}>
             <div className="summary-card summary-card-total">
@@ -2754,7 +2754,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Orden de pago items ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Orden de pago item — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-item · .payment-order-status-badge</code>
+            Orden de pago item — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-item · .payment-order-status-badge</code>
           </div>
           <div className="payment-orders-list-container" style={{ maxWidth: 640 }}>
             <div className="payment-orders-list-header">
@@ -2842,7 +2842,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Register Payment Modal ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Modal de Registro de Pago — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>RegisterPaymentModal</code>
+            Modal de Registro de Pago — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>RegisterPaymentModal</code>
           </div>
           {/* Preview estático del contenido del modal (sin el overlay) */}
           <div style={{ maxWidth: 520, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-xl)', boxShadow: 'var(--shadow-lg)' }}>
@@ -2889,11 +2889,11 @@ export const StyleGuidePage: React.FC = () => {
             <div style={{ background: 'var(--color-primary-alpha-10)', border: '1px solid var(--color-border-primary)', borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-md)', display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-md)' }}>
               <div>
                 <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>Registrando</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-primary)' }}>S/. 80.00</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-primary-text)' }}>S/. 80.00</div>
               </div>
               <div style={{ textAlign: 'right' as const }}>
                 <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 2 }}>vía</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-primary)' }}>📲 Yape</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-primary-text)' }}>📲 Yape</div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -2910,7 +2910,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Order selection (Create Payment Order) ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Selección de orden — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.cinv-order · .cinv-order--selected · .cinv-summary</code>
+            Selección de orden — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.cinv-order · .cinv-order--selected · .cinv-summary</code>
           </div>
           <div style={{ maxWidth: 560 }}>
             <div className="glass-card">
@@ -2959,7 +2959,7 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="17" title="Detalle de Orden de Pago (PaymentOrderDetailPage)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          La página <code style={{ color: "var(--color-primary)", fontFamily: "var(--font-family-mono)", fontSize: 13 }}>PaymentOrderDetailPage</code> compone
+          La página <code style={{ color: "var(--color-primary-text)", fontFamily: "var(--font-family-mono)", fontSize: 13 }}>PaymentOrderDetailPage</code> compone
           exclusivamente con clases ya documentadas en secciones anteriores. No añade CSS nuevo —
           documenta aquí la <strong>combinación</strong> específica y los patrones de uso.
         </p>
@@ -2967,7 +2967,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Status badges ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Status badge — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-status-badge.payment-order-status-paid/partial/pending/cancelled</code>
+            Status badge — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.payment-order-status-badge.payment-order-status-paid/partial/pending/cancelled</code>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
             <span className="payment-order-status-badge payment-order-status-paid">Pagada</span>
@@ -3090,13 +3090,13 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="18" title="Historial del Paciente (patient-history.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-history.css</code> — tabs, stat cards del historial, timeline markers y bloques de detalle médico.
+          Módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>patient-history.css</code> — tabs, stat cards del historial, timeline markers y bloques de detalle médico.
         </p>
 
         {/* ── Tabs ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Tabs — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-tabs · .phist-tab · .phist-tab--active · .phist-tab__badge</code>
+            Tabs — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-tabs · .phist-tab · .phist-tab--active · .phist-tab__badge</code>
           </div>
           <div className="phist-tabs" style={{ maxWidth: 500 }}>
             <button className="phist-tab phist-tab--active">
@@ -3118,7 +3118,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* ── Stat cards ── */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Stat cards del historial — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-stat-card--records/since/last/files</code> (patrón Dashboard sec. 10)
+            Stat cards del historial — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-stat-card--records/since/last/files</code> (patrón Dashboard sec. 10)
           </div>
           <div className="phist-stat-grid" style={{ maxWidth: 900 }}>
             <div className="phist-stat-card phist-stat-card--records">
@@ -3148,7 +3148,7 @@ export const StyleGuidePage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Status badges — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-status-badge--{'{status}'}</code>
+              Status badges — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-status-badge--{'{status}'}</code>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {(['reserved','in_progress','attended','cancelled','no_show'] as const).map(s => (
@@ -3164,7 +3164,7 @@ export const StyleGuidePage: React.FC = () => {
 
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-              Foto badges — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.phist-photo-badge--before/after</code>
+              Foto badges — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.phist-photo-badge--before/after</code>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span className="phist-photo-badge phist-photo-badge--before">Fotos Antes del Tratamiento</span>
@@ -3217,15 +3217,15 @@ export const StyleGuidePage: React.FC = () => {
         <SectionDivider n="19" title="Analytics (analytics.css)" />
 
         <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28, lineHeight: 1.6 }}>
-          Módulo <code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>analytics.css</code> —
+          Módulo <code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 13 }}>analytics.css</code> —
           período selector, tabs, KPI cards, chart cards, tabla y ranking. Incluye
-          tokens de color para charts (<code style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)', fontSize: 12 }}>--chart-1…6</code>) compatibles con Recharts en dark/light.
+          tokens de color para charts (<code style={{ color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)', fontSize: 12 }}>--chart-1…6</code>) compatibles con Recharts en dark/light.
         </p>
 
         {/* Period selector */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Period selector — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.period-selector · .period-button · .period-button.active</code>
+            Period selector — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.period-selector · .period-button · .period-button.active</code>
           </div>
           <div className="period-selector">
             {['Hoy','Semana','Mes','Año','Personalizado'].map((l, i) => (
@@ -3240,7 +3240,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* Tabs */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Analytics tabs — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.analytics-tabs · .tab-button · .tab-button.active</code>
+            Analytics tabs — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.analytics-tabs · .tab-button · .tab-button.active</code>
           </div>
           <div className="analytics-tabs">
             {['Resumen Ejecutivo','Finanzas','Operaciones','Ventas','Clientes','Servicios'].map((t, i) => (
@@ -3255,7 +3255,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* KPI cards */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            KPI cards — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.anlx-kpi-card--primary/success/warning/error/info/accent</code>
+            KPI cards — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.anlx-kpi-card--primary/success/warning/error/info/accent</code>
           </div>
           <div className="anlx-kpi-grid">
             {[
@@ -3281,7 +3281,7 @@ export const StyleGuidePage: React.FC = () => {
         {/* Table + ranking */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Tabla analytics — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>.anlx-chart-card · .anlx-table · .anlx-rank-badge--gold/silver/bronze</code>
+            Tabla analytics — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>.anlx-chart-card · .anlx-table · .anlx-rank-badge--gold/silver/bronze</code>
           </div>
           <div className="anlx-chart-card" style={{ maxWidth: 600 }}>
             <h3 className="anlx-chart-title">Ranking de Vendedores</h3>
@@ -3315,13 +3315,13 @@ export const StyleGuidePage: React.FC = () => {
         {/* Chart colors */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 14 }}>
-            Chart colors — <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>--chart-1 … --chart-6</code> (cambian en dark mode)
+            Chart colors — <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>--chart-1 … --chart-6</code> (cambian en dark mode)
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
             {['--chart-1','--chart-2','--chart-3','--chart-4','--chart-5','--chart-6'].map((v, i) => (
               <div key={v} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: `var(${v})`, boxShadow: 'var(--shadow-sm)' }} />
-                <code style={{ fontSize: 10, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>{v}</code>
+                <code style={{ fontSize: 10, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>{v}</code>
                 <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
                   {['primary','success','warning','error','info','accent'][i]}
                 </span>
@@ -3331,7 +3331,7 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ padding: '12px 16px', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border-secondary)', fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'monospace', lineHeight: 1.8 }}>
             <strong style={{ color: 'var(--color-warning-dark)' }}>⚠ IMPORTANTE — SVG y CSS Variables</strong><br/>
             Los atributos SVG (fill=, stroke=) NO soportan CSS variables directamente.<br/>
-            Recharts usa atributos SVG → usar <code style={{ color: 'var(--color-primary)' }}>getChartColor(n)</code> en lugar de <code style={{ color: 'var(--color-error)' }}>"var(--chart-n)"</code><br/>
+            Recharts usa atributos SVG → usar <code style={{ color: 'var(--color-primary-text)' }}>getChartColor(n)</code> en lugar de <code style={{ color: 'var(--color-error)' }}>"var(--chart-n)"</code><br/>
             <br/>
             <strong>Uso correcto:</strong><br/>
             {'import { getChartColor, getChartColors } from "utils/chartColors";'}<br/>
@@ -3392,7 +3392,7 @@ export const StyleGuidePage: React.FC = () => {
                 padding: '8px 20px', background: 'var(--color-bg-secondary)',
                 borderTop: gi > 0 ? '1px solid var(--color-border-secondary)' : 'none',
               }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{group}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-primary-text)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{group}</span>
               </div>
               {tokens.map(({ name, light, dark }, ti) => (
                 <div key={name} style={{
@@ -3401,7 +3401,7 @@ export const StyleGuidePage: React.FC = () => {
                   borderTop: '1px solid var(--color-border-secondary)',
                   background: ti % 2 === 0 ? 'var(--color-bg-primary)' : 'var(--color-bg-secondary)',
                 }}>
-                  <code style={{ fontSize: 12, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>{name}</code>
+                  <code style={{ fontSize: 12, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>{name}</code>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {light.startsWith('#') && (
                       <div style={{ width: 14, height: 14, borderRadius: 3, background: light, border: '1px solid var(--color-border-primary)', flexShrink: 0 }} />
@@ -3505,7 +3505,7 @@ export const StyleGuidePage: React.FC = () => {
             <PropRow name="idle" type="{ getMsRemaining, timeout } — opcional; muestra el reloj de inactividad (solo admins)" />
           </div>
           <div style={{ marginTop: 14, fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
-            Íconos: <strong>Lucide React</strong>, <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>size=20 strokeWidth=1.75</code>. El sidebar es oscuro en ambos temas (tokens <code style={{ fontSize: 11, color: 'var(--color-primary)', fontFamily: 'var(--font-family-mono)' }}>--sidebar-*</code>); el item activo usa texto dorado y un fondo dorado al 12 %.
+            Íconos: <strong>Lucide React</strong>, <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>size=20 strokeWidth=1.75</code>. El sidebar es oscuro en ambos temas (tokens <code style={{ fontSize: 11, color: 'var(--color-primary-text)', fontFamily: 'var(--font-family-mono)' }}>--sidebar-*</code>); el item activo usa texto dorado y un fondo dorado al 12 %.
           </div>
         </div>
 
@@ -3525,7 +3525,7 @@ export const StyleGuidePage: React.FC = () => {
             onClick={() => setPreviewTheme(t => t === 'light' ? 'dark' : 'light')}
             style={{
               padding: '8px 18px', borderRadius: 999, border: '1.5px solid var(--color-primary)',
-              background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary)',
+              background: 'var(--color-primary-alpha-10)', color: 'var(--color-primary-text)',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}
           >

@@ -89,7 +89,7 @@
 }
 
 .settings-hint-accent {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-weight: var(--font-weight-medium);
 }
 
@@ -265,7 +265,7 @@
   width: 24px;
   height: 24px;
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;

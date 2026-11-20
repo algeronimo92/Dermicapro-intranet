@@ -196,7 +196,7 @@
   align-items: center;
   justify-self: start;
   gap: var(--spacing-xs);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-size: var(--font-size-sm);
   text-decoration: none;
 }
@@ -345,7 +345,7 @@
 }
 
 .invoice-table a {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .invoice-panel {

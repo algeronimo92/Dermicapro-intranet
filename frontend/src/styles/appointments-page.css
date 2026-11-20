@@ -188,7 +188,7 @@
 }
 
 .filters-title svg {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .filter-badge {
@@ -198,7 +198,7 @@
   width: 24px;
   height: 24px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
+  color: var(--color-on-primary);
   font-size: 12px;
   font-weight: 700;
   border-radius: 50%;
@@ -402,7 +402,7 @@
 .count-number {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-extrabold);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   letter-spacing: -1px;
 }
 
@@ -475,7 +475,7 @@
   transform: translateX(-10px) translateY(-50%);
   opacity: 0;
   transition: all var(--transition-slow);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* Card Header */
@@ -617,7 +617,7 @@
 
 .service-tag.more {
   background: var(--color-primary-alpha-10);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   border-color: var(--color-primary);
 }
 
@@ -1212,7 +1212,7 @@
 
 .kanban-attend-check {
   flex-shrink: 0;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   opacity: 0;
   transition: opacity var(--transition-fast);
 }

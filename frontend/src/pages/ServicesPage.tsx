@@ -411,7 +411,7 @@ export function ServicesPage() {
                                       background: 'rgba(0, 0, 0, 0.12)',
                                       border: '1px dashed var(--color-border-primary)',
                                       borderRadius: 'var(--radius-md)',
-                                      color: 'var(--color-primary)',
+                                      color: 'var(--color-primary-text)',
                                       fontSize: 'var(--font-size-sm)',
                                       fontWeight: 'var(--font-weight-medium)',
                                       cursor: 'pointer',
