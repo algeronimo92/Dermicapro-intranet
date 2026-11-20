@@ -191,9 +191,14 @@ export const EmployeesPage: React.FC = () => {
           <h1>Gestión de Empleados</h1>
           <p className="employees-page__subtitle">Administra el equipo de la clínica</p>
         </div>
-        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-          + Nuevo Empleado
-        </Button>
+        <div className="header-actions">
+          <Button variant="secondary" onClick={() => navigate('/employees/privileges')}>
+            Privilegios
+          </Button>
+          <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+            + Nuevo Empleado
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

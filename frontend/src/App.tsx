@@ -27,6 +27,7 @@ import { PaymentsAdminPage } from './pages/PaymentsAdminPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
+import { DbPrivilegesPage } from './pages/DbPrivilegesPage';
 import SettingsPage from './pages/SettingsPage';
 import { StyleGuidePage } from './pages/StyleGuidePage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -202,6 +203,7 @@ function DashboardLayout() {
                   <Route path="/appointments/:id/edit" element={<AppointmentFormPage />} />
                   <Route path="/services" element={<ServicesPage />} />
                   <Route path="/employees" element={<EmployeesPage />} />
+                  <Route path="/employees/privileges" element={isAdmin ? <DbPrivilegesPage /> : <Navigate to="/" replace />} />
                   <Route path="/employees/:id" element={<EmployeeDetailPage />} />
                   <Route path="/commissions" element={<CommissionsPage />} />
                   <Route path="/payments" element={<PaymentsAdminPage />} />

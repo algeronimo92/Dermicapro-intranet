@@ -1,4 +1,3 @@
-import axios from 'axios';
 import api from './api';
 
 export type ProductCategory = 'sunscreen' | 'serum' | 'cleanser' | 'moisturizer' | 'accessory' | 'other';
@@ -101,8 +100,7 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
-export const apiErrorMessage = (err: unknown, fallback: string): string =>
-  (axios.isAxiosError(err) && typeof err.response?.data?.error === 'string') ? err.response.data.error : fallback;
+export { apiErrorMessage } from '../utils/apiError';
 
 export const canManageInventory = (roleName: string) => roleName === 'admin' || roleName === 'inventory';
 
