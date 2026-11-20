@@ -7,7 +7,7 @@ import { Service, Order, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { PatientSelector } from '../components/PatientSelector';
 import { ServiceSelector } from '../components/ServiceSelector';
 import { UploadReservationModal } from '../components/UploadReservationModal';
@@ -813,9 +813,7 @@ export const AppointmentFormPage: React.FC = () => {
     navigate(returnTo);
   };
 
-  if (loadingData || isLoading) {
-    return <Loading text="Cargando datos..." />;
-  }
+  if (loadingData || isLoading) return <DetailSkeleton cards={2} />;
 
   return (
     <div className="appointment-detail-modern">

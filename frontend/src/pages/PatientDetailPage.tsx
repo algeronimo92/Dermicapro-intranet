@@ -4,7 +4,7 @@ import { patientsService } from '../services/patients.service';
 import { paymentOrdersService } from '../services/paymentOrders.service';
 import { Patient, Sex, Role, CreditTransaction, PaymentType, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/Modal';
 import { CreatePatientModal } from '../components/CreatePatientModal';
 import { PatientDebtSummary } from '../components/PatientDebtSummary';
@@ -101,7 +101,7 @@ export const PatientDetailPage: React.FC = () => {
     }
   };
 
-  if (isLoading) return <Loading text="Cargando información del paciente..." />;
+  if (isLoading && !patient) return <DetailSkeleton cards={4} />;
 
   if (error || !patient) {
     return (

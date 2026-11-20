@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { paymentsService, PaymentsFilters } from '../services/payments.service';
 import { Payment } from '../types';
+import { TableSkeleton } from '../components/ui/Skeleton';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -303,13 +304,7 @@ export function PaymentsAdminPage() {
           </div>
         )}
 
-        {loading && (
-          <div style={{ padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: 52, borderRadius: 'var(--radius-md)', background: 'var(--color-bg-secondary)', opacity: 1 - i * 0.12 }} />
-            ))}
-          </div>
-        )}
+        {loading && payments.length === 0 && <TableSkeleton rows={8} columns={7} />}
 
         {!loading && !error && payments.length === 0 && (
           <div style={{ padding: 'var(--spacing-3xl)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-md)', color: 'var(--color-text-tertiary)' }}>
@@ -321,7 +316,7 @@ export function PaymentsAdminPage() {
           </div>
         )}
 
-        {!loading && payments.length > 0 && (
+        {payments.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
               <thead>

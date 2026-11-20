@@ -5,7 +5,7 @@ import { Appointment, AppointmentStatus } from '../types';
 import { Button } from '../components/Button';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
-import { Loading } from '../components/Loading';
+import { TableSkeleton, Skeleton, SkeletonRegion } from '../components/ui/Skeleton';
 import { DatePicker } from '../components/DatePicker';
 import { Calendar } from '../components/Calendar';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -24,6 +24,8 @@ export const AppointmentsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [kanbanAppointments, setKanbanAppointments] = useState<Appointment[]>([]);
+  // Tras la primera carga del calendario se mantiene visible al navegar entre fechas
+  const [calendarLoaded, setCalendarLoaded] = useState(false);
 
   // Inicializar estados desde URL
   const [viewMode, setViewMode] = useState<ViewMode>((searchParams.get('view') as ViewMode) || 'calendar');
@@ -114,6 +116,7 @@ export const AppointmentsPage: React.FC = () => {
 
       const response = await appointmentsService.getAppointments(params);
       setAllAppointments(response.data);
+      setCalendarLoaded(true);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar citas del calendario');
     } finally {
@@ -481,10 +484,8 @@ export const AppointmentsPage: React.FC = () => {
             </div>
           </div>
 
-          {isLoading ? (
-            <div className="loading-container">
-              <Loading text="Cargando citas..." />
-            </div>
+          {isLoading && appointments.length === 0 ? (
+            <TableSkeleton rows={6} columns={4} />
           ) : (
             <>
               <div className="appointments-grid">
@@ -643,10 +644,11 @@ export const AppointmentsPage: React.FC = () => {
 
       {viewMode === 'calendar' && (
         <>
-          {isLoading ? (
-            <div className="loading-container">
-              <Loading text="Cargando calendario..." />
-            </div>
+          {isLoading && !calendarLoaded ? (
+            <SkeletonRegion label="Cargando calendario…">
+              <Skeleton height={44} radius={10} style={{ marginBottom: 12 }} />
+              <Skeleton height={560} radius={14} />
+            </SkeletonRegion>
           ) : (
             <Calendar
               appointments={allAppointments}

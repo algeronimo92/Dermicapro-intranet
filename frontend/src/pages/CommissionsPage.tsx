@@ -4,6 +4,7 @@ import { DatePicker } from '../components/DatePicker';
 import commissionsService, { Commission, CommissionsFilters } from '../services/commissions.service';
 import { usersService } from '../services/users.service';
 import '../styles/commissions-page.css';
+import { TableSkeleton } from '../components/ui/Skeleton';
 
 const CommissionsPage = () => {
   
@@ -257,9 +258,7 @@ const CommissionsPage = () => {
     });
   };
 
-  if (loading && commissions.length === 0) {
-    return <div className="loading">Cargando comisiones...</div>;
-  }
+  if (loading && commissions.length === 0) return <TableSkeleton rows={8} columns={7} />;
 
   return (
     <div className="commissions-page">

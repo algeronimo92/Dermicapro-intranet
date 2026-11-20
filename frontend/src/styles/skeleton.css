@@ -1,0 +1,100 @@
+/**
+ * SKELETONS DE CARGA
+ * Brillo suave que recorre el bloque; respeta prefers-reduced-motion.
+ */
+
+.skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-hover) 40%,
+    var(--color-bg-tertiary) 80%
+  );
+  background-size: 300% 100%;
+  border-radius: var(--radius-md);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+.skeleton-region {
+  width: 100%;
+}
+
+.skeleton-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+}
+
+.skeleton-row--between {
+  justify-content: space-between;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.skeleton-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 8px;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.skeleton-chart__bar {
+  flex: 1;
+  border-radius: 6px 6px 0 0;
+}
+
+.skeleton-table {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.skeleton-table__row {
+  display: grid;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: 16px var(--spacing-lg);
+  border-top: 1px solid var(--color-border-secondary);
+}
+
+.skeleton-table__row--head {
+  border-top: none;
+  background: var(--color-bg-secondary);
+  padding-block: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

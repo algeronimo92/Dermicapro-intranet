@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { patientsService, GetPatientsParams } from '../services/patients.service';
 import { Patient, Sex } from '../types';
 import { Pagination } from '../components/Pagination';
-import { Loading } from '../components/Loading';
+import { CardGridSkeleton } from '../components/ui/Skeleton';
 import { CreatePatientModal } from '../components/CreatePatientModal';
 import { formatDate } from '../utils/dateUtils';
 
@@ -240,37 +240,44 @@ export const PatientsPage: React.FC = () => {
   const [totalPages, setTotalPages]     = useState(1);
   const [total, setTotal]               = useState(0);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const requestIdRef = useRef(0);
   const limit = 12;
 
   const loadPatients = useCallback(async (q: string, sex: Sex | '', page: number) => {
+    const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
       setError(null);
       const params: GetPatientsParams = { page, limit, search: q || undefined, sex: sex || undefined };
       const response = await patientsService.getPatients(params);
+      if (requestId !== requestIdRef.current) return; // llegó tarde: hay una búsqueda más nueva
       setPatients(response.data);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
     } catch (err: any) {
+      if (requestId !== requestIdRef.current) return;
       setError(err.response?.data?.message || 'Error al cargar pacientes');
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   }, []);
 
-  // Debounce en búsqueda por texto
+  // Debounce solo del texto: el resto de filtros aplica al instante
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    if (search === debouncedSearch) return;
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
       setCurrentPage(1);
-      loadPatients(search, sexFilter, 1);
     }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, sexFilter]);
+    return () => clearTimeout(t);
+  }, [search, debouncedSearch]);
 
-  // Recarga al cambiar página (sin debounce)
-  useEffect(() => { loadPatients(search, sexFilter, currentPage); }, [currentPage]);
+  // Una sola fuente de carga. Antes había dos efectos y la página cargaba dos
+  // veces al entrar (contenido → spinner → contenido).
+  useEffect(() => {
+    loadPatients(debouncedSearch, sexFilter, currentPage);
+  }, [debouncedSearch, sexFilter, currentPage, loadPatients]);
 
   const clearFilters = () => { setSearch(''); setSexFilter(''); setCurrentPage(1); };
   const hasFilters   = !!(search || sexFilter);
@@ -383,8 +390,8 @@ export const PatientsPage: React.FC = () => {
       {/* ── Contenido ── */}
       {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-lg)' }}>{error}</div>}
 
-      {isLoading ? (
-        <Loading text="Cargando pacientes..." />
+      {isLoading && patients.length === 0 ? (
+        <CardGridSkeleton count={limit} />
       ) : sorted.length === 0 ? (
         <div className="pd-empty" style={{ background: 'var(--color-bg-primary)', border: '1px solid var(--color-border-secondary)', borderRadius: 'var(--radius-xl)', padding: 'var(--spacing-3xl)' }}>
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none">

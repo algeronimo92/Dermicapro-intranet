@@ -4,7 +4,7 @@ import { patientsService } from '../services/patients.service';
 import { paymentOrdersService } from '../services/paymentOrders.service';
 import { creditsService } from '../services/credits.service';
 import { Patient, PaymentOrder, PaymentOrderStatus, Order, CreditTransaction, PaymentType, PaymentMethod } from '../types';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ImageViewer } from '../components/ImageViewer';
 import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { PatientDebtSummary } from '../components/PatientDebtSummary';
@@ -100,9 +100,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return <Loading />;
-  }
+  if (isLoading && !patient) return <DetailSkeleton cards={2} />;
 
   if (error || !patient) {
     return (

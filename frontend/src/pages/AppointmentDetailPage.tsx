@@ -5,7 +5,7 @@ import { patientsService } from '../services/patients.service';
 import { usersService } from '../services/users.service';
 import { Appointment, Patient, Role, User } from '../types';
 import { Button } from '../components/Button';
-import { Loading } from '../components/Loading';
+import { DetailSkeleton } from '../components/ui/Skeleton';
 import { AttendAppointmentModal } from '../components/AttendAppointmentModal';
 import { UploadReservationModal } from '../components/UploadReservationModal';
 import { UploadPhotosModal } from '../components/UploadPhotosModal';
@@ -344,9 +344,7 @@ export const AppointmentDetailPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return <Loading text="Cargando información de la cita..." />;
-  }
+  if (isLoading && !appointment) return <DetailSkeleton cards={4} />;
 
   if (error && !appointment) {
     return (

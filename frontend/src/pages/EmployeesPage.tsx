@@ -7,7 +7,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
-import { Loading } from '../components/Loading';
+import { CardGridSkeleton } from '../components/ui/Skeleton';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
 import '../styles/employees-page.css';
 
@@ -241,8 +241,8 @@ export const EmployeesPage: React.FC = () => {
       </div>
 
       {/* Grid / Loading / Empty */}
-      {isLoading ? (
-        <Loading text="Cargando empleados..." />
+      {isLoading && users.length === 0 ? (
+        <CardGridSkeleton count={6} />
       ) : users.length === 0 ? (
         <div className="employees-page__empty">
           <div className="employees-page__empty-icon">👥</div>
