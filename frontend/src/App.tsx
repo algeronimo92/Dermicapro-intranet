@@ -38,6 +38,7 @@ import './styles/design-tokens.css';
 import './styles/auth.css';
 import './styles/dashboard.css';
 import './styles/sidebar.css';
+import './styles/controls.css';
 import './styles/settings.css';
 import './styles/commissions-page.css';
 

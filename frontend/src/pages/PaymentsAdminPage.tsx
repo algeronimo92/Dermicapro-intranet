@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Banknote, Search, Filter, X, AlertTriangle,
-  ChevronLeft, ChevronRight, Receipt, RefreshCw,
+  Receipt, RefreshCw,
   CreditCard, Ban, Eye, EyeOff,
 } from 'lucide-react';
 import { paymentsService, PaymentsFilters } from '../services/payments.service';
 import { Payment } from '../types';
 import { TableSkeleton } from '../components/ui/Skeleton';
+import { Pagination } from '../components/Pagination';
+import { Select } from '../components/Select';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -95,7 +97,7 @@ export function PaymentsAdminPage() {
   const [voidLoading, setVoidLoading] = useState(false);
   const [voidError, setVoidError] = useState<string | null>(null);
 
-  const LIMIT = 15;
+  const [limit, setLimit] = useState(15);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,7 +105,7 @@ export function PaymentsAdminPage() {
     try {
       const filters: PaymentsFilters = {
         page,
-        limit: LIMIT,
+        limit,
         includeVoided: showVoided || undefined,
         paymentType: typeFilter || undefined,
       };
@@ -130,7 +132,7 @@ export function PaymentsAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, methodFilter, appliedSearch, showVoided]);
+  }, [page, limit, typeFilter, methodFilter, appliedSearch, showVoided]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -337,19 +339,18 @@ export function PaymentsAdminPage() {
           </div>
         )}
 
-        {!loading && totalPages > 1 && (
-          <div style={{ padding: 'var(--spacing-md) var(--spacing-lg)', borderTop: '1px solid var(--color-border-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-bg-secondary)' }}>
-            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>Página {page} de {totalPages}</span>
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-              <PaginationBtn disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} strokeWidth={2.5} /></PaginationBtn>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const n = totalPages <= 5 ? i + 1 : Math.max(1, page - 2) + i;
-                if (n > totalPages) return null;
-                return <PaginationBtn key={n} active={n === page} onClick={() => setPage(n)}>{n}</PaginationBtn>;
-              })}
-              <PaginationBtn disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} strokeWidth={2.5} /></PaginationBtn>
-            </div>
-          </div>
+        {payments.length > 0 && (
+          <Pagination
+            className="pager--in-card"
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={total}
+            pageSize={limit}
+            onPageSizeChange={(size) => { setLimit(size); setPage(1); }}
+            pageSizeOptions={[15, 30, 50, 100]}
+            itemLabel="pagos"
+          />
         )}
       </div>
 
@@ -500,13 +501,7 @@ function FilterSelect({ label, value, onChange, options }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label style={labelStyle}>{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ height: 'var(--control-height)', paddingInline: 12, borderRadius: 'var(--radius-md)', border: '1.5px solid var(--color-border-primary)', background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', fontSize: 'var(--font-size-sm)', outline: 'none', cursor: 'pointer' }}
-        onFocus={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
-        onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border-primary)'}
-      >
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <Select aria-label={label} value={value} onChange={e => onChange(e.target.value)} options={options} className="payments-filter-select" />
     </div>
   );
 }
@@ -598,10 +593,3 @@ function DetailRow({ label, value, valueColor, bold }: { label: string; value: s
   );
 }
 
-function PaginationBtn({ children, onClick, disabled, active }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', border: active ? 'none' : '1.5px solid var(--color-border-primary)', background: active ? 'var(--color-primary)' : 'var(--color-bg-primary)', color: active ? '#fff' : disabled ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)', fontWeight: active ? 'var(--font-weight-semibold)' : 'var(--font-weight-medium)', cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {children}
-    </button>
-  );
-}

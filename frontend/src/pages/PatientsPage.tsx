@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { patientsService, GetPatientsParams } from '../services/patients.service';
 import { Patient, Sex } from '../types';
 import { Pagination } from '../components/Pagination';
+import { Select } from '../components/Select';
 import { CardGridSkeleton } from '../components/ui/Skeleton';
 import { CreatePatientModal } from '../components/CreatePatientModal';
 import { formatDate } from '../utils/dateUtils';
@@ -242,7 +243,7 @@ export const PatientsPage: React.FC = () => {
 
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const requestIdRef = useRef(0);
-  const limit = 12;
+  const [limit, setLimit] = useState(12);
 
   const loadPatients = useCallback(async (q: string, sex: Sex | '', page: number) => {
     const requestId = ++requestIdRef.current;
@@ -261,7 +262,7 @@ export const PatientsPage: React.FC = () => {
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   // Debounce solo del texto: el resto de filtros aplica al instante
   useEffect(() => {
@@ -363,20 +364,18 @@ export const PatientsPage: React.FC = () => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-tertiary)' }}>
               <path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <select
+            <Select
+              size="sm"
+              aria-label="Ordenar pacientes"
               value={sortKey}
               onChange={e => setSortKey(e.target.value as SortKey)}
-              style={{
-                padding: '6px 10px', border: '1.5px solid var(--color-border-primary)',
-                borderRadius: 'var(--radius-lg)', background: 'var(--color-bg-primary)',
-                color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)',
-                fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
-              }}
-            >
-              <option value="createdAt">Más reciente</option>
-              <option value="name">Nombre A–Z</option>
-              <option value="lastAttended">Última atención</option>
-            </select>
+              options={[
+                { value: 'createdAt', label: 'Más reciente' },
+                { value: 'name', label: 'Nombre A–Z' },
+                { value: 'lastAttended', label: 'Última atención' },
+              ]}
+              className="patients-sort"
+            />
           </div>
 
           {hasFilters && (
@@ -412,7 +411,16 @@ export const PatientsPage: React.FC = () => {
               <PatientCard key={p.id} patient={p} onClick={() => navigate(`/patients/${p.id}`)} />
             ))}
           </div>
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={total}
+            pageSize={limit}
+            onPageSizeChange={size => { setLimit(size); setCurrentPage(1); }}
+            pageSizeOptions={[12, 24, 48]}
+            itemLabel="pacientes"
+          />
         </>
       )}
 

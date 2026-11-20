@@ -136,7 +136,7 @@ export const EmployeesPage: React.FC = () => {
   const [totalPages, setTotalPages]   = useState(1);
   const [total, setTotal]             = useState(0);
 
-  const limit = 12;
+  const [limit, setLimit] = useState(12);
 
   const loadRoles = async () => {
     try {
@@ -172,7 +172,7 @@ export const EmployeesPage: React.FC = () => {
   };
 
   useEffect(() => { loadRoles(); }, []);
-  useEffect(() => { loadUsers(); }, [currentPage, roleFilter, statusFilter, activeSearch]);
+  useEffect(() => { loadUsers(); }, [currentPage, limit, roleFilter, statusFilter, activeSearch]);
 
   const handleSearch = () => { setActiveSearch(search); setCurrentPage(1); };
   const handleSearchKeyPress = (e: React.KeyboardEvent) => { if (e.key === 'Enter') handleSearch(); };
@@ -206,11 +206,15 @@ export const EmployeesPage: React.FC = () => {
             onKeyPress={handleSearchKeyPress}
           />
           <Select
+            aria-label="Filtrar por rol"
+            placeholder="Todos los roles"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             options={availableRoles.map(r => ({ value: r.id, label: r.displayName }))}
           />
           <Select
+            aria-label="Filtrar por estado"
+            placeholder="Todos los estados"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
@@ -266,6 +270,11 @@ export const EmployeesPage: React.FC = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
+            totalItems={total}
+            pageSize={limit}
+            onPageSizeChange={(size) => { setLimit(size); setCurrentPage(1); }}
+            pageSizeOptions={[12, 24, 48]}
+            itemLabel="empleados"
           />
         </>
       )}

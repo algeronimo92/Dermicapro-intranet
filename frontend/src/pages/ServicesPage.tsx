@@ -7,6 +7,7 @@ import { ServicePackageFormModal } from '../components/ServicePackageFormModal';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { PageListLayout } from '../components/templates';
+import { Pagination } from '../components/Pagination';
 
 export function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -28,6 +29,15 @@ export function ServicesPage() {
     if (!q) return services;
     return services.filter(s => s.name.toLowerCase().includes(q));
   }, [services, search]);
+
+  // Paginación en cliente: el catálogo llega completo y se filtra aquí
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const totalPages = Math.max(1, Math.ceil(filteredServices.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedServices = filteredServices.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => { setPage(1); }, [search, showDeleted]);
 
   useEffect(() => {
     loadServices();
@@ -199,7 +209,7 @@ export function ServicesPage() {
                 </td>
               </tr>
             ) : (
-              filteredServices.map((service) => {
+              pagedServices.map((service) => {
                 const isDeleted = !!service.deletedAt;
                 const isExpanded = expandedIds.has(service.id);
                 const packages = service.packages ?? [];
@@ -423,6 +433,15 @@ export function ServicesPage() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={filteredServices.length}
+        pageSize={pageSize}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        itemLabel="servicios"
+      />
 
       <ServiceFormModal
         isOpen={createModal}

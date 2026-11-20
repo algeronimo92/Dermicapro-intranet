@@ -1,0 +1,338 @@
+/**
+ * CONTROLES COMPARTIDOS: Select (combobox) y paginación.
+ * Se importa una vez en App.tsx.
+ */
+
+/* ========================================
+   SELECT
+   ======================================== */
+.ds-select {
+  position: relative;
+  min-width: 0;
+}
+
+.ds-select__trigger {
+  width: 100%;
+  height: var(--control-height);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 14px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.ds-select--sm .ds-select__trigger {
+  height: 34px;
+  padding: 0 8px 0 12px;
+  border-radius: var(--radius-lg);
+  gap: 6px;
+}
+
+.ds-select__trigger:hover:not(:disabled) {
+  border-color: var(--color-text-tertiary);
+}
+
+.ds-select__trigger:focus-visible,
+.ds-select__trigger.is-open {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-20);
+}
+
+.ds-select__trigger.is-error {
+  border-color: var(--color-border-error);
+}
+
+.ds-select__trigger:disabled {
+  background: var(--color-bg-disabled);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.ds-select__trigger.is-placeholder .ds-select__value {
+  color: var(--color-text-tertiary);
+}
+
+.ds-select__icon {
+  display: flex;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.ds-select__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-select__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-fast);
+}
+
+.ds-select__trigger.is-open .ds-select__chevron {
+  transform: rotate(180deg);
+  color: var(--color-text-primary);
+}
+
+/* Panel (en portal, fuera de cualquier overflow) */
+.ds-select__panel {
+  position: fixed;
+  z-index: var(--z-popover);
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  overflow-y: auto;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  animation: ds-select-in 120ms ease-out;
+  font-family: var(--font-family-base);
+}
+
+.ds-select__panel.is-up {
+  animation-name: ds-select-in-up;
+}
+
+@keyframes ds-select-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ds-select-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-select__panel { animation: none; }
+}
+
+.ds-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px 9px 12px;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ds-select__option.is-active {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.ds-select__option.is-selected {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ds-select__option.is-disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.ds-select__check {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* Los <select> nativos que quedan: mismo aspecto de cierre */
+select.input,
+select.form-control,
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239C998F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  border-radius: var(--radius-xl);
+}
+
+/* ========================================
+   PAGINACIÓN
+   ======================================== */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding: 12px 0;
+}
+
+.pager__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.pager__summary strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pager__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pager .pager__size-select {
+  width: 76px;
+  margin: 0;
+}
+
+.pager__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pager__pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pager__btn {
+  height: 40px;
+  min-width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pager__btn:hover:not(:disabled):not(.is-current) {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.pager__btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.pager__btn--edge {
+  border-color: var(--color-border-primary);
+  background: var(--color-bg-primary);
+  padding: 0 14px;
+}
+
+.pager__btn--edge:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pager__page {
+  padding: 0;
+}
+
+.pager__page.is-current {
+  background: var(--color-brand);
+  color: var(--color-on-primary-container);
+  font-weight: var(--font-weight-semibold);
+  cursor: default;
+}
+
+[data-theme="dark"] .pager__page.is-current {
+  color: var(--color-on-primary);
+}
+
+.pager__gap {
+  min-width: 28px;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+.pager__compact {
+  display: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .pager {
+    justify-content: center;
+  }
+
+  .pager__meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pager__controls {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .pager__pages {
+    display: none;
+  }
+
+  .pager__compact {
+    display: inline;
+  }
+}
+
+/* Sin label (filtros, paginación): sin el margen inferior de los formularios */
+.ds-select.input-group:not(:has(> .input-label)) {
+  margin-bottom: 0;
+}
+
+.patients-sort {
+  width: 172px;
+}
+
+/* Paginación dentro de una tarjeta de tabla */
+.pager.pager--in-card {
+  margin: 0;
+  padding: 10px var(--spacing-lg);
+  border-top: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
+}
+
+.payments-filter-select {
+  min-width: 160px;
+}
