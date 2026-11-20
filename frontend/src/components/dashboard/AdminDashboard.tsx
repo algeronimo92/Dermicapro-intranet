@@ -116,9 +116,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
   }));
 
   // Pie: ingresos por método de pago
-  const paymentMethodPieData = (data.financials.paymentsByMethod ?? []).map((p) => ({
+  // Color fijo por método: así no cambia de color al cambiar de período
+  const PAYMENT_METHOD_COLOR_INDEX: Record<string, number> = { cash: 0, card: 1, yape: 3, plin: 4, transfer: 2 };
+  const paymentMethodPieData = (data.financials.paymentsByMethod ?? []).map((p, i) => ({
     name: PAYMENT_METHOD_LABELS[p.method] ?? p.method,
     value: p.amount,
+    color: chart.categorical[PAYMENT_METHOD_COLOR_INDEX[p.method] ?? 5 + (i % 3)],
   }));
 
   return (

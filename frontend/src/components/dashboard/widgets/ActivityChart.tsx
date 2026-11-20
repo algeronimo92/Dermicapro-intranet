@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Area,
   Bar,
   CartesianGrid,
   ComposedChart,
@@ -60,6 +61,8 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
   emptyMessage = 'Sin datos para el período seleccionado',
 }) => {
   const theme = useChartTheme();
+  // Con muchos puntos las barras quedan como hilos: se dibujan como áreas suaves
+  const dense = data.length > 40;
   const hasRightAxis = series.some((s) => s.axis === 'right');
 
   // Un formateador por serie: sin esto el tooltip no sabe cuál aplicar
@@ -71,7 +74,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
     const total = s.formatTotal
       ? s.formatTotal((data as Record<string, unknown>[]).reduce((sum, d) => sum + (Number(d[s.key]) || 0), 0))
       : undefined;
-    return { label: s.name, color: s.color, shape: s.type === 'line' ? 'line' as const : 'square' as const, value: total };
+    return { label: s.name, color: s.color, shape: s.type === 'line' || dense ? 'line' as const : 'square' as const, value: total };
   });
 
   return (
@@ -144,6 +147,21 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
                   strokeWidth={2.5}
                   dot={{ r: 3, fill: s.color, strokeWidth: 0 }}
                   activeDot={{ r: 5, fill: s.color }}
+                  isAnimationActive={false}
+                />
+              ) : dense ? (
+                <Area
+                  key={s.key}
+                  yAxisId={s.axis ?? 'left'}
+                  type="monotone"
+                  dataKey={s.key}
+                  name={s.name}
+                  stroke={s.color}
+                  strokeWidth={2}
+                  fill={s.color}
+                  fillOpacity={0.14}
+                  dot={false}
+                  activeDot={{ r: 4, fill: s.color }}
                   isAnimationActive={false}
                 />
               ) : (
