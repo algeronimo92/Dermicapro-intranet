@@ -7,6 +7,8 @@ import '../styles/commissions-page.css';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { Pagination } from '../components/Pagination';
 import { Select } from '../components/Select';
+import { IconButton } from '../components/ui/IconButton';
+import { Check, X, Banknote } from 'lucide-react';
 
 const CommissionsPage = () => {
   
@@ -431,48 +433,34 @@ const CommissionsPage = () => {
                   </span>
                 </td>
                 <td className="actions">
-                  {commission.status === 'pending' && (
-                    <>
-                      {commission.appointment?.status === 'attended' ? (
-                        <button
-                          className="btn-sm btn-success"
+                  <span className="icon-btn-group">
+                    {commission.status === 'pending' && (
+                      <>
+                        <IconButton
+                          tone="success"
+                          icon={<Check size={16} strokeWidth={2.5} />}
+                          label="Aprobar comisión"
                           onClick={() => handleApprove(commission)}
-                          title="Aprobar"
-                        >
-                          ✓
-                        </button>
-                      ) : (
-                        <span
-                          className="btn-sm"
-                          style={{
-                            backgroundColor: '#6c757d',
-                            color: '#fff',
-                            cursor: 'not-allowed',
-                            opacity: 0.6
-                          }}
-                          title="La cita debe estar atendida para aprobar"
-                        >
-                          ✓
-                        </span>
-                      )}
-                      <button
-                        className="btn-sm btn-danger"
-                        onClick={() => handleReject(commission)}
-                        title="Rechazar"
-                      >
-                        ✗
-                      </button>
-                    </>
-                  )}
-                  {commission.status === 'approved' && (
-                    <button
-                      className="btn-sm btn-primary"
-                      onClick={() => handlePay(commission)}
-                      title="Marcar como pagada"
-                    >
-                      💰
-                    </button>
-                  )}
+                          disabled={commission.appointment?.status !== 'attended'}
+                          disabledReason="Se puede aprobar cuando la cita esté atendida"
+                        />
+                        <IconButton
+                          tone="danger"
+                          icon={<X size={16} strokeWidth={2.5} />}
+                          label="Rechazar comisión"
+                          onClick={() => handleReject(commission)}
+                        />
+                      </>
+                    )}
+                    {commission.status === 'approved' && (
+                      <IconButton
+                        tone="primary"
+                        icon={<Banknote size={16} strokeWidth={2} />}
+                        label="Marcar como pagada"
+                        onClick={() => handlePay(commission)}
+                      />
+                    )}
+                  </span>
                   {commission.status === 'paid' && commission.paidAt && (
                     <small className="text-muted">
                       Pagada: {formatDate(commission.paidAt)}
