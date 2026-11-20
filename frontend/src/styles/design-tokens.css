@@ -359,16 +359,26 @@ html.loading * {
   transition: none !important;
 }
 
-/* Transición suave al cambiar de tema (solo después de cargar) */
-html:not(.loading) * {
-  transition: background-color var(--transition-base),
-              color var(--transition-base),
-              border-color var(--transition-base);
+/* Cambio de tema: un solo fundido de toda la página (View Transitions, ver
+   ThemeContext). Mientras dura, ningún elemento anima sus colores por su
+   cuenta; antes cada componente cambiaba a su ritmo y se veía a medias. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
 }
 
-/* Deshabilitar transiciones en elementos que las declaran explícitamente */
-*:where([style*="transition"]) {
-  transition: initial !important;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
 }
 
 /* Prevenir transiciones en elementos de formulario durante escritura */

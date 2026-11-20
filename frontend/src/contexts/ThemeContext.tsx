@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type ResolvedTheme = 'light' | 'dark';
@@ -66,12 +67,73 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     });
   }, []);
 
-  // Aplicar el tema al documento cuando cambia
+  /**
+   * Cambia el tema de una sola vez. Con View Transitions el navegador funde la
+   * página completa (antes y después) en un único cruce; sin soporte, o con
+   * "reducir movimiento", el cambio es instantáneo. En ambos casos se apagan
+   * las transiciones de cada elemento para que nada quede a medio camino.
+   */
+  const applyTheme = useCallback((theme: ResolvedTheme, animate: boolean) => {
+    const root = document.documentElement;
+    if (root.getAttribute('data-theme') === theme) {
+      setResolvedTheme(theme);
+      return;
+    }
+
+    root.classList.add('theme-switching');
+    // Se reactivan las transiciones en el siguiente frame (o a los 100 ms si la
+    // página no está pintando frames, p. ej. en segundo plano)
+    const finish = () => {
+      let removed = false;
+      const remove = () => {
+        if (removed) return;
+        removed = true;
+        root.classList.remove('theme-switching');
+      };
+      requestAnimationFrame(remove);
+      window.setTimeout(remove, 100);
+    };
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const canAnimate = animate && !reduceMotion
+      && document.visibilityState === 'visible' && 'startViewTransition' in document;
+
+    if (canAnimate) {
+      let applied = false;
+      const transition = document.startViewTransition(() => {
+        if (applied) return;
+        applied = true;
+        // El "después" debe incluir lo que pinta React (p. ej. colores de gráficos)
+        flushSync(() => setResolvedTheme(theme));
+        root.setAttribute('data-theme', theme);
+      });
+      transition.finished.finally(finish);
+      // Si la página no se está pintando (pestaña en segundo plano), el
+      // navegador no corre la transición: se aplica el cambio igual.
+      // Red de seguridad: siempre se cierra el cambio y se reactivan las transiciones.
+      window.setTimeout(() => {
+        if (!applied) {
+          applied = true;
+          setResolvedTheme(theme);
+          root.setAttribute('data-theme', theme);
+        }
+        transition.skipTransition();
+        finish();
+      }, 600);
+    } else {
+      setResolvedTheme(theme);
+      root.setAttribute('data-theme', theme);
+      void root.offsetHeight; // aplica el cambio con las transiciones apagadas
+      finish();
+    }
+  }, []);
+
+  // Aplicar el tema al documento cuando cambia (sin animar en la carga inicial)
+  const isFirstApply = useRef(true);
   useEffect(() => {
-    const newResolvedTheme = resolveTheme(mode);
-    setResolvedTheme(newResolvedTheme);
-    document.documentElement.setAttribute('data-theme', newResolvedTheme);
-  }, [mode]);
+    applyTheme(resolveTheme(mode), !isFirstApply.current);
+    isFirstApply.current = false;
+  }, [mode, applyTheme]);
 
   // Escuchar cambios en la preferencia del sistema (solo si mode === 'auto')
   useEffect(() => {
@@ -79,15 +141,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
-      const newResolvedTheme = e.matches ? 'dark' : 'light';
-      setResolvedTheme(newResolvedTheme);
-      document.documentElement.setAttribute('data-theme', newResolvedTheme);
+      applyTheme(e.matches ? 'dark' : 'light', true);
     };
 
     // Usar addEventListener (moderna API)
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [mode]);
+  }, [mode, applyTheme]);
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
