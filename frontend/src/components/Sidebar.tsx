@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
@@ -16,8 +16,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const COLLAPSED_KEY = 'dermicapro_sidebar_collapsed';
-/** Duración de la transición de ancho (--transition-slow en design-tokens.css). */
-const WIDTH_TRANSITION_MS = 300;
 const MOBILE_BREAKPOINT = 768;
 
 export interface SidebarUser {
@@ -83,12 +81,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
   );
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  // Al expandir, los textos esperan a que el ancho termine de animarse: si se
-  // montan antes, se parten en varias líneas y se enciman durante 300ms.
-  const [labelsReady, setLabelsReady] = useState(true);
-  const [revealing, setRevealing] = useState(false);
-  const revealTimer = useRef<number | undefined>(undefined);
-  const asideRef = useRef<HTMLElement>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
@@ -114,40 +106,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
     return () => { document.documentElement.style.removeProperty('--sidebar-current-width'); };
   }, [isCollapsed, isMobile]);
 
-  useEffect(() => () => window.clearTimeout(revealTimer.current), []);
-
   const toggle = () => {
-    const next = !isCollapsed;
-    localStorage.setItem(COLLAPSED_KEY, String(next));
-    window.clearTimeout(revealTimer.current);
-    setLabelsReady(false);
-    setRevealing(false);
-    setIsCollapsed(next);
-    if (!next) {
-      const aside = asideRef.current;
-      let done = false;
-      const reveal = () => {
-        if (done) return;
-        done = true;
-        aside?.removeEventListener('transitionend', onEnd);
-        window.clearTimeout(revealTimer.current);
-        setLabelsReady(true);
-        setRevealing(true);
-        revealTimer.current = window.setTimeout(() => setRevealing(false), 220);
-      };
-      // Se muestran cuando el ancho termina de verdad; el temporizador es solo
-      // un respaldo por si no hay transición (movimiento reducido) o no llega.
-      function onEnd(e: TransitionEvent) {
-        if (e.target === aside && e.propertyName === 'width') reveal();
-      }
-      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      if (reduced || !aside) {
-        reveal();
-      } else {
-        aside.addEventListener('transitionend', onEnd);
-        revealTimer.current = window.setTimeout(reveal, WIDTH_TRANSITION_MS + 150);
-      }
-    }
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSED_KEY, String(next));
+      return next;
+    });
   };
 
   const closeMobileMenu = () => setIsMobileOpen(false);
@@ -177,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
   const initials = (user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '');
 
   // En móvil el drawer siempre muestra el texto completo
-  const showLabels = isMobile ? true : !isCollapsed && labelsReady;
+  const showLabels = isMobile ? true : !isCollapsed;
   const isDark = resolvedTheme === 'dark';
 
   const avatarEl = (
@@ -246,11 +210,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
       )}
 
       <aside
-        ref={asideRef}
         className={[
           'dashboard-sidebar',
           !isMobile && isCollapsed ? 'is-collapsed' : '',
-          revealing ? 'is-revealing' : '',
           isMobile && isMobileOpen ? 'is-mobile-open' : '',
         ].filter(Boolean).join(' ')}
         aria-label="Navegación principal"
