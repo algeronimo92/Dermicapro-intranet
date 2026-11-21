@@ -1,5 +1,6 @@
 import {
   clinicDateKey,
+  clinicHour,
   clinicDayStartUtc,
   clinicWeekday,
   enumerateDateKeys,
@@ -118,5 +119,16 @@ describe('Helpers de hora local de la clínica (America/Lima, UTC-5)', () => {
       const keys = enumerateDateKeys('2025-08-11', '2026-08-10');
       expect(keys).toHaveLength(365);
     });
+  });
+});
+
+describe('clinicHour', () => {
+  it('usa la hora de Lima (UTC-5), no la del servidor', () => {
+    expect(clinicHour(new Date('2026-11-20T14:00:00Z'))).toBe(9);
+    expect(clinicHour(new Date('2026-11-21T03:30:00Z'))).toBe(22);
+  });
+
+  it('cruza la medianoche hacia el día anterior', () => {
+    expect(clinicHour(new Date('2026-11-21T02:00:00Z'))).toBe(21);
   });
 });
