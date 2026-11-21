@@ -90,14 +90,14 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
       <div className="anlx-chart-grid">
         <ChartCard title="Top 10 servicios por ingresos">
           <AnlxBarChart
-            data={data.performance.slice(0, 10)} categoryKey="serviceName" valueKey="revenue" label="Ingresos"
+            data={[...data.performance].sort((x, y) => y.revenue - x.revenue).slice(0, 10)} categoryKey="serviceName" valueKey="revenue" label="Ingresos"
             layout="vertical" valueFormatter={fmt} tickFormatter={formatPENTick}
           />
         </ChartCard>
 
         <ChartCard title="Top 10 servicios por popularidad">
           <AnlxBarChart
-            data={data.performance.slice(0, 10)} categoryKey="serviceName" valueKey="timesOrdered" label="Veces vendido"
+            data={[...data.performance].sort((x, y) => y.timesOrdered - x.timesOrdered).slice(0, 10)} categoryKey="serviceName" valueKey="timesOrdered" label="Veces vendido"
             layout="vertical" color={theme.series.collected}
           />
         </ChartCard>
