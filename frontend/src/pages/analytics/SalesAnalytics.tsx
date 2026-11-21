@@ -3,11 +3,8 @@ import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, SalesAnalyticsData } from '../../types/analytics.types';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell,
-} from 'recharts';
-import { getChartColor } from '../../utils/chartColors';
+import { AnlxBarChart, AnlxDonut, ChartCard } from '../../components/analytics/charts';
+import { formatPENTick, useChartSeries } from '../../components/analytics/chartUtils';
 
 interface SalesAnalyticsProps { filters?: AnalyticsFilters; }
 
@@ -18,15 +15,16 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
     (f) => analyticsService.getSalesAnalytics(f),
     filters
   );
+  const theme = useChartSeries();
 
   if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
   if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
   const commissionsData = [
-    { name: 'Pendientes', value: data.commissions.pending,  color: getChartColor(3) },
-    { name: 'Aprobadas',  value: data.commissions.approved, color: getChartColor(2) },
-    { name: 'Pagadas',    value: data.commissions.paid,     color: getChartColor(1) },
+    { name: 'Pendientes', value: data.commissions.pending,  color: theme.status.in_progress },
+    { name: 'Aprobadas',  value: data.commissions.approved, color: theme.status.reserved },
+    { name: 'Pagadas',    value: data.commissions.paid,     color: theme.status.attended },
   ];
 
   return (
@@ -54,34 +52,16 @@ export const SalesAnalytics: React.FC<SalesAnalyticsProps> = ({ filters }) => {
 
       {/* Charts */}
       <div className="anlx-chart-grid">
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Top 10 Servicios por Ingresos</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.topServices} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
-              <YAxis dataKey="serviceName" type="category" width={120} />
-              <Tooltip formatter={(v: any) => fmt(Number(v))} />
-              <Bar dataKey="revenue" fill={getChartColor(1)} name="Ingresos" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Top 10 servicios por ingresos">
+          <AnlxBarChart
+            data={data.topServices} categoryKey="serviceName" valueKey="revenue" label="Ingresos"
+            layout="vertical" valueFormatter={fmt} tickFormatter={formatPENTick}
+          />
+        </ChartCard>
 
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Comisiones por Estado</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={commissionsData} cx="50%" cy="50%" outerRadius={100}
-                labelLine={false} label={(e) => `${e.name}: ${e.value}`}
-                dataKey="value">
-                {commissionsData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Comisiones por estado" subtitle="Cantidad de comisiones">
+          <AnlxDonut data={commissionsData} totalLabel="Comisiones" />
+        </ChartCard>
       </div>
 
       {/* Ranking de vendedores */}

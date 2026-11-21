@@ -277,6 +277,46 @@
   margin: 0 0 var(--spacing-lg);
 }
 
+/* Cabecera de las tarjetas de gráfico (ChartCard): título + subtítulo */
+.anlx-chart-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.anlx-chart-header .anlx-chart-title {
+  margin: 0;
+}
+
+.anlx-chart-subtitle {
+  margin: 2px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.anlx-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  border: 1px dashed var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+}
+
+/* Las tarjetas dentro de una grilla no suman su propio margen inferior */
+.anlx-chart-grid > .anlx-chart-card {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+/* Tendencia ancha + dona angosta */
+.anlx-chart-grid--wide {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .anlx-chart-grid--wide { grid-template-columns: 1fr; }
+}
+
 /* ── Table ── */
 .anlx-table-wrap { overflow-x: auto; }
 
