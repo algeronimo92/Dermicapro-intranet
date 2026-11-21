@@ -9,6 +9,7 @@ import { invoicesService, type InvoiceDetail } from '../services/invoices.servic
 import { InvoiceList } from './InvoiceList';
 import '../styles/invoices.css';
 import { FormSelect } from '../components/FormSelect';
+import { InvoiceAttachmentPicker } from '../components/InvoiceAttachmentPicker';
 
 type InvoiceField = {
   name: Exclude<keyof InvoiceDetail, 'id' | 'revision' | 'attachments' | 'createdBy' | '_count'>;
@@ -107,6 +108,7 @@ function InvoiceForm({ initialInvoice }: { initialInvoice?: InvoiceDetail }) {
   const [error, setError] = useState('');
   const [customer, setCustomer] = useState<Pick<InvoiceDetail, 'customerDocument' | 'customerName' | 'customerAddress'> | undefined>(initialInvoice);
   const [retainedIds, setRetainedIds] = useState(initialInvoice?.attachments.map(file => file.id) ?? []);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (initialInvoice) return;
@@ -124,12 +126,15 @@ function InvoiceForm({ initialInvoice }: { initialInvoice?: InvoiceDetail }) {
     if (saving || !customer) return;
 
     const form = new FormData(event.currentTarget);
-    const attachments = form.getAll('attachments').filter((file): file is File => file instanceof File && Boolean(file.name));
+    // Los adjuntos (subidos o fotos tomadas) viven en el estado del selector;
+    // se envían en el mismo campo "attachments" de siempre.
+    const attachments = newFiles;
     if (attachments.length + retainedIds.length > 5 || attachments.some(file => file.size > 5 * 1024 * 1024)) {
       setError('Adjunta hasta 5 archivos de 5 MB como máximo cada uno.');
       return;
     }
-    if (!attachments.length) form.delete('attachments');
+    form.delete('attachments');
+    attachments.forEach(file => form.append('attachments', file, file.name));
     if (initialInvoice) {
       form.set('revision', String(initialInvoice.revision));
       form.set('retainedAttachmentIds', JSON.stringify(retainedIds));
@@ -189,11 +194,18 @@ function InvoiceForm({ initialInvoice }: { initialInvoice?: InvoiceDetail }) {
                 </label>)}
               </div>}
               <div className="invoice-fields">
-                <label className="invoice-field-wide">
+                <div className="invoice-field-wide">
                   <span>Fotos o PDF del comprobante</span>
-                  <input name="attachments" type="file" accept=".jpg,.jpeg,.png,.pdf" multiple aria-describedby="invoice-attachments-hint" />
-                  <small id="invoice-attachments-hint">Hasta 5 archivos JPG, PNG o PDF de 5 MB cada uno.</small>
-                </label>
+                  <InvoiceAttachmentPicker
+                    files={newFiles}
+                    onChange={setNewFiles}
+                    maxFiles={5 - retainedIds.length}
+                    disabled={saving}
+                  />
+                  <small id="invoice-attachments-hint">
+                    Hasta 5 archivos JPG, PNG o PDF de 5 MB cada uno. En el celular, «Tomar foto» abre la cámara.
+                  </small>
+                </div>
               </div>
             </fieldset>
           </div>
