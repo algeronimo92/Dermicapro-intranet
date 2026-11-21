@@ -246,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
               title={!showLabels ? 'Nueva cita' : undefined}
             >
               <CalendarPlus size={18} strokeWidth={2} />
-              {showLabels && 'Nueva cita'}
+              {showLabels && <span className="sidebar-cta__label">Nueva cita</span>}
             </Link>
           )}
 

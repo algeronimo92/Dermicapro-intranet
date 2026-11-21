@@ -15,6 +15,26 @@
   flex-shrink: 0;
   z-index: var(--z-sticky);
   transition: width var(--transition-slow);
+  /* Mientras el ancho anima, nada se sale del panel */
+  overflow-x: hidden;
+}
+
+/*
+ * Textos del menú: siempre en una sola línea y recortados con "…".
+ * Al expandir aparecen desde el primer cuadro y se van revelando a medida que
+ * el panel se ensancha, en vez de partirse en varias líneas y encimarse.
+ */
+.sidebar-brand__text,
+.sidebar-brand__name,
+.sidebar-brand__tagline,
+.sidebar-cta__label,
+.sidebar-nav-section,
+.sidebar-nav-label,
+.sidebar-user__role {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-sidebar.is-collapsed {
@@ -163,11 +183,18 @@
 }
 
 /* Acción rápida: Nueva cita */
+.sidebar-cta svg,
+.sidebar-header > button {
+  flex-shrink: 0;
+}
+
 .sidebar-cta {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
   height: 40px;
   margin: 4px 0 14px;
   border-radius: var(--radius-lg);
@@ -255,8 +282,7 @@
 }
 
 .sidebar-nav-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 1 auto;
 }
 
 .dashboard-sidebar.is-collapsed .sidebar-nav-link {
