@@ -202,7 +202,64 @@
   gap: var(--spacing-md);
 }
 
+.product-form__photo-block {
+  display: grid;
+  gap: var(--spacing-xs);
+  align-content: start;
+}
+
+.product-form__photo-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.product-form__photo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.product-form__photo-btn:hover {
+  border-color: var(--color-border-focus);
+  background: var(--color-bg-secondary);
+}
+
+.product-form__photo-btn:focus-within,
+.product-form__photo-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.product-form__photo-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
 .product-form__photo {
+  position: relative;
   aspect-ratio: 1 / 1;
   border: 2px dashed var(--color-border-primary);
   border-radius: var(--radius-xl);
@@ -210,13 +267,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  cursor: pointer;
   color: var(--color-text-tertiary);
   font-size: var(--font-size-sm);
   background: var(--color-bg-secondary);
 }
-
-.product-form__photo:hover { border-color: var(--color-border-focus); }
 
 .product-form__photo img {
   width: 100%;
@@ -302,7 +356,10 @@
   .product-detail { grid-template-columns: 1fr; }
   .product-detail .product-photo { max-width: 260px; }
   .product-form { grid-template-columns: 1fr; }
-  .product-form__photo { max-width: 160px; }
+  .product-form__photo-block {
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+  }
   .product-form__row,
   .product-form__row--3 { grid-template-columns: 1fr; }
 }

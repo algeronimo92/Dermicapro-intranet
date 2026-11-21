@@ -15,9 +15,38 @@
   flex-shrink: 0;
   z-index: var(--z-sticky);
   transition: width var(--transition-slow);
+  /* Ancla del botón de colapsar, que sobresale del borde derecho */
+  position: relative;
 }
 
-.dashboard-sidebar.is-collapsed {
+/* Mientras el ancho anima, nada se sale del panel: el recorte va en cada
+   sección (no en el panel) para no cortar el botón del borde. */
+.sidebar-header,
+.sidebar-footer,
+.sidebar-user {
+  overflow: hidden;
+}
+
+/*
+ * Textos del menú: siempre en una sola línea y recortados con "…".
+ * Al expandir aparecen desde el primer cuadro y se van revelando a medida que
+ * el panel se ensancha, en vez de partirse en varias líneas y encimarse.
+ */
+.sidebar-brand__text,
+.sidebar-brand__name,
+.sidebar-brand__tagline,
+.sidebar-cta__label,
+.sidebar-nav-section,
+.sidebar-nav-label,
+.sidebar-user__role {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-sidebar.is-collapsed,
+.dashboard-sidebar.is-collapsing {
   width: var(--sidebar-width-collapsed);
 }
 
@@ -27,14 +56,46 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
-  padding: 18px 14px 14px 18px;
+  /* 15px a la izquierda = logo de 34px centrado en el panel colapsado de 64px:
+     el logo no se mueve al colapsar ni al expandir */
+  padding: 17px 14px 17px 15px;
+  min-height: 68px;
   flex-shrink: 0;
 }
 
 .dashboard-sidebar.is-collapsed .sidebar-header {
-  flex-direction: column;
-  padding: 16px 0 10px;
-  gap: 10px;
+  padding-right: 0;
+}
+
+/* ── Botón de colapsar sobre el borde ── */
+.sidebar-collapse-btn {
+  position: absolute;
+  top: 21px;
+  right: -13px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  cursor: pointer;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.sidebar-collapse-btn:hover {
+  color: var(--sidebar-active);
+  border-color: var(--sidebar-active);
+}
+
+.sidebar-collapse-btn:focus-visible {
+  outline: 2px solid var(--sidebar-active);
+  outline-offset: 2px;
 }
 
 .sidebar-brand {
@@ -134,7 +195,9 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px 12px 12px;
+  /* 10px + 11px de padding del enlace + medio ícono = 32px: el mismo centro
+     que en el panel colapsado, así los íconos no se mueven */
+  padding: 6px 10px 12px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
@@ -148,7 +211,14 @@
 
 .dashboard-sidebar.is-collapsed .sidebar-nav {
   padding: 6px 10px 12px;
+  /* En 64px la barra de scroll (6px) le roba ancho a un solo lado y descentra
+     los íconos respecto al logo y al pie. Se oculta: el menú sigue haciendo
+     scroll con rueda o táctil, y el degradado inferior avisa que hay más. */
+  scrollbar-width: none;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
 }
+
+.dashboard-sidebar.is-collapsed .sidebar-nav::-webkit-scrollbar { display: none; }
 
 /* Colapsado: iconos algo más compactos para que quepa todo; el nombre va en el title */
 .dashboard-sidebar.is-collapsed .sidebar-nav-link {
@@ -156,11 +226,18 @@
 }
 
 /* Acción rápida: Nueva cita */
+.sidebar-cta svg,
+.sidebar-header > button {
+  flex-shrink: 0;
+}
+
 .sidebar-cta {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
   height: 40px;
   margin: 4px 0 14px;
   border-radius: var(--radius-lg);
@@ -180,7 +257,7 @@
 
 .dashboard-sidebar.is-collapsed .sidebar-cta {
   width: 44px;
-  height: 44px;
+  height: 40px; /* mismo alto que expandido: el menú no se mueve al colapsar */
   margin: 4px auto 14px;
   position: relative;
 }
@@ -218,7 +295,7 @@
   align-items: center;
   gap: 14px;
   height: 44px;
-  padding: 0 12px;
+  padding: 0 11px;
   border-radius: var(--radius-lg);
   color: var(--sidebar-text);
   font-size: 15px;
@@ -248,8 +325,7 @@
 }
 
 .sidebar-nav-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 1 auto;
 }
 
 .dashboard-sidebar.is-collapsed .sidebar-nav-link {

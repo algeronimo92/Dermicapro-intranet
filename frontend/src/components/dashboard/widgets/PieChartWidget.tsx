@@ -1,5 +1,5 @@
-import React from 'react';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import React, { useState } from 'react';
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { useChartTheme } from './chartTheme';
 import './RevenueChart.css';
 import './PieChartWidget.css';
@@ -28,6 +28,10 @@ interface PieChartWidgetProps {
 /**
  * Dona con el total al centro y una leyenda lateral con valor y porcentaje
  * de cada segmento. Así se lee sin tener que pasar el mouse.
+ *
+ * Sin tooltip flotante: caía justo encima del total del centro y se encimaban.
+ * Al pasar el mouse (o el foco) por un segmento o por su fila de la leyenda,
+ * el centro muestra ese segmento y el resto se atenúa.
  */
 export const PieChartWidget: React.FC<PieChartWidgetProps> = ({
   data,
@@ -39,11 +43,14 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({
   totalLabel = 'Total',
 }) => {
   const theme = useChartTheme();
+  const [active, setActive] = useState<number | null>(null);
   if (!data || data.length === 0) return null;
 
   const palette = colors ?? theme.categorical;
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const items = data.map((d, i) => ({ ...d, fill: d.color ?? palette[i % palette.length] }));
+  const pct = (v: number) => (total > 0 ? Math.round((v / total) * 100) : 0);
+  const current = active !== null ? items[active] : null;
 
   return (
     <div className="pie-chart-widget">
@@ -72,32 +79,52 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({
                 cornerRadius={4}
                 stroke="none"
                 isAnimationActive={false}
+                onMouseEnter={(_: unknown, i: number) => setActive(i)}
+                onMouseLeave={() => setActive(null)}
               >
-                {items.map((d) => <Cell key={d.name} fill={d.fill} />)}
+                {items.map((d, i) => (
+                  <Cell
+                    key={d.name}
+                    fill={d.fill}
+                    fillOpacity={active === null || active === i ? 1 : 0.3}
+                    style={{ transition: 'fill-opacity 120ms ease', cursor: 'default', outline: 'none' }}
+                  />
+                ))}
               </Pie>
-              <Tooltip
-                {...theme.tooltip}
-                formatter={(value: unknown, name: unknown) => {
-                  const v = Number(value);
-                  const pct = total > 0 ? Math.round((v / total) * 100) : 0;
-                  return [`${formatter(v)} (${pct}%)`, name as string];
-                }}
-              />
             </PieChart>
           </ResponsiveContainer>
-          <div className="pie-chart-widget__center" aria-hidden="true">
-            <span className="pie-chart-widget__center-value">{formatter(total)}</span>
-            <span className="pie-chart-widget__center-label">{totalLabel}</span>
+          <div className="pie-chart-widget__center" aria-live="polite">
+            {current ? (
+              <>
+                <span className="pie-chart-widget__center-value">{formatter(current.value)}</span>
+                <span className="pie-chart-widget__center-label pie-chart-widget__center-label--active">
+                  {current.name} · {pct(current.value)}%
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="pie-chart-widget__center-value">{formatter(total)}</span>
+                <span className="pie-chart-widget__center-label">{totalLabel}</span>
+              </>
+            )}
           </div>
         </div>
 
         <ul className="chart-legend chart-legend--stacked" aria-label={`Leyenda de ${title ?? 'gráfico'}`}>
-          {items.map((d) => (
-            <li key={d.name} className="chart-legend__item">
+          {items.map((d, i) => (
+            <li
+              key={d.name}
+              className={`chart-legend__item${active === null ? '' : active === i ? ' is-active' : ' is-dimmed'}`}
+              tabIndex={0}
+              onMouseEnter={() => setActive(i)}
+              onMouseLeave={() => setActive(null)}
+              onFocus={() => setActive(i)}
+              onBlur={() => setActive(null)}
+            >
               <span className="chart-legend__marker chart-legend__marker--square" style={{ background: d.fill }} aria-hidden="true" />
               <span className="chart-legend__label">{d.name}</span>
               <span className="chart-legend__value">{formatter(d.value)}</span>
-              <span className="chart-legend__pct">{total > 0 ? Math.round((d.value / total) * 100) : 0}%</span>
+              <span className="chart-legend__pct">{pct(d.value)}%</span>
             </li>
           ))}
         </ul>

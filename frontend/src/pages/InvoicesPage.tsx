@@ -8,6 +8,7 @@ import { Modal } from '../components/Modal';
 import { invoicesService, type InvoiceDetail } from '../services/invoices.service';
 import { InvoiceList } from './InvoiceList';
 import '../styles/invoices.css';
+import { FormSelect } from '../components/FormSelect';
 
 type InvoiceField = {
   name: Exclude<keyof InvoiceDetail, 'id' | 'revision' | 'attachments' | 'createdBy' | '_count'>;
@@ -214,12 +215,13 @@ function InvoiceFormFields({ fields, values }: { fields: InvoiceField[]; values?
         <label key={field.name} className={field.name === 'issuerName' ? 'invoice-field-wide' : undefined}>
           <span>{field.label}{field.required && <span className="invoice-required" aria-hidden="true"> *</span>}</span>
           {field.options ? (
-            <select name={field.name} required={field.required} defaultValue={values?.[field.name] ?? field.defaultValue ?? ''}>
-              {!field.defaultValue && <option value="" disabled>Selecciona una opción</option>}
-              {field.options.map(option => (
-                <option key={option} value={option}>{option === 'Contado' ? 'Al contado' : option}</option>
-              ))}
-            </select>
+            <FormSelect
+              name={field.name}
+              required={field.required}
+              defaultValue={String(values?.[field.name] ?? field.defaultValue ?? '')}
+              placeholder={field.defaultValue ? undefined : 'Selecciona una opción'}
+              options={field.options.map(option => ({ value: option, label: option === 'Contado' ? 'Al contado' : option }))}
+            />
           ) : (
             <input
               name={field.name}

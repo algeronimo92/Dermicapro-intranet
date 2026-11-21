@@ -26,6 +26,12 @@
   gap: var(--spacing-sm);
 }
 
+/* El buscador es un Input de formulario: sin su margen inferior quedaría 20px
+   más arriba que los Select de la misma fila. */
+.employees-page__filters-grid .input-group {
+  margin-bottom: 0;
+}
+
 /* ── Results bar ─────────────────────────────────────────────────────────────── */
 
 .employees-page__filter-tag {

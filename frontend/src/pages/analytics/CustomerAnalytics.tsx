@@ -3,8 +3,8 @@ import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, CustomerAnalyticsData } from '../../types/analytics.types';
-import { getChartColor } from '../../utils/chartColors';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AnlxBarChart, AnlxDonut, ChartCard } from '../../components/analytics/charts';
+import { useChartSeries } from '../../components/analytics/chartUtils';
 
 interface CustomerAnalyticsProps { filters?: AnalyticsFilters; }
 
@@ -15,6 +15,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
     (f) => analyticsService.getCustomerAnalytics(f),
     filters
   );
+  const theme = useChartSeries();
 
   if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
@@ -25,7 +26,6 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
     value: item.count,
   }));
 
-  const PIE_COLORS = [getChartColor(1), getChartColor(6), getChartColor(3)];
 
   return (
     <div className="anlx-section">
@@ -52,42 +52,17 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
 
       {/* Charts: Género + Edad */}
       <div className="anlx-chart-grid">
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Pacientes por Género</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie data={genderData} cx="50%" cy="50%" outerRadius={100}
-                labelLine={false} label={(e) => `${e.name}: ${e.value}`} dataKey="value">
-                {genderData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1f2937'}} 
-                itemStyle={{ color: '#fff' }} 
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Pacientes por género">
+          <AnlxDonut data={genderData} totalLabel="Pacientes" />
+        </ChartCard>
 
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Pacientes por Rango de Edad</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data.demographics.byAgeRange}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="range" />
-              <YAxis />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1f2937'}} 
-                itemStyle={{ color: '#fff' }} 
-                cursor={{ fill: 'none' }}
-              />
-              <Bar dataKey="count" fill={getChartColor(1)} name="Pacientes" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Pacientes por rango de edad">
+          <AnlxBarChart data={data.demographics.byAgeRange} categoryKey="range" valueKey="count" label="Pacientes" color={theme.series.patients} />
+        </ChartCard>
       </div>
 
       {/* CLV + Deuda + Retención */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-xl)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-xl)' }}>
         <div className="anlx-chart-card" style={{ textAlign: 'center', marginBottom: 0 }}>
           <h3 className="anlx-chart-title">Valor de Vida Promedio (CLV)</h3>
           <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--color-success-dark)', padding: 'var(--spacing-lg) 0' }}>

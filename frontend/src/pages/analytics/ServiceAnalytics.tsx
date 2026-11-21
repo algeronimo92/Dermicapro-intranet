@@ -3,8 +3,8 @@ import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, ServiceAnalyticsData } from '../../types/analytics.types';
-import { getChartColor } from '../../utils/chartColors';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AnlxBarChart, ChartCard } from '../../components/analytics/charts';
+import { formatPENTick, useChartSeries } from '../../components/analytics/chartUtils';
 
 interface ServiceAnalyticsProps { filters?: AnalyticsFilters; }
 
@@ -21,6 +21,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
     (f) => analyticsService.getServiceAnalytics(f),
     filters
   );
+  const theme = useChartSeries();
 
   if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
@@ -87,35 +88,23 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
 
       {/* Charts */}
       <div className="anlx-chart-grid">
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Top 10 Servicios por Ingresos</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data.performance.slice(0, 10)} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
-              <YAxis dataKey="serviceName" type="category" width={150} />
-              <Tooltip formatter={(v: any) => fmt(Number(v))} />
-              <Bar dataKey="revenue" fill={getChartColor(2)} name="Ingresos" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Top 10 servicios por ingresos">
+          <AnlxBarChart
+            data={[...data.performance].sort((x, y) => y.revenue - x.revenue).slice(0, 10)} categoryKey="serviceName" valueKey="revenue" label="Ingresos"
+            layout="vertical" valueFormatter={fmt} tickFormatter={formatPENTick}
+          />
+        </ChartCard>
 
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Top 10 Servicios por Popularidad</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data.performance.slice(0, 10)} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="serviceName" type="category" width={150} />
-              <Tooltip />
-              <Bar dataKey="timesOrdered" fill={getChartColor(1)} name="Veces Ordenado" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Top 10 servicios por popularidad">
+          <AnlxBarChart
+            data={[...data.performance].sort((x, y) => y.timesOrdered - x.timesOrdered).slice(0, 10)} categoryKey="serviceName" valueKey="timesOrdered" label="Veces vendido"
+            layout="vertical" color={theme.series.collected}
+          />
+        </ChartCard>
       </div>
 
       {/* Rango de precios */}
-      <div className="anlx-kpi-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+      <div className="anlx-kpi-grid anlx-kpi-grid--3">
         <div className="anlx-kpi-card anlx-kpi-card--info" style={{ textAlign: 'center' }}>
           <div className="anlx-kpi-label">Precio Mínimo</div>
           <div className="anlx-kpi-value">{fmt(data.pricing.priceRange.min)}</div>

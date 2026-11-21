@@ -4,6 +4,7 @@ import {
   AnalyticsFilters,
   OperationsAnalyticsData,
 } from '../../../types/analytics.types';
+import { clinicHour, clinicWeekday } from '../../../utils/dateUtils';
 
 export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<OperationsAnalyticsData> {
   constructor(prisma: PrismaClient) {
@@ -113,9 +114,11 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
     }));
 
     appointments.forEach((apt) => {
+      // Hora y día en el reloj de la clínica: el servidor corre en UTC y una
+      // cita de las 9:00 en Lima caía en la franja de las 14:00.
       const date = new Date(apt.scheduledDate);
-      byDayOfWeek[date.getDay()].count++;
-      byTimeSlot[date.getHours()].count++;
+      byDayOfWeek[clinicWeekday(date) % 7].count++; // 7 (domingo) -> índice 0
+      byTimeSlot[clinicHour(date)].count++;
     });
 
     // Calcular tiempo de espera promedio (mock por ahora)
@@ -147,7 +150,7 @@ export class OperationsAnalyticsStrategy extends BaseAnalyticsStrategy<Operation
     // Agrupar por hora
     const hourCounts = new Map<number, number>();
     appointments.forEach((apt) => {
-      const hour = new Date(apt.scheduledDate).getHours();
+      const hour = clinicHour(new Date(apt.scheduledDate));
       hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
     });
 

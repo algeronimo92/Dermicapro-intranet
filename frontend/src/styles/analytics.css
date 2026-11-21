@@ -77,9 +77,19 @@
   padding: 0;
   border-radius: 0;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.tab-button {
+.analytics-tabs::-webkit-scrollbar { display: none; }
+
+.analytics-tabs .tab-button {
+  /* Anula la regla global antigua de .tab-button (styles.css): texto blanco
+     translúcido, flex en columna y hover con texto del color del fondo, que
+     dejaba las pestañas ilegibles en modo claro y al pasar el mouse. */
+  flex: 0 0 auto;
+  min-width: 0;
+  flex-direction: row;
+  gap: 0;
   padding: var(--spacing-sm) var(--spacing-lg);
   background: transparent;
   border: none;
@@ -95,12 +105,13 @@
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.tab-button:hover {
+.analytics-tabs .tab-button:hover {
   background: var(--color-bg-hover);
-  color: var(--color-text-inverse);
+  color: var(--color-text-primary);
 }
 
-.tab-button.active {
+.analytics-tabs .tab-button.active,
+.analytics-tabs .tab-button.active:hover {
   background: var(--color-bg-primary);
   color: var(--color-primary-text);
   border-bottom-color: var(--color-primary);
@@ -183,9 +194,20 @@
 /* ── KPI Grid ── */
 .anlx-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* min(100%, …): en celular una columna no puede ser más ancha que la pantalla */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
+}
+
+.anlx-kpi-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 640px) {
+  .anlx-section { padding: var(--spacing-md); }
+  .anlx-kpi-grid { gap: var(--spacing-sm); }
+  .anlx-kpi-grid--3 { grid-template-columns: 1fr; }
+  .anlx-kpi-card { padding: var(--spacing-md) var(--spacing-lg); }
+  .anlx-chart-card { padding: var(--spacing-md); }
 }
 
 .anlx-kpi-card {
@@ -264,6 +286,46 @@
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin: 0 0 var(--spacing-lg);
+}
+
+/* Cabecera de las tarjetas de gráfico (ChartCard): título + subtítulo */
+.anlx-chart-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.anlx-chart-header .anlx-chart-title {
+  margin: 0;
+}
+
+.anlx-chart-subtitle {
+  margin: 2px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.anlx-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  border: 1px dashed var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+}
+
+/* Las tarjetas dentro de una grilla no suman su propio margen inferior */
+.anlx-chart-grid > .anlx-chart-card {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+/* Tendencia ancha + dona angosta */
+.anlx-chart-grid--wide {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .anlx-chart-grid--wide { grid-template-columns: 1fr; }
 }
 
 /* ── Table ── */

@@ -5,12 +5,17 @@ interface CameraCaptureModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCapture: (file: File) => void;
+  /** Título del modal y prefijo del nombre del archivo capturado. */
+  title?: string;
+  filePrefix?: string;
 }
 
 export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
   isOpen,
   onClose,
   onCapture,
+  title = 'Tomar foto del comprobante',
+  filePrefix = 'comprobante',
 }) => {
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
@@ -93,7 +98,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
     const ia = new Uint8Array(ab);
     for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
     const blob = new Blob([ab], { type: 'image/jpeg' });
-    const file = new File([blob], `comprobante-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const file = new File([blob], `${filePrefix}-${Date.now()}.jpg`, { type: 'image/jpeg' });
     onCapture(file);
     onClose();
   };
@@ -137,7 +142,7 @@ export const CameraCaptureModal: React.FC<CameraCaptureModalProps> = ({
           borderBottom: '1px solid var(--color-border-secondary)',
         }}>
           <h2 style={{ margin: 0, fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Tomar foto del comprobante
+            {title}
           </h2>
           <button
             onClick={onClose}
