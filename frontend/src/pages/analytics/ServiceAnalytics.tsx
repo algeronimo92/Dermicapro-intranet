@@ -104,7 +104,7 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ filters }) =
       </div>
 
       {/* Rango de precios */}
-      <div className="anlx-kpi-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+      <div className="anlx-kpi-grid anlx-kpi-grid--3">
         <div className="anlx-kpi-card anlx-kpi-card--info" style={{ textAlign: 'center' }}>
           <div className="anlx-kpi-label">Precio Mínimo</div>
           <div className="anlx-kpi-value">{fmt(data.pricing.priceRange.min)}</div>

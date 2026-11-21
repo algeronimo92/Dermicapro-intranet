@@ -44,9 +44,9 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({ filters 
   }));
 
   return (
-    <div className="anlx-section" style={{ display: 'grid', gap: 'var(--spacing-lg)' }}>
+    <div className="anlx-section">
       {/* KPIs Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+      <div className="anlx-kpi-grid">
         <KPICard
           title="Ingresos Totales"
           value={formatCurrency(data.revenue.total)}

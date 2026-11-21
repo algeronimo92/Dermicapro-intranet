@@ -62,7 +62,7 @@ export const CustomerAnalytics: React.FC<CustomerAnalyticsProps> = ({ filters })
       </div>
 
       {/* CLV + Deuda + Retención */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-xl)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 'var(--spacing-lg)', marginBottom: 'var(--spacing-xl)' }}>
         <div className="anlx-chart-card" style={{ textAlign: 'center', marginBottom: 0 }}>
           <h3 className="anlx-chart-title">Valor de Vida Promedio (CLV)</h3>
           <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 700, color: 'var(--color-success-dark)', padding: 'var(--spacing-lg) 0' }}>

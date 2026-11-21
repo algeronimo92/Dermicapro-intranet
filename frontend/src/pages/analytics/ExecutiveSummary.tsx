@@ -38,9 +38,9 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
   }));
 
   return (
-    <div className="anlx-section" style={{ display: 'grid', gap: 'var(--spacing-lg)' }}>
+    <div className="anlx-section">
       {/* KPIs Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+      <div className="anlx-kpi-grid">
         <KPICard
           title="Ingresos Totales"
           value={formatCurrency(data.kpis.totalRevenue)}
@@ -78,7 +78,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
       </div>
 
       {/* Tables Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '20px' }}>
         <RankingTable
           title="Top 5 Servicios"
           data={data.topServices.map(s => ({ id: s.id, name: s.name, value: s.revenue, count: s.count }))}

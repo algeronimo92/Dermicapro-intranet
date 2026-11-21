@@ -194,9 +194,20 @@
 /* ── KPI Grid ── */
 .anlx-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* min(100%, …): en celular una columna no puede ser más ancha que la pantalla */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
+}
+
+.anlx-kpi-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 640px) {
+  .anlx-section { padding: var(--spacing-md); }
+  .anlx-kpi-grid { gap: var(--spacing-sm); }
+  .anlx-kpi-grid--3 { grid-template-columns: 1fr; }
+  .anlx-kpi-card { padding: var(--spacing-md) var(--spacing-lg); }
+  .anlx-chart-card { padding: var(--spacing-md); }
 }
 
 .anlx-kpi-card {
