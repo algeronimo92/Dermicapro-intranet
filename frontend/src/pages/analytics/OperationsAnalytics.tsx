@@ -3,8 +3,8 @@ import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { analyticsService } from '../../services/analytics.service';
 import { AnalyticsFilters, OperationsAnalyticsData } from '../../types/analytics.types';
-import { getChartColor } from '../../utils/chartColors';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AnlxBarChart, AnlxDonut, ChartCard } from '../../components/analytics/charts';
+import { useChartSeries } from '../../components/analytics/chartUtils';
 
 interface OperationsAnalyticsProps { filters?: AnalyticsFilters; }
 
@@ -13,15 +13,16 @@ export const OperationsAnalytics: React.FC<OperationsAnalyticsProps> = ({ filter
     (f) => analyticsService.getOperationsAnalytics(f),
     filters
   );
+  const theme = useChartSeries();
 
   if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
   if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
   const statusData = [
-    { name: 'Completadas', value: data.appointments.completed,  color: getChartColor(2) },
-    { name: 'Canceladas',  value: data.appointments.cancelled,  color: getChartColor(4) },
-    { name: 'No asistió',  value: data.appointments.noShows,    color: getChartColor(3) },
+    { name: 'Completadas', value: data.appointments.completed,  color: theme.status.attended },
+    { name: 'Canceladas',  value: data.appointments.cancelled,  color: theme.status.cancelled },
+    { name: 'No asistió',  value: data.appointments.noShows,    color: theme.status.no_show },
   ];
 
   const statusLabels: Record<string, string> = {
@@ -57,47 +58,22 @@ export const OperationsAnalytics: React.FC<OperationsAnalyticsProps> = ({ filter
 
       {/* Charts */}
       <div className="anlx-chart-grid">
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Citas por Estado</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie data={statusData} cx="50%" cy="50%" outerRadius={100}
-                labelLine={false} label={(e) => `${e.name}: ${e.value}`} dataKey="value">
-                {statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Citas por estado">
+          <AnlxDonut data={statusData} totalLabel="Citas" />
+        </ChartCard>
 
-        <div className="anlx-chart-card">
-          <h3 className="anlx-chart-title">Citas por Día de la Semana</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data.scheduling.byDayOfWeek}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill={getChartColor(1)} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartCard title="Citas por día de la semana">
+          <AnlxBarChart data={data.scheduling.byDayOfWeek} categoryKey="day" valueKey="count" label="Citas" color={theme.series.scheduled} />
+        </ChartCard>
       </div>
 
       {/* Citas por hora */}
-      <div className="anlx-chart-card">
-        <h3 className="anlx-chart-title">Citas por Hora del Día</h3>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={data.scheduling.byTimeSlot}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hour" label={{ value: 'Hora', position: 'insideBottom', offset: -5 }} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="count" fill={getChartColor(2)} name="Número de Citas" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartCard title="Citas por hora del día" subtitle="Hora de inicio programada">
+        <AnlxBarChart
+          data={data.scheduling.byTimeSlot} categoryKey="hour" valueKey="count" label="Citas"
+          categoryFormatter={(h) => `${h}:00`}
+        />
+      </ChartCard>
 
       {/* Horas pico */}
       <div className="anlx-chart-grid">

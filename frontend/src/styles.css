@@ -178,6 +178,27 @@ body {
   margin-bottom: 0;
 }
 
+/* Casillas dentro de una barra de filtros: misma altura que buscador y Select. */
+.filters-row .checkbox-modern {
+  height: var(--control-height);
+  padding: 0 14px;
+  gap: 10px;
+  border-width: 1px;
+  border-radius: var(--radius-xl);
+  flex-shrink: 0;
+}
+
+.filters-row .checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+}
+
+.filters-row .checkbox-modern input[type="checkbox"]:checked + .checkbox-custom::after {
+  width: 9px;
+  height: 5px;
+}
+
 .search-input {
   flex: 1;
   min-width: 250px;

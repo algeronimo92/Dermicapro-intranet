@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ActivityChart, type ActivitySeries } from '../components/dashboard/widgets/ActivityChart';
 import { invoicesService, type InvoiceFilters, type InvoiceReport } from '../services/invoices.service';
+import { FormSelect } from '../components/FormSelect';
 
 const defaultFilters: InvoiceFilters = { currency: 'PEN' };
 const documentTypes = ['Factura', 'Boleta', 'Nota de crédito', 'Nota de débito'];
@@ -96,14 +97,18 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
           <label><span>Hasta</span><input name="dateTo" type="date" /></label>
           <label>
             <span>Moneda</span>
-            <select name="currency" defaultValue="PEN"><option value="PEN">PEN · Soles</option><option value="USD">USD · Dólares</option></select>
+            <FormSelect
+              name="currency"
+              defaultValue="PEN"
+              options={[{ value: 'PEN', label: 'PEN · Soles' }, { value: 'USD', label: 'USD · Dólares' }]}
+            />
           </label>
           <label>
             <span>Tipo de comprobante</span>
-            <select name="documentType" defaultValue="">
-              <option value="">Todos los tipos</option>
-              {documentTypes.map(type => <option key={type}>{type}</option>)}
-            </select>
+            <FormSelect
+              name="documentType"
+              options={[{ value: '', label: 'Todos los tipos' }, ...documentTypes.map(type => ({ value: type, label: type }))]}
+            />
           </label>
         </div>
         <div className="invoice-actions">

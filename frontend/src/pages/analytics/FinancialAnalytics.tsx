@@ -8,6 +8,13 @@ import { TrendChart } from '../../components/analytics/TrendChart';
 import { BarChart } from '../../components/analytics/BarChart';
 import { MetricCard } from '../../components/analytics/MetricCard';
 import { RankingTable } from '../../components/analytics/RankingTable';
+import { PieChart } from '../../components/analytics/PieChart';
+import { formatPEN } from '../../components/analytics/chartUtils';
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia',
+  yape: 'Yape', plin: 'Plin', account_credit: 'Saldo a favor',
+};
 
 interface FinancialAnalyticsProps {
   filters: AnalyticsFilters;
@@ -23,30 +30,23 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({ filters 
   if (error)     return <div className="anlx-error">Error: {error}</div>;
   if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
+  const formatCurrency = formatPEN;
 
-  const paymentMethodMetrics = data.revenue.byPaymentMethod.map((pm) => ({
-    label: pm.method,
-    value: `${formatCurrency(pm.amount)} (${pm.count})`,
-    color: 'var(--chart-1)'
+  const paymentMethodData = data.revenue.byPaymentMethod.map((pm) => ({
+    name: PAYMENT_METHOD_LABELS[pm.method] ?? pm.method,
+    value: pm.amount,
   }));
 
   const agingMetrics = data.accountsReceivable.aging.map((a) => ({
     label: a.range,
     value: `${formatCurrency(a.amount)} (${a.count})`,
-    color: a.range.includes('90+') ? 'var(--color-error)' : a.range.includes('61-90') ? 'var(--color-warning)' : 'var(--chart-1)'
+    color: a.range.includes('90+') ? 'var(--color-error)' : a.range.includes('61-90') ? 'var(--color-warning)' : 'var(--color-primary)'
   }));
 
   return (
-    <div className="anlx-section" style={{ display: 'grid', gap: 'var(--spacing-lg)' }}>
+    <div className="anlx-section">
       {/* KPIs Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+      <div className="anlx-kpi-grid">
         <KPICard
           title="Ingresos Totales"
           value={formatCurrency(data.revenue.total)}
@@ -70,29 +70,32 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({ filters 
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="anlx-chart-grid anlx-chart-grid--wide">
         <TrendChart
           data={data.revenue.trend}
-          title="Tendencia de Ingresos"
-          colorIndex={2}
+          title="Tendencia de ingresos"
+          subtitle="Pagos registrados por mes"
         />
-        <MetricCard
-          title="Ingresos por Método de Pago"
-          metrics={paymentMethodMetrics}
+        <PieChart
+          data={paymentMethodData}
+          title="Ingresos por método de pago"
+          totalLabel="Cobrado"
+          formatter={formatCurrency}
         />
       </div>
 
       {/* Cash Flow and Aging */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div className="anlx-chart-grid">
         <BarChart
           data={data.cashFlow.daily.slice(-30)}
-          title="Flujo de Caja Diario (últimos 30 días)"
+          title="Flujo de caja diario"
+          subtitle="Últimos 30 días"
           xKey="date"
           yKey="amount"
-          colorIndex={5}
+          label="Cobrado"
         />
         <MetricCard
-          title="Antigüedad de Cuentas por Cobrar"
+          title="Antigüedad de cuentas por cobrar"
           metrics={agingMetrics}
         />
       </div>

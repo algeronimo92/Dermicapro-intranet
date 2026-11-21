@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Camera, ImageUp, X } from 'lucide-react';
 import { Modal } from './Modal';
+import { CameraCaptureModal } from './CameraCaptureModal';
 import { Select } from './Select';
 import {
   CATEGORY_LABELS,
@@ -30,6 +32,12 @@ const EMPTY_FORM = {
 };
 
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }));
+const PHOTO_TYPES = 'image/jpeg,image/png,image/webp';
+
+// En celulares y tablets "Tomar foto" abre la cámara nativa (mejor enfoque y
+// calidad que el video del navegador); en PC usa la webcam con el modal.
+const isTouchDevice = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   isOpen,
@@ -42,6 +50,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [form, setForm] = useState(EMPTY_FORM);
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,11 +81,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm(f => ({ ...f, [field]: e.target.value }));
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const applyPhoto = (file: File) => {
     setPhoto(file);
     setPreview(URL.createObjectURL(file));
+  };
+
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite volver a elegir el mismo archivo
+    if (file) applyPhoto(file);
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setPreview(product?.photoUrl ?? null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,12 +145,32 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-md)' }}>{error}</div>}
 
         <div className="product-form">
-          <label className="product-form__photo">
-            {preview
-              ? <img src={preview} alt="" />
-              : <span>Agregar foto</span>}
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhoto} hidden />
-          </label>
+          <div className="product-form__photo-block">
+            <div className="product-form__photo">
+              {preview ? <img src={preview} alt="Foto del producto" /> : <span>Sin foto</span>}
+              {photo && (
+                <button type="button" className="product-form__photo-clear" onClick={removePhoto} aria-label="Quitar la foto nueva">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <div className="product-form__photo-actions">
+              <label className="product-form__photo-btn">
+                <ImageUp size={16} aria-hidden /> Subir foto
+                <input type="file" accept={PHOTO_TYPES} onChange={handlePhoto} hidden />
+              </label>
+              {isTouchDevice() ? (
+                <label className="product-form__photo-btn">
+                  <Camera size={16} aria-hidden /> Tomar foto
+                  <input type="file" accept={PHOTO_TYPES} capture="environment" onChange={handlePhoto} hidden />
+                </label>
+              ) : (
+                <button type="button" className="product-form__photo-btn" onClick={() => setCameraOpen(true)}>
+                  <Camera size={16} aria-hidden /> Tomar foto
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="product-form__fields">
             <div>
@@ -237,6 +275,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </button>
         </div>
       </form>
+
+      <CameraCaptureModal
+        isOpen={cameraOpen}
+        title="Tomar foto del producto"
+        filePrefix="producto"
+        onClose={() => setCameraOpen(false)}
+        onCapture={(file) => { applyPhoto(file); setCameraOpen(false); }}
+      />
     </Modal>
   );
 };

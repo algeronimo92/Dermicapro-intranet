@@ -79,7 +79,7 @@ export const AnalyticsPage: React.FC = () => {
   return (
     <div className="page-container analytics-page">
       <div className="page-header">
-        <h1>Analytics</h1>
+        <h1>Analíticas</h1>
         <div className="period-selector">
           {['today', 'week', 'month', 'year', 'custom'].map((p) => (
             <button

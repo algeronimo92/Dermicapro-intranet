@@ -7,6 +7,7 @@ import { KPICard } from '../../components/analytics/KPICard';
 import { TrendChart } from '../../components/analytics/TrendChart';
 import { RankingTable } from '../../components/analytics/RankingTable';
 import { PieChart } from '../../components/analytics/PieChart';
+import { formatPEN, useStatusColors } from '../../components/analytics/chartUtils';
 
 interface ExecutiveSummaryProps {
   filters: AnalyticsFilters;
@@ -17,18 +18,13 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
     (f) => analyticsService.getExecutiveSummary(f),
     filters
   );
+  const statusColors = useStatusColors();
 
   if (isLoading && !data) return <DashboardSkeleton />;
   if (error)     return <div className="anlx-error">Error: {error}</div>;
   if (!data)     return <div className="anlx-empty">No hay datos disponibles</div>;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
+  const formatCurrency = formatPEN;
 
   const STATUS_LABELS: Record<string, string> = {
     reserved: 'Reservada', in_progress: 'En Atención',
@@ -38,12 +34,13 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
   const pieData = data.appointmentsByStatus.map((item) => ({
     name: STATUS_LABELS[item.status] ?? item.status,
     value: item.count,
+    color: statusColors[item.status],
   }));
 
   return (
-    <div className="anlx-section" style={{ display: 'grid', gap: 'var(--spacing-lg)' }}>
+    <div className="anlx-section">
       {/* KPIs Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+      <div className="anlx-kpi-grid">
         <KPICard
           title="Ingresos Totales"
           value={formatCurrency(data.kpis.totalRevenue)}
@@ -67,20 +64,21 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ filters }) =
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="anlx-chart-grid anlx-chart-grid--wide">
         <TrendChart
           data={data.revenueTrend}
-          title="Tendencia de Ingresos"
-          colorIndex={2}
+          title="Tendencia de ingresos"
+          subtitle="Pagos registrados por mes"
         />
         <PieChart
           data={pieData}
-          title="Citas por Estado"
+          title="Citas por estado"
+          totalLabel="Citas"
         />
       </div>
 
       {/* Tables Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '20px' }}>
         <RankingTable
           title="Top 5 Servicios"
           data={data.topServices.map(s => ({ id: s.id, name: s.name, value: s.revenue, count: s.count }))}

@@ -272,6 +272,11 @@ export function clinicDateKey(date: Date): string {
 /**
  * Día de la semana en hora de la clínica: 1 = lunes ... 7 = domingo (ISO-8601)
  */
+/** Hora (0-23) en el reloj de la clínica, sin importar la zona del servidor. */
+export function clinicHour(date: Date): number {
+  return toClinicWallClock(date).getUTCHours();
+}
+
 export function clinicWeekday(date: Date): number {
   const jsDay = toClinicWallClock(date).getUTCDay(); // 0 = domingo
   return jsDay === 0 ? 7 : jsDay;
