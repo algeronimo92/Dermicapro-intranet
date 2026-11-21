@@ -195,11 +195,24 @@
   color: var(--color-success-dark);
 }
 
+/* La celda sigue siendo una celda de tabla: con display:flex dejaba de
+   centrarse con el resto de la fila y su borde inferior quedaba desfasado.
+   El flex va en el contenido. */
 .commissions-table td.actions {
-  display: flex;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.commissions-table td.actions .icon-btn-group {
+  display: inline-flex;
   gap: var(--spacing-xs);
   align-items: center;
-  flex-wrap: wrap;
+  vertical-align: middle;
+}
+
+.commissions-table td.actions .text-muted {
+  display: block;
+  white-space: normal;
 }
 
 /* ============================================================
