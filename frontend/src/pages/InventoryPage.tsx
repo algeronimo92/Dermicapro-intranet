@@ -92,14 +92,12 @@ export function InventoryPage() {
             className="search-input"
           />
           <Select
-            size="sm"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             options={[{ value: '', label: 'Todas las categorías' },
               ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }))]}
           />
           <Select
-            size="sm"
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
             options={[{ value: '', label: 'Todas las marcas' }, ...brands.map(b => ({ value: b, label: b }))]}
