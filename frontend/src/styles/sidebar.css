@@ -21,6 +21,27 @@
   width: var(--sidebar-width-collapsed);
 }
 
+/* Textos al terminar de expandirse: entran con un fundido corto
+   (Sidebar.tsx los monta cuando acaba la transición de ancho). */
+.dashboard-sidebar.is-revealing .sidebar-brand__text,
+.dashboard-sidebar.is-revealing .sidebar-nav-label,
+.dashboard-sidebar.is-revealing .sidebar-nav-section,
+.dashboard-sidebar.is-revealing .sidebar-cta,
+.dashboard-sidebar.is-revealing .sidebar-user,
+.dashboard-sidebar.is-revealing .sidebar-idle {
+  animation: sidebar-label-in 200ms ease-out both;
+}
+
+@keyframes sidebar-label-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-sidebar { transition: none; }
+  .dashboard-sidebar.is-revealing * { animation: none !important; }
+}
+
 /* ── Marca ── */
 .sidebar-header {
   display: flex;
