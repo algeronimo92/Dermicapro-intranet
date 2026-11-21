@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Camera, ImageUp, X } from 'lucide-react';
 import { Modal } from './Modal';
 import { CameraCaptureModal } from './CameraCaptureModal';
+import { isTouchDevice } from '../utils/device';
 import { Select } from './Select';
 import {
   CATEGORY_LABELS,
@@ -34,10 +35,6 @@ const EMPTY_FORM = {
 const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }));
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp';
 
-// En celulares y tablets "Tomar foto" abre la cámara nativa (mejor enfoque y
-// calidad que el video del navegador); en PC usa la webcam con el modal.
-const isTouchDevice = () =>
-  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   isOpen,
