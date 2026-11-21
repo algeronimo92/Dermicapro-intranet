@@ -148,7 +148,14 @@
 
 .dashboard-sidebar.is-collapsed .sidebar-nav {
   padding: 6px 10px 12px;
+  /* En 64px la barra de scroll (6px) le roba ancho a un solo lado y descentra
+     los íconos respecto al logo y al pie. Se oculta: el menú sigue haciendo
+     scroll con rueda o táctil, y el degradado inferior avisa que hay más. */
+  scrollbar-width: none;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
 }
+
+.dashboard-sidebar.is-collapsed .sidebar-nav::-webkit-scrollbar { display: none; }
 
 /* Colapsado: iconos algo más compactos para que quepa todo; el nombre va en el title */
 .dashboard-sidebar.is-collapsed .sidebar-nav-link {
