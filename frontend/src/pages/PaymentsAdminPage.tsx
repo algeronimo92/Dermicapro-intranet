@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type MouseEvent as ReactMouseEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Banknote, Search, Filter, X, AlertTriangle,
   Receipt, RefreshCw,
@@ -506,7 +507,30 @@ function FilterSelect({ label, value, onChange, options }: {
   );
 }
 
+/**
+ * A dónde lleva hacer clic en un pago: su orden de pago; si no tiene (reservas,
+ * saldo a favor, otros), la cita asociada; y si tampoco, las órdenes de pago
+ * del paciente.
+ */
+function paymentDestination(p: Pick<Payment, 'paymentOrderId' | 'appointmentId' | 'patientId'>): { to: string; label: string } | null {
+  if (p.paymentOrderId) return { to: `/payment-orders/${p.paymentOrderId}`, label: 'Ver orden de pago' };
+  if (p.appointmentId) return { to: `/appointments/${p.appointmentId}`, label: 'Ver cita' };
+  if (p.patientId) return { to: `/patients/${p.patientId}/payment-orders`, label: 'Ver órdenes de pago del paciente' };
+  return null;
+}
+
 function PaymentRow({ payment: p, striped, onVoid }: { payment: Payment; striped: boolean; onVoid: () => void }) {
+  const navigate = useNavigate();
+  const destination = paymentDestination(p);
+  const open = (e: ReactMouseEvent | ReactKeyboardEvent) => {
+    if (!destination) return;
+    // Ctrl/Cmd o clic central: en otra pestaña, como un enlace normal.
+    if ('button' in e && (e.ctrlKey || e.metaKey || e.button === 1)) {
+      window.open(destination.to, '_blank', 'noopener');
+      return;
+    }
+    navigate(destination.to);
+  };
   const isVoided    = !!p.voidedAt;
   const patientName = `${p.patient?.firstName ?? ''} ${p.patient?.lastName ?? ''}`.trim() || '—';
   const createdBy   = `${p.createdBy?.firstName ?? ''} ${p.createdBy?.lastName ?? ''}`.trim() || '—';
@@ -521,9 +545,16 @@ function PaymentRow({ payment: p, striped, onVoid }: { payment: Payment; striped
 
   return (
     <tr
-      style={{ background: rowBg, borderBottom: '1px solid var(--color-border-secondary)', transition: 'background var(--transition-fast)' }}
-      onMouseEnter={e => { if (!isVoided) e.currentTarget.style.background = 'var(--color-bg-tertiary)'; }}
+      className={destination ? 'payment-row--link' : undefined}
+      style={{ background: rowBg, borderBottom: '1px solid var(--color-border-secondary)', transition: 'background var(--transition-fast)', cursor: destination ? 'pointer' : undefined }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-tertiary)'; }}
       onMouseLeave={e => e.currentTarget.style.background = rowBg}
+      onClick={open}
+      onAuxClick={open}
+      onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) open(e); }}
+      tabIndex={destination ? 0 : undefined}
+      title={destination?.label}
+      aria-label={destination ? `${destination.label}: pago de ${patientName}` : undefined}
     >
       <td style={{ padding: '12px var(--spacing-md)', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-family-mono)', ...textStyle }}>
         {formatDate(p.paymentDate)}
@@ -546,7 +577,9 @@ function PaymentRow({ payment: p, striped, onVoid }: { payment: Payment; striped
         <Badge label={TYPE_LABELS[p.paymentType] ?? p.paymentType} style={isVoided ? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-disabled)' } : (TYPE_COLORS[p.paymentType] ?? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-secondary)' })} />
       </td>
       <td style={{ padding: '12px var(--spacing-md)', fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-family-mono)', color: 'var(--color-text-tertiary)', ...textStyle }}>
-        {p.paymentOrderId ? `#${p.paymentOrderId.slice(-8).toUpperCase()}` : '—'}
+        {p.paymentOrderId
+          ? <span style={{ color: isVoided ? undefined : 'var(--color-primary-text)', fontWeight: 'var(--font-weight-semibold)', textDecoration: isVoided ? undefined : 'underline', textUnderlineOffset: 3 }}>#{p.paymentOrderId.slice(-8).toUpperCase()}</span>
+          : '—'}
       </td>
       <td style={{ padding: '12px var(--spacing-md)', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', ...textStyle }}>
         {createdBy}
@@ -570,7 +603,9 @@ function PaymentRow({ payment: p, striped, onVoid }: { payment: Payment; striped
           <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-disabled)' }}>—</span>
         ) : (
           <button
-            onClick={onVoid}
+            onClick={e => { e.stopPropagation(); onVoid(); }}
+            onAuxClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--color-error)', background: 'var(--color-error-alpha-10)', color: 'var(--color-error)', fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-semibold)', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all var(--transition-fast)' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-error)'; e.currentTarget.style.color = '#fff'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-error-alpha-10)'; e.currentTarget.style.color = 'var(--color-error)'; }}
