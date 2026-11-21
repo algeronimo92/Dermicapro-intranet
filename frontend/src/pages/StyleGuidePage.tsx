@@ -11,7 +11,7 @@ import { ServiceSelector } from '../components/ServiceSelector';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
   BadgeDollarSign, BarChart3, Palette, Settings, LogOut,
-  CalendarPlus, Moon, Timer, PanelLeftClose,
+  CalendarPlus, Moon, Timer, ChevronsLeft,
 } from 'lucide-react';
 import '../styles/sidebar.css';
 import { useTheme } from '../contexts/ThemeContext';
@@ -3453,10 +3453,11 @@ export const StyleGuidePage: React.FC = () => {
                     <span className="sidebar-brand__tagline">Skincare Clinic</span>
                   </span>
                 </span>
-                <span className="sidebar-icon-btn"><PanelLeftClose size={18} strokeWidth={1.75} /></span>
               </div>
+              {/* En la app sobresale del borde; aquí la vista recorta, así que va adentro */}
+              <span className="sidebar-collapse-btn" style={{ right: 10 }}><ChevronsLeft size={15} strokeWidth={2} /></span>
               <div className="sidebar-nav" style={{ overflow: 'visible' }}>
-                <span className="sidebar-cta"><CalendarPlus size={18} strokeWidth={2} />Nueva cita</span>
+                <span className="sidebar-cta"><CalendarPlus size={18} strokeWidth={2} /><span className="sidebar-cta__label">Nueva cita</span></span>
                 {groups.map(g => (
                   <div key={g.title ?? 'main'} className="sidebar-nav-group">
                     {g.title && <p className="sidebar-nav-section">{g.title}</p>}

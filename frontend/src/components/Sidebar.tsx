@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
   BadgeDollarSign, BarChart3, Palette, CircleUser, Settings, FileText,
-  LogOut, PanelLeftClose, PanelLeftOpen, LucideIcon, AlertTriangle, Timer, Menu, X, Banknote,
+  LogOut, ChevronsLeft, ChevronsRight, LucideIcon, AlertTriangle, Timer, Menu, X, Banknote,
   CalendarPlus, Sun, Moon, Package,
 } from 'lucide-react';
 import { NavItem } from '../config/navigation.config';
@@ -16,6 +16,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 const COLLAPSED_KEY = 'dermicapro_sidebar_collapsed';
+/** Duración de la transición de ancho (--transition-slow en design-tokens.css). */
+const WIDTH_TRANSITION_MS = 300;
 const MOBILE_BREAKPOINT = 768;
 
 export interface SidebarUser {
@@ -80,6 +82,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
     localStorage.getItem(COLLAPSED_KEY) === 'true'
   );
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+  // Diseño compacto (íconos centrados, cabecera y pie en columna, sin textos).
+  // Al colapsar se aplica recién cuando el ancho terminó de encogerse: si se
+  // aplicara al inicio, los íconos saltarían al centro del panel de 250px y
+  // luego volverían deslizándose, y la animación se ve trabada.
+  const [isCompact, setIsCompact] = useState(isCollapsed);
+  const compactTimer = useRef<number | undefined>(undefined);
+  const asideRef = useRef<HTMLElement>(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -106,12 +115,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
     return () => { document.documentElement.style.removeProperty('--sidebar-current-width'); };
   }, [isCollapsed, isMobile]);
 
+  useEffect(() => () => window.clearTimeout(compactTimer.current), []);
+
   const toggle = () => {
-    setIsCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem(COLLAPSED_KEY, String(next));
-      return next;
-    });
+    const next = !isCollapsed;
+    localStorage.setItem(COLLAPSED_KEY, String(next));
+    window.clearTimeout(compactTimer.current);
+    setIsCollapsed(next);
+    if (!next) {
+      setIsCompact(false); // al expandir, los textos se revelan con el ancho
+      return;
+    }
+    const aside = asideRef.current;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!aside || reduced) {
+      setIsCompact(true);
+      return;
+    }
+    const finish = () => {
+      aside.removeEventListener('transitionend', onEnd);
+      window.clearTimeout(compactTimer.current);
+      setIsCompact(true);
+    };
+    function onEnd(e: TransitionEvent) {
+      if (e.target === aside && e.propertyName === 'width') finish();
+    }
+    aside.addEventListener('transitionend', onEnd);
+    compactTimer.current = window.setTimeout(finish, WIDTH_TRANSITION_MS + 150); // respaldo
   };
 
   const closeMobileMenu = () => setIsMobileOpen(false);
@@ -141,7 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
   const initials = (user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '');
 
   // En móvil el drawer siempre muestra el texto completo
-  const showLabels = isMobile ? true : !isCollapsed;
+  const showLabels = isMobile ? true : !isCompact;
   const isDark = resolvedTheme === 'dark';
 
   const avatarEl = (
@@ -210,31 +240,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
       )}
 
       <aside
+        ref={asideRef}
         className={[
           'dashboard-sidebar',
-          !isMobile && isCollapsed ? 'is-collapsed' : '',
+          !isMobile && isCompact ? 'is-collapsed' : '',
+          !isMobile && isCollapsed && !isCompact ? 'is-collapsing' : '',
           isMobile && isMobileOpen ? 'is-mobile-open' : '',
         ].filter(Boolean).join(' ')}
         aria-label="Navegación principal"
       >
-        {/* Marca + colapsar */}
+        {/* Marca (+ cerrar en móvil) */}
         <div className="sidebar-header">
           {brand}
-          {isMobile ? (
+          {isMobile && (
             <button className="sidebar-icon-btn" onClick={closeMobileMenu} aria-label="Cerrar menú">
               <X size={18} strokeWidth={2} />
             </button>
-          ) : (
-            <button
-              className="sidebar-icon-btn sidebar-collapse-btn"
-              onClick={toggle}
-              aria-label={isCollapsed ? 'Expandir menú' : 'Colapsar menú'}
-              title={isCollapsed ? 'Expandir menú' : 'Colapsar menú'}
-            >
-              {isCollapsed ? <PanelLeftOpen size={18} strokeWidth={1.75} /> : <PanelLeftClose size={18} strokeWidth={1.75} />}
-            </button>
           )}
         </div>
+
+        {/* Colapsar: círculo sobre el borde derecho. Fuera de la cabecera para
+            que ésta mida lo mismo en ambos estados y el menú no brinque. */}
+        {!isMobile && (
+          <button
+            className="sidebar-collapse-btn"
+            onClick={toggle}
+            aria-label={isCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+            title={isCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+          >
+            {isCollapsed ? <ChevronsRight size={15} strokeWidth={2} /> : <ChevronsLeft size={15} strokeWidth={2} />}
+          </button>
+        )}
 
         {/* Navegación */}
         <nav className="sidebar-nav">
