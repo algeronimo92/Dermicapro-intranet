@@ -378,15 +378,33 @@
   min-width: 0;
 }
 
-.invoice-fields input,
-.invoice-fields select {
+.invoice-fields input:not(.sr-only) {
   width: 100%;
-  padding: var(--spacing-sm);
+  height: var(--control-height);
+  padding: 0 12px 0 14px;
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
   font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+/* El selector de archivo necesita su altura natural para el botón interno. */
+.invoice-fields input[type='file'] {
+  height: auto;
+  padding: var(--spacing-sm);
+}
+
+.invoice-fields input:not(.sr-only):focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+/* El Select propio dentro de las etiquetas de Facturas: sin margen de formulario. */
+.invoice-fields .ds-select.input-group {
+  margin-bottom: 0;
 }
 
 .invoice-form input[type='file']::file-selector-button {
