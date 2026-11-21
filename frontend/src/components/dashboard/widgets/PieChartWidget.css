@@ -45,6 +45,35 @@
   color: var(--color-text-tertiary);
 }
 
+/* Segmento resaltado: nombre y porcentaje en el centro, en lugar de un tooltip */
+.pie-chart-widget__center-label--active {
+  max-width: 62%;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.pie-chart-widget .chart-legend__item {
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: var(--radius-md);
+  transition: opacity 120ms ease, background-color 120ms ease;
+  cursor: default;
+}
+
+.pie-chart-widget .chart-legend__item.is-active {
+  background: var(--color-bg-hover);
+}
+
+.pie-chart-widget .chart-legend__item.is-dimmed {
+  opacity: 0.45;
+}
+
+.pie-chart-widget .chart-legend__item:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
 @media (max-width: 560px) {
   .pie-chart-widget__body {
     grid-template-columns: 1fr;
