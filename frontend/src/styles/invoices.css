@@ -443,3 +443,92 @@
 .invoice-existing-files { margin-bottom: 1rem; }
 .invoice-existing-files label { display: flex; align-items: center; gap: .75rem; margin: .75rem 0; overflow-wrap: anywhere; }
 .invoice-existing-files input[type=checkbox] { width: auto; flex-shrink: 0; }
+
+/* ── Adjuntos: subir archivos o tomar foto ── */
+.invoice-attachments {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-xs) 0;
+}
+
+.invoice-attachments__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.invoice-attachments__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.invoice-attachments__actions .btn.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.invoice-attachments__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.invoice-attachments__list li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+}
+
+.invoice-attachments__list img,
+.invoice-attachments__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.invoice-attachments__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary-text);
+}
+
+.invoice-attachments__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.invoice-attachments__list small {
+  color: var(--color-text-tertiary);
+}
+
+.invoice-attachments__remove {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.invoice-attachments__remove:hover {
+  background: var(--color-error-alpha-10);
+  color: var(--color-error);
+}
