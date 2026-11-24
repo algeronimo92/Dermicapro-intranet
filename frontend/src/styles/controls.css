@@ -269,13 +269,9 @@ select.form-control,
 
 .pager__page.is-current {
   background: var(--color-brand);
-  color: var(--color-on-primary-container);
+  color: var(--color-on-primary);
   font-weight: var(--font-weight-semibold);
   cursor: default;
-}
-
-[data-theme="dark"] .pager__page.is-current {
-  color: var(--color-on-primary);
 }
 
 .pager__gap {

@@ -1,17 +1,17 @@
 /**
  * DERMICAPRO - DESIGN TOKENS
- * Paleta: dorado champaña apagado + grises carbón cálidos
+ * Paleta: dorado champaña (oscuro) / caramelo (claro) + grises carbón cálidos
  *
  * Pensada para usarse muchas horas: sin negros puros ni blancos puros,
  * saturación baja y el dorado del logo suavizado. El dorado exacto del logo
  * queda solo en el emblema.
  *
  * Contraste WCAG AA verificado (texto normal ≥ 4.5:1):
- *   Claro   texto dorado #7A6436 sobre #FBFAF8 → 5.4:1 · botón #2A2418 sobre #BFA46A → 6.6:1
+ *   Claro   texto bronce #7A5D2C sobre #FBFAF8 → 5.8:1 · botón #221A0D sobre #A88552 → 5.0:1
  *             texto terciario #6B675F sobre #F3F2EF → 5.0:1
  *   Oscuro  #C8AE74 sobre #26272B → 6.9:1   texto terciario #9C998F sobre #26272B → 5.2:1
  *
- * Actualizado: 2026-11-20
+ * Actualizado: 2026-11-24 (caramelo en modo claro)
  */
 
 /* ========================================
@@ -19,18 +19,21 @@
    ======================================== */
 :root,
 [data-theme="light"] {
-  /* === COLORES PRIMARIOS (Dorado champaña) === */
-  --color-brand: #B49A5E;             /* Dorado suavizado — acentos, no texto */
-  --color-primary: #BFA46A;           /* Relleno de botones y estados activos (champaña claro) */
-  --color-primary-dark: #AC9058;      /* hover / pressed del relleno */
-  --color-primary-light: #D3BC86;
-  --color-primary-container: #EFE8D8;
-  --color-on-primary: #2A2418;        /* Texto sobre el relleno — 6.6:1 */
-  --color-on-primary-container: #3B3020;
-  /* Dorado para TEXTO, íconos y enlaces sobre fondo claro (el relleno no llega a 4.5:1) */
-  --color-primary-text: #7A6436;      /* 5.4:1 sobre la superficie */
-  --color-primary-alpha-10: rgba(191, 164, 106, 0.16);
-  --color-primary-alpha-20: rgba(191, 164, 106, 0.28);
+  /* === COLORES PRIMARIOS (Caramelo) ===
+     El champaña del modo oscuro (#C8AE74) sobre fondo crema se ve mostaza.
+     En claro se usa un caramelo más cálido y menos amarillo, con texto
+     oscuro encima (el texto crema no llega a 4.5:1 sobre este tono). */
+  --color-brand: #A88552;             /* Caramelo — acentos, no texto */
+  --color-primary: #A88552;           /* Relleno de botones y estados activos */
+  --color-primary-dark: #A07E4B;      /* hover / extremo oscuro de degradados */
+  --color-primary-light: #C2A273;
+  --color-primary-container: #F0E7D6;
+  --color-on-primary: #221A0D;        /* Texto sobre el relleno — 5.0:1 (4.6:1 en hover) */
+  --color-on-primary-container: #4A3A1C;
+  /* Bronce para TEXTO, íconos y enlaces sobre fondo claro (el relleno no llega a 4.5:1) */
+  --color-primary-text: #7A5D2C;      /* 5.8:1 sobre la superficie */
+  --color-primary-alpha-10: rgba(168, 133, 82, 0.14);
+  --color-primary-alpha-20: rgba(168, 133, 82, 0.24);
 
   /* === COLOR DE ACENTO (Rosa empolvado) === */
   --color-accent: #8E5261;
@@ -77,7 +80,7 @@
   --color-text-disabled: #A5A19A;
   --color-text-inverse: #FBFAF8;
   --color-text-link: var(--color-primary-text);
-  --color-text-link-hover: #5F4E2A;
+  --color-text-link-hover: #5F4720;
 
   /* === COLORES DE BORDE === */
   --color-border-primary: #DEDAD2;
@@ -122,7 +125,7 @@
   /* === GRÁFICOS === */
   --chart-grid: #E8E5DF;
   --chart-axis: #6B675F;
-  --chart-1: #A88B4E;   /* dorado */
+  --chart-1: #9A7A42;   /* bronce */
   --chart-2: #4E7A7C;   /* verde azulado */
   --chart-3: #A3687A;   /* rosa */
   --chart-4: #6875A0;   /* índigo */
