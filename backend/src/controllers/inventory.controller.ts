@@ -14,7 +14,19 @@ const REASONS_BY_TYPE: Record<InventoryMovementType, InventoryMovementReason[]> 
 
 const userSummary = { select: { id: true, firstName: true, lastName: true } } as const;
 
+// El stock de un producto cambió desde que se cargó la pantalla de registro
+// masivo: se informa cuál y cuánto hay ahora para que la pantalla lo marque.
+class StockConflictError extends AppError {
+  constructor(message: string, readonly productId: string, readonly currentStock: number) {
+    super(message, 409);
+  }
+}
+
 function handleError(req: Request, res: Response, error: unknown, fallback: string) {
+  if (error instanceof StockConflictError) {
+    res.status(409).json({ error: error.message, productId: error.productId, currentStock: error.currentStock });
+    return;
+  }
   if (error instanceof AppError) {
     res.status(error.statusCode).json({ error: error.message });
     return;
@@ -301,5 +313,130 @@ export const createMovement = async (req: Request, res: Response): Promise<void>
     res.status(201).json({ data: result, message: 'Movimiento registrado' });
   } catch (error) {
     handleError(req, res, error, 'Error al registrar el movimiento');
+  }
+};
+
+// ============================================
+// Registro masivo de movimientos
+// ============================================
+
+const MAX_BATCH_ROWS = 500;
+
+interface BatchSide {
+  quantity: number;
+  reason: InventoryMovementReason;
+}
+
+interface BatchRow {
+  productId: string;
+  expectedStock: number;
+  in: BatchSide | null;
+  out: BatchSide | null;
+  note: string | null;
+}
+
+function parseBatchSide(value: unknown, type: InventoryMovementType, position: number): BatchSide | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'object') throw new AppError(`Fila ${position}: datos de ${type === 'in' ? 'entrada' : 'salida'} inválidos`, 400);
+  const { quantity, reason } = value as Record<string, unknown>;
+  const qty = nonNegativeInt(quantity, `Fila ${position}: la cantidad`);
+  if (qty === 0) return null;
+  if (!REASONS_BY_TYPE[type].includes(reason as InventoryMovementReason)) {
+    throw new AppError(`Fila ${position}: motivo no válido para la ${type === 'in' ? 'entrada' : 'salida'}`, 400);
+  }
+  return { quantity: qty, reason: reason as InventoryMovementReason };
+}
+
+export function parseBatchRows(body: unknown): BatchRow[] {
+  const rows = (body as { rows?: unknown } | undefined)?.rows;
+  if (!Array.isArray(rows) || rows.length === 0) throw new AppError('No hay movimientos para registrar', 400);
+  if (rows.length > MAX_BATCH_ROWS) throw new AppError(`Máximo ${MAX_BATCH_ROWS} productos por registro`, 400);
+
+  const seen = new Set<string>();
+  const parsed = rows.map((raw, i): BatchRow => {
+    const position = i + 1;
+    if (!raw || typeof raw !== 'object') throw new AppError(`Fila ${position}: datos inválidos`, 400);
+    const row = raw as Record<string, unknown>;
+    if (typeof row.productId !== 'string' || !row.productId) throw new AppError(`Fila ${position}: falta el producto`, 400);
+    if (seen.has(row.productId)) throw new AppError(`Fila ${position}: el producto está repetido`, 400);
+    seen.add(row.productId);
+
+    const expectedStock = nonNegativeInt(row.expectedStock, `Fila ${position}: el stock esperado`);
+    const entry = parseBatchSide(row.in, 'in', position);
+    const exit = parseBatchSide(row.out, 'out', position);
+    if (!entry && !exit) throw new AppError(`Fila ${position}: indica una entrada o una salida`, 400);
+    if (expectedStock + (entry?.quantity ?? 0) - (exit?.quantity ?? 0) < 0) {
+      throw new AppError(`Fila ${position}: la salida supera el stock disponible`, 400);
+    }
+    return { productId: row.productId, expectedStock, in: entry, out: exit, note: optionalText(row.note, `Fila ${position}: la nota`, 300) ?? null };
+  });
+  return parsed;
+}
+
+export const createMovementsBatch = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = parseBatchRows(req.body);
+    const userId = req.user!.id;
+
+    // Todo o nada: si un producto falla, no se registra ningún movimiento.
+    const result = await prisma.$transaction(async (tx) => {
+      const createdAt = Date.now();
+      let movements = 0;
+      const stocks: { productId: string; stock: number }[] = [];
+
+      for (const row of rows) {
+        const finalStock = row.expectedStock + (row.in?.quantity ?? 0) - (row.out?.quantity ?? 0);
+
+        // Sólo se aplica si el stock sigue siendo el que vio la pantalla; si
+        // alguien registró otro movimiento mientras tanto, se rechaza todo.
+        const updated = await tx.product.updateMany({
+          where: { id: row.productId, stock: row.expectedStock },
+          data: { stock: finalStock },
+        });
+        if (updated.count === 0) {
+          const current = await tx.product.findUnique({
+            where: { id: row.productId }, select: { name: true, stock: true },
+          });
+          if (!current) throw new AppError('Uno de los productos ya no existe', 404);
+          throw new StockConflictError(
+            `El stock de «${current.name}» cambió mientras registrabas (ahora hay ${current.stock}). Revisa esa fila y vuelve a guardar.`,
+            row.productId,
+            current.stock,
+          );
+        }
+
+        // La entrada se registra antes que la salida (un milisegundo antes) para
+        // que el historial quede en orden y el stockAfter de cada uno cuadre.
+        const sides = [
+          row.in && { type: 'in' as const, side: row.in, stockAfter: row.expectedStock + row.in.quantity },
+          row.out && { type: 'out' as const, side: row.out, stockAfter: finalStock },
+        ].filter(Boolean) as { type: InventoryMovementType; side: BatchSide; stockAfter: number }[];
+
+        for (const [offset, { type, side, stockAfter }] of sides.entries()) {
+          await tx.inventoryMovement.create({
+            data: {
+              productId: row.productId,
+              type,
+              reason: side.reason,
+              quantity: side.quantity,
+              stockAfter,
+              note: row.note,
+              createdById: userId,
+              createdAt: new Date(createdAt + offset),
+            },
+          });
+          movements++;
+        }
+        stocks.push({ productId: row.productId, stock: finalStock });
+      }
+      return { movements, stocks };
+    }, { timeout: 30_000 });
+
+    res.status(201).json({
+      data: result,
+      message: `${result.movements} movimiento(s) registrados en ${result.stocks.length} producto(s)`,
+    });
+  } catch (error) {
+    handleError(req, res, error, 'Error al registrar los movimientos');
   }
 };

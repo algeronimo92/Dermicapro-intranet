@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ROLES } from '../constants/roles';
 import {
   createMovement,
+  createMovementsBatch,
   createProduct,
   getProduct,
   listBrands,
@@ -31,5 +32,6 @@ router.post('/products', canManage, createProduct);
 router.put('/products/:id', canManage, updateProduct);
 router.post('/products/:id/photo', canManage, productPhotoLimiter, upload.single('photo'), processUpload, uploadProductPhoto);
 router.post('/products/:id/movements', canManage, createMovement);
+router.post('/movements/batch', canManage, createMovementsBatch);
 
 export default router;
