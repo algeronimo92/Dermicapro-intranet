@@ -82,6 +82,20 @@ export interface MovementFormData {
   note?: string;
 }
 
+export interface BatchMovementRow {
+  productId: string;
+  /** Stock que mostraba la pantalla: si cambió, la API rechaza todo el registro. */
+  expectedStock: number;
+  in?: { quantity: number; reason: MovementReason };
+  out?: { quantity: number; reason: MovementReason };
+  note?: string;
+}
+
+export interface BatchMovementResult {
+  movements: number;
+  stocks: { productId: string; stock: number }[];
+}
+
 export interface ProductFilters {
   page?: number;
   limit?: number;
@@ -150,6 +164,21 @@ export const inventoryService = {
   async getMovements(id: string, page = 1, limit = 20): Promise<Paginated<InventoryMovement>> {
     const response = await api.get(`/inventory/products/${id}/movements`, { params: { page, limit } });
     return response.data;
+  },
+
+  /** Todos los productos activos (la API pagina de 100 en 100). */
+  async getAllActiveProducts(): Promise<Product[]> {
+    const all: Product[] = [];
+    for (let page = 1; ; page++) {
+      const res = await inventoryService.getProducts({ page, limit: 100 });
+      all.push(...res.data);
+      if (page >= res.totalPages) return all;
+    }
+  },
+
+  async createMovementsBatch(rows: BatchMovementRow[]): Promise<BatchMovementResult> {
+    const response = await api.post('/inventory/movements/batch', { rows });
+    return response.data.data;
   },
 
   async createMovement(id: string, data: MovementFormData): Promise<{ movement: InventoryMovement; stock: number }> {

@@ -363,3 +363,146 @@
   .product-form__row,
   .product-form__row--3 { grid-template-columns: 1fr; }
 }
+
+/* ---------- Registro masivo (hoja tipo Excel) ---------- */
+
+.bulk-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.bulk-toolbar__search { flex: 1 1 260px; min-width: 0; }
+
+.bulk-toolbar .alert,
+.bulk-sheet + .alert { margin-bottom: var(--spacing-md); }
+
+.bulk-sheet {
+  overflow: auto;
+  max-height: calc(100vh - 340px);
+  min-height: 280px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  margin-top: var(--spacing-sm);
+}
+
+.bulk-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--font-size-sm);
+}
+
+.bulk-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
+  white-space: nowrap;
+}
+
+.bulk-table td {
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--color-border-primary);
+  vertical-align: middle;
+}
+
+.bulk-table tbody tr:hover td { background: var(--color-bg-secondary); }
+
+.bulk-table__product {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 200px;
+  padding: 6px 10px !important;
+  background: var(--color-bg-primary);
+}
+
+.bulk-table th.bulk-table__product { z-index: 3; background: var(--color-bg-secondary); }
+
+.bulk-table__name { display: block; font-weight: 500; color: var(--color-text-primary); }
+
+.bulk-table__meta {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.bulk-table__num { text-align: right; white-space: nowrap; }
+.bulk-table td.bulk-table__num:not(:has(input)) { padding-right: 10px; }
+.bulk-table th.bulk-table__in { color: var(--color-success-dark); }
+.bulk-table th.bulk-table__out { color: var(--color-error-dark); }
+
+.bulk-table__after { font-weight: 600; color: var(--color-text-primary); }
+.bulk-table__after.is-error { color: var(--color-error-dark); }
+
+.bulk-cell {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.bulk-cell:hover:not(:disabled) { border-color: var(--color-border-focus); }
+
+.bulk-cell:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  background: var(--color-bg-primary);
+  box-shadow: 0 0 0 2px var(--color-border-focus);
+}
+
+.bulk-cell:disabled { color: var(--color-text-tertiary); opacity: 0.45; background: transparent; border-color: transparent; }
+.bulk-cell--qty { width: 72px; text-align: right; }
+.bulk-cell--note { min-width: 160px; }
+
+.bulk-table select.bulk-cell { min-width: 170px; cursor: pointer; }
+
+/* Los tintes son semitransparentes: se apilan sobre el fondo sólido para que la
+   columna fija de producto no deje ver las celdas que pasan por debajo. */
+.bulk-table tr.is-changed td {
+  background: linear-gradient(var(--color-success-alpha-10), var(--color-success-alpha-10)), var(--color-bg-primary);
+}
+.bulk-table tr.is-invalid td,
+.bulk-table tr.is-conflict td {
+  background: linear-gradient(var(--color-error-alpha-10), var(--color-error-alpha-10)), var(--color-bg-primary);
+}
+.bulk-table tr.is-conflict td.bulk-table__product { box-shadow: inset 3px 0 0 var(--color-error); }
+
+.bulk-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  background: var(--color-bg-primary);
+}
+
+.bulk-footer__summary { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.bulk-footer__error { color: var(--color-error-dark); }
+.bulk-footer__actions { display: flex; gap: var(--spacing-sm); }
+.bulk-footer__actions .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .bulk-sheet { max-height: none; }
+  .bulk-table__product { min-width: 150px; }
+  .bulk-footer__actions { width: 100%; }
+  .bulk-footer__actions .action-btn { flex: 1; }
+}
