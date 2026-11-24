@@ -13,6 +13,7 @@ import { CameraCapture } from '../components/CameraCapture';
 import { VoidPaymentOrderModal } from '../components/VoidPaymentOrderModal';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/patient-payment-orders.css';
+import { paymentMethodIcon, paymentMethodLabel } from '../utils/paymentMethods';
 
 const getReceiptUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -21,12 +22,6 @@ const getReceiptUrl = (url: string | null | undefined): string | null => {
   return url;
 };
 
-const METHOD_LABEL: Record<string, string> = {
-  cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', yape: 'Yape', plin: 'Plin',
-};
-const METHOD_ICON: Record<string, string> = {
-  cash: '💵', card: '💳', transfer: '🏦', yape: '📲', plin: '📱',
-};
 
 const StatusBadge: React.FC<{ status: PaymentOrderStatus }> = ({ status }) => {
   const map: Record<string, { label: string; cls: string }> = {
@@ -277,7 +272,7 @@ export const PaymentOrderDetailPage: React.FC = () => {
                 <div className="adet-note-item__header">
                   <div>
                     <span className="adet-note-item__author">
-                      {METHOD_ICON[payment.paymentMethod]} {METHOD_LABEL[payment.paymentMethod] || payment.paymentMethod}
+                      {paymentMethodIcon(payment.paymentMethod)} {paymentMethodLabel(payment.paymentMethod)}
                     </span>
                     {payment.createdBy && (
                       <span className="adet-note-item__role"> · {payment.createdBy.firstName} {payment.createdBy.lastName}</span>
