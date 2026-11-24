@@ -51,11 +51,12 @@ describe('ActivityMetricsService', () => {
       expect(where.createdAt.lt.toISOString()).toBe('2026-08-11T05:00:00.000Z');
     });
 
-    it('excluye los pagos anulados', async () => {
+    it('excluye los pagos anulados y los pagados con saldo a favor', async () => {
       const { prisma, service } = buildService({});
       await service.getActivity('week');
 
       expect(prisma.payment.findMany.mock.calls[0][0].where.voidedAt).toBeNull();
+      expect(prisma.payment.findMany.mock.calls[0][0].where.paymentMethod).toEqual({ not: 'account_credit' });
     });
 
     it('devuelve un punto por día del período, incluidos los días sin actividad', async () => {

@@ -10,17 +10,9 @@ import { Payment } from '../types';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { Pagination } from '../components/Pagination';
 import { Select } from '../components/Select';
+import { paymentMethodLabel } from '../utils/paymentMethods';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const METHOD_LABELS: Record<string, string> = {
-  cash: 'Efectivo',
-  card: 'Tarjeta',
-  transfer: 'Transferencia',
-  yape: 'Yape',
-  plin: 'Plin',
-  account_credit: 'Saldo a favor',
-};
 
 const TYPE_LABELS: Record<string, string> = {
   payment_order_payment: 'Orden de pago',
@@ -379,7 +371,7 @@ export function PaymentsAdminPage() {
             <div style={{ margin: '0 var(--spacing-xl)', padding: 'var(--spacing-md)', borderRadius: 'var(--radius-lg)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-secondary)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <DetailRow label="Paciente" value={`${voidTarget.patient?.firstName ?? ''} ${voidTarget.patient?.lastName ?? ''}`.trim() || '—'} />
               <DetailRow label="Monto" value={formatCurrency(Number(voidTarget.amountPaid))} valueColor="var(--color-success-dark)" bold />
-              <DetailRow label="Método" value={METHOD_LABELS[voidTarget.paymentMethod] ?? voidTarget.paymentMethod} />
+              <DetailRow label="Método" value={paymentMethodLabel(voidTarget.paymentMethod)} />
               <DetailRow label="Tipo" value={TYPE_LABELS[voidTarget.paymentType] ?? voidTarget.paymentType} />
               <DetailRow label="Fecha" value={formatDate(voidTarget.paymentDate)} />
               {voidTarget.paymentOrderId && (
@@ -571,7 +563,7 @@ function PaymentRow({ payment: p, striped, onVoid }: { payment: Payment; striped
         </span>
       </td>
       <td style={{ padding: '12px var(--spacing-md)', ...textStyle }}>
-        <Badge label={METHOD_LABELS[p.paymentMethod] ?? p.paymentMethod} style={isVoided ? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-disabled)' } : (METHOD_COLORS[p.paymentMethod] ?? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-secondary)' })} />
+        <Badge label={paymentMethodLabel(p.paymentMethod)} style={isVoided ? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-disabled)' } : (METHOD_COLORS[p.paymentMethod] ?? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-secondary)' })} />
       </td>
       <td style={{ padding: '12px var(--spacing-md)' }}>
         <Badge label={TYPE_LABELS[p.paymentType] ?? p.paymentType} style={isVoided ? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-disabled)' } : (TYPE_COLORS[p.paymentType] ?? { bg: 'var(--color-bg-tertiary)', text: 'var(--color-text-secondary)' })} />

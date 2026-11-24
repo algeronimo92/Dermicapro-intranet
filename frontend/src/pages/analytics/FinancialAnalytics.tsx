@@ -10,11 +10,7 @@ import { MetricCard } from '../../components/analytics/MetricCard';
 import { RankingTable } from '../../components/analytics/RankingTable';
 import { PieChart } from '../../components/analytics/PieChart';
 import { formatPEN } from '../../components/analytics/chartUtils';
-
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia',
-  yape: 'Yape', plin: 'Plin', account_credit: 'Saldo a favor',
-};
+import { paymentMethodLabel } from '../../utils/paymentMethods';
 
 interface FinancialAnalyticsProps {
   filters: AnalyticsFilters;
@@ -33,7 +29,7 @@ export const FinancialAnalytics: React.FC<FinancialAnalyticsProps> = ({ filters 
   const formatCurrency = formatPEN;
 
   const paymentMethodData = data.revenue.byPaymentMethod.map((pm) => ({
-    name: PAYMENT_METHOD_LABELS[pm.method] ?? pm.method,
+    name: paymentMethodLabel(pm.method),
     value: pm.amount,
   }));
 

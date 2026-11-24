@@ -13,6 +13,7 @@ import { NewPatientsChart } from './widgets/NewPatientsChart';
 import { ActivityChart } from './widgets/ActivityChart';
 import { DashboardSkeleton } from '../ui/Skeleton';
 import { useChartTheme, formatPEN, formatPENTick } from './widgets/chartTheme';
+import { paymentMethodLabel } from '../../utils/paymentMethods';
 
 const STATUS_LABELS: Record<string, string> = {
   reserved:    'Reservada',
@@ -23,14 +24,6 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_ORDER  = ['reserved', 'in_progress', 'attended', 'cancelled', 'no_show'];
-
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cash:     'Efectivo',
-  card:     'Tarjeta',
-  transfer: 'Transferencia',
-  yape:     'Yape',
-  plin:     'Plin',
-};
 
 const MONTH_NAMES = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -119,7 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ data, isLoading 
   // Color fijo por método: así no cambia de color al cambiar de período
   const PAYMENT_METHOD_COLOR_INDEX: Record<string, number> = { cash: 0, card: 1, yape: 3, plin: 4, transfer: 2 };
   const paymentMethodPieData = (data.financials.paymentsByMethod ?? []).map((p, i) => ({
-    name: PAYMENT_METHOD_LABELS[p.method] ?? p.method,
+    name: paymentMethodLabel(p.method),
     value: p.amount,
     color: chart.categorical[PAYMENT_METHOD_COLOR_INDEX[p.method] ?? 5 + (i % 3)],
   }));
