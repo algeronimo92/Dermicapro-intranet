@@ -6,7 +6,7 @@
  */
 
 const FALLBACKS: Record<number, string> = {
-  1: '#A88B4E', // dorado
+  1: '#9A7A42', // bronce (igual que --chart-1 en modo claro)
   2: '#4E7A7C', // verde azulado
   3: '#A3687A', // rosa
   4: '#6875A0', // índigo

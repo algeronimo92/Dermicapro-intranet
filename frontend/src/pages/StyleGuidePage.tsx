@@ -645,7 +645,7 @@ export const StyleGuidePage: React.FC = () => {
           <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Variantes principales</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
             {[
-              { label: 'Primary', bg: 'var(--color-primary)', color: '#fff', shadow: '0 2px 8px var(--color-primary-alpha-20)' },
+              { label: 'Primary', bg: 'var(--color-primary)', color: 'var(--color-on-primary)', shadow: '0 2px 8px var(--color-primary-alpha-20)' },
               { label: 'Secondary', bg: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border-primary)', shadow: 'none' },
               { label: 'Success', bg: 'var(--color-success)', color: '#fff', shadow: '0 2px 8px var(--color-success-alpha-10)' },
               { label: 'Danger', bg: 'var(--color-error)', color: '#fff', shadow: '0 2px 8px var(--color-error-alpha-10)' },
@@ -1922,7 +1922,7 @@ export const StyleGuidePage: React.FC = () => {
             </div>
             <div className="pd-hero__actions">
               <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Editar</button>
-              <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-success)', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Nueva Cita</button>
+              <button style={{ padding: '8px 16px', borderRadius: 'var(--radius-lg)', border: 'none', background: 'var(--color-success)', color: 'var(--color-on-primary)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Nueva Cita</button>
             </div>
           </div>
           <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8, fontFamily: 'monospace' }}>
