@@ -10,6 +10,7 @@ import { RegisterPaymentModal } from '../components/RegisterPaymentModal';
 import { PatientDebtSummary } from '../components/PatientDebtSummary';
 import { formatDate } from '../utils/dateUtils';
 import '../styles/patient-payment-orders.css';
+import { paymentMethodLabel } from '../utils/paymentMethods';
 
 export const PatientPaymentOrdersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -387,10 +388,7 @@ export const PatientPaymentOrdersPage: React.FC = () => {
                   : isUsed
                     ? `Aplicado a orden de pago${tx.paymentOrderId ? ` #${tx.paymentOrderId.slice(0,6).toUpperCase()}` : ''}`
                     : 'Devolución';
-              const methodLabels: Record<string, string> = {
-                yape: 'Yape', plin: 'Plin', cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia',
-              };
-              const methodLabel = methodLabels[tx.paymentMethod] || tx.paymentMethod;
+              const methodLabel = paymentMethodLabel(tx.paymentMethod);
 
               return (
                 <div key={tx.id} style={{

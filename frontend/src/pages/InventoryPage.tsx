@@ -80,7 +80,10 @@ export function InventoryPage() {
     <PageListLayout
       title="Inventario"
       actions={canManage && (
-        <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>
+        <>
+          <Button variant="secondary" onClick={() => navigate('/inventory/movements')}>Registrar movimientos</Button>
+          <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>
+        </>
       )}
       filters={
         <>

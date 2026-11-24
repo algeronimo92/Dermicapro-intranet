@@ -63,7 +63,7 @@ body {
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -294,7 +294,7 @@ body {
 
 .pagination-page.active {
   background-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   border-color: var(--color-primary);
 }
 
@@ -872,7 +872,7 @@ body {
 .calendar-today-btn {
   padding: 8px 16px;
   background-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -928,7 +928,7 @@ body {
 
 .calendar-day.today .calendar-day-number {
   background-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -1142,7 +1142,7 @@ body {
 
 .patient-dropdown-create {
   background-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   font-weight: 600;
   text-align: center;
   border-radius: 0 0 6px 6px;
@@ -1354,7 +1354,7 @@ body {
   width: 26px;
   height: 26px;
   background: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   border-radius: 50%;
 }
 
@@ -1466,7 +1466,7 @@ body {
   width: 46px;
   height: 46px;
   background: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   border-radius: 50%;
 }
 
@@ -1650,7 +1650,7 @@ body {
   top: -24px; /* Position above the preview block */
   left: 0;
   background-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
@@ -2053,7 +2053,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   font-weight: bold;
   font-size: 16px;
   z-index: 2;
@@ -2606,7 +2606,7 @@ body {
   gap: 8px;
   padding: 10px 16px;
   background: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   text-decoration: none;
   border-radius: 10px;
   font-size: 14px;
@@ -2627,7 +2627,7 @@ body {
   gap: 8px;
   padding: 12px 24px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   border: none;
   border-radius: 12px;
   font-size: 14px;
@@ -3322,14 +3322,14 @@ body {
 .datetime-calendar-day-selected {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   font-weight: 600;
 }
 
 .datetime-calendar-day-selected:hover {
   background: var(--color-primary-dark);
   border-color: var(--color-primary-dark);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
 }
 
 .datetime-calendar-day-disabled {
@@ -3959,7 +3959,7 @@ body {
 /* Hero Section */
 .patient-hero {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   margin: -20px -20px 30px -20px;
   padding: 0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -4665,7 +4665,7 @@ body {
 /* Card Badge */
 .card-badge {
   background: var(--color-primary);
-  color: var(--color-bg-primary);
+  color: var(--color-on-primary);
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;

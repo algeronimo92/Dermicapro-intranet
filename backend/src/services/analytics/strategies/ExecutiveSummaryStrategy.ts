@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { BaseAnalyticsStrategy } from './BaseAnalyticsStrategy';
 import { ExecutiveSummaryData, AnalyticsFilters } from '../../../types/analytics.types';
+import { COLLECTED_PAYMENTS } from '../../collectedPayments';
 
 export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSummaryData> {
   constructor(prisma: PrismaClient) {
@@ -32,7 +33,7 @@ export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSum
     // Revenue
     const revenueResult = await this.prisma.payment.aggregate({
       _sum: { amountPaid: true },
-      where: { paymentDate: dateRange }
+      where: { ...COLLECTED_PAYMENTS, paymentDate: dateRange }
     });
 
     // Appointments
@@ -67,7 +68,7 @@ export class ExecutiveSummaryStrategy extends BaseAnalyticsStrategy<ExecutiveSum
 
   private async getRevenueTrend(dateRange: { gte: Date; lte: Date }) {
     const payments = await this.prisma.payment.findMany({
-      where: { paymentDate: dateRange },
+      where: { ...COLLECTED_PAYMENTS, paymentDate: dateRange },
       select: { paymentDate: true, amountPaid: true }
     });
 

@@ -10,14 +10,14 @@ import { useTheme } from '../../../contexts/ThemeContext';
 
 /** Paleta categórica: tonos separados en matiz y luminosidad para distinguirse sin depender solo del color */
 const CATEGORICAL = {
-  light: ['#A88B4E', '#4E7A7C', '#A3687A', '#6875A0', '#7C9873', '#B07A55', '#83709A', '#8E8A82'],
+  light: ['#9A7A42', '#4E7A7C', '#A3687A', '#6875A0', '#7C9873', '#B07A55', '#83709A', '#8E8A82'],
   dark:  ['#CDB27A', '#7FA9AA', '#CE98A6', '#9AA4CF', '#A3BF9A', '#D1A07E', '#AE9BC6', '#ABA79E'],
 };
 
 const SEMANTIC = {
   light: {
-    brand:     '#A88B4E',
-    sold:      '#A88B4E', // vendido — dorado
+    brand:     '#9A7A42',
+    sold:      '#9A7A42', // vendido — bronce (claro) / champaña (oscuro)
     collected: '#4E7A7C', // cobrado — verde azulado
     scheduled: '#6875A0', // agendadas — índigo
     attended:  '#7C9873', // atendidas — salvia

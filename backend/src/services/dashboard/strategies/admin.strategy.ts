@@ -5,6 +5,7 @@ import {
 } from '../../../types/dashboard.types';
 import { ActivityMetricsService } from '../activity.metrics';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { COLLECTED_PAYMENTS } from '../../collectedPayments';
 type Decimal = Prisma.Decimal;
 
 /**
@@ -89,7 +90,7 @@ export class AdminDashboardStrategy extends BaseDashboardStrategy {
     const rawPaymentsByMethod = await this.prisma.payment.groupBy({
       by: ['paymentMethod'],
       _sum: { amountPaid: true },
-      where: { createdAt: dateRange },
+      where: { ...COLLECTED_PAYMENTS, createdAt: dateRange },
     });
 
     const paymentsByMethod = rawPaymentsByMethod.map((p) => ({

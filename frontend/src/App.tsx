@@ -26,6 +26,7 @@ import CommissionsPage from './pages/CommissionsPage';
 import { PaymentsAdminPage } from './pages/PaymentsAdminPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { InventoryPage } from './pages/InventoryPage';
+import { InventoryMovementsPage } from './pages/InventoryMovementsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { DbPrivilegesPage } from './pages/DbPrivilegesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -159,6 +160,7 @@ function DashboardLayout() {
   const isAccountant = roleName === 'accountant';
   const isInventory = roleName === 'inventory';
   const canSeeInventory = ['admin', 'inventory', 'sales', 'assistant'].includes(roleName);
+  const canManageInventory = isAdmin || isInventory;
 
   const { showWarning, getMsRemaining, extendSession } = useIdleTimeout({
     timeout:       sessionTimeoutMs,
@@ -182,6 +184,7 @@ function DashboardLayout() {
             <Routes>
               <Route path="/invoices/*" element={isAdmin || isAccountant ? <InvoicesPage /> : <Navigate to="/" replace />} />
               <Route path="/inventory" element={canSeeInventory ? <InventoryPage /> : <Navigate to="/" replace />} />
+              <Route path="/inventory/movements" element={canManageInventory ? <InventoryMovementsPage /> : <Navigate to="/inventory" replace />} />
               <Route path="/inventory/:id" element={canSeeInventory ? <ProductDetailPage /> : <Navigate to="/" replace />} />
               {isAccountant ? (
                 <Route path="*" element={<Navigate to="/invoices" replace />} />

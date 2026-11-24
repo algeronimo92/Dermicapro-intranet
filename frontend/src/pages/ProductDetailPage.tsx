@@ -6,6 +6,7 @@ import { PageDetailLayout } from '../components/templates';
 import { Pagination } from '../components/Pagination';
 import { ProductFormModal } from '../components/ProductFormModal';
 import { InventoryMovementModal } from '../components/InventoryMovementModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 import {
   CATEGORY_LABELS,
   formatPrice,
@@ -71,21 +72,29 @@ export function ProductDetailPage() {
   useEffect(() => { loadMovements(); }, [loadMovements]);
 
   const [togglingActive, setTogglingActive] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [activeError, setActiveError] = useState<string | null>(null);
 
-  const toggleActive = async () => {
+  const setActive = async (activate: boolean) => {
     if (!product) return;
-    const activate = !product.isActive;
-    if (!activate && !window.confirm(
-      `¿Desactivar «${product.name}»? Dejará de aparecer en el inventario (salvo con «Mostrar inactivos») y podrás reactivarlo cuando quieras.`,
-    )) return;
     setTogglingActive(true);
+    setActiveError(null);
     try {
       setProduct(await inventoryService.updateProduct(product.id, { isActive: activate }));
+      setConfirmDeactivate(false);
     } catch (err) {
-      window.alert(apiErrorMessage(err, `No se pudo ${activate ? 'activar' : 'desactivar'} el producto`));
+      setActiveError(apiErrorMessage(err, `No se pudo ${activate ? 'activar' : 'desactivar'} el producto`));
     } finally {
       setTogglingActive(false);
     }
+  };
+
+  // Desactivar pide confirmación; reactivar no (no oculta nada).
+  const toggleActive = () => {
+    if (!product) return;
+    setActiveError(null);
+    if (product.isActive) setConfirmDeactivate(true);
+    else setActive(true);
   };
 
   const stockClass = product
@@ -119,6 +128,9 @@ export function ProductDetailPage() {
     >
       {product && (
         <>
+          {activeError && !confirmDeactivate && (
+            <div className="alert alert-error" role="alert" style={{ marginBottom: 'var(--spacing-md)' }}>{activeError}</div>
+          )}
           <div className="product-detail">
             <div className="product-photo">
               {product.photoUrl
@@ -216,6 +228,24 @@ export function ProductDetailPage() {
             onClose={() => setEditOpen(false)}
             product={product}
             onSaved={setProduct}
+          />
+          <ConfirmModal
+            isOpen={confirmDeactivate}
+            title="Desactivar producto"
+            message={<>¿Desactivar <strong>{product.name}</strong>?</>}
+            details={
+              <ul>
+                <li>Dejará de aparecer en el inventario y en «Registrar movimientos». Lo verás con «Mostrar inactivos».</li>
+                <li>Su stock ({product.stock} und.) y su historial de movimientos se conservan.</li>
+                <li>Puedes reactivarlo cuando quieras desde esta ficha.</li>
+              </ul>
+            }
+            confirmLabel="Desactivar"
+            loading={togglingActive}
+            loadingLabel="Desactivando..."
+            error={confirmDeactivate ? activeError : null}
+            onConfirm={() => setActive(false)}
+            onCancel={() => { setConfirmDeactivate(false); setActiveError(null); }}
           />
           <InventoryMovementModal
             isOpen={movementType !== null}
