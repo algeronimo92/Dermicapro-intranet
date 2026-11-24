@@ -14,6 +14,7 @@ import {
   weekdayOfDateKey,
   weekStartKey,
 } from '../../utils/dateUtils';
+import { COLLECTED_PAYMENTS } from '../collectedPayments';
 
 type Decimal = Prisma.Decimal;
 
@@ -83,8 +84,8 @@ export class ActivityMetricsService {
       }),
       this.prisma.payment.findMany({
         where: {
+          ...COLLECTED_PAYMENTS,
           paymentDate: { gte: rangeStart, lt: rangeEnd },
-          voidedAt: null,
         },
         select: { paymentDate: true, amountPaid: true },
       }),

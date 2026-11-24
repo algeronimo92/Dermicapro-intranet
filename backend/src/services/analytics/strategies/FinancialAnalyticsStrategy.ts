@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { BaseAnalyticsStrategy } from './BaseAnalyticsStrategy';
 import { FinancialAnalyticsData, AnalyticsFilters } from '../../../types/analytics.types';
+import { COLLECTED_PAYMENTS } from '../../collectedPayments';
 
 export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialAnalyticsData> {
   constructor(prisma: PrismaClient) {
@@ -25,7 +26,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
     // Total revenue
     const totalResult = await this.prisma.payment.aggregate({
       _sum: { amountPaid: true },
-      where: { paymentDate: dateRange }
+      where: { ...COLLECTED_PAYMENTS, paymentDate: dateRange }
     });
 
     // By payment method
@@ -33,7 +34,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
       by: ['paymentMethod'],
       _sum: { amountPaid: true },
       _count: true,
-      where: { paymentDate: dateRange }
+      where: { ...COLLECTED_PAYMENTS, paymentDate: dateRange }
     });
 
     const totalRevenue = this.decimalToNumber(totalResult._sum.amountPaid);
@@ -50,7 +51,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
 
     // Trend
     const payments = await this.prisma.payment.findMany({
-      where: { paymentDate: dateRange },
+      where: { ...COLLECTED_PAYMENTS, paymentDate: dateRange },
       select: { paymentDate: true, amountPaid: true }
     });
 
@@ -88,7 +89,7 @@ export class FinancialAnalyticsStrategy extends BaseAnalyticsStrategy<FinancialA
   // ==================== CASH FLOW ====================
   private async getCashFlow(dateRange: { gte: Date; lte: Date }) {
     const payments = await this.prisma.payment.findMany({
-      where: { paymentDate: dateRange },
+      where: { ...COLLECTED_PAYMENTS, paymentDate: dateRange },
       select: { paymentDate: true, amountPaid: true },
       orderBy: { paymentDate: 'asc' }
     });
