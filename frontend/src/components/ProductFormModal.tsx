@@ -50,10 +50,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [cameraOpen, setCameraOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Producto ya creado en este modal cuando la foto falló después: los
+  // reintentos lo actualizan en vez de crear un duplicado.
+  const [created, setCreated] = useState<Product | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
+    setCreated(null);
     setPhoto(null);
     setPreview(product?.photoUrl ?? null);
     setForm(product ? {
@@ -122,22 +126,37 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     };
 
     setSaving(true);
+    let saved: Product | null = null;
     try {
-      let saved = isEdit
-        ? await inventoryService.updateProduct(product!.id, payload)
+      const existing = product ?? created;
+      saved = existing
+        ? await inventoryService.updateProduct(existing.id, payload)
         : await inventoryService.createProduct({ ...payload, initialStock });
       if (photo) saved = await inventoryService.uploadPhoto(saved.id, photo);
       onSaved(saved);
       onClose();
     } catch (err) {
-      setError(apiErrorMessage(err, 'No se pudo guardar el producto'));
+      const message = apiErrorMessage(err, 'No se pudo guardar el producto');
+      if (!isEdit && saved) {
+        // El producto se guardó pero la foto no.
+        setCreated(saved);
+        setError(`El producto se creó, pero la foto no se pudo subir: ${message}. Puedes reintentar o cerrar y agregarla después.`);
+      } else {
+        setError(message);
+      }
     } finally {
       setSaving(false);
     }
   };
 
+  // Si el producto quedó creado sin foto, cerrar igual lo entrega a la página.
+  const handleClose = () => {
+    if (created) onSaved(created);
+    onClose();
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? 'Editar producto' : 'Nuevo producto'} size="medium">
+    <Modal isOpen={isOpen} onClose={handleClose} title={isEdit ? 'Editar producto' : 'Nuevo producto'} size="medium">
       <form onSubmit={handleSubmit}>
         {error && <div className="alert alert-error" style={{ marginBottom: 'var(--spacing-md)' }}>{error}</div>}
 
@@ -264,7 +283,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         )}
 
         <div className="modal-actions">
-          <button type="button" className="action-btn secondary" onClick={onClose} disabled={saving}>
+          <button type="button" className="action-btn secondary" onClick={handleClose} disabled={saving}>
             Cancelar
           </button>
           <button type="submit" className="action-btn primary" disabled={saving}>
