@@ -1,0 +1,51 @@
+.confirm-modal {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.confirm-modal__icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-modal--danger .confirm-modal__icon {
+  background: var(--color-error-alpha-10);
+  color: var(--color-error);
+}
+
+.confirm-modal--primary .confirm-modal__icon {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.confirm-modal__body { min-width: 0; }
+
+/* Doble clase: los estilos globales del modal le dan margen a todo <p>. El
+   padding centra la primera línea con el ícono de 40px. */
+.confirm-modal .confirm-modal__message {
+  margin: 0;
+  padding-top: 8px;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+.confirm-modal__details {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.confirm-modal__details ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.confirm-modal__details li + li { margin-top: 4px; }
