@@ -70,6 +70,24 @@ export function ProductDetailPage() {
   useEffect(() => { loadProduct(); }, [loadProduct]);
   useEffect(() => { loadMovements(); }, [loadMovements]);
 
+  const [togglingActive, setTogglingActive] = useState(false);
+
+  const toggleActive = async () => {
+    if (!product) return;
+    const activate = !product.isActive;
+    if (!activate && !window.confirm(
+      `¿Desactivar «${product.name}»? Dejará de aparecer en el inventario (salvo con «Mostrar inactivos») y podrás reactivarlo cuando quieras.`,
+    )) return;
+    setTogglingActive(true);
+    try {
+      setProduct(await inventoryService.updateProduct(product.id, { isActive: activate }));
+    } catch (err) {
+      window.alert(apiErrorMessage(err, `No se pudo ${activate ? 'activar' : 'desactivar'} el producto`));
+    } finally {
+      setTogglingActive(false);
+    }
+  };
+
   const stockClass = product
     ? product.stock === 0 ? ' is-out' : isLowStock(product) ? ' is-low' : ''
     : '';
@@ -84,9 +102,19 @@ export function ProductDetailPage() {
       error={error}
       notFoundMessage="Producto no encontrado"
       actions={canManage && product && (
-        <button type="button" className="action-btn secondary" onClick={() => setEditOpen(true)}>
-          Editar producto
-        </button>
+        <>
+          <button
+            type="button"
+            className={`action-btn ${product.isActive ? 'secondary' : 'success'}`}
+            onClick={toggleActive}
+            disabled={togglingActive}
+          >
+            {togglingActive ? 'Guardando...' : product.isActive ? 'Desactivar' : 'Activar'}
+          </button>
+          <button type="button" className="action-btn secondary" onClick={() => setEditOpen(true)}>
+            Editar producto
+          </button>
+        </>
       )}
     >
       {product && (

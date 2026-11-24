@@ -11,7 +11,7 @@ import {
   uploadProductPhoto,
 } from '../controllers/inventory.controller';
 import { authenticate, authorize } from '../middlewares/auth';
-import { uploadLimiter } from '../middlewares/rateLimiter';
+import { productPhotoLimiter } from '../middlewares/rateLimiter';
 import { processUpload, upload } from '../middlewares/upload';
 
 const router = Router();
@@ -29,7 +29,7 @@ router.get('/products/:id/movements', listMovements);
 
 router.post('/products', canManage, createProduct);
 router.put('/products/:id', canManage, updateProduct);
-router.post('/products/:id/photo', canManage, uploadLimiter, upload.single('photo'), processUpload, uploadProductPhoto);
+router.post('/products/:id/photo', canManage, productPhotoLimiter, upload.single('photo'), processUpload, uploadProductPhoto);
 router.post('/products/:id/movements', canManage, createMovement);
 
 export default router;

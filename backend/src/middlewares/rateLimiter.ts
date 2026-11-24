@@ -104,3 +104,23 @@ export const uploadLimiter = rateLimit({
     });
   }
 });
+
+// Rate limiter para fotos del catálogo de productos — contador propio por usuario.
+// Cargar el catálogo implica subir una foto por producto, así que no comparte
+// el límite de 30/hora con comprobantes y fotos clínicas.
+export const productPhotoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 300,
+  skip: () => process.env.NODE_ENV !== 'production',
+  keyGenerator: getUserKey,
+  validate: { keyGeneratorIpFallback: false },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: 'Límite de subida de fotos de productos excedido',
+      message: 'Has subido demasiadas fotos de productos en la última hora. Por favor intenta de nuevo más tarde.',
+      retryAfter: '1 hora'
+    });
+  }
+});
