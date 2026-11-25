@@ -69,6 +69,15 @@ services:
       METRICS_AGED_COMMISSION_DAYS: ${METRICS_AGED_COMMISSION_DAYS:-7}
       METRICS_OVER_PACKAGE_WINDOW_HOURS: ${METRICS_OVER_PACKAGE_WINDOW_HOURS:-24}
       METRICS_BUSINESS_INTERVAL_MS: ${METRICS_BUSINESS_INTERVAL_MS:-60000}
+      # Correos (recuperar contraseña) con la cuenta de Hostinger. Sin SMTP_HOST
+      # el enlace no se envía (queda el error en los logs).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-DermicaPro <no-reply@dermicapro.com>}
+      APP_URL: ${APP_URL:-}
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     volumes:

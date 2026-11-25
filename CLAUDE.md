@@ -210,6 +210,7 @@ App.tsx (routing) → Pages → Components
 - Refresh tokens (long-lived) for token renewal
 - Backend middleware: `authenticate` (verify token), `authorize` (check roles - deprecated)
 - New RBAC system: `requireRole` and `requirePermission` for granular permission checks
+- **Forgot password (email):** `POST /api/auth/forgot-password` always returns the same message and sends a single-use link valid for 30 minutes (`services/passwordReset.service.ts`; only the SHA-256 of the token is stored in `password_reset_tokens`, an owner-only table with no GRANTs). The link is `APP_URL/reset-password#<token>`. Resetting sets `users.sessions_revoked_at`, so `authenticate` and `/refresh` reject tokens issued before it (`utils/sessionRevocation.ts`), and it also unlocks the PIN. SMTP settings come from `SMTP_HOST/PORT/SECURE/USER/PASS`, `MAIL_FROM` and `APP_URL`: in production, Hostinger's `no-reply@dermicapro.com` (`smtp.hostinger.com:465`); in dev, the `mailpit` container (inbox at http://localhost:8025).
 
 **Role Hierarchy:**
 - `admin` - Full system access, manages users/roles/commissions

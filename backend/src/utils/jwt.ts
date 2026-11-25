@@ -7,6 +7,8 @@ export interface JwtPayload {
   email: string;
   roleId?: string | null;
   roleName?: string;
+  /** Lo agrega jwt.sign; segundos desde epoch. */
+  iat?: number;
 }
 
 export const generateAccessToken = (payload: JwtPayload | PatientJwtPayload): string => {

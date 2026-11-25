@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, ChevronLeft, X, Check } from 'lucide-react';
+import { Link, Navigate } from 'react-router-dom';
+import { Eye, EyeOff, Lock, Mail, ChevronLeft, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getRememberedUsers, removeRememberedUser, RememberedUser } from '../contexts/AuthContext';
 import { Role } from '../types';
 import { PinInput } from '../components/PinInput';
+import { AuthLayout } from '../components/AuthLayout';
 
 type LoginView = 'cards' | 'quick' | 'full';
 
@@ -114,44 +115,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      {/* ── Panel de marca (izquierda) ── */}
-      <div className="login-brand-panel">
-        <img src="/logo-mark-256.png" alt="" className="login-brand-watermark" aria-hidden="true" />
-
-        <div className="login-brand-content">
-          <div className="login-brand-logo">
-            <img src="/logo-mark-256.png" alt="" className="login-brand-mark" />
-            <span className="login-brand-text">
-              <span className="login-brand-name">DermicaPro</span>
-              <span className="login-brand-tag">Skincare Clinic</span>
-            </span>
-          </div>
-          <p className="login-brand-tagline">
-            Gestión integral para tu clínica de estética y dermatología
-          </p>
-          <ul className="login-brand-features">
-            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Historial clínico y seguimiento de pacientes</li>
-            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Agenda y gestión de citas en tiempo real</li>
-            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Órdenes de pago y comisiones automáticas</li>
-            <li><span className="login-feature-icon" aria-hidden="true"><Check size={16} strokeWidth={2.5} /></span>Analíticas y reportes ejecutivos</li>
-          </ul>
-        </div>
-
-        <div className="login-brand-footer">
-          <span>DermicaPro</span>
-          <span>Trujillo, Perú</span>
-        </div>
-      </div>
-
-      {/* ── Panel derecho ── */}
-      <div className="login-form-panel">
-        <div className="login-form-container">
-          <div className="login-mobile-logo">
-            <img src="/logo-mark-64.png" alt="" width={28} height={28} />
-            <span>DermicaPro</span>
-          </div>
-
+    <AuthLayout>
           {/* ── VISTA: cards de usuarios recordados ── */}
           {view === 'cards' && (
             <>
@@ -296,6 +260,9 @@ export function LoginPage() {
                       </button>
                     </div>
                   </div>
+                  <Link to="/forgot-password" state={{ email: selectedUser.email }} className="login-forgot-link">
+                    ¿Olvidaste tu contraseña?
+                  </Link>
 
                   {error && (
                     <div className="login-error" role="alert">
@@ -383,6 +350,9 @@ export function LoginPage() {
                     </button>
                   </div>
                 </div>
+                <Link to="/forgot-password" state={{ email }} className="login-forgot-link">
+                  ¿Olvidaste tu contraseña?
+                </Link>
 
                 {error && (
                   <div className="login-error" role="alert">
@@ -402,8 +372,6 @@ export function LoginPage() {
             </>
           )}
 
-        </div>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }
