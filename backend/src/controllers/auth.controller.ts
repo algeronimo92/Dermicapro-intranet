@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { isValidPinFormat, MAX_PIN_ATTEMPTS } from '../utils/pin';
+import { getModuleAccess } from '../services/moduleAccess.service';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -386,5 +387,15 @@ export const removePin = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al eliminar el PIN' });
+  }
+};
+
+/** Qué módulos manejados por privilegios ve la persona y qué puede hacer en ellos. */
+export const myModules = async (req: Request, res: Response): Promise<void> => {
+  try {
+    res.json(await getModuleAccess(req.user!.id, req.user!.roleName));
+  } catch (error) {
+    logUnexpectedError(req, error);
+    res.status(500).json({ error: 'Error al obtener los módulos disponibles' });
   }
 };

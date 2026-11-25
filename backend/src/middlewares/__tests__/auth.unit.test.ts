@@ -36,8 +36,13 @@ beforeEach(() => {
 });
 
 describe('Acceso del contador', () => {
+  // En Facturas e Inventario decide requireModule según Empleados -> Privilegios.
   it.each([
     ['GET', '/api/invoices'],
+    ['POST', '/api/invoices'],
+    ['PUT', '/api/invoices'],
+    ['DELETE', '/api/invoices'],
+    ['GET', '/api/inventory'],
     ['GET', '/api/auth'],
     ['PUT', '/api/auth'],
     ['POST', '/api/auth'],
@@ -53,10 +58,6 @@ describe('Acceso del contador', () => {
   });
 
   it.each([
-    ['POST', '/api/invoices'],
-    ['PUT', '/api/invoices'],
-    ['PATCH', '/api/invoices'],
-    ['DELETE', '/api/invoices'],
     ['GET', '/api/patients'],
     ['GET', '/api/appointments'],
     ['GET', '/api/payments'],
@@ -113,6 +114,7 @@ describe('Acceso del rol de inventario', () => {
     ['GET', '/api/inventory'],
     ['POST', '/api/inventory'],
     ['PUT', '/api/inventory'],
+    ['GET', '/api/invoices'],
     ['GET', '/api/auth'],
     ['PUT', '/api/auth'],
     ['GET', '/api/settings'],
@@ -129,7 +131,6 @@ describe('Acceso del rol de inventario', () => {
     ['GET', '/api/appointments'],
     ['GET', '/api/payments'],
     ['GET', '/api/payment-orders'],
-    ['GET', '/api/invoices'],
     ['GET', '/api/users'],
     ['GET', '/api/services'],
     ['GET', '/api/dashboard'],

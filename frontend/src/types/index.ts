@@ -349,3 +349,17 @@ export interface CreateAppointmentDto {
   services?: any[];  // Para modo create (legacy)
   sessionOperations?: SessionOperations;  // Para modo edit (nuevo)
 }
+
+/**
+ * Módulos cuyo acceso decide Empleados -> Privilegios (privilegios de la base),
+ * no el rol. Lo calcula el backend en GET /auth/me/modules.
+ */
+export interface ModuleAccess {
+  invoices: { view: boolean; create: boolean; edit: boolean; delete: boolean };
+  inventory: { view: boolean; create: boolean; edit: boolean; move: boolean };
+}
+
+export const NO_MODULE_ACCESS: ModuleAccess = {
+  invoices: { view: false, create: false, edit: false, delete: false },
+  inventory: { view: false, create: false, edit: false, move: false },
+};

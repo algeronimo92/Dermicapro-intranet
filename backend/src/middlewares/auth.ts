@@ -5,6 +5,11 @@ import prisma from '../config/database';
 import { ROLES } from '../constants/roles';
 import { dbRoleContext, dbRoleFor } from '../config/dbRoleContext';
 import { ensureEmployeeDbRole } from '../services/employeeDbRoles.service';
+import { getModuleAccess } from '../services/moduleAccess.service';
+import { ModuleAction, ModuleKey } from '../constants/modules';
+
+/** Rutas de la API de los módulos manejados por privilegios. */
+const MODULE_BASE_URLS = ['/api/invoices', '/api/inventory'];
 
 export const authenticate = async (
   req: Request,
@@ -53,24 +58,16 @@ export const authenticate = async (
       res.status(403).json({ error: 'La cuenta no tiene un rol autorizado' });
       return;
     }
-    // La sesión necesita su cuenta y la configuración del tiempo de inactividad.
-    const accountantCanAccess =
-      req.baseUrl === '/api/auth' ||
-      (req.method === 'GET' && ['/api/invoices', '/api/settings'].includes(req.baseUrl));
-
-    if (roleName === ROLES.ACCOUNTANT && !accountantCanAccess) {
-      res.status(403).json({ error: 'El contador solo tiene acceso de lectura a las facturas' });
-      return;
-    }
-
-    // El rol de inventario sólo ve su módulo; el resto de la API no le aplica.
-    const inventoryCanAccess =
-      req.baseUrl === '/api/auth' ||
-      req.baseUrl === '/api/inventory' ||
+    // Contador e inventario sólo usan los módulos manejados por privilegios
+    // (Facturas, Inventario), cuyo acceso decide requireModule según la matriz
+    // de Empleados -> Privilegios. Además necesitan su cuenta y la
+    // configuración del tiempo de inactividad. El resto de la API no les aplica.
+    const limitedRoleCanAccess =
+      ['/api/auth', ...MODULE_BASE_URLS].includes(req.baseUrl) ||
       (req.method === 'GET' && req.baseUrl === '/api/settings');
 
-    if (roleName === ROLES.INVENTORY && !inventoryCanAccess) {
-      res.status(403).json({ error: 'El rol de inventario solo tiene acceso al módulo de inventario' });
+    if ((roleName === ROLES.ACCOUNTANT || roleName === ROLES.INVENTORY) && !limitedRoleCanAccess) {
+      res.status(403).json({ error: 'Tu rol solo tiene acceso a los módulos que te asignó el administrador' });
       return;
     }
 
@@ -117,6 +114,32 @@ export const authorize = (...roleNames: string[]) => {
     next();
   };
 };
+
+/**
+ * Acceso a un módulo manejado por privilegios de base de datos (Facturas,
+ * Inventario): lo decide la matriz de Empleados -> Privilegios, no el rol.
+ * Va antes de procesar archivos para no subir adjuntos que luego se rechazan.
+ */
+export const requireModule = <M extends ModuleKey>(module: M, action: ModuleAction<M>) =>
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ error: 'No autenticado' });
+      return;
+    }
+    try {
+      const access = req.moduleAccess ?? await getModuleAccess(req.user.id, req.user.roleName);
+      req.moduleAccess = access;
+      if (!(access[module] as Record<string, boolean>)[action]) {
+        const message = 'Tu rol no tiene privilegios para esta acción. ' +
+          'Pide al administrador que los otorgue en Empleados → Privilegios.';
+        res.status(403).json({ error: message, message, code: 'MODULE_PRIVILEGE_DENIED' });
+        return;
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 
 // Se ejecuta antes de procesar archivos para impedir subidas sobre otras cuentas.
 export const authorizeSelfOrAdmin = (req: Request, res: Response, next: NextFunction): void => {

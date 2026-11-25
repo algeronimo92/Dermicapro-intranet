@@ -3,7 +3,6 @@ import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Role } from '../types';
 import { Modal } from '../components/Modal';
 import { invoicesService, type InvoiceDetail } from '../services/invoices.service';
 import { InvoiceList } from './InvoiceList';
@@ -72,16 +71,16 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export function InvoicesPage() {
-  const { user } = useAuth();
-  const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name;
-  const canRegister = roleName === Role.admin;
+  // Lo que puede hacer lo decide Empleados -> Privilegios (registered_invoices y sus adjuntos).
+  const { modules } = useAuth();
+  const { create: canCreate, edit: canEdit, delete: canDelete } = modules.invoices;
   return (
     <div className="invoice-page">
       <Routes>
-        <Route index element={<InvoiceList canRegister={canRegister} />} />
-        <Route path="new" element={canRegister ? <InvoiceForm /> : <Navigate to="/invoices" replace />} />
-        <Route path=":id/edit" element={canRegister ? <InvoiceEditor /> : <Navigate to="/invoices" replace />} />
-        <Route path=":id" element={<InvoiceDetails canManage={canRegister} />} />
+        <Route index element={<InvoiceList canRegister={canCreate} />} />
+        <Route path="new" element={canCreate ? <InvoiceForm /> : <Navigate to="/invoices" replace />} />
+        <Route path=":id/edit" element={canEdit ? <InvoiceEditor /> : <Navigate to="/invoices" replace />} />
+        <Route path=":id" element={<InvoiceDetails canEdit={canEdit} canDelete={canDelete} />} />
       </Routes>
     </div>
   );
@@ -254,7 +253,7 @@ function InvoiceFormFields({ fields, values }: { fields: InvoiceField[]; values?
   );
 }
 
-function InvoiceDetails({ canManage }: { canManage: boolean }) {
+function InvoiceDetails({ canEdit, canDelete }: { canEdit: boolean; canDelete: boolean }) {
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -316,12 +315,12 @@ function InvoiceDetails({ canManage }: { canManage: boolean }) {
               <h1>{invoice.documentType} · {invoice.issuerName}</h1>
               <p>Registrado por {invoice.createdBy.firstName} {invoice.createdBy.lastName}</p>
             </div>
-            {canManage && <div className="invoice-actions">
-              <Link className="btn btn-secondary" to={`/invoices/${invoice.id}/edit`}>Editar comprobante</Link>
-              <button className="btn btn-danger" onClick={() => setShowDelete(true)}>Eliminar comprobante</button>
+            {(canEdit || canDelete) && <div className="invoice-actions">
+              {canEdit && <Link className="btn btn-secondary" to={`/invoices/${invoice.id}/edit`}>Editar comprobante</Link>}
+              {canDelete && <button className="btn btn-danger" onClick={() => setShowDelete(true)}>Eliminar comprobante</button>}
             </div>}
           </header>
-          {showDelete && canManage && <Modal isOpen={showDelete} onClose={() => { if (!deleting) setShowDelete(false); }} title="Eliminar comprobante">
+          {showDelete && canDelete && <Modal isOpen={showDelete} onClose={() => { if (!deleting) setShowDelete(false); }} title="Eliminar comprobante">
             <p>Se eliminará el registro de {invoice.issuerName} por {formatAmount(invoice.total, invoice.currency)} y sus adjuntos. Esta acción no se puede deshacer.</p>
             {deleteError && <p className="invoice-error" role="alert">{deleteError}</p>}
             <div className="invoice-actions">

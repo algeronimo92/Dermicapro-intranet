@@ -13,7 +13,6 @@ import {
   CATEGORY_LABELS,
   formatPrice,
   apiErrorMessage,
-  canManageInventory,
   inventoryService,
   Product,
 } from '../services/inventory.service';
@@ -23,9 +22,9 @@ const PAGE_SIZE = 24;
 
 export function InventoryPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const roleName = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
-  const canManage = canManageInventory(roleName);
+  // Lo que puede hacer lo decide Empleados -> Privilegios (products / inventory_movements).
+  const { modules } = useAuth();
+  const { create: canCreate, edit: canEdit, move: canMove } = modules.inventory;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -79,10 +78,10 @@ export function InventoryPage() {
   return (
     <PageListLayout
       title="Inventario"
-      actions={canManage && (
+      actions={(canMove || canCreate) && (
         <>
-          <Button variant="secondary" onClick={() => navigate('/inventory/movements')}>Registrar movimientos</Button>
-          <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>
+          {canMove && <Button variant="secondary" onClick={() => navigate('/inventory/movements')}>Registrar movimientos</Button>}
+          {canCreate && <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>}
         </>
       )}
       filters={
@@ -112,7 +111,7 @@ export function InventoryPage() {
               Solo stock bajo
             </span>
           </label>
-          {canManage && (
+          {canEdit && (
             <label className="checkbox-modern" style={{ cursor: 'pointer', flexShrink: 0 }}>
               <input type="checkbox" checked={includeInactive} onChange={(e) => setIncludeInactive(e.target.checked)} />
               <span className="checkbox-custom" />

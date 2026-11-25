@@ -116,8 +116,6 @@ export interface Paginated<T> {
 
 export { apiErrorMessage } from '../utils/apiError';
 
-export const canManageInventory = (roleName: string) => roleName === 'admin' || roleName === 'inventory';
-
 export const isLowStock = (p: Pick<Product, 'stock' | 'minStock'>) => p.stock <= p.minStock;
 
 export const formatPrice = (value: string | number) =>
