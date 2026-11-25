@@ -9,6 +9,8 @@ declare global {
         roleId?: string | null;
         roleName?: string;
       };
+      /** Acceso a módulos por privilegios, calculado una vez por petición (requireModule). */
+      moduleAccess?: import('../constants/modules').ModuleAccess;
       patient?: {
         id: string;
         email: string | null;

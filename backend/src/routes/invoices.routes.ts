@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { config } from '../config/env';
-import { ROLES } from '../constants/roles';
 import { createInvoice, deleteInvoice, downloadInvoiceAttachment, exportInvoices, getInvoice, getInvoiceDefaults, invoiceReport, listInvoices, updateInvoice } from '../controllers/invoices.controller';
-import { authenticate, authorize } from '../middlewares/auth';
+import { authenticate, requireModule } from '../middlewares/auth';
 import { AppError } from '../middlewares/errorHandler';
 import { uploadLimiter } from '../middlewares/rateLimiter';
 
@@ -26,7 +25,8 @@ const uploadAttachments = multer({
   },
 }).array('attachments', 5);
 
-router.use(authenticate, authorize(ROLES.ADMIN, ROLES.ACCOUNTANT));
+// Quién ve y qué puede hacer lo decide Empleados -> Privilegios (constants/modules.ts).
+router.use(authenticate, requireModule('invoices', 'view'));
 router.use((_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
@@ -34,11 +34,11 @@ router.use((_req, res, next) => {
 router.get('/', listInvoices);
 router.get('/report', invoiceReport);
 router.get('/export', exportInvoices);
-router.post('/', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, createInvoice);
-router.get('/defaults', authorize(ROLES.ADMIN), getInvoiceDefaults);
+router.post('/', requireModule('invoices', 'create'), uploadLimiter, uploadAttachments, createInvoice);
+router.get('/defaults', requireModule('invoices', 'create'), getInvoiceDefaults);
 router.get('/:id', getInvoice);
-router.put('/:id', authorize(ROLES.ADMIN), uploadLimiter, uploadAttachments, updateInvoice);
-router.delete('/:id', authorize(ROLES.ADMIN), deleteInvoice);
+router.put('/:id', requireModule('invoices', 'edit'), uploadLimiter, uploadAttachments, updateInvoice);
+router.delete('/:id', requireModule('invoices', 'delete'), deleteInvoice);
 router.get('/:id/attachments/:attachmentId', downloadInvoiceAttachment);
 
 export default router;

@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { isValidPinFormat, MAX_PIN_ATTEMPTS } from '../utils/pin';
+import { getModuleAccess } from '../services/moduleAccess.service';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -207,8 +208,8 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
-      throw new AppError('Se requieren la contraseña actual y la nueva', 400);
+    if (!newPassword) {
+      throw new AppError('Se requiere la nueva contraseña', 400);
     }
 
     if (newPassword.length < 8) {
@@ -227,9 +228,20 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) throw new AppError('Usuario no encontrado', 404);
 
-    const isValid = await comparePassword(currentPassword, user.passwordHash);
-    if (!isValid) {
-      throw new AppError('La contraseña actual es incorrecta', 401);
+    // En el primer inicio de sesión (o tras un cambio hecho por el admin) la
+    // persona acaba de entrar con esa contraseña; no se le vuelve a pedir.
+    if (!user.mustChangePassword) {
+      if (!currentPassword) {
+        throw new AppError('Se requieren la contraseña actual y la nueva', 400);
+      }
+      const isValid = await comparePassword(currentPassword, user.passwordHash);
+      if (!isValid) {
+        throw new AppError('La contraseña actual es incorrecta', 401);
+      }
+    }
+
+    if (await comparePassword(newPassword, user.passwordHash)) {
+      throw new AppError('La nueva contraseña debe ser distinta de la actual', 400);
     }
 
     await prisma.user.update({
@@ -375,5 +387,15 @@ export const removePin = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al eliminar el PIN' });
+  }
+};
+
+/** Qué módulos manejados por privilegios ve la persona y qué puede hacer en ellos. */
+export const myModules = async (req: Request, res: Response): Promise<void> => {
+  try {
+    res.json(await getModuleAccess(req.user!.id, req.user!.roleName));
+  } catch (error) {
+    logUnexpectedError(req, error);
+    res.status(500).json({ error: 'Error al obtener los módulos disponibles' });
   }
 };

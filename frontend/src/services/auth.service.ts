@@ -1,5 +1,5 @@
 import api from './api';
-import { AuthResponse, User } from '../types';
+import { AuthResponse, ModuleAccess, User } from '../types';
 
 export const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
@@ -28,12 +28,19 @@ export const authService = {
     return response.data;
   },
 
+  /** Qué módulos (Facturas, Inventario) ve y qué puede hacer según los privilegios de su rol. */
+  async getMyModules(): Promise<ModuleAccess> {
+    const response = await api.get<ModuleAccess>('/auth/me/modules');
+    return response.data;
+  },
+
   async updateMe(data: { firstName?: string; lastName?: string; email?: string; sex?: string; themeMode?: 'light' | 'dark' | 'auto' }): Promise<User> {
     const response = await api.put<User>('/auth/me', data);
     return response.data;
   },
 
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  /** currentPassword se omite sólo en el primer inicio de sesión (mustChangePassword). */
+  async changePassword(currentPassword: string | undefined, newPassword: string): Promise<void> {
     await api.put('/auth/me/password', { currentPassword, newPassword });
   },
 
