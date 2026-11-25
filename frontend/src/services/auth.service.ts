@@ -33,7 +33,8 @@ export const authService = {
     return response.data;
   },
 
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  /** currentPassword se omite sólo en el primer inicio de sesión (mustChangePassword). */
+  async changePassword(currentPassword: string | undefined, newPassword: string): Promise<void> {
     await api.put('/auth/me/password', { currentPassword, newPassword });
   },
 

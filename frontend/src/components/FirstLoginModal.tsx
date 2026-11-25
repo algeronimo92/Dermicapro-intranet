@@ -58,7 +58,8 @@ export function FirstLoginModal() {
 
     setIsLoading(true);
     try {
-      await authService.changePassword('1234567890', newPassword);
+      // Acaba de entrar con la contraseña que le dieron; el backend no la vuelve a pedir.
+      await authService.changePassword(undefined, newPassword);
       if (user) updateUser({ ...user, mustChangePassword: false });
       clearMustChangePassword();
     } catch (err: any) {
