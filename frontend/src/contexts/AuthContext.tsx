@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
+import { ModuleAccess, NO_MODULE_ACCESS, User } from '../types';
 import { authService } from '../services/auth.service';
 import { useTheme, ThemeMode } from './ThemeContext';
 
@@ -7,6 +7,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   mustChangePassword: boolean;
+  /** Acceso a Facturas e Inventario según Empleados -> Privilegios. */
+  modules: ModuleAccess;
   login: (email: string, password: string) => Promise<void>;
   loginWithPin: (userId: string, pin: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -72,11 +74,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [modules, setModules] = useState<ModuleAccess>(NO_MODULE_ACCESS);
   const { setMode } = useTheme();
 
   const applyUserTheme = (userData: User) => {
     if (userData.themeMode) {
       setMode(userData.themeMode as ThemeMode);
+    }
+  };
+
+  // Se carga antes de poner el usuario: las rutas de Facturas e Inventario
+  // redirigen si el módulo no está permitido, y no deben hacerlo mientras carga.
+  const loadModules = async () => {
+    try {
+      setModules(await authService.getMyModules());
+    } catch {
+      setModules(NO_MODULE_ACCESS);
     }
   };
 
@@ -86,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           const userData = await authService.getMe();
+          await loadModules();
           setUser(userData);
           applyUserTheme(userData);
           if (userData.mustChangePassword) setMustChangePassword(true);
@@ -104,6 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { accessToken, refreshToken, mustChangePassword: mcp, user: userData } = await authService.login(email, password);
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    await loadModules();
     setUser(userData);
     applyUserTheme(userData);
     if (mcp) setMustChangePassword(true);
@@ -114,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { accessToken, refreshToken, mustChangePassword: mcp, user: userData } = await authService.loginWithPin(userId, pin);
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    await loadModules();
     setUser(userData);
     applyUserTheme(userData);
     if (mcp) setMustChangePassword(true);
@@ -123,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     await authService.logout();
     setUser(null);
+    setModules(NO_MODULE_ACCESS);
     setMustChangePassword(false);
   };
 
@@ -140,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isLoading,
         mustChangePassword,
+        modules,
         login,
         loginWithPin,
         logout,

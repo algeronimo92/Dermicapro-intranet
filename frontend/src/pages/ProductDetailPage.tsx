@@ -12,7 +12,6 @@ import {
   formatPrice,
   InventoryMovement,
   apiErrorMessage,
-  canManageInventory,
   inventoryService,
   isLowStock,
   MovementType,
@@ -28,9 +27,9 @@ const MOVEMENTS_PAGE_SIZE = 15;
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const roleName = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
-  const canManage = canManageInventory(roleName);
+  // Lo que puede hacer lo decide Empleados -> Privilegios (products / inventory_movements).
+  const { modules } = useAuth();
+  const { edit: canEdit, move: canMove } = modules.inventory;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,7 +109,7 @@ export function ProductDetailPage() {
       isLoading={loading}
       error={error}
       notFoundMessage="Producto no encontrado"
-      actions={canManage && product && (
+      actions={canEdit && product && (
         <>
           <button
             type="button"
@@ -166,7 +165,7 @@ export function ProductDetailPage() {
                 </p>
               )}
 
-              {canManage && (
+              {canMove && (
                 <div className="product-detail__actions">
                   <button type="button" className="action-btn success" onClick={() => setMovementType('in')}>
                     ＋ Registrar entrada

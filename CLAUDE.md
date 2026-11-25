@@ -216,8 +216,8 @@ App.tsx (routing) → Pages → Components
 - `medical_staff` - Medical doctor, performs procedures
 - `assistant` - Attends appointments, records medical data (previously "nurse")
 - `sales` - Creates appointments, manages patients (filtered to own appointments)
-- `accountant` - Read-only access to invoices only
-- `inventory` - Manages products and stock movements only (`/api/inventory`); blocked from the rest of the API in `authenticate`
+- `accountant` - Only the privilege-driven modules it is granted (by default: read-only invoices); blocked from the rest of the API in `authenticate`
+- `inventory` - Only the privilege-driven modules it is granted (by default: products and stock movements); blocked from the rest of the API in `authenticate`
 
 **Database Privileges (PostgreSQL):**
 - Every app role except admin has a NOLOGIN Postgres group role `app_<role>` holding the table privileges. Every employee (except admins) has their own NOLOGIN role `emp_<user id without dashes>`, member of their `app_<role>` and commented with their name; `services/employeeDbRoles.service.ts` creates it and keeps the membership in sync on each authentication (and at startup).
@@ -226,12 +226,13 @@ App.tsx (routing) → Pages → Components
 - Admins manage object privileges (SELECT/INSERT/UPDATE/DELETE per table) in Empleados → Privilegios de BD (`/api/db-privileges`). Only tables in `constants/dbPrivileges.ts` are manageable; INSERT/UPDATE/DELETE require SELECT (Prisma uses RETURNING).
 - A Postgres `42501` is turned into a 403 `DB_PRIVILEGE_DENIED` by `middlewares/dbPrivilegeErrors.ts`.
 - **New tables are invisible to every app role** until granted: add the GRANTs in the same migration that creates the table, and add the table to `constants/dbPrivileges.ts`.
+- **Privilege-driven modules (Facturas, Inventario):** who sees the module and each action is decided by the DB privileges, not by the role. `constants/modules.ts` maps each action (view/create/edit/delete/move) to the (table, privilege) pairs it needs; `requireModule(module, action)` guards the routes, and `GET /api/auth/me/modules` tells the frontend which menu items, routes and buttons to show (`AuthContext.modules`). Admin always has everything.
 
 **Critical Authorization Rules:**
 - Sales users ONLY see appointments they created (`createdById` filter)
 - Only admins can manage users, services, and view all appointments
 - Only assistant/admins can mark appointments as attended and create medical records
-- Inventory: admin and inventory manage; sales and assistant can only consult stock
+- Facturas and Inventario: decided by Empleados → Privilegios (see Privilege-driven modules above); the default grants keep accountant read-only on invoices, inventory managing stock, and sales/assistant consulting stock
 
 ### Business Logic Patterns
 

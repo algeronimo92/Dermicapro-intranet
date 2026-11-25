@@ -1,5 +1,5 @@
 import api from './api';
-import { AuthResponse, User } from '../types';
+import { AuthResponse, ModuleAccess, User } from '../types';
 
 export const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
@@ -25,6 +25,12 @@ export const authService = {
 
   async refresh(refreshToken: string): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/refresh', { refreshToken });
+    return response.data;
+  },
+
+  /** Qué módulos (Facturas, Inventario) ve y qué puede hacer según los privilegios de su rol. */
+  async getMyModules(): Promise<ModuleAccess> {
+    const response = await api.get<ModuleAccess>('/auth/me/modules');
     return response.data;
   },
 

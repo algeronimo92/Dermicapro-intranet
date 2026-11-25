@@ -138,7 +138,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const IDLE_WARNING_MS = 60 * 1000; // advertencia 1 min antes (fijo)
 
 function DashboardLayout() {
-  const { user, logout, mustChangePassword, updateUser } = useAuth();
+  const { user, logout, mustChangePassword, updateUser, modules } = useAuth();
   const { sessionTimeoutMs } = useSystemSettings();
   const { resolvedTheme, setMode } = useTheme();
 
@@ -157,10 +157,9 @@ function DashboardLayout() {
   const roleName    = typeof user?.role === 'string' ? user.role : (user?.role?.name ?? '');
   const roleDisplay = typeof user?.role === 'string' ? user.role : (user?.role?.displayName ?? '');
   const isAdmin     = roleName === 'admin';
-  const isAccountant = roleName === 'accountant';
-  const isInventory = roleName === 'inventory';
-  const canSeeInventory = ['admin', 'inventory', 'sales', 'assistant'].includes(roleName);
-  const canManageInventory = isAdmin || isInventory;
+  // Contador e inventario sólo usan los módulos que les asigna Empleados -> Privilegios.
+  const isLimitedRole = roleName === 'accountant' || roleName === 'inventory';
+  const limitedHome = modules.invoices.view ? '/invoices' : modules.inventory.view ? '/inventory' : null;
 
   const { showWarning, getMsRemaining, extendSession } = useIdleTimeout({
     timeout:       sessionTimeoutMs,
@@ -174,7 +173,7 @@ function DashboardLayout() {
       <div className="dashboard-layout">
         <Sidebar
           user={{ firstName: user?.firstName, lastName: user?.lastName, roleDisplay, photoUrl: user?.photoUrl }}
-          navItems={NAV_ITEMS.filter(item => canAccessNav(item, roleName))}
+          navItems={NAV_ITEMS.filter(item => canAccessNav(item, roleName, modules))}
           onLogout={logout}
           onToggleTheme={handleToggleTheme}
           idle={isAdmin ? { getMsRemaining, timeout: sessionTimeoutMs } : undefined}
@@ -182,14 +181,19 @@ function DashboardLayout() {
         <main className="dashboard-main">
           <div className="dashboard-content">
             <Routes>
-              <Route path="/invoices/*" element={isAdmin || isAccountant ? <InvoicesPage /> : <Navigate to="/" replace />} />
-              <Route path="/inventory" element={canSeeInventory ? <InventoryPage /> : <Navigate to="/" replace />} />
-              <Route path="/inventory/movements" element={canManageInventory ? <InventoryMovementsPage /> : <Navigate to="/inventory" replace />} />
-              <Route path="/inventory/:id" element={canSeeInventory ? <ProductDetailPage /> : <Navigate to="/" replace />} />
-              {isAccountant ? (
-                <Route path="*" element={<Navigate to="/invoices" replace />} />
-              ) : isInventory ? (
-                <Route path="*" element={<Navigate to="/inventory" replace />} />
+              <Route path="/invoices/*" element={modules.invoices.view ? <InvoicesPage /> : <Navigate to="/" replace />} />
+              <Route path="/inventory" element={modules.inventory.view ? <InventoryPage /> : <Navigate to="/" replace />} />
+              <Route path="/inventory/movements" element={modules.inventory.move ? <InventoryMovementsPage /> : <Navigate to="/inventory" replace />} />
+              <Route path="/inventory/:id" element={modules.inventory.view ? <ProductDetailPage /> : <Navigate to="/" replace />} />
+              {isLimitedRole ? (
+                <Route
+                  path="*"
+                  element={limitedHome ? <Navigate to={limitedHome} replace /> : (
+                    <div className="alert alert-info">
+                      Tu rol todavía no tiene módulos asignados. Pide al administrador que te los otorgue en Empleados → Privilegios.
+                    </div>
+                  )}
+                />
               ) : (
                 <>
                   <Route path="/" element={<DashboardPage />} />
