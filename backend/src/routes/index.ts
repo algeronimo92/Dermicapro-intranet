@@ -13,6 +13,8 @@ import dashboardRoutes from './dashboard.routes';
 import analyticsRoutes from './analytics.routes';
 import rolesRoutes from './roles.routes';
 import settingsRoutes from './settings.routes';
+import mailSettingsRoutes from './mailSettings.routes';
+import integrationsRoutes from './integrations.routes';
 import publicRoutes from './public.routes';
 import inventoryRoutes from './inventory.routes';
 import dbPrivilegesRoutes from './dbPrivileges.routes';
@@ -39,7 +41,10 @@ router.use('/commissions', commissionsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/roles', rolesRoutes);
+// Antes de /settings: si no, su authenticate correría también para /settings/email.
+router.use('/settings/email', mailSettingsRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/integrations', integrationsRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/db-privileges', dbPrivilegesRoutes);
 
