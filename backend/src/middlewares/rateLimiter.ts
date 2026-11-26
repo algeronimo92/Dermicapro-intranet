@@ -124,3 +124,19 @@ export const productPhotoLimiter = rateLimit({
     });
   }
 });
+
+// "¿Olvidaste tu contraseña?" — por IP. Cuenta también las peticiones que
+// responden 200 (que son todas), así nadie puede usarlo para mandar correos en masa.
+export const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: process.env.NODE_ENV === 'production' ? 10 : 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({
+      error: 'Demasiadas solicitudes',
+      message: 'Pediste demasiados enlaces de recuperación. Intenta de nuevo en una hora.',
+      retryAfter: '1 hora'
+    });
+  }
+});

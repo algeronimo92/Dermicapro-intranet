@@ -822,3 +822,65 @@
 .login-pin-fallback-btn:hover {
   color: var(--color-primary-text);
 }
+
+/* ==========================================
+   RECUPERAR CONTRASEÑA
+   ========================================== */
+.login-forgot-link {
+  align-self: flex-end;
+  margin-top: calc(var(--spacing-sm) * -1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.login-forgot-link:hover {
+  color: var(--color-primary-text);
+  text-decoration: underline;
+}
+
+.login-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--spacing-md);
+  border-radius: 50%;
+  background: var(--color-success-alpha-10);
+  color: var(--color-success-dark);
+}
+
+.login-status-icon--error {
+  background: var(--color-error-alpha-10);
+  color: var(--color-error-dark);
+}
+
+.login-help-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.login-help-text--error {
+  margin-top: var(--spacing-xs);
+  color: var(--color-error);
+}
+
+a.login-back-btn {
+  text-decoration: none;
+}
+
+a.login-submit-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+a.login-pin-fallback-btn {
+  text-align: center;
+  text-decoration: none;
+}

@@ -81,6 +81,8 @@ model User {
   dateOfBirth  DateTime? @map("date_of_birth")
   isActive           Boolean   @default(true) @map("is_active")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
+  /// Los tokens emitidos antes de esta fecha dejan de valer (p. ej. al restablecer la contraseña).
+  sessionsRevokedAt  DateTime? @map("sessions_revoked_at")
   themeMode          String    @default("auto") @map("theme_mode")
   photoUrl           String?   @map("photo_url")
   createdAt    DateTime  @default(now()) @map("created_at")
@@ -109,9 +111,27 @@ model User {
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
   productsCreated            Product[]            @relation("ProductCreatedBy")
   inventoryMovements         InventoryMovement[]  @relation("InventoryMovementCreatedBy")
+  passwordResetTokens        PasswordResetToken[]
 
   @@index([roleId], map: "users_role_id_idx")
   @@map("users")
+}
+
+/// Enlace de "¿Olvidaste tu contraseña?". Sólo se guarda el SHA-256 del token;
+/// el token en claro viaja únicamente en el correo.
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  requestedIp String?   @map("requested_ip")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model Patient {
