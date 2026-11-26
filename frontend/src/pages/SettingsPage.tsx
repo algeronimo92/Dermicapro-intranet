@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/auth.service';
 import { useSystemSettings } from '../contexts/SystemSettingsContext';
 import { ShieldCheck, Save } from 'lucide-react';
+import { MailSettingsSection } from '../components/settings/MailSettingsSection';
 
 const SettingsPage: React.FC = () => {
   const { mode, resolvedTheme, setMode } = useTheme();
@@ -277,6 +278,9 @@ const SettingsPage: React.FC = () => {
             </div>
           </section>
         )}
+
+        {/* ── Correo de envío — solo admin ── */}
+        {isAdmin && <MailSettingsSection />}
 
       </div>
     </div>

@@ -543,6 +543,32 @@ model Payment {
 // ==========================================
 // CONFIGURACIÓN DEL SISTEMA
 
+/// Correo de envío del sistema (una sola fila, id = 1). Puede ser un SMTP
+/// propio o una cuenta conectada con OAuth (Google, Microsoft, Zoho); las dos
+/// formas son excluyentes. Sin ninguna se usa el SMTP del .env. Los secretos
+/// van cifrados (utils/secretCipher.ts).
+model MailSettings {
+  id                  Int       @id @default(1)
+  smtpHost            String?   @map("smtp_host")
+  smtpPort            Int?      @map("smtp_port")
+  smtpSecurity        String?   @map("smtp_security")
+  smtpUsername        String?   @map("smtp_username")
+  smtpPasswordEnc     String?   @map("smtp_password_enc")
+  fromAddress         String?   @map("from_address")
+  fromName            String?   @map("from_name")
+  oauthProvider       String?   @map("oauth_provider")
+  oauthRefreshEnc     String?   @map("oauth_refresh_token_enc")
+  oauthAccountEmail   String?   @map("oauth_account_email")
+  oauthAccountsServer String?   @map("oauth_accounts_server")
+  oauthAccountId      String?   @map("oauth_account_id")
+  oauthNonce          String?   @map("oauth_nonce")
+  oauthPendingProvider String?  @map("oauth_pending_provider")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  updatedById         String?   @map("updated_by_id")
+
+  @@map("mail_settings")
+}
+
 model SystemSetting {
   key         String   @id
   value       String
