@@ -44,6 +44,21 @@ export const authService = {
     await api.put('/auth/me/password', { currentPassword, newPassword });
   },
 
+  /** Siempre responde lo mismo, exista o no la cuenta. */
+  async forgotPassword(email: string): Promise<string> {
+    const response = await api.post<{ message: string }>('/auth/forgot-password', { email });
+    return response.data.message;
+  },
+
+  async checkResetToken(token: string): Promise<{ firstName: string }> {
+    const response = await api.post<{ firstName: string }>('/auth/reset-password/check', { token });
+    return response.data;
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await api.post('/auth/reset-password', { token, newPassword });
+  },
+
   async setPin(currentPassword: string, pin: string): Promise<void> {
     await api.put('/auth/me/pin', { currentPassword, pin });
   },

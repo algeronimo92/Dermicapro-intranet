@@ -23,6 +23,24 @@ export const config = {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB default
   },
 
+  /**
+   * Envío de correos (recuperar contraseña). En producción, la cuenta
+   * no-reply@dermicapro.com de Hostinger: smtp.hostinger.com, puerto 465 (SSL).
+   * En desarrollo, Mailpit (docker-compose.yml). Sin SMTP_HOST no se envía nada.
+   */
+  mail: {
+    host: process.env.SMTP_HOST || '',
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    // 465 usa SSL desde el inicio; 587 y 1025 (Mailpit) usan STARTTLS o nada.
+    secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : (process.env.SMTP_PORT || '465') === '465',
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.MAIL_FROM || 'DermicaPro <no-reply@dermicapro.com>',
+  },
+
+  /** Dirección pública del frontend; con ella se arman los enlaces de los correos. */
+  appUrl: (process.env.APP_URL || 'http://localhost:5173').replace(/\/+$/, ''),
+
   aws: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,

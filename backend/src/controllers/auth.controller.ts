@@ -5,6 +5,9 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '.
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { isValidPinFormat, MAX_PIN_ATTEMPTS } from '../utils/pin';
 import { getModuleAccess } from '../services/moduleAccess.service';
+import { passwordPolicyError } from '../utils/passwordPolicy';
+import { isTokenRevoked } from '../utils/sessionRevocation';
+import { requestPasswordReset, checkResetToken, resetPassword, INVALID_LINK_MESSAGE } from '../services/passwordReset.service';
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -79,7 +82,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({ where: { id: decoded.id }, include: { role: true } });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.isActive || isTokenRevoked((decoded as { iat?: number }).iat, user.sessionsRevokedAt)) {
       throw new AppError('Token de actualización inválido', 401);
     }
 
@@ -212,17 +215,9 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       throw new AppError('Se requiere la nueva contraseña', 400);
     }
 
-    if (newPassword.length < 8) {
-      throw new AppError('La nueva contraseña debe tener al menos 8 caracteres', 400);
-    }
-    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword)) {
-      throw new AppError('La contraseña debe tener letras mayúsculas y minúsculas', 400);
-    }
-    if (!/\d/.test(newPassword)) {
-      throw new AppError('La contraseña debe contener al menos un número', 400);
-    }
-    if (!/[^A-Za-z0-9]/.test(newPassword)) {
-      throw new AppError('La contraseña debe contener al menos un carácter especial', 400);
+    const policyError = passwordPolicyError(newPassword);
+    if (policyError) {
+      throw new AppError(policyError, 400);
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
@@ -397,5 +392,63 @@ export const myModules = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener los módulos disponibles' });
+  }
+};
+
+export const FORGOT_PASSWORD_MESSAGE =
+  'Si el correo pertenece a una cuenta activa, te enviamos un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.';
+
+/**
+ * Responde siempre lo mismo y antes de buscar la cuenta, para no revelar qué
+ * correos existen ni por el mensaje ni por el tiempo de respuesta.
+ */
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body ?? {};
+  if (typeof email !== 'string' || !email.trim() || email.length > 254) {
+    res.status(400).json({ error: 'Ingresa tu correo electrónico' });
+    return;
+  }
+
+  res.json({ message: FORGOT_PASSWORD_MESSAGE });
+
+  requestPasswordReset(email, req.ip).catch((error) => {
+    console.error(JSON.stringify({
+      event: 'password_reset_email_failed',
+      request_id: req.id,
+      error: error instanceof Error ? error.message : String(error),
+    }));
+  });
+};
+
+export const checkPasswordResetToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.body ?? {};
+    const result = typeof token === 'string' && token ? await checkResetToken(token) : null;
+    if (!result) {
+      res.status(400).json({ error: INVALID_LINK_MESSAGE });
+      return;
+    }
+    res.json(result);
+  } catch (error) {
+    logUnexpectedError(req, error);
+    res.status(500).json({ error: 'Error al verificar el enlace' });
+  }
+};
+
+export const resetPasswordWithToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body ?? {};
+    if (typeof token !== 'string' || !token) throw new AppError(INVALID_LINK_MESSAGE, 400);
+    if (typeof newPassword !== 'string' || !newPassword) throw new AppError('Se requiere la nueva contraseña', 400);
+
+    await resetPassword(token, newPassword, req.ip);
+    res.json({ message: 'Tu contraseña se cambió. Ya puedes iniciar sesión.' });
+  } catch (error) {
+    logUnexpectedError(req, error);
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Error al restablecer la contraseña' });
+    }
   }
 };

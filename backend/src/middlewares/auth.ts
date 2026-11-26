@@ -7,6 +7,7 @@ import { dbRoleContext, dbRoleFor } from '../config/dbRoleContext';
 import { ensureEmployeeDbRole } from '../services/employeeDbRoles.service';
 import { getModuleAccess } from '../services/moduleAccess.service';
 import { ModuleAction, ModuleKey } from '../constants/modules';
+import { isTokenRevoked } from '../utils/sessionRevocation';
 
 /** Rutas de la API de los módulos manejados por privilegios. */
 const MODULE_BASE_URLS = ['/api/invoices', '/api/inventory'];
@@ -41,6 +42,7 @@ export const authenticate = async (
         id: true,
         email: true,
         isActive: true,
+        sessionsRevokedAt: true,
         roleId: true,
         firstName: true,
         lastName: true,
@@ -48,7 +50,8 @@ export const authenticate = async (
       },
     });
 
-    if (!user || !user.isActive) {
+    // Tras restablecer la contraseña se cierran las sesiones abiertas.
+    if (!user || !user.isActive || isTokenRevoked(payload.iat, user.sessionsRevokedAt)) {
       res.status(401).json({ error: 'Token inválido o expirado' });
       return;
     }

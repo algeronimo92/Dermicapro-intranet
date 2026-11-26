@@ -2,24 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/auth.service';
 import { useAuth } from '../contexts/AuthContext';
+import { getPasswordStrength, passwordRequirements } from '../utils/passwordStrength';
 import './FirstLoginModal.css';
-
-type Strength = 'weak' | 'fair' | 'good' | 'strong';
-
-function getStrength(password: string): { level: Strength; score: number; label: string } {
-  if (!password) return { level: 'weak', score: 0, label: '' };
-  let score = 0;
-  if (password.length >= 8)  score++;
-  if (password.length >= 12) score++;
-  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
-  if (/\d/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  if (score <= 1) return { level: 'weak',   score: 1, label: 'Débil' };
-  if (score === 2) return { level: 'fair',   score: 2, label: 'Regular' };
-  if (score === 3) return { level: 'good',   score: 3, label: 'Buena' };
-  return              { level: 'strong', score: 4, label: 'Fuerte' };
-}
 
 export function FirstLoginModal() {
   const { clearMustChangePassword, updateUser, user } = useAuth();
@@ -30,14 +14,9 @@ export function FirstLoginModal() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const strength = useMemo(() => getStrength(newPassword), [newPassword]);
+  const strength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
 
-  const reqs = [
-    { label: 'Al menos 8 caracteres',         met: newPassword.length >= 8 },
-    { label: 'Letras mayúsculas y minúsculas', met: /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) },
-    { label: 'Al menos un número',             met: /\d/.test(newPassword) },
-    { label: 'Al menos un carácter especial',  met: /[^A-Za-z0-9]/.test(newPassword) },
-  ];
+  const reqs = passwordRequirements(newPassword);
 
   const allReqsMet = reqs.every((r) => r.met);
   const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
