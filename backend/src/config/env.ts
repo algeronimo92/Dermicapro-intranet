@@ -36,7 +36,27 @@ export const config = {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
     from: process.env.MAIL_FROM || 'DermicaPro <no-reply@dermicapro.com>',
+    /**
+     * Sólo desarrollo: permite configurar desde la pantalla un SMTP interno
+     * (Mailpit) y sin cifrado. En producción debe quedar apagado.
+     */
+    allowInternalHosts: process.env.SMTP_ALLOW_INTERNAL_HOSTS === 'true',
   },
+
+  /**
+   * "Conectar con Google / Microsoft / Zoho" en Configuración -> Correo de
+   * envío. Cada proveedor aparece sólo si tiene su client id y secret. La URL
+   * de retorno debe estar registrada tal cual en la consola de cada proveedor.
+   */
+  mailOAuth: {
+    redirectUri: process.env.MAIL_OAUTH_REDIRECT_URI || '',
+    google: { clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || '', clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || '' },
+    microsoft: { clientId: process.env.MICROSOFT_OAUTH_CLIENT_ID || '', clientSecret: process.env.MICROSOFT_OAUTH_CLIENT_SECRET || '' },
+    zoho: { clientId: process.env.ZOHO_OAUTH_CLIENT_ID || '', clientSecret: process.env.ZOHO_OAUTH_CLIENT_SECRET || '' },
+  },
+
+  /** Clave para cifrar secretos guardados en la base (utils/secretCipher.ts). */
+  settingsEncryptionKey: process.env.SETTINGS_ENCRYPTION_KEY || '',
 
   /** Dirección pública del frontend; con ella se arman los enlaces de los correos. */
   appUrl: (process.env.APP_URL || 'http://localhost:5173').replace(/\/+$/, ''),
