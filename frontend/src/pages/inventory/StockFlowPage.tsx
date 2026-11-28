@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CartesianGrid,
@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { PageDetailLayout } from '../../components/templates';
-import { Select } from '../../components/Select';
+import { LowStockIcon } from '../../components/inventory/LowStockIcon';
 import { useChartTheme } from '../../components/dashboard/widgets/chartTheme';
 import '../../components/dashboard/widgets/RevenueChart.css';
 import {
@@ -35,6 +35,8 @@ const shortDay = new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', day: '2-dig
 const longDay = new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' });
 const fmtShort = (day: string) => shortDay.format(new Date(`${day}T12:00:00Z`));
 const fmtLong = (day: string) => longDay.format(new Date(`${day}T12:00:00Z`));
+const productLabel = (p: Product) => [p.name, p.presentation].filter(Boolean).join(' · ');
+const MAX_RESULTS = 50;
 
 /** Resumen: cómo va el stock de un producto día a día. */
 export function StockFlowPage() {
@@ -60,6 +62,16 @@ export function StockFlowPage() {
   const productId = params.get('product') || products[0]?.id || '';
   const product = products.find(p => p.id === productId);
 
+  // Buscador de producto: se escribe para filtrar, en vez de recorrer toda la lista.
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products
+      .filter(p => !q || [p.name, p.brand, p.presentation, p.barcode].some(v => v?.toLowerCase().includes(q)))
+      .slice(0, MAX_RESULTS);
+  }, [products, query]);
+
   useEffect(() => {
     if (!productId) return;
     let cancelled = false;
@@ -73,6 +85,18 @@ export function StockFlowPage() {
     const next = new URLSearchParams(params);
     Object.entries(changes).forEach(([k, v]) => (v ? next.set(k, v) : next.delete(k)));
     setParams(next, { replace: true });
+  };
+
+  const choose = (p: Product) => {
+    update({ product: p.id });
+    setSearching(false);
+    (document.activeElement as HTMLElement | null)?.blur();
+  };
+
+  // Enter elige la primera coincidencia; Escape cierra sin cambiar.
+  const handleSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && results[0]) { e.preventDefault(); choose(results[0]); }
+    if (e.key === 'Escape') e.currentTarget.blur();
   };
 
   const activePreset = PRESETS.find(n => to === todayKey() && from === daysBefore(to, n - 1));
@@ -93,13 +117,33 @@ export function StockFlowPage() {
       ) : (
         <>
           <div className="flow-filters">
-            <div className="flow-filters__product">
-              <Select
-                value={productId}
-                onChange={(e) => update({ product: e.target.value })}
-                options={products.map(p => ({ value: p.id, label: [p.name, p.presentation].filter(Boolean).join(' · ') }))}
-                aria-label="Producto"
+            <div className="flow-filters__product purchase-search">
+              <input
+                type="text" className="filter-select-modern" aria-label="Buscar producto"
+                placeholder="Buscar producto por nombre, marca o código…"
+                value={searching ? query : product ? productLabel(product) : ''}
+                onFocus={() => { setQuery(''); setSearching(true); }}
+                onBlur={() => setSearching(false)}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleSearchKey}
               />
+              {searching && (
+                <ul className="purchase-search__results" role="listbox">
+                  {results.length === 0 ? (
+                    <li className="flow-search__empty">Ningún producto coincide.</li>
+                  ) : results.map(p => (
+                    <li key={p.id}>
+                      {/* onMouseDown: elige antes de que el input pierda el foco y cierre la lista. */}
+                      <button type="button" onMouseDown={(e) => { e.preventDefault(); choose(p); }}>
+                        <span className="purchase-search__name">{p.name} <LowStockIcon product={p} /></span>
+                        <span className="purchase-search__meta">
+                          {[p.brand, p.presentation].filter(Boolean).join(' · ')} · Stock {p.stock}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="flow-filters__presets" role="group" aria-label="Período">
               {PRESETS.map(n => (
@@ -127,7 +171,9 @@ export function StockFlowPage() {
           <section className="revenue-chart">
             <div className="chart-card__header">
               <div>
-                <h3 className="revenue-chart__title">Stock diario · {product?.name}</h3>
+                <h3 className="revenue-chart__title flow-title">
+                  Stock diario · {product?.name} {product && <LowStockIcon product={product} />}
+                </h3>
                 <p className="revenue-chart__subtitle">
                   Stock al cierre de cada día
                   {product && product.minStock > 0 && ` · la línea punteada es el mínimo (${product.minStock})`}
