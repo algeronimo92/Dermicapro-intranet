@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { flushSync } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Package, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProductFormModal } from '../../components/ProductFormModal';
@@ -24,7 +24,6 @@ const MAX_SUGGESTIONS = 8;
 
 export function PurchaseFormPage() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
 
   const { modules } = useAuth();
   const canCreateProduct = modules.inventory.create;
@@ -41,24 +40,14 @@ export function PurchaseFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ?products=id1:3,id2 precarga productos (lo usará la lista de compras).
   useEffect(() => {
     let cancelled = false;
     inventoryService.getAllActiveProducts()
-      .then(list => {
-        if (cancelled) return;
-        setProducts(list);
-        const preset = (params.get('products') ?? '').split(',').filter(Boolean).map(entry => entry.split(':'));
-        const byId = new Map(list.map(p => [p.id, p]));
-        setLines(preset.flatMap(([id, qty]) => {
-          const product = byId.get(id);
-          return product ? [{ product, quantity: qty && /^\d+$/.test(qty) ? qty : '1' }] : [];
-        }));
-      })
+      .then(list => { if (!cancelled) setProducts(list); })
       .catch(err => { if (!cancelled) setLoadError(apiErrorMessage(err, 'No se pudieron cargar los productos')); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [params]);
+  }, []);
 
   const inPurchase = useMemo(() => new Set(lines.map(l => l.product.id)), [lines]);
 
