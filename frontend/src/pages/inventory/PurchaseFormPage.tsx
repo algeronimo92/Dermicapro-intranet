@@ -13,6 +13,7 @@ import {
   type InvoiceSummary,
   type Product,
 } from '../../services/inventory.service';
+import { notifyInventoryChanged } from '../../services/notifications.service';
 
 interface Line {
   product: Product;
@@ -112,6 +113,7 @@ export function PurchaseFormPage() {
         note: note.trim() || undefined,
         items: lines.map(l => ({ productId: l.product.id, quantity: Number(l.quantity) })),
       });
+      notifyInventoryChanged();
       navigate(`/inventory/purchases/${id}`, { replace: true, state: { registered: true } });
     } catch (err) {
       setError(apiErrorMessage(err, 'No se pudo registrar la compra'));

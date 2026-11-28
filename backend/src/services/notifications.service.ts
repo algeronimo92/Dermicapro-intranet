@@ -14,7 +14,7 @@ import { getModuleAccess } from './moduleAccess.service';
 export const NOTIFICATION_TYPES = {
   lowStock: {
     label: 'Productos en alerta de stock',
-    hint: 'Productos activos con stock igual o menor a su mínimo. Requiere ver Inventario.',
+    hint: 'Stock igual o menor al mínimo. Requiere ver Inventario.',
     settingKey: 'notifications.low_stock.roles',
     defaultRoles: [ROLES.ADMIN, ROLES.INVENTORY] as RoleName[],
   },

@@ -16,6 +16,7 @@ import {
   Product,
   REASON_LABELS,
 } from '../services/inventory.service';
+import { notifyInventoryChanged } from '../services/notifications.service';
 import { formatDateTime } from '../utils/dateUtils';
 import { StockBadge } from '../components/StockBadge';
 import '../styles/inventory.css';
@@ -78,6 +79,7 @@ export function ProductDetailPage() {
     setActiveError(null);
     try {
       setProduct(await inventoryService.updateProduct(product.id, { isActive: activate }));
+      notifyInventoryChanged();
       setConfirmDeactivate(false);
     } catch (err) {
       setActiveError(apiErrorMessage(err, `No se pudo ${activate ? 'activar' : 'desactivar'} el producto`));

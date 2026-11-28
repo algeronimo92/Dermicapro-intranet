@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PageDetailLayout } from '../../components/templates';
 import { Select } from '../../components/Select';
@@ -11,6 +11,7 @@ import {
   type Product,
   type StockAlertRow,
 } from '../../services/inventory.service';
+import { notifyInventoryChanged } from '../../services/notifications.service';
 
 type Col = 'min' | 'target';
 interface Draft { min: string; target: string }
@@ -39,7 +40,9 @@ export function StockAlertsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [onlyLow, setOnlyLow] = useState(false);
+  // ?low=1 (desde la campana de notificaciones) abre directo los productos en alerta.
+  const [params] = useSearchParams();
+  const [onlyLow, setOnlyLow] = useState(params.get('low') === '1');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -99,6 +102,7 @@ export function StockAlertsPage() {
         return r ? { ...p, minStock: r.minStock, targetStock: r.targetStock } : p;
       }));
       setDrafts({});
+      notifyInventoryChanged();
       setSuccess(`Alertas actualizadas en ${updated} producto(s).`);
     } catch (err) {
       setError(apiErrorMessage(err, 'No se pudieron guardar las alertas'));

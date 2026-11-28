@@ -15,6 +15,7 @@ import {
   ProductCategory,
   todayKey,
 } from '../services/inventory.service';
+import { notifyInventoryChanged } from '../services/notifications.service';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -156,6 +157,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           initialStock,
           ...(invoice && { invoiceId: invoice.id, purchaseDate: todayKey() }),
         });
+      notifyInventoryChanged();
       if (photo) saved = await inventoryService.uploadPhoto(saved.id, photo);
       onSaved(saved);
       onClose();
