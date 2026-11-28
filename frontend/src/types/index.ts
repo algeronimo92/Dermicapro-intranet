@@ -360,6 +360,7 @@ export interface ModuleAccess {
     view: boolean; create: boolean; edit: boolean;
     purchases: boolean; purchase: boolean;
     returns: boolean; return: boolean;
+    counts: boolean; count: boolean;
   };
 }
 
@@ -369,5 +370,6 @@ export const NO_MODULE_ACCESS: ModuleAccess = {
     view: false, create: false, edit: false,
     purchases: false, purchase: false,
     returns: false, return: false,
+    counts: false, count: false,
   },
 };

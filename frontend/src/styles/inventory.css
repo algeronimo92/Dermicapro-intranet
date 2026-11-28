@@ -664,6 +664,33 @@
   .return-form__grid { grid-template-columns: 1fr; }
 }
 
+/* ---------- Conteos de inventario ---------- */
+
+.count-diff { font-weight: 600; font-variant-numeric: tabular-nums; }
+.count-diff.is-surplus { color: var(--color-success-dark); }
+.count-diff.is-shortage { color: var(--color-error-dark); }
+
+.count-confirm {
+  list-style: none;
+  margin: var(--spacing-sm) 0;
+  padding: 0;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+}
+.count-confirm li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 6px 10px;
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+.count-confirm li:last-child { border-bottom: 0; }
+.count-confirm li > span:last-child { white-space: nowrap; }
+.count-confirm__note { display: grid; gap: 4px; margin-top: var(--spacing-md); }
+
 /* ---------- Alertas de stock ---------- */
 
 .alert-state {

@@ -204,7 +204,9 @@ export function ProductDetailPage() {
                     <td>
                       {m.purchaseItem
                         ? <Link to={`/inventory/purchases/${m.purchaseItem.purchaseId}`}>{REASON_LABELS[m.reason]}</Link>
-                        : REASON_LABELS[m.reason]}
+                        : m.stockCountItem
+                          ? <Link to={`/inventory/counts/${m.stockCountItem.countId}`}>{REASON_LABELS[m.reason]}</Link>
+                          : REASON_LABELS[m.reason]}
                       {m.supplierReturnItem && (
                         <span className="text-secondary"> · {RETURN_REASON_LABELS[m.supplierReturnItem.supplierReturn.reason]}</span>
                       )}

@@ -72,6 +72,40 @@ export interface InventoryMovement {
   purchaseItem?: { purchaseId: string } | null;
   /** Sólo llega si la persona puede ver devoluciones. */
   supplierReturnItem?: { supplierReturn: { reason: SupplierReturnReason } } | null;
+  /** Sólo llega si la persona puede ver conteos. */
+  stockCountItem?: { countId: string } | null;
+}
+
+export interface StockCountSummary {
+  id: string;
+  note: string | null;
+  createdAt: string;
+  createdBy: UserSummary;
+  productCount: number;
+  differenceCount: number;
+  surplus: number;
+  shortage: number;
+}
+
+export interface StockCountDetail extends StockCountSummary {
+  items: {
+    id: string;
+    expectedStock: number;
+    countedStock: number;
+    product: Pick<Product, 'id' | 'name' | 'brand' | 'presentation'>;
+  }[];
+}
+
+export interface StockCountFormData {
+  note?: string;
+  items: { productId: string; expectedStock: number; countedStock: number }[];
+}
+
+/** El stock cambió mientras se contaba (409 al guardar el conteo). */
+export interface StockCountConflict {
+  productId: string;
+  name: string;
+  stock: number;
 }
 
 export interface SupplierReturn {
@@ -263,6 +297,21 @@ export const inventoryService = {
 
   async createSupplierReturn(data: SupplierReturnFormData): Promise<{ id: string }> {
     const response = await api.post<{ data: { id: string } }>('/inventory/returns', data);
+    return response.data.data;
+  },
+
+  async getStockCounts(page = 1, limit = 20): Promise<Paginated<StockCountSummary>> {
+    const response = await api.get('/inventory/counts', { params: { page, limit } });
+    return response.data;
+  },
+
+  async getStockCount(id: string): Promise<StockCountDetail> {
+    const response = await api.get<{ data: StockCountDetail }>(`/inventory/counts/${id}`);
+    return response.data.data;
+  },
+
+  async createStockCount(data: StockCountFormData): Promise<{ id: string }> {
+    const response = await api.post<{ data: { id: string } }>('/inventory/counts', data);
     return response.data.data;
   },
 

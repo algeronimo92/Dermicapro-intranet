@@ -34,6 +34,9 @@ import { StockAlertsPage } from './pages/inventory/StockAlertsPage';
 import { ShoppingListPage } from './pages/inventory/ShoppingListPage';
 import { SupplierReturnsPage } from './pages/inventory/SupplierReturnsPage';
 import { SupplierReturnFormPage } from './pages/inventory/SupplierReturnFormPage';
+import { StockCountsPage } from './pages/inventory/StockCountsPage';
+import { StockCountFormPage } from './pages/inventory/StockCountFormPage';
+import { StockCountDetailPage } from './pages/inventory/StockCountDetailPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { DbPrivilegesPage } from './pages/DbPrivilegesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -204,6 +207,9 @@ function DashboardLayout() {
                 <Route path="shopping-list" element={<ShoppingListPage />} />
                 <Route path="returns" element={modules.inventory.returns ? <SupplierReturnsPage /> : <Navigate to="/inventory" replace />} />
                 <Route path="returns/new" element={modules.inventory.return ? <SupplierReturnFormPage /> : <Navigate to="/inventory" replace />} />
+                <Route path="counts" element={modules.inventory.counts ? <StockCountsPage /> : <Navigate to="/inventory" replace />} />
+                <Route path="counts/new" element={modules.inventory.count ? <StockCountFormPage /> : <Navigate to="/inventory" replace />} />
+                <Route path="counts/:id" element={modules.inventory.counts ? <StockCountDetailPage /> : <Navigate to="/inventory" replace />} />
                 <Route path=":id" element={<ProductDetailPage />} />
               </Route>
               {isLimitedRole ? (

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Bell, ClipboardList, Package, ShoppingBag, Undo2 } from 'lucide-react';
+import { Bell, ClipboardCheck, ClipboardList, Package, ShoppingBag, Undo2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/inventory.css';
 
@@ -13,6 +13,7 @@ export function InventoryLayout() {
   const tabs = [
     { to: '/inventory/purchases', label: 'Compras', icon: ShoppingBag, show: modules.inventory.purchases },
     { to: '/inventory/returns', label: 'Devoluciones', icon: Undo2, show: modules.inventory.returns },
+    { to: '/inventory/counts', label: 'Conteos', icon: ClipboardCheck, show: modules.inventory.counts },
     { to: '/inventory/shopping-list', label: 'Lista de compras', icon: ClipboardList, show: true },
     { to: '/inventory/alerts', label: 'Alertas de stock', icon: Bell, show: true },
   ].filter(tab => tab.show);
