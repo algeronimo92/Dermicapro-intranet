@@ -291,6 +291,7 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
     // De qué compra salió cada entrada, sólo para quien puede ver compras
     // (si no, la consulta a purchase_items fallaría por privilegios).
     const withPurchase = Boolean(req.moduleAccess?.inventory.purchases);
+    const withReturn = Boolean(req.moduleAccess?.inventory.returns);
 
     const [data, total] = await Promise.all([
       prisma.inventoryMovement.findMany({
@@ -298,6 +299,7 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
         include: {
           createdBy: userSummary,
           ...(withPurchase && { purchaseItem: { select: { purchaseId: true } } }),
+          ...(withReturn && { supplierReturnItem: { select: { supplierReturn: { select: { reason: true } } } } }),
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,

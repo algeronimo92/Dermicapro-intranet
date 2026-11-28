@@ -40,6 +40,17 @@ export const MODULES = {
       ['products', 'UPDATE'],
       ['inventory_movements', 'INSERT'],
     ],
+    // Ver las devoluciones al proveedor registradas.
+    returns: [['supplier_returns', 'SELECT'], ['supplier_return_items', 'SELECT']],
+    // Registrar una devolución: resta stock y deja su salida ligada a la línea.
+    return: [
+      ['supplier_returns', 'SELECT'],
+      ['supplier_returns', 'INSERT'],
+      ['supplier_return_items', 'SELECT'],
+      ['supplier_return_items', 'INSERT'],
+      ['products', 'UPDATE'],
+      ['inventory_movements', 'INSERT'],
+    ],
   },
 } as const satisfies Record<string, Record<string, readonly TablePrivilege[]>>;
 

@@ -35,6 +35,8 @@ export const DB_TABLES: DbTable[] = [
   { name: 'inventory_movements',            label: 'Movimientos de inventario',   module: 'Inventario' },
   { name: 'purchases',                      label: 'Compras de productos',        module: 'Inventario' },
   { name: 'purchase_items',                 label: 'Productos de cada compra',    module: 'Inventario' },
+  { name: 'supplier_returns',               label: 'Devoluciones al proveedor',   module: 'Inventario' },
+  { name: 'supplier_return_items',          label: 'Productos de cada devolución', module: 'Inventario' },
   { name: 'users',                          label: 'Usuarios',                    module: 'Sistema' },
   { name: 'roles',                          label: 'Roles',                       module: 'Sistema' },
   { name: 'system_settings',                label: 'Configuración del sistema',   module: 'Sistema' },

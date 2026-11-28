@@ -17,21 +17,21 @@ export interface PurchaseInput {
 }
 
 /** Fecha 'YYYY-MM-DD' (sin hora) y no futura. */
-export function parsePurchaseDate(value: unknown): Date {
+export function parsePurchaseDate(value: unknown, label = 'compra'): Date {
   if (value === undefined || value === null || value === '') {
     const today = new Date();
     return new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
   }
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new AppError('Ingresa una fecha de compra válida', 400);
+    throw new AppError(`Ingresa una fecha de ${label} válida`, 400);
   }
   const date = new Date(`${value}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
-    throw new AppError('Ingresa una fecha de compra válida', 400);
+    throw new AppError(`Ingresa una fecha de ${label} válida`, 400);
   }
   // Un día de margen por la zona horaria de la clínica.
   if (date.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
-    throw new AppError('La fecha de compra no puede ser futura', 400);
+    throw new AppError(`La fecha de ${label} no puede ser futura`, 400);
   }
   return date;
 }
