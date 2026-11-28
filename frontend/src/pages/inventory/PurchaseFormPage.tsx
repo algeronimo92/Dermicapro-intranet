@@ -259,7 +259,6 @@ export function PurchaseFormPage() {
       <ProductFormModal
         isOpen={newProductOpen}
         onClose={() => setNewProductOpen(false)}
-        withoutInitialStock
         onSaved={(product) => { setProducts(prev => [...prev, product]); addProduct(product); }}
       />
     </PageDetailLayout>

@@ -55,30 +55,25 @@ beforeEach(() => {
 });
 
 describe('createProduct', () => {
-  it('stock inicial sin factura: movimiento "Inventario inicial", sin compra', async () => {
+  it('crea la ficha con stock 0 y sin movimientos', async () => {
     const res = response();
-    await createProduct(request({ ...product, initialStock: 4 }), res);
+    await createProduct(request(product), res);
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(register).not.toHaveBeenCalled();
-    expect(db.inventoryMovement.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ reason: 'initial', quantity: 4, stockAfter: 4 }),
+    expect(db.product.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ name: 'Sérum', stock: 0, createdById: 'user-1' }),
     });
-  });
-
-  it('stock inicial con factura: se registra como compra ligada a la factura', async () => {
-    const res = response();
-    await createProduct(request({ ...product, initialStock: 4, invoiceId: 'inv-1' }, { purchase: true }), res);
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(register).toHaveBeenCalledWith(prisma, expect.objectContaining({
-      invoiceId: 'inv-1', items: [{ productId: 'p1', quantity: 4 }],
-    }), 'user-1');
     expect(db.inventoryMovement.create).not.toHaveBeenCalled();
+    expect(register).not.toHaveBeenCalled();
   });
 
-  it('con factura exige poder registrar compras', async () => {
+  it.each([
+    ['stock inicial', { initialStock: 4 }],
+    ['stock', { stock: 4 }],
+    ['factura', { invoiceId: 'inv-1' }],
+  ])('rechaza %s: el stock entra por compras o conteos', async (_label, extra) => {
     const res = response();
-    await createProduct(request({ ...product, initialStock: 4, invoiceId: 'inv-1' }), res);
-    expect(res.status).toHaveBeenCalledWith(403);
+    await createProduct(request({ ...product, ...extra }, { purchase: true }), res);
+    expect(res.status).toHaveBeenCalledWith(400);
     expect(db.product.create).not.toHaveBeenCalled();
   });
 

@@ -25,8 +25,8 @@ export const MODULES = {
   },
   inventory: {
     view: [['products', 'SELECT'], ['inventory_movements', 'SELECT']],
-    // Un producto nuevo con stock inicial registra su movimiento de entrada.
-    create: [['products', 'INSERT'], ['inventory_movements', 'INSERT']],
+    // Crear la ficha del producto (sin stock: el stock entra por compras o conteos).
+    create: [['products', 'INSERT']],
     // Datos del producto y su alerta de stock (mínimo y objetivo).
     edit: [['products', 'UPDATE']],
     // Ver las compras registradas (y de qué compra salió cada entrada).

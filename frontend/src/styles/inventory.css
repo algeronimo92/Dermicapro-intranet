@@ -651,15 +651,6 @@
 .table tr.is-clickable { cursor: pointer; }
 .table tr.is-clickable:hover td { background: var(--color-bg-hover); }
 
-/* Producto nuevo: stock inicial y su factura */
-.product-form__initial {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-md);
-  align-items: start;
-}
-
 /* ---------- Alertas de stock ---------- */
 
 .alert-state {
@@ -675,6 +666,5 @@
 .alert-state--error { background: var(--color-error-alpha-10); color: var(--color-error-dark); }
 
 @media (max-width: 640px) {
-  .purchase-form__row,
-  .product-form__initial { grid-template-columns: 1fr; }
+  .purchase-form__row { grid-template-columns: 1fr; }
 }

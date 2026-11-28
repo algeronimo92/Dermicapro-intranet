@@ -72,10 +72,6 @@ export interface ProductFormData {
   targetStock?: number | null;
   barcode?: string | null;
   isActive?: boolean;
-  initialStock?: number;
-  /** Con factura, el stock inicial se registra como compra. */
-  invoiceId?: string | null;
-  purchaseDate?: string;
 }
 
 export interface StockAlertRow {

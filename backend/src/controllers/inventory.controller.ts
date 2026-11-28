@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma, ProductCategory } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
-import { parsePurchaseDate, purchaseDbError, registerPurchase } from '../services/inventory/purchases.service';
+import { purchaseDbError } from '../services/inventory/purchases.service';
 
 // El inventario es sólo inventario: el stock cambia por compras (y, más
 // adelante, devoluciones y conteos), nunca a mano ni por ventas.
@@ -178,45 +178,21 @@ export const getProduct = async (req: Request, res: Response): Promise<void> => 
 };
 
 /**
- * Crea un producto. Con stock inicial:
- * - con factura (invoiceId) se registra como una compra, ligada a la factura;
- * - sin factura, como "Inventario inicial" (lo que ya estaba en el estante).
+ * Crea la ficha de un producto, siempre con stock 0. Productos es sólo el
+ * catálogo: el stock entra por Compras (con su factura) o por un conteo de
+ * inventario, nunca al crear la ficha.
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const body = req.body ?? {};
+    if (body.initialStock !== undefined || body.stock !== undefined || body.invoiceId !== undefined) {
+      throw new AppError('El producto se crea sin stock: regístralo con una compra o un conteo de inventario', 400);
+    }
     const data = parseProductInput(body, true);
     checkAlertRange((data.minStock as number | undefined) ?? 0, (data.targetStock as number | null | undefined) ?? null);
-    const initialStock = body.initialStock === undefined || body.initialStock === ''
-      ? 0
-      : nonNegativeInt(body.initialStock, 'El stock inicial');
-    const invoiceId = optionalText(body.invoiceId, 'La factura', 64) ?? null;
-    if (invoiceId && initialStock === 0) throw new AppError('Indica el stock inicial que trae la factura', 400);
-    if (invoiceId && !req.moduleAccess?.inventory.purchase) {
-      throw new AppError('No tienes permiso para registrar compras', 403);
-    }
-    const purchaseDate = invoiceId ? parsePurchaseDate(body.purchaseDate) : null;
-    const userId = req.user!.id;
 
-    const product = await prisma.$transaction(async (tx) => {
-      const created = await tx.product.create({
-        data: { ...(data as Prisma.ProductUncheckedCreateInput), stock: 0, createdById: userId },
-      });
-      if (initialStock > 0 && invoiceId) {
-        await registerPurchase(tx, {
-          purchaseDate: purchaseDate!, invoiceId, note: null,
-          items: [{ productId: created.id, quantity: initialStock }],
-        }, userId);
-      } else if (initialStock > 0) {
-        await tx.product.update({ where: { id: created.id }, data: { stock: initialStock } });
-        await tx.inventoryMovement.create({
-          data: {
-            productId: created.id, type: 'in', reason: 'initial',
-            quantity: initialStock, stockAfter: initialStock, createdById: userId,
-          },
-        });
-      }
-      return tx.product.findUniqueOrThrow({ where: { id: created.id } });
+    const product = await prisma.product.create({
+      data: { ...(data as Prisma.ProductUncheckedCreateInput), stock: 0, createdById: req.user!.id },
     });
 
     res.status(201).json({ data: product, message: 'Producto creado' });

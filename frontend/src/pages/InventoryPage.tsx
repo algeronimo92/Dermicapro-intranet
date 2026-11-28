@@ -24,7 +24,7 @@ export function InventoryPage() {
   const navigate = useNavigate();
   // Lo que puede hacer lo decide Empleados -> Privilegios (products / inventory_movements).
   const { modules } = useAuth();
-  const { create: canCreate, edit: canEdit, purchase: canPurchase } = modules.inventory;
+  const { create: canCreate, edit: canEdit } = modules.inventory;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -76,12 +76,7 @@ export function InventoryPage() {
   return (
     <PageListLayout
       title="Inventario"
-      actions={(canPurchase || canCreate) && (
-        <>
-          {canPurchase && <Button variant="secondary" onClick={() => navigate('/inventory/purchases/new')}>Registrar compra</Button>}
-          {canCreate && <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>}
-        </>
-      )}
+      actions={canCreate && <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>}
       filters={
         <>
           <Input
