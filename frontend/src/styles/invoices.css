@@ -582,3 +582,62 @@
 }
 .invoice-category--treatments { background: var(--color-accent-alpha-10); color: var(--color-accent); }
 .invoice-category--products { background: var(--color-primary-alpha-10); color: var(--color-primary-text); }
+
+/* Listado en celular: cada comprobante es una tarjeta en vez de una fila con
+   scroll horizontal. Tipo y total arriba a la derecha; fecha y adjuntos abajo. */
+@media (max-width: 650px) {
+  .invoice-table--cards {
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .invoice-table--cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .invoice-table--cards tbody {
+    display: grid;
+    gap: var(--spacing-sm);
+  }
+
+  .invoice-table--cards tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'doc type'
+      'issuer total'
+      'date files';
+    gap: var(--spacing-xs) var(--spacing-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border-secondary);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-primary);
+  }
+
+  .invoice-table--cards td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .invoice-table--cards .invoice-cell-doc { grid-area: doc; font-weight: var(--font-weight-semibold); }
+  .invoice-table--cards .invoice-cell-type { grid-area: type; justify-self: end; }
+  .invoice-table--cards .invoice-cell-issuer { grid-area: issuer; overflow-wrap: anywhere; }
+  .invoice-table--cards .invoice-cell-total {
+    grid-area: total;
+    align-self: start;
+    font-weight: var(--font-weight-semibold);
+  }
+  .invoice-table--cards .invoice-cell-date,
+  .invoice-table--cards .invoice-cell-files {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+  .invoice-table--cards .invoice-cell-date { grid-area: date; }
+  .invoice-table--cards .invoice-cell-files { grid-area: files; justify-self: end; }
+}

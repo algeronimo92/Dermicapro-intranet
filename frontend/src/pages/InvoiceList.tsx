@@ -153,7 +153,7 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
           </div>
           {!result.list.data.length && <p className="invoice-panel">No hay comprobantes que coincidan con los filtros.</p>}
           {result.list.data.length > 0 && (
-            <div className="invoice-table">
+            <div className="invoice-table invoice-table--cards">
               <table>
                 <thead>
                   <tr>
@@ -164,12 +164,12 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
                 <tbody>
                   {result.list.data.map(invoice => (
                     <tr key={invoice.id}>
-                      <td><Link to={invoice.id}>{invoice.documentType}</Link></td>
-                      <td><span className={`invoice-category invoice-category--${invoice.category}`}>{INVOICE_CATEGORY_LABELS[invoice.category]}</span></td>
-                      <td>{invoice.issuerName}<small>{invoice.issuerRuc}</small></td>
-                      <td>{dateFormat.format(new Date(invoice.issueDate))}</td>
-                      <td>{invoice._count.attachments ? invoice._count.attachments + (invoice._count.attachments === 1 ? ' archivo' : ' archivos') : 'Sin adjunto'}</td>
-                      <td className="invoice-amount">{money(invoice.total, invoice.currency)}</td>
+                      <td data-label="Comprobante" className="invoice-cell-doc"><Link to={invoice.id}>{invoice.documentType}</Link></td>
+                      <td data-label="Tipo" className="invoice-cell-type"><span className={`invoice-category invoice-category--${invoice.category}`}>{INVOICE_CATEGORY_LABELS[invoice.category]}</span></td>
+                      <td data-label="Emisor" className="invoice-cell-issuer">{invoice.issuerName}<small>{invoice.issuerRuc}</small></td>
+                      <td data-label="Fecha de emisión" className="invoice-cell-date">{dateFormat.format(new Date(invoice.issueDate))}</td>
+                      <td data-label="Adjuntos" className="invoice-cell-files">{invoice._count.attachments ? invoice._count.attachments + (invoice._count.attachments === 1 ? ' archivo' : ' archivos') : 'Sin adjunto'}</td>
+                      <td data-label="Total" className="invoice-amount invoice-cell-total">{money(invoice.total, invoice.currency)}</td>
                     </tr>
                   ))}
                 </tbody>
