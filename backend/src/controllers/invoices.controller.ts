@@ -8,7 +8,8 @@ import { hasMagicBytes } from '../middlewares/upload';
 import { invoiceAttachmentStorage } from '../services/invoice-attachment-storage';
 import ExcelJS from 'exceljs';
 import { processInvoiceObjectDeletions, queueInvoiceObjectDeletions } from '../services/invoice-object-cleanup.service';
-import { getInvoiceReport, invoiceDate, invoiceDocumentTypes, invoiceWhere, parseInvoiceQuery } from '../services/invoice-report.service';
+import { getInvoiceReport, invoiceCategories, invoiceDate, invoiceDocumentTypes, invoiceWhere, parseInvoiceQuery } from '../services/invoice-report.service';
+import { ROLES } from '../constants/roles';
 
 const invoiceCustomer = {
   customerDocument: '20615564819',
@@ -33,7 +34,31 @@ const invoiceInput = z.object({
   tax: amount,
   total: amount,
   paymentCondition: z.enum(['Contado', 'Crédito']).default('Contado'),
+  category: z.enum(invoiceCategories).optional(),
 });
+
+/**
+ * Tipos de factura que la persona puede ver y registrar. Inventario sólo maneja
+ * las de Productos; PostgreSQL lo hace cumplir con la política de filas de
+ * registered_invoices (ver la migración add_inventory_purchases).
+ */
+function allowedCategories(req: Request): readonly (typeof invoiceCategories)[number][] {
+  return req.user?.roleName === ROLES.INVENTORY ? ['products'] : invoiceCategories;
+}
+
+function resolveCategory(req: Request, requested: (typeof invoiceCategories)[number] | undefined) {
+  const allowed = allowedCategories(req);
+  const category = requested ?? (allowed.length === 1 ? allowed[0] : 'treatments');
+  if (!allowed.includes(category)) throw new AppError('Solo puedes registrar facturas de Productos', 403);
+  return category;
+}
+
+/** El trigger de la base impide que una factura ligada a una compra deje de ser de Productos. */
+function categoryLockedError(error: unknown) {
+  return error instanceof Error && error.message.includes('INVOICE_CATEGORY_LOCKED')
+    ? new AppError('Esta factura está ligada a una compra de inventario: debe seguir siendo de Productos', 409)
+    : null;
+}
 
 const revisionInput = z.union([
   z.number(),
@@ -54,6 +79,7 @@ const summarySelect = {
   issueDate: true,
   currency: true,
   total: true,
+  category: true,
   _count: { select: { attachments: true } },
 } satisfies Prisma.RegisteredInvoiceSelect;
 
@@ -83,8 +109,8 @@ async function removeUploadedObjects(req: Request, objects: UploadedObject[]) {
   }
 }
 
-export function getInvoiceDefaults(_req: Request, res: Response): void {
-  res.json(invoiceCustomer);
+export function getInvoiceDefaults(req: Request, res: Response): void {
+  res.json({ ...invoiceCustomer, categories: allowedCategories(req) });
 }
 
 export async function listInvoices(req: Request, res: Response): Promise<void> {
@@ -116,6 +142,7 @@ export async function exportInvoices(req: Request, res: Response): Promise<void>
   const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream: res, useStyles: true });
   const sheet = workbook.addWorksheet('Facturas');
   sheet.columns = [
+    { header: 'Tipo de factura', key: 'category', width: 16 },
     { header: 'Tipo de documento', key: 'documentType', width: 22 },
     { header: 'RUC emisor', key: 'issuerRuc', width: 16 },
     { header: 'Razón social emisor', key: 'issuerName', width: 40 },
@@ -147,6 +174,7 @@ export async function exportInvoices(req: Request, res: Response): Promise<void>
         for (const row of rows) {
           sheet.addRow({
             ...row,
+            category: row.category === 'products' ? 'Productos' : 'Tratamientos',
             taxableSubtotal: row.taxableSubtotal.toNumber(),
             discount: row.discount?.toNumber() ?? 0,
             tax: row.tax.toNumber(),
@@ -226,7 +254,8 @@ async function uploadInvoiceAttachments(req: Request, invoiceId: string) {
 }
 
 export async function createInvoice(req: Request, res: Response): Promise<void> {
-  const { issueDate, issueTime, discount, ...fields } = parseInvoiceData(req);
+  const { issueDate, issueTime, discount, category, ...fields } = parseInvoiceData(req);
+  const resolvedCategory = resolveCategory(req, category);
   const invoiceId = randomUUID();
   const { uploadedObjects, attachments } = await uploadInvoiceAttachments(req, invoiceId);
 
@@ -236,6 +265,7 @@ export async function createInvoice(req: Request, res: Response): Promise<void> 
         id: invoiceId,
         ...fields,
         ...invoiceCustomer,
+        category: resolvedCategory,
         issueDate: new Date(issueDate),
         issueTime: issueTime || null,
         discount: discount || null,
@@ -268,7 +298,9 @@ export async function getInvoice(req: Request, res: Response): Promise<void> {
 export async function updateInvoice(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const revision = parseRevision(req);
-  const { issueDate, issueTime, discount, ...fields } = parseInvoiceData(req);
+  const { issueDate, issueTime, discount, category, ...fields } = parseInvoiceData(req);
+  // Sin tipo en la petición se conserva el actual.
+  if (category) resolveCategory(req, category);
   const current = await prisma.registeredInvoice.findUnique({
     where: { id },
     select: { revision: true, attachments: { select: { id: true, objectKey: true } } },
@@ -298,6 +330,7 @@ export async function updateInvoice(req: Request, res: Response): Promise<void> 
         where: { id, revision },
         data: {
           ...fields,
+          ...(category && { category }),
           issueDate: new Date(issueDate),
           issueTime: issueTime || null,
           discount: discount || null,
@@ -315,6 +348,11 @@ export async function updateInvoice(req: Request, res: Response): Promise<void> 
     void processInvoiceObjectDeletions();
     res.json(invoice);
   } catch (error) {
+    const locked = categoryLockedError(error);
+    if (locked) {
+      await removeUploadedObjects(req, uploadedObjects);
+      throw locked;
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError &&
         ['P2002', 'P2003', 'P2004', 'P2025', 'P2034'].includes(error.code)) {
       await removeUploadedObjects(req, uploadedObjects);

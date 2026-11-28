@@ -4,6 +4,8 @@ import prisma from '../config/database';
 import { AppError } from '../middlewares/errorHandler';
 
 export const invoiceDocumentTypes = ['Factura', 'Boleta', 'Nota de crédito', 'Nota de débito'] as const;
+/** Tratamientos (insumos de la clínica) o Productos (compras de inventario). */
+export const invoiceCategories = ['treatments', 'products'] as const;
 export const invoiceDate = z.iso.date().refine(value => !value.startsWith('0000-'));
 
 const queryInput = z.object({
@@ -11,6 +13,7 @@ const queryInput = z.object({
   search: z.string().trim().max(200).default(''),
   currency: z.enum(['PEN', 'USD']).optional(),
   documentType: z.enum(invoiceDocumentTypes).optional(),
+  category: z.enum(invoiceCategories).optional(),
   dateFrom: invoiceDate.optional(),
   dateTo: invoiceDate.optional(),
 }).refine(value => !value.dateFrom || !value.dateTo || value.dateFrom <= value.dateTo, {
@@ -29,6 +32,7 @@ export function invoiceWhere(query: InvoiceQuery): Prisma.RegisteredInvoiceWhere
   return {
     currency: query.currency,
     documentType: query.documentType,
+    category: query.category,
     issueDate: {
       gte: query.dateFrom ? new Date(query.dateFrom) : undefined,
       lte: query.dateTo ? new Date(query.dateTo) : undefined,
