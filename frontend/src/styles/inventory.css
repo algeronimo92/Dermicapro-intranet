@@ -663,9 +663,10 @@
 
 /* ---------- Lista de compras ---------- */
 
-.shopping-table__check { width: 40px; text-align: center; }
-.bulk-table th.shopping-table__check { text-align: center; }
-.shopping-table__check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+.bulk-table td.bulk-table__num.shopping-table__suggested { font-weight: 600; color: var(--color-text-primary); }
+.shopping-table a.bulk-table__name { text-decoration: none; }
+.shopping-table a.bulk-table__name:hover { text-decoration: underline; }
+.shopping-summary { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-sm); color: var(--color-text-secondary); }
 /* En PC el mínimo y el objetivo van en sus columnas; en celular, bajo el nombre,
    para que "A comprar" se vea sin desplazar la tabla. */
 .shopping-table__levels { display: none; }
