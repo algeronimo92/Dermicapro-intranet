@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Keyboard } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { PageDetailLayout } from '../../components/templates';
 import { Select } from '../../components/Select';
@@ -203,8 +203,11 @@ export function StockAlertsPage() {
           <span className="bulk-footer__summary">
             {changedRows.length === 0 && errorCount === 0 ? (
               <span className="bulk-footer__hint">
-                <Keyboard size={16} aria-hidden />
-                <span>Edita el mínimo o el objetivo (opcional). <kbd>Enter</kbd> pasa a la siguiente fila.</span>
+                <Info size={16} aria-hidden />
+                <span>
+                  Cambia el mínimo o el objetivo de cada producto; el objetivo es opcional.
+                  <span className="bulk-footer__keys"> Con teclado, <kbd>Enter</kbd> pasa a la siguiente fila.</span>
+                </span>
               </span>
             ) : (
               <span><strong className="bulk-footer__count">{changedRows.length}</strong> producto(s) con cambios sin guardar</span>

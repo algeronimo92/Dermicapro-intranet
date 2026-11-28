@@ -497,6 +497,11 @@
 .bulk-footer__hint { display: inline-flex; align-items: flex-start; gap: 8px; }
 .bulk-footer__hint svg { flex-shrink: 0; margin-top: 2px; color: var(--color-text-tertiary); }
 .bulk-footer__count { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+/* La ayuda de teclado sólo tiene sentido en PC: en celulares y tablets
+   (pantalla táctil, sin teclado físico) se oculta. */
+@media (pointer: coarse) {
+  .bulk-footer__keys { display: none; }
+}
 .bulk-footer kbd {
   display: inline-block;
   min-width: 20px;

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Keyboard } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { PageDetailLayout } from '../../components/templates';
 import { Select } from '../../components/Select';
 import { Modal } from '../../components/Modal';
@@ -200,8 +200,11 @@ export function StockCountFormPage() {
         <span className="bulk-footer__summary">
           {rows.length === 0 ? (
             <span className="bulk-footer__hint">
-              <Keyboard size={16} aria-hidden />
-              <span>Escribe lo contado de cada producto. <kbd>Enter</kbd> pasa a la siguiente fila.</span>
+              <Info size={16} aria-hidden />
+              <span>
+                Escribe cuántas unidades contaste de cada producto.
+                <span className="bulk-footer__keys"> Con teclado, <kbd>Enter</kbd> pasa a la siguiente fila.</span>
+              </span>
             </span>
           ) : (
             <span>
