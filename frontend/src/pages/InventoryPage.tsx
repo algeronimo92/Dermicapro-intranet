@@ -29,7 +29,6 @@ export function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [lowStockCount, setLowStockCount] = useState(0);
   const [brands, setBrands] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +59,6 @@ export function InventoryPage() {
       setProducts(res.data);
       setTotal(res.total);
       setTotalPages(Math.max(1, res.totalPages));
-      setLowStockCount(res.lowStockCount);
     } catch (err) {
       setError(apiErrorMessage(err, 'Error al cargar el inventario'));
     } finally {
@@ -127,13 +125,6 @@ export function InventoryPage() {
       isLoading={loading}
       error={error}
     >
-      {lowStockCount > 0 && !lowStock && (
-        <div className="inventory-alert" role="status">
-          <span>⚠ {lowStockCount} {lowStockCount === 1 ? 'producto tiene' : 'productos tienen'} stock bajo o agotado.</span>
-          <button type="button" onClick={() => setLowStock(true)}>Ver cuáles</button>
-        </div>
-      )}
-
       {products.length === 0 ? (
         <div className="inventory-empty">
           {debouncedSearch || category || brand || lowStock

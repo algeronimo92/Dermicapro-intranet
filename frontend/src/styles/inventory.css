@@ -2,30 +2,6 @@
    Inventario
    ========================================== */
 
-.inventory-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  background: var(--color-warning-alpha-10);
-  color: var(--color-warning-dark);
-  font-size: var(--font-size-sm);
-}
-
-.inventory-alert button {
-  background: none;
-  border: none;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
