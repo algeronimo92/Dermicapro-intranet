@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Keyboard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { PageDetailLayout } from '../../components/templates';
 import { Select } from '../../components/Select';
@@ -30,7 +30,6 @@ function rowChange(product: Product, draft: Draft | undefined): { row: StockAler
 }
 
 export function StockAlertsPage() {
-  const navigate = useNavigate();
   const { modules } = useAuth();
   const canEdit = modules.inventory.edit;
 
@@ -113,8 +112,6 @@ export function StockAlertsPage() {
     <PageDetailLayout
       title="Alertas de stock"
       subtitle="Define cuándo avisa cada producto (mínimo) y hasta cuánto reponer (objetivo). Los que avisan aparecen en la Lista de compras"
-      onBack={() => navigate('/inventory')}
-      backLabel="Productos"
       isLoading={loading}
       error={loadError}
     >
@@ -142,14 +139,14 @@ export function StockAlertsPage() {
       {error && <div className="alert alert-error" role="alert">{error}</div>}
 
       <div className="bulk-sheet">
-        <table className="bulk-table">
+        <table className="bulk-table alerts-table">
           <thead>
             <tr>
               <th className="bulk-table__product">Producto</th>
               <th className="bulk-table__num">Stock</th>
-              <th className="bulk-table__num">Mínimo (alerta)</th>
+              <th className="bulk-table__num">Mínimo<span className="alerts-table__long"> (alerta)</span></th>
               <th className="bulk-table__num">Objetivo</th>
-              <th>Estado</th>
+              <th className="alerts-table__state">Estado</th>
             </tr>
           </thead>
           <tbody>
@@ -167,6 +164,11 @@ export function StockAlertsPage() {
                   <td className="bulk-table__product">
                     <span className="bulk-table__name">{p.name}</span>
                     <span className="bulk-table__meta">{[p.brand, p.presentation].filter(Boolean).join(' · ')}</span>
+                    {(change.error || low) && (
+                      <span className={`alerts-table__state-inline${change.error ? ' is-error' : ''}`}>
+                        {change.error ?? (p.stock === 0 ? 'Agotado' : 'En alerta')}
+                      </span>
+                    )}
                   </td>
                   <td className="bulk-table__num">{p.stock}</td>
                   {(['min', 'target'] as Col[]).map(col => (
@@ -182,7 +184,7 @@ export function StockAlertsPage() {
                       ) : (col === 'min' ? p.minStock : p.targetStock ?? '—')}
                     </td>
                   ))}
-                  <td>
+                  <td className="alerts-table__state">
                     {change.error
                       ? <span className="alert-state alert-state--error">{change.error}</span>
                       : low
@@ -199,9 +201,14 @@ export function StockAlertsPage() {
       {canEdit && (
         <div className="bulk-footer">
           <span className="bulk-footer__summary">
-            {changedRows.length === 0 && errorCount === 0
-              ? 'Edita el mínimo o el objetivo. Enter baja a la siguiente fila. El objetivo es opcional.'
-              : `${changedRows.length} producto(s) con cambios`}
+            {changedRows.length === 0 && errorCount === 0 ? (
+              <span className="bulk-footer__hint">
+                <Keyboard size={16} aria-hidden />
+                <span>Edita el mínimo o el objetivo (opcional). <kbd>Enter</kbd> pasa a la siguiente fila.</span>
+              </span>
+            ) : (
+              <span><strong className="bulk-footer__count">{changedRows.length}</strong> producto(s) con cambios sin guardar</span>
+            )}
             {errorCount > 0 && <strong className="bulk-footer__error"> · {errorCount} con errores</strong>}
           </span>
           <div className="bulk-footer__actions">

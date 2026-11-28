@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Keyboard } from 'lucide-react';
 import { PageDetailLayout } from '../../components/templates';
 import { Select } from '../../components/Select';
 import { Modal } from '../../components/Modal';
@@ -197,9 +198,16 @@ export function StockCountFormPage() {
 
       <div className="bulk-footer">
         <span className="bulk-footer__summary">
-          {rows.length === 0
-            ? 'Escribe lo contado de cada producto. Enter baja a la siguiente fila.'
-            : `${rows.length} contado(s) · ${withDifference.length} con diferencia`}
+          {rows.length === 0 ? (
+            <span className="bulk-footer__hint">
+              <Keyboard size={16} aria-hidden />
+              <span>Escribe lo contado de cada producto. <kbd>Enter</kbd> pasa a la siguiente fila.</span>
+            </span>
+          ) : (
+            <span>
+              <strong className="bulk-footer__count">{rows.length}</strong> contado(s) · {withDifference.length} con diferencia
+            </span>
+          )}
           {surplus > 0 && <span className="count-diff is-surplus"> · +{surplus} sobrante(s)</span>}
           {shortage > 0 && <span className="count-diff is-shortage"> · −{shortage} faltante(s)</span>}
         </span>

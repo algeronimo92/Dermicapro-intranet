@@ -17,7 +17,7 @@ export function InventoryLayout() {
     { to: '/inventory/returns', label: 'Devoluciones', icon: Undo2, show: modules.inventory.returns },
     { to: '/inventory/counts', label: 'Conteos', icon: ClipboardCheck, show: modules.inventory.counts },
     { to: '/inventory/shopping-list', label: 'Lista de compras', icon: ClipboardList, show: true },
-    { to: '/inventory/alerts', label: 'Alertas de stock', icon: Bell, show: true },
+    { to: '/inventory/alerts', label: 'Alertas', icon: Bell, show: true },
   ].filter(tab => tab.show);
   // Productos incluye la ficha de cada producto (/inventory/:id).
   const inOtherTab = tabs.some(tab => pathname.startsWith(tab.to));

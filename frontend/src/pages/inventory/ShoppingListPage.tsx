@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { PageDetailLayout } from '../../components/templates';
 import { apiErrorMessage, inventoryService, type Product } from '../../services/inventory.service';
 
@@ -15,7 +15,6 @@ const byUrgency = (a: Product, b: Product) =>
  * (Compras).
  */
 export function ShoppingListPage() {
-  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -35,8 +34,6 @@ export function ShoppingListPage() {
     <PageDetailLayout
       title="Lista de compras"
       subtitle="Productos que llegaron a su stock mínimo"
-      onBack={() => navigate('/inventory')}
-      backLabel="Productos"
       isLoading={loading}
       error={loadError}
     >

@@ -464,25 +464,63 @@
 }
 .bulk-table tr.is-conflict td.bulk-table__product { box-shadow: inset 3px 0 0 var(--color-error); }
 
+/* Barra de acciones de las hojas (alertas, conteo, compra, devolución): queda
+   pegada abajo mientras se recorre la lista, con el resumen y los botones. */
 .bulk-footer {
+  position: sticky;
+  bottom: var(--spacing-sm);
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-sm) var(--spacing-md);
   margin-top: var(--spacing-md);
-  padding: var(--spacing-sm) 0;
+  padding: 12px var(--spacing-md);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
   background: var(--color-bg-primary);
+  box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.45);
 }
 
-.bulk-footer__summary { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.bulk-footer__summary {
+  flex: 1 1 320px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.bulk-footer__hint { display: inline-flex; align-items: flex-start; gap: 8px; }
+.bulk-footer__hint svg { flex-shrink: 0; margin-top: 2px; color: var(--color-text-tertiary); }
+.bulk-footer__count { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.bulk-footer kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--color-border-primary);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  line-height: 18px;
+  text-align: center;
+}
 .bulk-footer__error { color: var(--color-error-dark); }
 .bulk-footer__actions { display: flex; gap: var(--spacing-sm); }
 .bulk-footer__actions .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 640px) {
   .bulk-sheet { max-height: none; }
-  .bulk-table__product { min-width: 150px; }
+  .bulk-table__product { min-width: 130px; }
+  .bulk-cell--qty { width: 58px; }
+  /* En celular la barra fija taparía media pantalla: va al final de la hoja. */
+  .bulk-footer { position: static; box-shadow: none; }
   .bulk-footer__actions { width: 100%; }
   .bulk-footer__actions .action-btn { flex: 1; }
 }
@@ -513,6 +551,13 @@
 }
 
 .inventory-tab:hover { color: var(--color-text-primary); }
+
+/* Siete apartados: en pantallas medianas se ocultan los íconos para que
+   quepan todos sin tener que desplazar la barra. */
+@media (max-width: 1360px) and (min-width: 769px) {
+  .inventory-tab { padding: 10px 11px; }
+  .inventory-tab svg { display: none; }
+}
 
 .inventory-tab.is-active {
   color: var(--color-primary-text);
@@ -811,6 +856,22 @@
 }
 .alert-state--low { background: var(--color-warning-alpha-10); color: var(--color-warning-dark); }
 .alert-state--error { background: var(--color-error-alpha-10); color: var(--color-error-dark); }
+
+/* En celular el estado va bajo el nombre y "(alerta)" se omite del encabezado,
+   para que mínimo y objetivo se vean sin desplazar la tabla. */
+.alerts-table__state-inline { display: none; }
+
+@media (max-width: 640px) {
+  .alerts-table__state, .alerts-table__long { display: none; }
+  .alerts-table__state-inline {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-warning-dark);
+  }
+  .alerts-table__state-inline.is-error { color: var(--color-error-dark); }
+}
 
 @media (max-width: 640px) {
   .purchase-form__row { grid-template-columns: 1fr; }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   Area,
   AreaChart,
@@ -42,7 +42,6 @@ const MAX_RESULTS = 50;
 
 /** Resumen: cómo va el stock de un producto día a día. */
 export function StockFlowPage() {
-  const navigate = useNavigate();
   const theme = useChartTheme();
   const [params, setParams] = useSearchParams();
   const to = params.get('to') ?? todayKey();
@@ -113,8 +112,6 @@ export function StockFlowPage() {
     <PageDetailLayout
       title="Resumen de inventario"
       subtitle="Cómo va el stock de cada producto día a día"
-      onBack={() => navigate('/inventory')}
-      backLabel="Productos"
       isLoading={loadingProducts}
       error={products.length === 0 ? error : null}
     >
