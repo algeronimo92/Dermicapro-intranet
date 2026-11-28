@@ -11,6 +11,7 @@ import {
   Product,
   ProductCategory,
 } from '../services/inventory.service';
+import { notifyInventoryChanged } from '../services/notifications.service';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ interface ProductFormModalProps {
   onSaved: (product: Product) => void;
   product?: Product | null;
   brands?: string[];
+  /** Al crear desde una compra: el nombre que se buscó y no se encontró. */
+  initialName?: string;
 }
 
 const EMPTY_FORM = {
@@ -27,8 +30,8 @@ const EMPTY_FORM = {
   presentation: '',
   salePrice: '',
   minStock: '2',
+  targetStock: '',
   barcode: '',
-  initialStock: '0',
   isActive: true,
 };
 
@@ -42,6 +45,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onSaved,
   product,
   brands = [],
+  initialName = '',
 }) => {
   const isEdit = !!product;
   const [form, setForm] = useState(EMPTY_FORM);
@@ -67,10 +71,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       presentation: product.presentation ?? '',
       salePrice: String(Number(product.salePrice)),
       minStock: String(product.minStock),
+      targetStock: product.targetStock === null ? '' : String(product.targetStock),
       barcode: product.barcode ?? '',
-      initialStock: '0',
       isActive: product.isActive,
-    } : EMPTY_FORM);
+    } : { ...EMPTY_FORM, name: initialName });
+    // initialName sólo cuenta al abrir el modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, product]);
 
   // Libera la URL temporal de la vista previa cuando cambia la foto.
@@ -104,14 +110,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     const salePrice = Number(form.salePrice);
     const minStock = Number(form.minStock);
-    const initialStock = Number(form.initialStock);
+    const targetStock = form.targetStock.trim() === '' ? null : Number(form.targetStock);
     if (!form.name.trim()) return setError('El nombre es requerido');
     if (form.salePrice === '' || !Number.isFinite(salePrice) || salePrice < 0) {
       return setError('Ingresa un precio de venta válido');
     }
     if (!Number.isInteger(minStock) || minStock < 0) return setError('El stock mínimo debe ser un entero ≥ 0');
-    if (!isEdit && (!Number.isInteger(initialStock) || initialStock < 0)) {
-      return setError('El stock inicial debe ser un entero ≥ 0');
+    if (targetStock !== null && (!Number.isInteger(targetStock) || targetStock < minStock)) {
+      return setError('El stock objetivo debe ser un entero mayor o igual al mínimo');
     }
 
     const payload = {
@@ -121,6 +127,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       presentation: form.presentation.trim() || null,
       salePrice,
       minStock,
+      targetStock,
       barcode: form.barcode.trim() || null,
       isActive: form.isActive,
     };
@@ -131,7 +138,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       const existing = product ?? created;
       saved = existing
         ? await inventoryService.updateProduct(existing.id, payload)
-        : await inventoryService.createProduct({ ...payload, initialStock });
+        : await inventoryService.createProduct(payload);
+      notifyInventoryChanged();
       if (photo) saved = await inventoryService.uploadPhoto(saved.id, photo);
       onSaved(saved);
       onClose();
@@ -236,27 +244,34 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             />
           </div>
           <div>
-            <label className="field-label">Stock mínimo</label>
+            <label className="field-label">Stock mínimo (alerta)</label>
             <input
               type="number" min="0" step="1" value={form.minStock} onChange={set('minStock')}
               className="filter-select-modern" style={{ width: '100%' }}
             />
           </div>
-          {isEdit ? (
-            <div>
-              <label className="field-label">Stock actual</label>
-              <div className="product-form__readonly">{product!.stock} und.</div>
-            </div>
-          ) : (
-            <div>
-              <label className="field-label">Stock inicial</label>
-              <input
-                type="number" min="0" step="1" value={form.initialStock} onChange={set('initialStock')}
-                className="filter-select-modern" style={{ width: '100%' }}
-              />
-            </div>
-          )}
+          <div>
+            <label className="field-label">Stock objetivo</label>
+            <input
+              type="number" min="0" step="1" value={form.targetStock} onChange={set('targetStock')}
+              className="filter-select-modern" style={{ width: '100%' }} placeholder="Opcional"
+            />
+          </div>
         </div>
+        <p className="product-form__hint">
+          Con stock igual o menor al mínimo aparece en la lista de compras. El objetivo es hasta cuánto conviene reponer (referencia).
+        </p>
+
+        {isEdit ? (
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
+            <label className="field-label">Stock actual</label>
+            <div className="product-form__readonly">{product!.stock} und.</div>
+          </div>
+        ) : (
+          <p className="product-form__hint">
+            El producto se crea con stock 0: las unidades las suma la compra donde lo registras.
+          </p>
+        )}
 
         <div style={{ marginTop: 'var(--spacing-md)' }}>
           <label className="field-label">Código de barras (opcional)</label>
@@ -269,7 +284,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         {isEdit && (
           <>
             <p className="product-form__hint">
-              El stock no se edita aquí: usa «Registrar movimiento» para entradas, salidas o ajustes.
+              El stock no se edita aquí: cambia con las compras, las devoluciones al proveedor y los conteos de inventario.
             </p>
             <label className="checkbox-modern" style={{ cursor: 'pointer', marginTop: 'var(--spacing-sm)' }}>
               <input

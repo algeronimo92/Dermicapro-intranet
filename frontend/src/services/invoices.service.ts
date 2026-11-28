@@ -1,5 +1,21 @@
 import api from './api';
 
+/** Tratamientos (insumos de la clínica) o Productos (compras de inventario). */
+export type InvoiceCategory = 'treatments' | 'products';
+
+export const INVOICE_CATEGORY_LABELS: Record<InvoiceCategory, string> = {
+  treatments: 'Tratamientos',
+  products: 'Productos',
+};
+
+export interface InvoiceDefaults {
+  customerDocument: string;
+  customerName: string;
+  customerAddress: string;
+  /** Tipos que la persona puede ver y registrar (inventario: sólo Productos). */
+  categories: InvoiceCategory[];
+}
+
 export interface InvoiceSummary {
   id: string;
   documentType: string;
@@ -8,6 +24,7 @@ export interface InvoiceSummary {
   issueDate: string;
   currency: string;
   total: string;
+  category: InvoiceCategory;
   _count: { attachments: number };
 }
 
@@ -15,6 +32,7 @@ export interface InvoiceFilters {
   search?: string;
   currency?: 'PEN' | 'USD';
   documentType?: string;
+  category?: InvoiceCategory;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -47,9 +65,7 @@ export interface InvoiceDetail extends InvoiceSummary {
 
 export const invoicesService = {
   async defaults(signal: AbortSignal) {
-    const response = await api.get<{ customerDocument: string; customerName: string; customerAddress: string }>(
-      '/invoices/defaults', { signal },
-    );
+    const response = await api.get<InvoiceDefaults>('/invoices/defaults', { signal });
     return response.data;
   },
 

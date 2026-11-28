@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { PageDetailLayout } from '../components/templates';
 import { Pagination } from '../components/Pagination';
 import { ProductFormModal } from '../components/ProductFormModal';
-import { InventoryMovementModal } from '../components/InventoryMovementModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import {
   CATEGORY_LABELS,
@@ -14,10 +13,11 @@ import {
   apiErrorMessage,
   inventoryService,
   isLowStock,
-  MovementType,
   Product,
   REASON_LABELS,
+  RETURN_REASON_LABELS,
 } from '../services/inventory.service';
+import { notifyInventoryChanged } from '../services/notifications.service';
 import { formatDateTime } from '../utils/dateUtils';
 import { StockBadge } from '../components/StockBadge';
 import '../styles/inventory.css';
@@ -28,8 +28,9 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   // Lo que puede hacer lo decide Empleados -> Privilegios (products / inventory_movements).
+  // El stock no se mueve desde aquí: cambia con compras (y devoluciones y conteos).
   const { modules } = useAuth();
-  const { edit: canEdit, move: canMove } = modules.inventory;
+  const { edit: canEdit, purchase: canPurchase } = modules.inventory;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,6 @@ export function ProductDetailPage() {
   const [movementsPages, setMovementsPages] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [movementType, setMovementType] = useState<MovementType | null>(null);
 
   const loadProduct = useCallback(async () => {
     if (!id) return;
@@ -80,6 +80,7 @@ export function ProductDetailPage() {
     setActiveError(null);
     try {
       setProduct(await inventoryService.updateProduct(product.id, { isActive: activate }));
+      notifyInventoryChanged();
       setConfirmDeactivate(false);
     } catch (err) {
       setActiveError(apiErrorMessage(err, `No se pudo ${activate ? 'activar' : 'desactivar'} el producto`));
@@ -150,8 +151,12 @@ export function ProductDetailPage() {
                   <div className={`product-stat__value${stockClass}`}>{product.stock} und.</div>
                 </div>
                 <div className="product-stat">
-                  <div className="product-stat__label">Stock mínimo</div>
+                  <div className="product-stat__label">Mínimo (alerta)</div>
                   <div className="product-stat__value">{product.minStock} und.</div>
+                </div>
+                <div className="product-stat">
+                  <div className="product-stat__label">Objetivo</div>
+                  <div className="product-stat__value">{product.targetStock === null ? '—' : `${product.targetStock} und.`}</div>
                 </div>
                 <div className="product-stat">
                   <div className="product-stat__label">Precio de venta</div>
@@ -165,13 +170,10 @@ export function ProductDetailPage() {
                 </p>
               )}
 
-              {canMove && (
+              {canPurchase && product.isActive && (
                 <div className="product-detail__actions">
-                  <button type="button" className="action-btn success" onClick={() => setMovementType('in')}>
-                    ＋ Registrar entrada
-                  </button>
-                  <button type="button" className="action-btn primary" onClick={() => setMovementType('out')} disabled={product.stock === 0}>
-                    － Registrar salida
+                  <button type="button" className="action-btn secondary" onClick={() => navigate(`/inventory/purchases/new?products=${product.id}`)}>
+                    Registrar compra de este producto
                   </button>
                 </div>
               )}
@@ -199,7 +201,16 @@ export function ProductDetailPage() {
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {formatDateTime(m.createdAt, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td>{REASON_LABELS[m.reason]}</td>
+                    <td>
+                      {m.purchaseItem
+                        ? <Link to={`/inventory/purchases/${m.purchaseItem.purchaseId}`}>{REASON_LABELS[m.reason]}</Link>
+                        : m.stockCountItem
+                          ? <Link to={`/inventory/counts/${m.stockCountItem.countId}`}>{REASON_LABELS[m.reason]}</Link>
+                          : REASON_LABELS[m.reason]}
+                      {m.supplierReturnItem && (
+                        <span className="text-secondary"> · {RETURN_REASON_LABELS[m.supplierReturnItem.supplierReturn.reason]}</span>
+                      )}
+                    </td>
                     <td style={{ textAlign: 'right' }} className={`movement-qty--${m.type}`}>
                       {m.type === 'in' ? '+' : '−'}{m.quantity}
                     </td>
@@ -234,7 +245,7 @@ export function ProductDetailPage() {
             message={<>¿Desactivar <strong>{product.name}</strong>?</>}
             details={
               <ul>
-                <li>Dejará de aparecer en el inventario y en «Registrar movimientos». Lo verás con «Mostrar inactivos».</li>
+                <li>Dejará de aparecer en el inventario, en las compras y en la lista de compras. Lo verás con «Mostrar inactivos».</li>
                 <li>Su stock ({product.stock} und.) y su historial de movimientos se conservan.</li>
                 <li>Puedes reactivarlo cuando quieras desde esta ficha.</li>
               </ul>
@@ -245,16 +256,6 @@ export function ProductDetailPage() {
             error={confirmDeactivate ? activeError : null}
             onConfirm={() => setActive(false)}
             onCancel={() => { setConfirmDeactivate(false); setActiveError(null); }}
-          />
-          <InventoryMovementModal
-            isOpen={movementType !== null}
-            onClose={() => setMovementType(null)}
-            product={product}
-            initialType={movementType ?? 'in'}
-            onSaved={(stock) => {
-              setProduct(p => (p ? { ...p, stock } : p));
-              if (movementsPage === 1) loadMovements(); else setMovementsPage(1);
-            }}
           />
         </>
       )}

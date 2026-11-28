@@ -356,10 +356,20 @@ export interface CreateAppointmentDto {
  */
 export interface ModuleAccess {
   invoices: { view: boolean; create: boolean; edit: boolean; delete: boolean };
-  inventory: { view: boolean; create: boolean; edit: boolean; move: boolean };
+  inventory: {
+    view: boolean; create: boolean; edit: boolean;
+    purchases: boolean; purchase: boolean;
+    returns: boolean; return: boolean;
+    counts: boolean; count: boolean;
+  };
 }
 
 export const NO_MODULE_ACCESS: ModuleAccess = {
   invoices: { view: false, create: false, edit: false, delete: false },
-  inventory: { view: false, create: false, edit: false, move: false },
+  inventory: {
+    view: false, create: false, edit: false,
+    purchases: false, purchase: false,
+    returns: false, return: false,
+    counts: false, count: false,
+  },
 };

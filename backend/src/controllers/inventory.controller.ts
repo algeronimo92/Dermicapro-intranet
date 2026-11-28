@@ -1,32 +1,21 @@
 import { Request, Response } from 'express';
-import { Prisma, InventoryMovementReason, InventoryMovementType, ProductCategory } from '@prisma/client';
+import { Prisma, ProductCategory } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
+import { purchaseDbError } from '../services/inventory/purchases.service';
+import { getDailyStock, parseFlowRange } from '../services/inventory/stockFlow.service';
+
+// El inventario es sólo inventario: el stock cambia por compras, devoluciones
+// al proveedor y conteos, nunca a mano ni por ventas.
 
 const CATEGORIES = Object.values(ProductCategory);
-
-// Qué motivos valen para cada tipo de movimiento. "initial" sólo se registra al
-// crear el producto, nunca a mano.
-const REASONS_BY_TYPE: Record<InventoryMovementType, InventoryMovementReason[]> = {
-  in: ['purchase', 'adjustment'],
-  out: ['sale', 'internal_use', 'loss', 'adjustment'],
-};
+const MAX_ALERT_ROWS = 500;
 
 const userSummary = { select: { id: true, firstName: true, lastName: true } } as const;
 
-// El stock de un producto cambió desde que se cargó la pantalla de registro
-// masivo: se informa cuál y cuánto hay ahora para que la pantalla lo marque.
-class StockConflictError extends AppError {
-  constructor(message: string, readonly productId: string, readonly currentStock: number) {
-    super(message, 409);
-  }
-}
-
 function handleError(req: Request, res: Response, error: unknown, fallback: string) {
-  if (error instanceof StockConflictError) {
-    res.status(409).json({ error: error.message, productId: error.productId, currentStock: error.currentStock });
-    return;
-  }
+  const known = purchaseDbError(error);
+  if (known) error = known;
   if (error instanceof AppError) {
     res.status(error.statusCode).json({ error: error.message });
     return;
@@ -50,10 +39,23 @@ function optionalText(value: unknown, field: string, max = 120): string | null |
 
 function nonNegativeInt(value: unknown, field: string): number {
   const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
-  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0) {
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > 1_000_000) {
     throw new AppError(`${field} debe ser un número entero mayor o igual a 0`, 400);
   }
   return n;
+}
+
+/** Stock objetivo (referencia de hasta cuánto reponer): vacío = sin objetivo. */
+function optionalTarget(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  return nonNegativeInt(value, 'El stock objetivo');
+}
+
+function checkAlertRange(minStock: number, targetStock: number | null) {
+  if (targetStock !== null && targetStock < minStock) {
+    throw new AppError('El stock objetivo no puede ser menor que el stock mínimo', 400);
+  }
 }
 
 function price(value: unknown): number {
@@ -65,7 +67,7 @@ function price(value: unknown): number {
 }
 
 // Campos editables de un producto. El stock no está aquí a propósito: sólo
-// cambia registrando un movimiento.
+// cambia con compras, devoluciones o conteos.
 function parseProductInput(body: Record<string, unknown>, creating: boolean) {
   const data: Prisma.ProductUncheckedUpdateInput = {};
 
@@ -94,6 +96,8 @@ function parseProductInput(body: Record<string, unknown>, creating: boolean) {
   else if (creating) throw new AppError('El precio de venta es requerido', 400);
 
   if (body.minStock !== undefined) data.minStock = nonNegativeInt(body.minStock, 'El stock mínimo');
+  const target = optionalTarget(body.targetStock);
+  if (target !== undefined) data.targetStock = target;
 
   if (body.isActive !== undefined) {
     if (typeof body.isActive !== 'boolean') throw new AppError('isActive debe ser verdadero o falso', 400);
@@ -174,37 +178,22 @@ export const getProduct = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+/**
+ * Crea la ficha de un producto, siempre con stock 0. Productos es sólo el
+ * catálogo: el stock entra por Compras (con su factura) o por un conteo de
+ * inventario, nunca al crear la ficha.
+ */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const data = parseProductInput(req.body ?? {}, true);
-    const initialStock = req.body?.initialStock === undefined || req.body?.initialStock === ''
-      ? 0
-      : nonNegativeInt(req.body.initialStock, 'El stock inicial');
-    const userId = req.user!.id;
+    const body = req.body ?? {};
+    if (body.initialStock !== undefined || body.stock !== undefined || body.invoiceId !== undefined) {
+      throw new AppError('El producto se crea sin stock: regístralo con una compra o un conteo de inventario', 400);
+    }
+    const data = parseProductInput(body, true);
+    checkAlertRange((data.minStock as number | undefined) ?? 0, (data.targetStock as number | null | undefined) ?? null);
 
-    // Producto y su movimiento de inventario inicial en una sola transacción:
-    // el historial arranca cuadrado con el stock.
-    const product = await prisma.$transaction(async (tx) => {
-      const created = await tx.product.create({
-        data: {
-          ...(data as Prisma.ProductUncheckedCreateInput),
-          stock: initialStock,
-          createdById: userId,
-        },
-      });
-      if (initialStock > 0) {
-        await tx.inventoryMovement.create({
-          data: {
-            productId: created.id,
-            type: 'in',
-            reason: 'initial',
-            quantity: initialStock,
-            stockAfter: initialStock,
-            createdById: userId,
-          },
-        });
-      }
-      return created;
+    const product = await prisma.product.create({
+      data: { ...(data as Prisma.ProductUncheckedCreateInput), stock: 0, createdById: req.user!.id },
     });
 
     res.status(201).json({ data: product, message: 'Producto creado' });
@@ -216,16 +205,62 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     if (req.body?.stock !== undefined) {
-      throw new AppError('El stock no se edita directamente: registra un movimiento de entrada, salida o ajuste', 400);
+      throw new AppError('El stock no se edita directamente: registra una compra, una devolución o un conteo', 400);
     }
-    const existing = await prisma.product.findUnique({ where: { id: req.params.id }, select: { id: true } });
+    const existing = await prisma.product.findUnique({
+      where: { id: req.params.id }, select: { id: true, minStock: true, targetStock: true },
+    });
     if (!existing) throw new AppError('Producto no encontrado', 404);
 
     const data = parseProductInput(req.body ?? {}, false);
+    checkAlertRange(
+      (data.minStock as number | undefined) ?? existing.minStock,
+      data.targetStock !== undefined ? (data.targetStock as number | null) : existing.targetStock,
+    );
     const product = await prisma.product.update({ where: { id: req.params.id }, data });
     res.json({ data: product, message: 'Producto actualizado' });
   } catch (error) {
     handleError(req, res, error, 'Error al actualizar el producto');
+  }
+};
+
+/** Alertas de stock en lote: mínimo y objetivo de varios productos a la vez. */
+export const updateStockAlerts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = req.body?.rows;
+    if (!Array.isArray(rows) || rows.length === 0) throw new AppError('No hay alertas para guardar', 400);
+    if (rows.length > MAX_ALERT_ROWS) throw new AppError(`Máximo ${MAX_ALERT_ROWS} productos por vez`, 400);
+    const seen = new Set<string>();
+    const parsed = rows.map((raw: unknown, i: number) => {
+      const row = (raw ?? {}) as Record<string, unknown>;
+      const position = i + 1;
+      if (typeof row.productId !== 'string' || !row.productId) throw new AppError(`Fila ${position}: falta el producto`, 400);
+      if (seen.has(row.productId)) throw new AppError(`Fila ${position}: el producto está repetido`, 400);
+      seen.add(row.productId);
+      const minStock = nonNegativeInt(row.minStock, `Fila ${position}: el stock mínimo`);
+      const targetStock = optionalTarget(row.targetStock) ?? null;
+      if (targetStock !== null && targetStock < minStock) {
+        throw new AppError(`Fila ${position}: el objetivo no puede ser menor que el mínimo`, 400);
+      }
+      return { productId: row.productId, minStock, targetStock };
+    });
+
+    const updated = await prisma.$transaction(async (tx) => {
+      let count = 0;
+      for (const row of parsed) {
+        const result = await tx.product.updateMany({
+          where: { id: row.productId },
+          data: { minStock: row.minStock, targetStock: row.targetStock },
+        });
+        if (result.count === 0) throw new AppError('Uno de los productos ya no existe', 404);
+        count += result.count;
+      }
+      return count;
+    });
+
+    res.json({ data: { updated }, message: `Alertas actualizadas en ${updated} producto(s)` });
+  } catch (error) {
+    handleError(req, res, error, 'Error al guardar las alertas');
   }
 };
 
@@ -246,7 +281,7 @@ export const uploadProductPhoto = async (req: Request, res: Response): Promise<v
 };
 
 // ============================================
-// Movimientos
+// Historial (sólo lectura)
 // ============================================
 
 export const listMovements = async (req: Request, res: Response): Promise<void> => {
@@ -254,11 +289,21 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
     const where: Prisma.InventoryMovementWhereInput = { productId: req.params.id };
+    // De qué compra salió cada entrada, sólo para quien puede ver compras
+    // (si no, la consulta a purchase_items fallaría por privilegios).
+    const withPurchase = Boolean(req.moduleAccess?.inventory.purchases);
+    const withReturn = Boolean(req.moduleAccess?.inventory.returns);
+    const withCount = Boolean(req.moduleAccess?.inventory.counts);
 
     const [data, total] = await Promise.all([
       prisma.inventoryMovement.findMany({
         where,
-        include: { createdBy: userSummary },
+        include: {
+          createdBy: userSummary,
+          ...(withPurchase && { purchaseItem: { select: { purchaseId: true } } }),
+          ...(withReturn && { supplierReturnItem: { select: { supplierReturn: { select: { reason: true } } } } }),
+          ...(withCount && { stockCountItem: { select: { countId: true } } }),
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -272,171 +317,17 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-export const createMovement = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { type, reason } = req.body ?? {};
-    if (type !== 'in' && type !== 'out') throw new AppError('El tipo debe ser entrada o salida', 400);
-    if (!REASONS_BY_TYPE[type as InventoryMovementType].includes(reason)) {
-      throw new AppError('Motivo no válido para este tipo de movimiento', 400);
-    }
-    const quantity = nonNegativeInt(req.body.quantity, 'La cantidad');
-    if (quantity === 0) throw new AppError('La cantidad debe ser mayor a 0', 400);
-    const note = optionalText(req.body.note, 'La nota', 300) ?? null;
-    const productId = req.params.id;
-    const userId = req.user!.id;
-
-    const result = await prisma.$transaction(async (tx) => {
-      const product = await tx.product.findUnique({ where: { id: productId }, select: { id: true } });
-      if (!product) throw new AppError('Producto no encontrado', 404);
-
-      // Actualización condicional: dos salidas simultáneas no pueden dejar el
-      // stock en negativo, porque la segunda ya no cumple stock >= quantity.
-      const updated = await tx.product.updateMany({
-        where: type === 'out' ? { id: productId, stock: { gte: quantity } } : { id: productId },
-        data: { stock: type === 'out' ? { decrement: quantity } : { increment: quantity } },
-      });
-      if (updated.count === 0) {
-        const { stock } = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { stock: true } });
-        throw new AppError(`Stock insuficiente: hay ${stock} unidad(es) disponibles`, 400);
-      }
-
-      const { stock: stockAfter } = await tx.product.findUniqueOrThrow({
-        where: { id: productId }, select: { stock: true },
-      });
-      const movement = await tx.inventoryMovement.create({
-        data: { productId, type, reason, quantity, stockAfter, note, createdById: userId },
-        include: { createdBy: userSummary },
-      });
-      return { movement, stock: stockAfter };
-    });
-
-    res.status(201).json({ data: result, message: 'Movimiento registrado' });
-  } catch (error) {
-    handleError(req, res, error, 'Error al registrar el movimiento');
-  }
-};
-
 // ============================================
-// Registro masivo de movimientos
+// Resumen: stock diario de un producto
 // ============================================
 
-const MAX_BATCH_ROWS = 500;
-
-interface BatchSide {
-  quantity: number;
-  reason: InventoryMovementReason;
-}
-
-interface BatchRow {
-  productId: string;
-  expectedStock: number;
-  in: BatchSide | null;
-  out: BatchSide | null;
-  note: string | null;
-}
-
-function parseBatchSide(value: unknown, type: InventoryMovementType, position: number): BatchSide | null {
-  if (value === undefined || value === null) return null;
-  if (typeof value !== 'object') throw new AppError(`Fila ${position}: datos de ${type === 'in' ? 'entrada' : 'salida'} inválidos`, 400);
-  const { quantity, reason } = value as Record<string, unknown>;
-  const qty = nonNegativeInt(quantity, `Fila ${position}: la cantidad`);
-  if (qty === 0) return null;
-  if (!REASONS_BY_TYPE[type].includes(reason as InventoryMovementReason)) {
-    throw new AppError(`Fila ${position}: motivo no válido para la ${type === 'in' ? 'entrada' : 'salida'}`, 400);
-  }
-  return { quantity: qty, reason: reason as InventoryMovementReason };
-}
-
-export function parseBatchRows(body: unknown): BatchRow[] {
-  const rows = (body as { rows?: unknown } | undefined)?.rows;
-  if (!Array.isArray(rows) || rows.length === 0) throw new AppError('No hay movimientos para registrar', 400);
-  if (rows.length > MAX_BATCH_ROWS) throw new AppError(`Máximo ${MAX_BATCH_ROWS} productos por registro`, 400);
-
-  const seen = new Set<string>();
-  const parsed = rows.map((raw, i): BatchRow => {
-    const position = i + 1;
-    if (!raw || typeof raw !== 'object') throw new AppError(`Fila ${position}: datos inválidos`, 400);
-    const row = raw as Record<string, unknown>;
-    if (typeof row.productId !== 'string' || !row.productId) throw new AppError(`Fila ${position}: falta el producto`, 400);
-    if (seen.has(row.productId)) throw new AppError(`Fila ${position}: el producto está repetido`, 400);
-    seen.add(row.productId);
-
-    const expectedStock = nonNegativeInt(row.expectedStock, `Fila ${position}: el stock esperado`);
-    const entry = parseBatchSide(row.in, 'in', position);
-    const exit = parseBatchSide(row.out, 'out', position);
-    if (!entry && !exit) throw new AppError(`Fila ${position}: indica una entrada o una salida`, 400);
-    if (expectedStock + (entry?.quantity ?? 0) - (exit?.quantity ?? 0) < 0) {
-      throw new AppError(`Fila ${position}: la salida supera el stock disponible`, 400);
-    }
-    return { productId: row.productId, expectedStock, in: entry, out: exit, note: optionalText(row.note, `Fila ${position}: la nota`, 300) ?? null };
-  });
-  return parsed;
-}
-
-export const createMovementsBatch = async (req: Request, res: Response): Promise<void> => {
+export const dailyStock = async (req: Request, res: Response): Promise<void> => {
   try {
-    const rows = parseBatchRows(req.body);
-    const userId = req.user!.id;
-
-    // Todo o nada: si un producto falla, no se registra ningún movimiento.
-    const result = await prisma.$transaction(async (tx) => {
-      const createdAt = Date.now();
-      let movements = 0;
-      const stocks: { productId: string; stock: number }[] = [];
-
-      for (const row of rows) {
-        const finalStock = row.expectedStock + (row.in?.quantity ?? 0) - (row.out?.quantity ?? 0);
-
-        // Sólo se aplica si el stock sigue siendo el que vio la pantalla; si
-        // alguien registró otro movimiento mientras tanto, se rechaza todo.
-        const updated = await tx.product.updateMany({
-          where: { id: row.productId, stock: row.expectedStock },
-          data: { stock: finalStock },
-        });
-        if (updated.count === 0) {
-          const current = await tx.product.findUnique({
-            where: { id: row.productId }, select: { name: true, stock: true },
-          });
-          if (!current) throw new AppError('Uno de los productos ya no existe', 404);
-          throw new StockConflictError(
-            `El stock de «${current.name}» cambió mientras registrabas (ahora hay ${current.stock}). Revisa esa fila y vuelve a guardar.`,
-            row.productId,
-            current.stock,
-          );
-        }
-
-        // La entrada se registra antes que la salida (un milisegundo antes) para
-        // que el historial quede en orden y el stockAfter de cada uno cuadre.
-        const sides = [
-          row.in && { type: 'in' as const, side: row.in, stockAfter: row.expectedStock + row.in.quantity },
-          row.out && { type: 'out' as const, side: row.out, stockAfter: finalStock },
-        ].filter(Boolean) as { type: InventoryMovementType; side: BatchSide; stockAfter: number }[];
-
-        for (const [offset, { type, side, stockAfter }] of sides.entries()) {
-          await tx.inventoryMovement.create({
-            data: {
-              productId: row.productId,
-              type,
-              reason: side.reason,
-              quantity: side.quantity,
-              stockAfter,
-              note: row.note,
-              createdById: userId,
-              createdAt: new Date(createdAt + offset),
-            },
-          });
-          movements++;
-        }
-        stocks.push({ productId: row.productId, stock: finalStock });
-      }
-      return { movements, stocks };
-    }, { timeout: 30_000 });
-
-    res.status(201).json({
-      data: result,
-      message: `${result.movements} movimiento(s) registrados en ${result.stocks.length} producto(s)`,
-    });
+    const productId = typeof req.query.productId === 'string' ? req.query.productId : '';
+    if (!productId) throw new AppError('Elige un producto', 400);
+    const range = parseFlowRange(req.query.from, req.query.to);
+    res.json({ data: await getDailyStock(range, productId) });
   } catch (error) {
-    handleError(req, res, error, 'Error al registrar los movimientos');
+    handleError(req, res, error, 'Error al obtener el stock diario');
   }
 };

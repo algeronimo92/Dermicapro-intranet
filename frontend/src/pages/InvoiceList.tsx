@@ -3,7 +3,13 @@ import { Download, FileText, Plus, Search } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ActivityChart, type ActivitySeries } from '../components/dashboard/widgets/ActivityChart';
-import { invoicesService, type InvoiceFilters, type InvoiceReport } from '../services/invoices.service';
+import {
+  INVOICE_CATEGORY_LABELS,
+  invoicesService,
+  type InvoiceCategory,
+  type InvoiceFilters,
+  type InvoiceReport,
+} from '../services/invoices.service';
 import { FormSelect } from '../components/FormSelect';
 
 const defaultFilters: InvoiceFilters = { currency: 'PEN' };
@@ -27,6 +33,14 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
   const [error, setError] = useState('');
   const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState(false);
+  // Tipos que la persona ve: el filtro por tipo sólo tiene sentido si son dos.
+  const [categories, setCategories] = useState<InvoiceCategory[]>([]);
+
+  useEffect(() => {
+    const request = new AbortController();
+    invoicesService.defaults(request.signal).then(d => setCategories(d.categories)).catch(() => setCategories([]));
+    return () => request.abort();
+  }, []);
 
   useEffect(() => {
     const request = new AbortController();
@@ -53,6 +67,7 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
       currency: form.get('currency') as 'PEN' | 'USD',
       search: String(form.get('search') ?? '').trim() || undefined,
       documentType: String(form.get('documentType') ?? '') || undefined,
+      category: (String(form.get('category') ?? '') || undefined) as InvoiceCategory | undefined,
       dateFrom: String(form.get('dateFrom') ?? '') || undefined,
       dateTo: String(form.get('dateTo') ?? '') || undefined,
     });
@@ -92,7 +107,7 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
       </header>
       <form className="invoice-panel invoice-filter-form" onSubmit={applyFilters} onReset={() => updateQuery(1, defaultFilters)}>
         <div className="invoice-fields">
-          <label><span>Emisor o RUC</span><input name="search" type="search" maxLength={200} placeholder="Buscar proveedor" /></label>
+          <label className="invoice-filter-search"><span>Emisor o RUC</span><input name="search" type="search" maxLength={200} placeholder="Buscar proveedor" /></label>
           <label><span>Desde</span><input name="dateFrom" type="date" /></label>
           <label><span>Hasta</span><input name="dateTo" type="date" /></label>
           <label>
@@ -110,6 +125,15 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
               options={[{ value: '', label: 'Todos los tipos' }, ...documentTypes.map(type => ({ value: type, label: type }))]}
             />
           </label>
+          {categories.length > 1 && (
+            <label>
+              <span>Categoría</span>
+              <FormSelect
+                name="category"
+                options={[{ value: '', label: 'Ambos' }, ...categories.map(c => ({ value: c, label: INVOICE_CATEGORY_LABELS[c] }))]}
+              />
+            </label>
+          )}
         </div>
         <div className="invoice-actions">
           <p className="invoice-filter-hint">El resumen, el listado y Excel usan los filtros aplicados.</p>
@@ -129,22 +153,23 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
           </div>
           {!result.list.data.length && <p className="invoice-panel">No hay comprobantes que coincidan con los filtros.</p>}
           {result.list.data.length > 0 && (
-            <div className="invoice-table">
+            <div className="invoice-table invoice-table--cards">
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Comprobante</th><th scope="col">Emisor</th><th scope="col">Fecha de emisión</th>
+                    <th scope="col">Comprobante</th><th scope="col">Tipo</th><th scope="col">Emisor</th><th scope="col">Fecha de emisión</th>
                     <th scope="col">Adjuntos</th><th scope="col" className="invoice-amount">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.list.data.map(invoice => (
                     <tr key={invoice.id}>
-                      <td><Link to={invoice.id}>{invoice.documentType}</Link></td>
-                      <td>{invoice.issuerName}<small>{invoice.issuerRuc}</small></td>
-                      <td>{dateFormat.format(new Date(invoice.issueDate))}</td>
-                      <td>{invoice._count.attachments ? invoice._count.attachments + (invoice._count.attachments === 1 ? ' archivo' : ' archivos') : 'Sin adjunto'}</td>
-                      <td className="invoice-amount">{money(invoice.total, invoice.currency)}</td>
+                      <td data-label="Comprobante" className="invoice-cell-doc"><Link to={invoice.id}>{invoice.documentType}</Link></td>
+                      <td data-label="Tipo" className="invoice-cell-type"><span className={`invoice-category invoice-category--${invoice.category}`}>{INVOICE_CATEGORY_LABELS[invoice.category]}</span></td>
+                      <td data-label="Emisor" className="invoice-cell-issuer">{invoice.issuerName}<small>{invoice.issuerRuc}</small></td>
+                      <td data-label="Fecha de emisión" className="invoice-cell-date">{dateFormat.format(new Date(invoice.issueDate))}</td>
+                      <td data-label="Adjuntos" className="invoice-cell-files">{invoice._count.attachments ? invoice._count.attachments + (invoice._count.attachments === 1 ? ' archivo' : ' archivos') : 'Sin adjunto'}</td>
+                      <td data-label="Total" className="invoice-amount invoice-cell-total">{money(invoice.total, invoice.currency)}</td>
                     </tr>
                   ))}
                 </tbody>

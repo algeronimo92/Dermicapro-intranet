@@ -180,8 +180,12 @@ App.tsx (routing) → Pages → Components
 - `Payment` - Payment records with various types
 - `Commission` - Sales commissions
 - `SystemSetting` - Key/value configuration
-- `Product` - Retail products (dermocosmetics) with photo, sale price, `stock` and `minStock`
-- `InventoryMovement` - Immutable stock history (in/out + reason); `Product.stock` only changes together with a movement
+- `Product` - Retail products (dermocosmetics) with photo, sale price, `stock`, `minStock` (stock alert: `stock <= minStock`) and optional `targetStock` (reference of how far to restock; nothing computes a suggested quantity from it). A product is created only from Registrar compra ("Producto nuevo", same `POST /inventory/products`), always with stock 0 (the API rejects `initialStock`/`stock`/`invoiceId`); the purchase adds its units. Productos only lists and edits
+- `InventoryMovement` - Immutable stock history (in/out + reason); `Product.stock` only changes together with a movement. Inventory is only inventory: no sales and no manual in/out; stock changes only through purchases, supplier returns and stock counts
+- `Purchase` / `PurchaseItem` - A purchase from a supplier: adds stock (a `purchase` movement linked to each line through `purchaseItemId`) and may link its invoice (`invoiceId`, unique). A product arriving for the first time is created from the purchase form itself. Never edited or deleted
+- `SupplierReturn` / `SupplierReturnItem` - Products returned to the supplier with a required `reason` (expired, damaged, wrong_item, defective, other; `other` requires a note, CHECK). Subtracts stock only if there is enough (a `supplier_return` movement linked through `supplierReturnItemId`). Never edited or deleted
+- `StockCount` / `StockCountItem` - Physical stock count: each line keeps `expectedStock` (what the screen showed) and `countedStock`. Lines that differ set the stock to the counted value with an `adjustment` movement linked through `stockCountItemId`. If a product's stock changed while counting, nothing is saved and the API returns 409 with `conflicts` (rows locked with `FOR UPDATE`). Never edited or deleted
+- `RegisteredInvoice` - Purchase invoices received by the clinic (Facturas). `category` is `treatments` or `products`; a purchase may only link a `products` invoice, and a linked invoice cannot change category (triggers)
 
 > Naming note: `ServiceInstance` was previously called `Order` and `Session` was
 > called `AppointmentService`; `PaymentOrder` replaced `Invoice`. Older docs in
@@ -227,8 +231,11 @@ App.tsx (routing) → Pages → Components
 - The app's DB user needs `CREATEROLE` (it is the Postgres superuser in our Docker setup).
 - Admins manage object privileges (SELECT/INSERT/UPDATE/DELETE per table) in Empleados → Privilegios de BD (`/api/db-privileges`). Only tables in `constants/dbPrivileges.ts` are manageable; INSERT/UPDATE/DELETE require SELECT (Prisma uses RETURNING).
 - A Postgres `42501` is turned into a 403 `DB_PRIVILEGE_DENIED` by `middlewares/dbPrivilegeErrors.ts`.
+- **Inventario tabs:** Productos (catalog, no creation), Resumen (only a chart of how each product's stock goes day by day: `GET /inventory/daily-stock?productId&from&to` returns the closing stock of each day, rebuilt backwards from the current stock; days in clinic time, max 366), Compras (stock in, with invoice), Devoluciones (to the supplier), Conteos, Lista de compras (view only: products in alert with stock, minimum and target, no suggested quantity; the purchase is registered in Compras, each tab keeps its own job) and Alertas de stock (edit `minStock`/`targetStock` in bulk). Each tab shows according to its module action.
+- **Notifications (bell in the sidebar):** `services/notifications.service.ts`. The low-stock notice goes only to admin and inventory (`LOW_STOCK_ROLES`), and only if they can view Inventario. `GET /api/auth/me/notifications` returns the products with `stock <= minStock`; the bell links to Lista de compras.
+- **Invoices by category (row-level security):** `registered_invoices` and its attachments have RLS. Members of `app_inventory` only see and insert `products` invoices; every other role sees both. Admin and background jobs run as the table owner and are not subject to it.
 - **New tables are invisible to every app role** until granted: add the GRANTs in the same migration that creates the table, and add the table to `constants/dbPrivileges.ts`.
-- **Privilege-driven modules (Facturas, Inventario):** who sees the module and each action is decided by the DB privileges, not by the role. `constants/modules.ts` maps each action (view/create/edit/delete/move) to the (table, privilege) pairs it needs; `requireModule(module, action)` guards the routes, and `GET /api/auth/me/modules` tells the frontend which menu items, routes and buttons to show (`AuthContext.modules`). Admin always has everything.
+- **Privilege-driven modules (Facturas, Inventario):** who sees the module and each action is decided by the DB privileges, not by the role. `constants/modules.ts` maps each action (view/create/edit/delete, and for inventory purchases/purchase, returns/return and counts/count) to the (table, privilege) pairs it needs; `requireModule(module, action)` guards the routes, and `GET /api/auth/me/modules` tells the frontend which menu items, routes and buttons to show (`AuthContext.modules`). Admin always has everything.
 
 **Critical Authorization Rules:**
 - Sales users ONLY see appointments they created (`createdById` filter)

@@ -46,7 +46,7 @@ describe('getModuleAccess', () => {
   it('admin puede todo sin consultar la base', async () => {
     const access = await getModuleAccess(USER_ID, 'admin');
     expect(access.invoices.delete).toBe(true);
-    expect(access.inventory.move).toBe(true);
+    expect(access.inventory.purchase).toBe(true);
     expect(queryRaw).not.toHaveBeenCalled();
   });
 
@@ -55,7 +55,17 @@ describe('getModuleAccess', () => {
     const access = await getModuleAccess(USER_ID, 'sales');
     expect(access.invoices).toEqual({ view: true, create: false, edit: false, delete: false });
     expect(access.inventory.view).toBe(true);
-    expect(access.inventory.move).toBe(false);
+    expect(access.inventory.purchases).toBe(false);
+    expect(access.inventory.purchase).toBe(false);
+  });
+
+  it('registrar compras exige ver compras, sumar stock y dejar el movimiento', () => {
+    const base = ['products:SELECT', 'inventory_movements:SELECT', 'purchases:SELECT', 'purchase_items:SELECT',
+      'purchases:INSERT', 'purchase_items:INSERT', 'inventory_movements:INSERT'];
+    const only = new Set(base);
+    expect(accessFromGrants((t, p) => only.has(`${t}:${p}`)).inventory).toMatchObject({ purchases: true, purchase: false });
+    only.add('products:UPDATE');
+    expect(accessFromGrants((t, p) => only.has(`${t}:${p}`)).inventory.purchase).toBe(true);
   });
 
   it('un rol sin rol de base (o desconocido) no ve nada', async () => {

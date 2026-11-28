@@ -1,5 +1,6 @@
 import React from 'react';
 import { DetailSkeleton } from '../ui/Skeleton';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '../Button';
 
 interface PageDetailLayoutProps {
@@ -36,7 +37,7 @@ export const PageDetailLayout: React.FC<PageDetailLayoutProps> = ({
         <div className="error-banner">{error || notFoundMessage}</div>
         {onBack && (
           <Button variant="secondary" onClick={onBack} style={{ marginTop: 16 }}>
-            ← {backLabel}
+            <ArrowLeft size={16} aria-hidden /> Volver a {backLabel}
           </Button>
         )}
       </div>
@@ -45,33 +46,16 @@ export const PageDetailLayout: React.FC<PageDetailLayoutProps> = ({
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="page-header page-header--detail">
+        <div className="page-header__text">
           {onBack && (
-            <button
-              onClick={onBack}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-text-tertiary)',
-                fontSize: 'var(--font-size-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: 0,
-                marginBottom: 4,
-              }}
-            >
-              ← {backLabel}
+            <button type="button" className="page-back" onClick={onBack}>
+              <ArrowLeft size={16} aria-hidden />
+              <span>{backLabel}</span>
             </button>
           )}
-          <h1 style={{ margin: 0 }}>{title}</h1>
-          {subtitle && (
-            <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-              {subtitle}
-            </p>
-          )}
+          <h1>{title}</h1>
+          {subtitle && <p className="page-header__subtitle">{subtitle}</p>}
         </div>
         {actions && <div className="header-actions">{actions}</div>}
       </div>

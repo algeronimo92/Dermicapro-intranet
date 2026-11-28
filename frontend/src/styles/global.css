@@ -29,6 +29,40 @@
   margin: 0;
 }
 
+/* Encabezado de páginas de detalle/formulario: volver + título + descripción. */
+.page-header--detail { align-items: flex-end; margin-bottom: var(--spacing-xl); }
+.page-header__text { display: grid; gap: 6px; min-width: 0; }
+.page-header__subtitle {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal, 1.5);
+}
+
+.page-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 8px;
+  margin-bottom: 4px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.page-back svg { transition: transform 0.15s; }
+.page-back:hover { color: var(--color-primary-text); border-color: var(--color-primary); background: var(--color-primary-alpha-10); }
+.page-back:hover svg { transform: translateX(-2px); }
+.page-back:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+
 .header-actions {
   display: flex;
   gap: var(--spacing-sm);
