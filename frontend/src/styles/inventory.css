@@ -533,15 +533,6 @@
 
 .purchase-card h2 { font-size: var(--font-size-base); margin: 0 0 var(--spacing-sm); }
 
-.purchase-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-}
-.purchase-card__header h2 { margin: 0; }
-
 .purchase-form__row {
   display: grid;
   grid-template-columns: 200px 1fr;
@@ -555,8 +546,7 @@
   align-items: center;
   gap: var(--spacing-sm);
 }
-.purchase-invoice__actions .action-btn,
-.purchase-card__header .action-btn { display: inline-flex; align-items: center; gap: 6px; }
+.purchase-invoice__actions .action-btn { display: inline-flex; align-items: center; gap: 6px; }
 
 .purchase-invoice__hint { font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin: 0; }
 
