@@ -180,8 +180,10 @@ App.tsx (routing) → Pages → Components
 - `Payment` - Payment records with various types
 - `Commission` - Sales commissions
 - `SystemSetting` - Key/value configuration
-- `Product` - Retail products (dermocosmetics) with photo, sale price, `stock` and `minStock`
-- `InventoryMovement` - Immutable stock history (in/out + reason); `Product.stock` only changes together with a movement
+- `Product` - Retail products (dermocosmetics) with photo, sale price, `stock`, `minStock` (stock alert: `stock <= minStock`) and optional `targetStock` (the shopping list suggests restocking up to it)
+- `InventoryMovement` - Immutable stock history (in/out + reason); `Product.stock` only changes together with a movement. Inventory is only inventory: no sales and no manual in/out; stock changes through purchases (and, phase 2, returns and stock counts)
+- `Purchase` / `PurchaseItem` - A purchase from a supplier: adds stock (a `purchase` movement linked to each line through `purchaseItemId`) and may link its invoice (`invoiceId`, unique). Never edited or deleted
+- `RegisteredInvoice` - Purchase invoices received by the clinic (Facturas). `category` is `treatments` or `products`; a purchase may only link a `products` invoice, and a linked invoice cannot change category (triggers)
 
 > Naming note: `ServiceInstance` was previously called `Order` and `Session` was
 > called `AppointmentService`; `PaymentOrder` replaced `Invoice`. Older docs in
@@ -227,8 +229,9 @@ App.tsx (routing) → Pages → Components
 - The app's DB user needs `CREATEROLE` (it is the Postgres superuser in our Docker setup).
 - Admins manage object privileges (SELECT/INSERT/UPDATE/DELETE per table) in Empleados → Privilegios de BD (`/api/db-privileges`). Only tables in `constants/dbPrivileges.ts` are manageable; INSERT/UPDATE/DELETE require SELECT (Prisma uses RETURNING).
 - A Postgres `42501` is turned into a 403 `DB_PRIVILEGE_DENIED` by `middlewares/dbPrivilegeErrors.ts`.
+- **Invoices by category (row-level security):** `registered_invoices` and its attachments have RLS. Members of `app_inventory` only see and insert `products` invoices; every other role sees both. Admin and background jobs run as the table owner and are not subject to it.
 - **New tables are invisible to every app role** until granted: add the GRANTs in the same migration that creates the table, and add the table to `constants/dbPrivileges.ts`.
-- **Privilege-driven modules (Facturas, Inventario):** who sees the module and each action is decided by the DB privileges, not by the role. `constants/modules.ts` maps each action (view/create/edit/delete/move) to the (table, privilege) pairs it needs; `requireModule(module, action)` guards the routes, and `GET /api/auth/me/modules` tells the frontend which menu items, routes and buttons to show (`AuthContext.modules`). Admin always has everything.
+- **Privilege-driven modules (Facturas, Inventario):** who sees the module and each action is decided by the DB privileges, not by the role. `constants/modules.ts` maps each action (view/create/edit/delete, and for inventory purchases/purchase) to the (table, privilege) pairs it needs; `requireModule(module, action)` guards the routes, and `GET /api/auth/me/modules` tells the frontend which menu items, routes and buttons to show (`AuthContext.modules`). Admin always has everything.
 
 **Critical Authorization Rules:**
 - Sales users ONLY see appointments they created (`createdById` filter)
