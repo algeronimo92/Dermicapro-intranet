@@ -416,7 +416,11 @@
 }
 
 .bulk-table__num { text-align: right; white-space: nowrap; }
+/* `.bulk-table th` alinea a la izquierda y gana por especificidad: los
+   encabezados numéricos se alinean a la derecha, sobre sus valores e inputs. */
+.bulk-table th.bulk-table__num { text-align: right; }
 .bulk-table td.bulk-table__num:not(:has(input)) { padding-right: 10px; }
+.bulk-table td.bulk-table__num .bulk-cell--qty { margin-left: auto; display: block; }
 .bulk-table th.bulk-table__in { color: var(--color-success-dark); }
 .bulk-table th.bulk-table__out { color: var(--color-error-dark); }
 
