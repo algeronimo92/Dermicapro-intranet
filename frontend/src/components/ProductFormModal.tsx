@@ -19,6 +19,8 @@ interface ProductFormModalProps {
   onSaved: (product: Product) => void;
   product?: Product | null;
   brands?: string[];
+  /** Al crear desde una compra: el nombre que se buscó y no se encontró. */
+  initialName?: string;
 }
 
 const EMPTY_FORM = {
@@ -43,6 +45,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onSaved,
   product,
   brands = [],
+  initialName = '',
 }) => {
   const isEdit = !!product;
   const [form, setForm] = useState(EMPTY_FORM);
@@ -71,7 +74,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       targetStock: product.targetStock === null ? '' : String(product.targetStock),
       barcode: product.barcode ?? '',
       isActive: product.isActive,
-    } : EMPTY_FORM);
+    } : { ...EMPTY_FORM, name: initialName });
+    // initialName sólo cuenta al abrir el modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, product]);
 
   // Libera la URL temporal de la vista previa cuando cambia la foto.
@@ -264,7 +269,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </div>
         ) : (
           <p className="product-form__hint">
-            El producto se crea con stock 0. El stock entra con una compra (Compras) o con un conteo de inventario.
+            El producto se crea con stock 0: las unidades las suma la compra donde lo registras.
           </p>
         )}
 

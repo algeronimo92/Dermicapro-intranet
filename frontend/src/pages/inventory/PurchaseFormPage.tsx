@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Package, Trash2 } from 'lucide-react';
+import { Package, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { ProductFormModal } from '../../components/ProductFormModal';
 import { PageDetailLayout } from '../../components/templates';
 import { PurchaseInvoicePicker } from '../../components/inventory/PurchaseInvoicePicker';
 import {
@@ -24,7 +26,10 @@ export function PurchaseFormPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
+  const { modules } = useAuth();
+  const canCreateProduct = modules.inventory.create;
   const [products, setProducts] = useState<Product[]>([]);
+  const [newProductOpen, setNewProductOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -154,7 +159,14 @@ export function PurchaseFormPage() {
         </section>
 
         <section className="purchase-card">
-          <h2>Productos</h2>
+          <div className="purchase-card__header">
+            <h2>Productos</h2>
+            {canCreateProduct && (
+              <button type="button" className="action-btn secondary" onClick={() => setNewProductOpen(true)} disabled={saving}>
+                <Plus size={16} aria-hidden /> Producto nuevo
+              </button>
+            )}
+          </div>
 
           <div className="purchase-search">
             <input
@@ -177,7 +189,14 @@ export function PurchaseFormPage() {
               </ul>
             )}
             {search.trim() && suggestions.length === 0 && (
-              <p className="purchase-invoice__hint">Ningún producto coincide. Si es nuevo, primero crea su ficha en Productos.</p>
+              <p className="purchase-invoice__hint">
+                Ningún producto coincide.{' '}
+                {canCreateProduct && (
+                  <button type="button" className="link-btn" onClick={() => setNewProductOpen(true)} disabled={saving}>
+                    Crear «{search.trim()}» como producto nuevo
+                  </button>
+                )}
+              </p>
             )}
           </div>
 
@@ -244,6 +263,16 @@ export function PurchaseFormPage() {
           </div>
         </div>
       </div>
+
+      {/* Producto que llega por primera vez: se crea su ficha (sin stock) y
+          entra a esta compra con su cantidad. */}
+      <ProductFormModal
+        isOpen={newProductOpen}
+        onClose={() => setNewProductOpen(false)}
+        initialName={search.trim()}
+        brands={[...new Set(products.flatMap(p => (p.brand ? [p.brand] : [])))].sort()}
+        onSaved={(product) => { setProducts(prev => [...prev, product]); addProduct(product); }}
+      />
     </PageDetailLayout>
   );
 }
