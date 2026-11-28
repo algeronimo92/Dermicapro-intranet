@@ -4,12 +4,16 @@ import { Modal } from './Modal';
 import { CameraCaptureModal } from './CameraCaptureModal';
 import { isTouchDevice } from '../utils/device';
 import { Select } from './Select';
+import { PurchaseInvoicePicker } from './inventory/PurchaseInvoicePicker';
+import { useAuth } from '../contexts/AuthContext';
 import {
   CATEGORY_LABELS,
   apiErrorMessage,
   inventoryService,
+  InvoiceSummary,
   Product,
   ProductCategory,
+  todayKey,
 } from '../services/inventory.service';
 
 interface ProductFormModalProps {
@@ -18,6 +22,8 @@ interface ProductFormModalProps {
   onSaved: (product: Product) => void;
   product?: Product | null;
   brands?: string[];
+  /** Al crear desde una compra: el stock lo suma la compra, no este formulario. */
+  withoutInitialStock?: boolean;
 }
 
 const EMPTY_FORM = {
@@ -27,6 +33,7 @@ const EMPTY_FORM = {
   presentation: '',
   salePrice: '',
   minStock: '2',
+  targetStock: '',
   barcode: '',
   initialStock: '0',
   isActive: true,
@@ -42,8 +49,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onSaved,
   product,
   brands = [],
+  withoutInitialStock = false,
 }) => {
   const isEdit = !!product;
+  const { modules } = useAuth();
+  // El stock inicial puede venir con su factura: entonces se registra como compra.
+  const canAttachInvoice = modules.inventory.purchase && (modules.invoices.create || modules.invoices.view);
+  const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -58,6 +70,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     if (!isOpen) return;
     setError(null);
     setCreated(null);
+    setInvoice(null);
     setPhoto(null);
     setPreview(product?.photoUrl ?? null);
     setForm(product ? {
@@ -67,6 +80,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       presentation: product.presentation ?? '',
       salePrice: String(Number(product.salePrice)),
       minStock: String(product.minStock),
+      targetStock: product.targetStock === null ? '' : String(product.targetStock),
       barcode: product.barcode ?? '',
       initialStock: '0',
       isActive: product.isActive,
@@ -104,15 +118,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     const salePrice = Number(form.salePrice);
     const minStock = Number(form.minStock);
-    const initialStock = Number(form.initialStock);
+    const initialStock = withoutInitialStock ? 0 : Number(form.initialStock);
+    const targetStock = form.targetStock.trim() === '' ? null : Number(form.targetStock);
     if (!form.name.trim()) return setError('El nombre es requerido');
     if (form.salePrice === '' || !Number.isFinite(salePrice) || salePrice < 0) {
       return setError('Ingresa un precio de venta válido');
     }
     if (!Number.isInteger(minStock) || minStock < 0) return setError('El stock mínimo debe ser un entero ≥ 0');
+    if (targetStock !== null && (!Number.isInteger(targetStock) || targetStock < minStock)) {
+      return setError('El stock objetivo debe ser un entero mayor o igual al mínimo');
+    }
     if (!isEdit && (!Number.isInteger(initialStock) || initialStock < 0)) {
       return setError('El stock inicial debe ser un entero ≥ 0');
     }
+    if (invoice && initialStock === 0) return setError('Indica el stock inicial que trae la factura');
 
     const payload = {
       name: form.name.trim(),
@@ -121,6 +140,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       presentation: form.presentation.trim() || null,
       salePrice,
       minStock,
+      targetStock,
       barcode: form.barcode.trim() || null,
       isActive: form.isActive,
     };
@@ -131,7 +151,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       const existing = product ?? created;
       saved = existing
         ? await inventoryService.updateProduct(existing.id, payload)
-        : await inventoryService.createProduct({ ...payload, initialStock });
+        : await inventoryService.createProduct({
+          ...payload,
+          initialStock,
+          ...(invoice && { invoiceId: invoice.id, purchaseDate: todayKey() }),
+        });
       if (photo) saved = await inventoryService.uploadPhoto(saved.id, photo);
       onSaved(saved);
       onClose();
@@ -236,18 +260,31 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             />
           </div>
           <div>
-            <label className="field-label">Stock mínimo</label>
+            <label className="field-label">Stock mínimo (alerta)</label>
             <input
               type="number" min="0" step="1" value={form.minStock} onChange={set('minStock')}
               className="filter-select-modern" style={{ width: '100%' }}
             />
           </div>
-          {isEdit ? (
-            <div>
-              <label className="field-label">Stock actual</label>
-              <div className="product-form__readonly">{product!.stock} und.</div>
-            </div>
-          ) : (
+          <div>
+            <label className="field-label">Stock objetivo</label>
+            <input
+              type="number" min="0" step="1" value={form.targetStock} onChange={set('targetStock')}
+              className="filter-select-modern" style={{ width: '100%' }} placeholder="Opcional"
+            />
+          </div>
+        </div>
+        <p className="product-form__hint">
+          Con stock igual o menor al mínimo aparece en la lista de compras, que sugiere reponer hasta el objetivo.
+        </p>
+
+        {isEdit ? (
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
+            <label className="field-label">Stock actual</label>
+            <div className="product-form__readonly">{product!.stock} und.</div>
+          </div>
+        ) : !withoutInitialStock && (
+          <div className="product-form__initial">
             <div>
               <label className="field-label">Stock inicial</label>
               <input
@@ -255,8 +292,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 className="filter-select-modern" style={{ width: '100%' }}
               />
             </div>
-          )}
-        </div>
+            {canAttachInvoice && (
+              <div>
+                <label className="field-label">Factura del stock inicial</label>
+                <PurchaseInvoicePicker value={invoice} onChange={setInvoice} disabled={saving} />
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ marginTop: 'var(--spacing-md)' }}>
           <label className="field-label">Código de barras (opcional)</label>
@@ -269,7 +312,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         {isEdit && (
           <>
             <p className="product-form__hint">
-              El stock no se edita aquí: usa «Registrar movimiento» para entradas, salidas o ajustes.
+              El stock no se edita aquí: cambia con las compras (y con devoluciones y conteos).
             </p>
             <label className="checkbox-modern" style={{ cursor: 'pointer', marginTop: 'var(--spacing-sm)' }}>
               <input

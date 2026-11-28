@@ -2,6 +2,8 @@ import api from './api';
 
 export type ProductCategory = 'sunscreen' | 'serum' | 'cleanser' | 'moisturizer' | 'accessory' | 'other';
 export type MovementType = 'in' | 'out';
+// sale / internal_use / loss quedan sólo en el historial anterior: el inventario
+// ya no registra ventas ni salidas manuales.
 export type MovementReason = 'initial' | 'purchase' | 'sale' | 'internal_use' | 'loss' | 'adjustment';
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
@@ -15,17 +17,11 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
 
 export const REASON_LABELS: Record<MovementReason, string> = {
   initial: 'Inventario inicial',
-  purchase: 'Compra / reposición',
-  sale: 'Venta',
-  internal_use: 'Muestra o uso interno',
-  loss: 'Merma (dañado / vencido)',
+  purchase: 'Compra',
+  sale: 'Venta (anterior)',
+  internal_use: 'Uso interno (anterior)',
+  loss: 'Merma (anterior)',
   adjustment: 'Ajuste por conteo',
-};
-
-// Mismo criterio que el backend: "initial" sólo se registra al crear el producto.
-export const REASONS_BY_TYPE: Record<MovementType, MovementReason[]> = {
-  in: ['purchase', 'adjustment'],
-  out: ['sale', 'internal_use', 'loss', 'adjustment'],
 };
 
 interface UserSummary {
@@ -43,6 +39,7 @@ export interface Product {
   salePrice: string | number;
   stock: number;
   minStock: number;
+  targetStock: number | null;
   photoUrl: string | null;
   barcode: string | null;
   isActive: boolean;
@@ -61,6 +58,8 @@ export interface InventoryMovement {
   note: string | null;
   createdAt: string;
   createdBy: UserSummary;
+  /** Sólo llega si la persona puede ver compras. */
+  purchaseItem?: { purchaseId: string } | null;
 }
 
 export interface ProductFormData {
@@ -70,30 +69,58 @@ export interface ProductFormData {
   presentation?: string | null;
   salePrice: number;
   minStock: number;
+  targetStock?: number | null;
   barcode?: string | null;
   isActive?: boolean;
   initialStock?: number;
+  /** Con factura, el stock inicial se registra como compra. */
+  invoiceId?: string | null;
+  purchaseDate?: string;
 }
 
-export interface MovementFormData {
-  type: MovementType;
-  reason: MovementReason;
-  quantity: number;
-  note?: string;
-}
-
-export interface BatchMovementRow {
+export interface StockAlertRow {
   productId: string;
-  /** Stock que mostraba la pantalla: si cambió, la API rechaza todo el registro. */
-  expectedStock: number;
-  in?: { quantity: number; reason: MovementReason };
-  out?: { quantity: number; reason: MovementReason };
-  note?: string;
+  minStock: number;
+  targetStock: number | null;
 }
 
-export interface BatchMovementResult {
-  movements: number;
-  stocks: { productId: string; stock: number }[];
+export interface InvoiceSummary {
+  id: string;
+  documentType: string;
+  issuerRuc: string;
+  issuerName: string;
+  issueDate: string;
+  currency: string;
+  total: string;
+}
+
+export interface PurchaseSummary {
+  id: string;
+  purchaseDate: string;
+  note: string | null;
+  createdAt: string;
+  createdBy: UserSummary;
+  hasInvoice: boolean;
+  /** Sólo llega si la persona puede ver Facturas. */
+  invoice?: InvoiceSummary | null;
+  productCount: number;
+  unitCount: number;
+  productNames: string[];
+}
+
+export interface PurchaseDetail extends Omit<PurchaseSummary, 'productCount' | 'unitCount' | 'productNames'> {
+  items: {
+    id: string;
+    quantity: number;
+    product: Pick<Product, 'id' | 'name' | 'brand' | 'presentation' | 'photoUrl' | 'stock'>;
+  }[];
+}
+
+export interface PurchaseFormData {
+  purchaseDate: string;
+  invoiceId: string | null;
+  note?: string;
+  items: { productId: string; quantity: number }[];
 }
 
 export interface ProductFilters {
@@ -120,6 +147,19 @@ export const isLowStock = (p: Pick<Product, 'stock' | 'minStock'>) => p.stock <=
 
 export const formatPrice = (value: string | number) =>
   `S/ ${Number(value).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export const formatInvoiceAmount = (invoice: Pick<InvoiceSummary, 'total' | 'currency'>) =>
+  new Intl.NumberFormat('es-PE', { style: 'currency', currency: invoice.currency }).format(Number(invoice.total));
+
+/** Fecha de hoy en la zona del navegador, como 'YYYY-MM-DD'. */
+export const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/** Fechas sin hora (compras, facturas): se muestran tal cual, sin correr por zona horaria. */
+const dateOnlyFormatter = new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', dateStyle: 'medium' });
+export const formatDateOnly = (value: string) => dateOnlyFormatter.format(new Date(value));
 
 export const inventoryService = {
   async getProducts(filters: ProductFilters = {}): Promise<Paginated<Product> & { lowStockCount: number }> {
@@ -174,13 +214,29 @@ export const inventoryService = {
     }
   },
 
-  async createMovementsBatch(rows: BatchMovementRow[]): Promise<BatchMovementResult> {
-    const response = await api.post('/inventory/movements/batch', { rows });
+  async updateStockAlerts(rows: StockAlertRow[]): Promise<number> {
+    const response = await api.put<{ data: { updated: number } }>('/inventory/products/alerts', { rows });
+    return response.data.data.updated;
+  },
+
+  async getPurchases(page = 1, search = '', limit = 20): Promise<Paginated<PurchaseSummary>> {
+    const response = await api.get('/inventory/purchases', { params: { page, limit, ...(search && { search }) } });
+    return response.data;
+  },
+
+  async getPurchase(id: string): Promise<PurchaseDetail> {
+    const response = await api.get<{ data: PurchaseDetail }>(`/inventory/purchases/${id}`);
     return response.data.data;
   },
 
-  async createMovement(id: string, data: MovementFormData): Promise<{ movement: InventoryMovement; stock: number }> {
-    const response = await api.post(`/inventory/products/${id}/movements`, data);
+  async createPurchase(data: PurchaseFormData): Promise<{ id: string }> {
+    const response = await api.post<{ data: { id: string } }>('/inventory/purchases', data);
+    return response.data.data;
+  },
+
+  /** Facturas de Productos registradas que todavía no tienen compra. */
+  async getAvailableInvoices(): Promise<InvoiceSummary[]> {
+    const response = await api.get<{ data: InvoiceSummary[] }>('/inventory/purchases/available-invoices');
     return response.data.data;
   },
 };

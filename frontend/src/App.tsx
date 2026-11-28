@@ -26,7 +26,11 @@ import CommissionsPage from './pages/CommissionsPage';
 import { PaymentsAdminPage } from './pages/PaymentsAdminPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { InventoryPage } from './pages/InventoryPage';
-import { InventoryMovementsPage } from './pages/InventoryMovementsPage';
+import { InventoryLayout } from './components/inventory/InventoryLayout';
+import { PurchasesPage } from './pages/inventory/PurchasesPage';
+import { PurchaseFormPage } from './pages/inventory/PurchaseFormPage';
+import { PurchaseDetailPage } from './pages/inventory/PurchaseDetailPage';
+import { StockAlertsPage } from './pages/inventory/StockAlertsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { DbPrivilegesPage } from './pages/DbPrivilegesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -163,7 +167,9 @@ function DashboardLayout() {
   const isAdmin     = roleName === 'admin';
   // Contador e inventario sólo usan los módulos que les asigna Empleados -> Privilegios.
   const isLimitedRole = roleName === 'accountant' || roleName === 'inventory';
-  const limitedHome = modules.invoices.view ? '/invoices' : modules.inventory.view ? '/inventory' : null;
+  // Inventario también puede ver Facturas (las de Productos): su inicio sigue siendo Inventario.
+  const limitedHome = roleName === 'inventory' && modules.inventory.view ? '/inventory'
+    : modules.invoices.view ? '/invoices' : modules.inventory.view ? '/inventory' : null;
 
   const { showWarning, getMsRemaining, extendSession } = useIdleTimeout({
     timeout:       sessionTimeoutMs,
@@ -186,9 +192,14 @@ function DashboardLayout() {
           <div className="dashboard-content">
             <Routes>
               <Route path="/invoices/*" element={modules.invoices.view ? <InvoicesPage /> : <Navigate to="/" replace />} />
-              <Route path="/inventory" element={modules.inventory.view ? <InventoryPage /> : <Navigate to="/" replace />} />
-              <Route path="/inventory/movements" element={modules.inventory.move ? <InventoryMovementsPage /> : <Navigate to="/inventory" replace />} />
-              <Route path="/inventory/:id" element={modules.inventory.view ? <ProductDetailPage /> : <Navigate to="/" replace />} />
+              <Route path="/inventory" element={modules.inventory.view ? <InventoryLayout /> : <Navigate to="/" replace />}>
+                <Route index element={<InventoryPage />} />
+                <Route path="purchases" element={modules.inventory.purchases ? <PurchasesPage /> : <Navigate to="/inventory" replace />} />
+                <Route path="purchases/new" element={modules.inventory.purchase ? <PurchaseFormPage /> : <Navigate to="/inventory" replace />} />
+                <Route path="purchases/:id" element={modules.inventory.purchases ? <PurchaseDetailPage /> : <Navigate to="/inventory" replace />} />
+                <Route path="alerts" element={<StockAlertsPage />} />
+                <Route path=":id" element={<ProductDetailPage />} />
+              </Route>
               {isLimitedRole ? (
                 <Route
                   path="*"
