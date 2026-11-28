@@ -111,6 +111,7 @@ model User {
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
   productsCreated            Product[]            @relation("ProductCreatedBy")
   inventoryMovements         InventoryMovement[]  @relation("InventoryMovementCreatedBy")
+  purchasesCreated           Purchase[]           @relation("PurchaseCreatedBy")
   passwordResetTokens        PasswordResetToken[]
 
   @@index([roleId], map: "users_role_id_idx")
@@ -440,16 +441,20 @@ model RegisteredInvoice {
   bankAccount       String?  @map("bank_account")
   seller            String?
   items             String?
+  // Tratamientos (insumos de la clínica) o Productos (compras de inventario).
+  category          InvoiceCategory @default(treatments)
   createdById       String   @map("created_by_id")
   createdAt         DateTime @default(now()) @map("created_at")
 
   createdBy   User                          @relation(fields: [createdById], references: [id])
   attachments RegisteredInvoiceAttachment[]
+  purchase    Purchase?
 
   @@unique([issuerRuc, documentType, series, numberKey], map: "registered_invoices_document_key")
   @@index([currency, issueDate])
   @@index([createdAt, id])
   @@index([createdById])
+  @@index([category, createdAt])
   @@map("registered_invoices")
 }
 
@@ -597,6 +602,11 @@ enum InventoryMovementType {
   out
 }
 
+enum InvoiceCategory {
+  treatments // Tratamientos
+  products // Productos (compras de inventario)
+}
+
 enum InventoryMovementReason {
   initial // Inventario inicial
   purchase // Compra / reposición
@@ -617,7 +627,8 @@ model Product {
   presentation String? // ej. "50 ml", "40 g", "Talla M"
   salePrice    Decimal         @map("sale_price") @db.Decimal(10, 2)
   stock        Int             @default(0)
-  minStock     Int             @default(0) @map("min_stock")
+  minStock     Int             @default(0) @map("min_stock") // alerta: stock <= minStock
+  targetStock  Int?            @map("target_stock") // la lista de compras sugiere reponer hasta aquí
   photoUrl     String?         @map("photo_url")
   barcode      String?         @unique
   isActive     Boolean         @default(true) @map("is_active")
@@ -627,6 +638,7 @@ model Product {
 
   createdBy User                @relation("ProductCreatedBy", fields: [createdById], references: [id])
   movements InventoryMovement[]
+  purchaseItems PurchaseItem[]
 
   @@index([isActive, name], map: "products_active_name_idx")
   @@index([createdById], map: "products_created_by_id_idx")
@@ -644,12 +656,52 @@ model InventoryMovement {
   createdById String                  @map("created_by_id")
   createdAt   DateTime                @default(now()) @map("created_at")
 
-  product   Product @relation(fields: [productId], references: [id])
-  createdBy User    @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id])
+  // Entrada generada por una compra (reason = purchase).
+  purchaseItemId String? @map("purchase_item_id")
+
+  product      Product       @relation(fields: [productId], references: [id])
+  createdBy    User          @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id])
+  purchaseItem PurchaseItem? @relation(fields: [purchaseItemId], references: [id])
 
   @@index([productId, createdAt(sort: Desc)], map: "inventory_movements_product_created_at_idx")
   @@index([createdById], map: "inventory_movements_created_by_id_idx")
+  @@index([purchaseItemId])
   @@map("inventory_movements")
+}
+
+// Compra de productos a un proveedor. Suma stock; puede llevar su factura
+// (registered_invoices con category = products). No se edita ni se borra:
+// las correcciones se hacen con devoluciones o conteos.
+model Purchase {
+  id           String   @id @default(uuid())
+  purchaseDate DateTime @map("purchase_date") @db.Date
+  invoiceId    String?  @unique @map("invoice_id")
+  note         String?
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  invoice   RegisteredInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  createdBy User               @relation("PurchaseCreatedBy", fields: [createdById], references: [id])
+  items     PurchaseItem[]
+
+  @@index([purchaseDate(sort: Desc), createdAt(sort: Desc)])
+  @@index([createdById])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String @id @default(uuid())
+  purchaseId String @map("purchase_id")
+  productId  String @map("product_id")
+  quantity   Int
+
+  purchase  Purchase            @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product   Product             @relation(fields: [productId], references: [id])
+  movements InventoryMovement[]
+
+  @@unique([purchaseId, productId])
+  @@index([productId])
+  @@map("purchase_items")
 }
 
 // ==========================================
