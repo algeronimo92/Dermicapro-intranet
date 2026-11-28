@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PageDetailLayout } from '../../components/templates';
 import { Select } from '../../components/Select';
@@ -40,9 +40,7 @@ export function StockAlertsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  // ?low=1 (desde la campana de notificaciones) abre directo los productos en alerta.
-  const [params] = useSearchParams();
-  const [onlyLow, setOnlyLow] = useState(params.get('low') === '1');
+  const [onlyLow, setOnlyLow] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -114,7 +112,7 @@ export function StockAlertsPage() {
   return (
     <PageDetailLayout
       title="Alertas de stock"
-      subtitle="Un producto entra a la lista de compras cuando su stock llega al mínimo; se sugiere reponer hasta el objetivo"
+      subtitle="Define cuándo avisa cada producto (mínimo) y hasta cuánto reponer (objetivo). Los que avisan aparecen en la Lista de compras"
       onBack={() => navigate('/inventory')}
       backLabel="Productos"
       isLoading={loading}

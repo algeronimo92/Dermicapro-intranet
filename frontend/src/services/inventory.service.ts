@@ -210,6 +210,16 @@ export const inventoryService = {
     }
   },
 
+  /** Productos activos en alerta (stock <= mínimo): la lista de compras. */
+  async getLowStockProducts(): Promise<Product[]> {
+    const all: Product[] = [];
+    for (let page = 1; ; page++) {
+      const res = await inventoryService.getProducts({ page, limit: 100, lowStock: true });
+      all.push(...res.data);
+      if (page >= res.totalPages) return all;
+    }
+  },
+
   async updateStockAlerts(rows: StockAlertRow[]): Promise<number> {
     const response = await api.put<{ data: { updated: number } }>('/inventory/products/alerts', { rows });
     return response.data.data.updated;

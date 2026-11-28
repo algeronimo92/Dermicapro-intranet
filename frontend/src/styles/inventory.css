@@ -641,6 +641,12 @@
 .table tr.is-clickable { cursor: pointer; }
 .table tr.is-clickable:hover td { background: var(--color-bg-hover); }
 
+/* ---------- Lista de compras ---------- */
+
+.shopping-table__check { width: 40px; text-align: center; }
+.bulk-table th.shopping-table__check { text-align: center; }
+.shopping-table__check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+
 /* ---------- Alertas de stock ---------- */
 
 .alert-state {

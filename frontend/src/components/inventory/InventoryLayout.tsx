@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Bell, Package, ShoppingBag } from 'lucide-react';
+import { Bell, ClipboardList, Package, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/inventory.css';
 
@@ -12,6 +12,7 @@ export function InventoryLayout() {
   const { pathname } = useLocation();
   const tabs = [
     { to: '/inventory/purchases', label: 'Compras', icon: ShoppingBag, show: modules.inventory.purchases },
+    { to: '/inventory/shopping-list', label: 'Lista de compras', icon: ClipboardList, show: true },
     { to: '/inventory/alerts', label: 'Alertas de stock', icon: Bell, show: true },
   ].filter(tab => tab.show);
   // Productos incluye la ficha de cada producto (/inventory/:id).

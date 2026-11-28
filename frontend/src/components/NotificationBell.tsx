@@ -145,8 +145,8 @@ export function NotificationBell({ onNavigate }: NotificationBellProps) {
           )}
 
           <div className="notification-panel__footer">
-            <Link to="/inventory/alerts?low=1" onClick={() => { setOpen(false); onNavigate?.(); }}>
-              Ver alertas de stock
+            <Link to="/inventory/shopping-list" onClick={() => { setOpen(false); onNavigate?.(); }}>
+              Ver lista de compras
             </Link>
           </div>
         </div>,
