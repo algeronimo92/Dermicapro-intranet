@@ -532,3 +532,15 @@
   background: var(--color-error-alpha-10);
   color: var(--color-error);
 }
+
+/* Tipo de factura: Tratamientos / Productos */
+.invoice-category {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.invoice-category--treatments { background: var(--color-accent-alpha-10); color: var(--color-accent); }
+.invoice-category--products { background: var(--color-primary-alpha-10); color: var(--color-primary-text); }
