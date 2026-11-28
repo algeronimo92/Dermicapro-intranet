@@ -5,7 +5,7 @@ import { PageDetailLayout } from '../../components/templates';
 import { apiErrorMessage, inventoryService, type Product } from '../../services/inventory.service';
 
 /** Cuánto sugiere comprar: hasta el objetivo; sin objetivo no sugiere cantidad. */
-export const suggestedQuantity = (p: Pick<Product, 'stock' | 'targetStock'>) =>
+const suggestedQuantity = (p: Pick<Product, 'stock' | 'targetStock'>) =>
   p.targetStock !== null && p.targetStock > p.stock ? p.targetStock - p.stock : null;
 
 // Agotados primero; luego los que están más por debajo de su mínimo.
@@ -99,8 +99,8 @@ export function ShoppingListPage() {
                   </th>
                   <th className="bulk-table__product">Producto</th>
                   <th className="bulk-table__num">Stock</th>
-                  <th className="bulk-table__num">Mínimo</th>
-                  <th className="bulk-table__num">Objetivo</th>
+                  <th className="bulk-table__num shopping-table__extra">Mínimo</th>
+                  <th className="bulk-table__num shopping-table__extra">Objetivo</th>
                   <th className="bulk-table__num">A comprar</th>
                 </tr>
               </thead>
@@ -113,12 +113,15 @@ export function ShoppingListPage() {
                     <td className="bulk-table__product">
                       <span className="bulk-table__name">{p.name}</span>
                       <span className="bulk-table__meta">{[p.brand, p.presentation].filter(Boolean).join(' · ')}</span>
+                      <span className="bulk-table__meta shopping-table__levels">
+                        Mín. {p.minStock}{p.targetStock !== null && ` · Obj. ${p.targetStock}`}
+                      </span>
                     </td>
                     <td className="bulk-table__num">
                       {p.stock === 0 ? <span className="alert-state alert-state--error">Agotado</span> : p.stock}
                     </td>
-                    <td className="bulk-table__num">{p.minStock}</td>
-                    <td className="bulk-table__num">{p.targetStock ?? '—'}</td>
+                    <td className="bulk-table__num shopping-table__extra">{p.minStock}</td>
+                    <td className="bulk-table__num shopping-table__extra">{p.targetStock ?? '—'}</td>
                     <td className="bulk-table__num">
                       <input
                         inputMode="numeric" value={quantities[p.id] ?? ''} placeholder="—"

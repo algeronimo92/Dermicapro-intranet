@@ -143,13 +143,13 @@ export function StockCountFormPage() {
       {error && <div className="alert alert-error" role="alert">{error}</div>}
 
       <div className="bulk-sheet">
-        <table className="bulk-table">
+        <table className="bulk-table count-table">
           <thead>
             <tr>
               <th className="bulk-table__product">Producto</th>
               <th className="bulk-table__num">En sistema</th>
               <th className="bulk-table__num">Contado</th>
-              <th className="bulk-table__num">Diferencia</th>
+              <th className="bulk-table__num count-table__diff">Diferencia</th>
             </tr>
           </thead>
           <tbody>
@@ -170,6 +170,11 @@ export function StockCountFormPage() {
                         ? 'El stock cambió mientras contabas: revisa lo contado'
                         : [p.brand, p.presentation].filter(Boolean).join(' · ')}
                     </span>
+                    {diff !== null && (
+                      <span className={`bulk-table__meta count-table__diff-inline count-diff${diff ? (diff > 0 ? ' is-surplus' : ' is-shortage') : ''}`}>
+                        {diff === 0 ? 'Cuadra' : `Diferencia ${signed(diff)}`}
+                      </span>
+                    )}
                   </td>
                   <td className="bulk-table__num">{p.stock}</td>
                   <td className="bulk-table__num">
@@ -180,7 +185,7 @@ export function StockCountFormPage() {
                       aria-label={`Contado de ${p.name}`} disabled={saving}
                     />
                   </td>
-                  <td className={`bulk-table__num count-diff${diff ? (diff > 0 ? ' is-surplus' : ' is-shortage') : ''}`}>
+                  <td className={`bulk-table__num count-table__diff count-diff${diff ? (diff > 0 ? ' is-surplus' : ' is-shortage') : ''}`}>
                     {diff === null ? '' : diff === 0 ? 'Cuadra' : signed(diff)}
                   </td>
                 </tr>

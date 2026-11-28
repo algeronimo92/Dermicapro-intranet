@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Bell, ClipboardCheck, ClipboardList, Package, ShoppingBag, Undo2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,10 +21,16 @@ export function InventoryLayout() {
   // Productos incluye la ficha de cada producto (/inventory/:id).
   const inOtherTab = tabs.some(tab => pathname.startsWith(tab.to));
   const allTabs = [{ to: '/inventory', label: 'Productos', icon: Package, show: true }, ...tabs];
+  const navRef = useRef<HTMLElement>(null);
+
+  // En celular las pestañas se desplazan de lado: deja visible la activa.
+  useEffect(() => {
+    navRef.current?.querySelector('.is-active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [pathname]);
 
   return (
     <>
-      <nav className="inventory-tabs" aria-label="Apartados de inventario">
+      <nav ref={navRef} className="inventory-tabs" aria-label="Apartados de inventario">
         {allTabs.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

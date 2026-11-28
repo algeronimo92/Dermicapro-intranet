@@ -646,6 +646,14 @@
 .shopping-table__check { width: 40px; text-align: center; }
 .bulk-table th.shopping-table__check { text-align: center; }
 .shopping-table__check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+/* En PC el mínimo y el objetivo van en sus columnas; en celular, bajo el nombre,
+   para que "A comprar" se vea sin desplazar la tabla. */
+.shopping-table__levels { display: none; }
+
+@media (max-width: 640px) {
+  .shopping-table__extra { display: none; }
+  .shopping-table__levels { display: block; }
+}
 
 /* ---------- Devoluciones al proveedor ---------- */
 
@@ -662,6 +670,29 @@
 
 @media (max-width: 640px) {
   .return-form__grid { grid-template-columns: 1fr; }
+
+  /* Historial en celular: cada devolución es una tarjeta con sus etiquetas. */
+  .returns-table thead { display: none; }
+  .returns-table, .returns-table tbody, .returns-table tr, .returns-table td { display: block; width: 100%; }
+  .returns-table tr {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+  .returns-table td {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    padding: 4px 0;
+    border: 0;
+  }
+  .returns-table td::before {
+    content: attr(data-label);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding-top: 2px;
+  }
 }
 
 /* ---------- Conteos de inventario ---------- */
@@ -669,6 +700,14 @@
 .count-diff { font-weight: 600; font-variant-numeric: tabular-nums; }
 .count-diff.is-surplus { color: var(--color-success-dark); }
 .count-diff.is-shortage { color: var(--color-error-dark); }
+
+/* En celular la diferencia va bajo el nombre, para no desplazar la hoja. */
+.count-table__diff-inline { display: none; }
+
+@media (max-width: 640px) {
+  .count-table__diff { display: none; }
+  .count-table__diff-inline { display: block; }
+}
 
 .count-confirm {
   list-style: none;
