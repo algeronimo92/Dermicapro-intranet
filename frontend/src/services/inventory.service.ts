@@ -4,7 +4,8 @@ export type ProductCategory = 'sunscreen' | 'serum' | 'cleanser' | 'moisturizer'
 export type MovementType = 'in' | 'out';
 // sale / internal_use / loss quedan sólo en el historial anterior: el inventario
 // ya no registra ventas ni salidas manuales.
-export type MovementReason = 'initial' | 'purchase' | 'sale' | 'internal_use' | 'loss' | 'adjustment';
+export type MovementReason = 'initial' | 'purchase' | 'sale' | 'internal_use' | 'loss' | 'adjustment' | 'supplier_return';
+export type SupplierReturnReason = 'expired' | 'damaged' | 'wrong_item' | 'defective' | 'other';
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   sunscreen: 'Protector solar',
@@ -22,6 +23,15 @@ export const REASON_LABELS: Record<MovementReason, string> = {
   internal_use: 'Uso interno (anterior)',
   loss: 'Merma (anterior)',
   adjustment: 'Ajuste por conteo',
+  supplier_return: 'Devolución al proveedor',
+};
+
+export const RETURN_REASON_LABELS: Record<SupplierReturnReason, string> = {
+  expired: 'Vencido o por vencer',
+  damaged: 'Dañado o en mal estado',
+  wrong_item: 'Error en el pedido',
+  defective: 'Defecto de calidad',
+  other: 'Otro',
 };
 
 interface UserSummary {
@@ -60,6 +70,27 @@ export interface InventoryMovement {
   createdBy: UserSummary;
   /** Sólo llega si la persona puede ver compras. */
   purchaseItem?: { purchaseId: string } | null;
+  /** Sólo llega si la persona puede ver devoluciones. */
+  supplierReturnItem?: { supplierReturn: { reason: SupplierReturnReason } } | null;
+}
+
+export interface SupplierReturn {
+  id: string;
+  returnDate: string;
+  reason: SupplierReturnReason;
+  supplierName: string | null;
+  note: string | null;
+  createdAt: string;
+  createdBy: UserSummary;
+  items: { id: string; quantity: number; product: Pick<Product, 'id' | 'name' | 'brand' | 'presentation'> }[];
+}
+
+export interface SupplierReturnFormData {
+  returnDate: string;
+  reason: SupplierReturnReason;
+  supplierName?: string;
+  note?: string;
+  items: { productId: string; quantity: number }[];
 }
 
 export interface ProductFormData {
@@ -223,6 +254,16 @@ export const inventoryService = {
   async updateStockAlerts(rows: StockAlertRow[]): Promise<number> {
     const response = await api.put<{ data: { updated: number } }>('/inventory/products/alerts', { rows });
     return response.data.data.updated;
+  },
+
+  async getSupplierReturns(page = 1, search = '', limit = 20): Promise<Paginated<SupplierReturn>> {
+    const response = await api.get('/inventory/returns', { params: { page, limit, ...(search && { search }) } });
+    return response.data;
+  },
+
+  async createSupplierReturn(data: SupplierReturnFormData): Promise<{ id: string }> {
+    const response = await api.post<{ data: { id: string } }>('/inventory/returns', data);
+    return response.data.data;
   },
 
   async getPurchases(page = 1, search = '', limit = 20): Promise<Paginated<PurchaseSummary>> {

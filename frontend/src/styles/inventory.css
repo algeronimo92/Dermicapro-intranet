@@ -647,6 +647,23 @@
 .bulk-table th.shopping-table__check { text-align: center; }
 .shopping-table__check input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
 
+/* ---------- Devoluciones al proveedor ---------- */
+
+.return-form__grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-sm);
+}
+.return-form__grid label { display: grid; gap: 4px; }
+.return-form__note { grid-column: 1 / -1; }
+
+.return-reason { font-weight: 500; }
+.return-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+@media (max-width: 640px) {
+  .return-form__grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- Alertas de stock ---------- */
 
 .alert-state {

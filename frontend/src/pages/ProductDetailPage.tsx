@@ -15,6 +15,7 @@ import {
   isLowStock,
   Product,
   REASON_LABELS,
+  RETURN_REASON_LABELS,
 } from '../services/inventory.service';
 import { notifyInventoryChanged } from '../services/notifications.service';
 import { formatDateTime } from '../utils/dateUtils';
@@ -204,6 +205,9 @@ export function ProductDetailPage() {
                       {m.purchaseItem
                         ? <Link to={`/inventory/purchases/${m.purchaseItem.purchaseId}`}>{REASON_LABELS[m.reason]}</Link>
                         : REASON_LABELS[m.reason]}
+                      {m.supplierReturnItem && (
+                        <span className="text-secondary"> · {RETURN_REASON_LABELS[m.supplierReturnItem.supplierReturn.reason]}</span>
+                      )}
                     </td>
                     <td style={{ textAlign: 'right' }} className={`movement-qty--${m.type}`}>
                       {m.type === 'in' ? '+' : '−'}{m.quantity}
