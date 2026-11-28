@@ -123,7 +123,7 @@ function InvoiceDetails({ canEdit, canDelete }: { canEdit: boolean; canDelete: b
 
   return (
     <>
-      <Link to="/invoices">← Volver a Facturas</Link>
+      <Link className="invoice-back" to="/invoices"><ArrowLeft size={16} aria-hidden="true" /> Volver a Facturas</Link>
       {state?.registered && <p role="status">Comprobante registrado correctamente.</p>}
       {state?.updated && <p role="status">Comprobante actualizado correctamente.</p>}
       {error && <p className="invoice-error" role="alert">{error}</p>}
