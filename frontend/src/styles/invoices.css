@@ -44,10 +44,18 @@
 
 .invoice-filter-form {
   display: grid;
+  container-type: inline-size;
 }
 
+/* Celular: dos columnas, el buscador a todo el ancho y las fechas lado a lado.
+   Los controles se alinean abajo por si una etiqueta ocupa dos líneas. */
 .invoice-filter-form .invoice-fields {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.invoice-filter-form .invoice-filter-search {
+  grid-column: 1 / -1;
 }
 
 .invoice-filter-form .invoice-actions {
@@ -57,6 +65,34 @@
 .invoice-filter-form .invoice-filter-hint {
   flex: 1 1 18rem;
   margin: 0;
+}
+
+/* Tablet: tres columnas. */
+@container (min-width: 36rem) {
+  .invoice-filter-form .invoice-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .invoice-filter-form .invoice-filter-search {
+    grid-column: auto;
+  }
+}
+
+/* PC: todo en una fila, con más espacio para el buscador. */
+@container (min-width: 64rem) {
+  .invoice-filter-form .invoice-fields {
+    grid-template-columns: minmax(0, 1.5fr);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+}
+
+/* En celular los botones se reparten el ancho bajo el texto de ayuda. */
+@container (max-width: 35.99rem) {
+  .invoice-filter-form .invoice-actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
 }
 
 .invoice-note-totals {
@@ -155,9 +191,21 @@
   }
 }
 
+/* Los enlaces con estilo de botón (Registrar, Editar, Cancelar) no van subrayados. */
+.invoice-page a.btn {
+  text-decoration: none;
+}
+
 @media (max-width: 650px) {
   .invoice-metrics {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* En el detalle el título lleva la razón social: más chico para no ocupar media pantalla. */
+  .invoice-header h1 {
+    font-size: var(--font-size-2xl);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
   }
 
   .invoice-header > .invoice-actions {
@@ -380,6 +428,8 @@
 
 .invoice-fields input:not(.sr-only) {
   width: 100%;
+  /* Los inputs de fecha tienen un ancho mínimo propio que en celular desborda. */
+  min-width: 0;
   height: var(--control-height);
   padding: 0 12px 0 14px;
   border: 1px solid var(--color-border-primary);
@@ -531,4 +581,75 @@
 .invoice-attachments__remove:hover {
   background: var(--color-error-alpha-10);
   color: var(--color-error);
+}
+
+/* Tipo de factura: Tratamientos / Productos */
+.invoice-category {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.invoice-category--treatments { background: var(--color-accent-alpha-10); color: var(--color-accent); }
+.invoice-category--products { background: var(--color-primary-alpha-10); color: var(--color-primary-text); }
+
+/* Listado en celular: cada comprobante es una tarjeta en vez de una fila con
+   scroll horizontal. Tipo y total arriba a la derecha; fecha y adjuntos abajo. */
+@media (max-width: 650px) {
+  .invoice-table--cards {
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .invoice-table--cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .invoice-table--cards tbody {
+    display: grid;
+    gap: var(--spacing-sm);
+  }
+
+  .invoice-table--cards tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'doc type'
+      'issuer total'
+      'date files';
+    gap: var(--spacing-xs) var(--spacing-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border-secondary);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-primary);
+  }
+
+  .invoice-table--cards td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .invoice-table--cards .invoice-cell-doc { grid-area: doc; font-weight: var(--font-weight-semibold); }
+  .invoice-table--cards .invoice-cell-type { grid-area: type; justify-self: end; }
+  .invoice-table--cards .invoice-cell-issuer { grid-area: issuer; overflow-wrap: anywhere; }
+  .invoice-table--cards .invoice-cell-total {
+    grid-area: total;
+    align-self: start;
+    font-weight: var(--font-weight-semibold);
+  }
+  .invoice-table--cards .invoice-cell-date,
+  .invoice-table--cards .invoice-cell-files {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+  .invoice-table--cards .invoice-cell-date { grid-area: date; }
+  .invoice-table--cards .invoice-cell-files { grid-area: files; justify-self: end; }
 }

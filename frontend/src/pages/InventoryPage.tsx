@@ -2,12 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
 import { Pagination } from '../components/Pagination';
 import { PageListLayout } from '../components/templates';
-import { ProductFormModal } from '../components/ProductFormModal';
 import { StockBadge } from '../components/StockBadge';
 import {
   CATEGORY_LABELS,
@@ -23,13 +21,13 @@ const PAGE_SIZE = 24;
 export function InventoryPage() {
   const navigate = useNavigate();
   // Lo que puede hacer lo decide Empleados -> Privilegios (products / inventory_movements).
+  // Los productos se crean al registrar una compra; aquí se consultan y editan.
   const { modules } = useAuth();
-  const { create: canCreate, edit: canEdit, move: canMove } = modules.inventory;
+  const { edit: canEdit, purchase: canPurchase } = modules.inventory;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [lowStockCount, setLowStockCount] = useState(0);
   const [brands, setBrands] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +39,6 @@ export function InventoryPage() {
   const [lowStock, setLowStock] = useState(false);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [page, setPage] = useState(1);
-  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -60,7 +57,6 @@ export function InventoryPage() {
       setProducts(res.data);
       setTotal(res.total);
       setTotalPages(Math.max(1, res.totalPages));
-      setLowStockCount(res.lowStockCount);
     } catch (err) {
       setError(apiErrorMessage(err, 'Error al cargar el inventario'));
     } finally {
@@ -78,12 +74,6 @@ export function InventoryPage() {
   return (
     <PageListLayout
       title="Inventario"
-      actions={(canMove || canCreate) && (
-        <>
-          {canMove && <Button variant="secondary" onClick={() => navigate('/inventory/movements')}>Registrar movimientos</Button>}
-          {canCreate && <Button variant="primary" onClick={() => setCreateOpen(true)}>+ Nuevo producto</Button>}
-        </>
-      )}
       filters={
         <>
           <Input
@@ -127,18 +117,11 @@ export function InventoryPage() {
       isLoading={loading}
       error={error}
     >
-      {lowStockCount > 0 && !lowStock && (
-        <div className="inventory-alert" role="status">
-          <span>⚠ {lowStockCount} {lowStockCount === 1 ? 'producto tiene' : 'productos tienen'} stock bajo o agotado.</span>
-          <button type="button" onClick={() => setLowStock(true)}>Ver cuáles</button>
-        </div>
-      )}
-
       {products.length === 0 ? (
         <div className="inventory-empty">
           {debouncedSearch || category || brand || lowStock
             ? 'No hay productos con esos filtros.'
-            : 'Todavía no hay productos registrados.'}
+            : `Todavía no hay productos. Se crean al registrar una compra${canPurchase ? ' (pestaña Compras)' : ''}.`}
         </div>
       ) : (
         <div className="inventory-grid">
@@ -170,13 +153,6 @@ export function InventoryPage() {
       {totalPages > 1 && (
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} totalItems={total} pageSize={PAGE_SIZE} itemLabel="productos" />
       )}
-
-      <ProductFormModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        brands={brands}
-        onSaved={(p) => { loadBrands(); navigate(`/inventory/${p.id}`); }}
-      />
     </PageListLayout>
   );
 }

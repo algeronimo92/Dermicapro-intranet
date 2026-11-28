@@ -33,11 +33,11 @@ enum PaymentMethod {
 }
 
 enum CommissionStatus {
-  pending      // Generada, esperando aprobación
-  approved     // Aprobada, lista para pagar
-  paid         // Pagada
-  cancelled    // Cancelada
-  rejected     // Rechazada
+  pending // Generada, esperando aprobación
+  approved // Aprobada, lista para pagar
+  paid // Pagada
+  cancelled // Cancelada
+  rejected // Rechazada
 }
 
 enum PaymentOrderStatus {
@@ -69,48 +69,51 @@ model Role {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  pinHash           String? @map("pin_hash")
-  pinFailedAttempts Int     @default(0) @map("pin_failed_attempts")
-  firstName    String    @map("first_name")
-  lastName     String    @map("last_name")
-  roleId       String?   @map("role_id")
-  sex          Sex?
-  dateOfBirth  DateTime? @map("date_of_birth")
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String    @map("password_hash")
+  pinHash            String?   @map("pin_hash")
+  pinFailedAttempts  Int       @default(0) @map("pin_failed_attempts")
+  firstName          String    @map("first_name")
+  lastName           String    @map("last_name")
+  roleId             String?   @map("role_id")
+  sex                Sex?
+  dateOfBirth        DateTime? @map("date_of_birth")
   isActive           Boolean   @default(true) @map("is_active")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
   /// Los tokens emitidos antes de esta fecha dejan de valer (p. ej. al restablecer la contraseña).
   sessionsRevokedAt  DateTime? @map("sessions_revoked_at")
   themeMode          String    @default("auto") @map("theme_mode")
   photoUrl           String?   @map("photo_url")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  role                       Role?                @relation(fields: [roleId], references: [id])
-  patientsCreated            Patient[]            @relation("PatientCreatedBy")
-  patientPasswordsSet        Patient[]            @relation("PatientPasswordSetByStaff")
-  ordersCreated              ServiceInstance[]            @relation("OrderCreatedBy")
-  ordersConcluded            ServiceInstance[]            @relation("OrderConcludedBy")
-  appointmentsCreated        Appointment[]        @relation("AppointmentCreatedBy")
-  appointmentsAttended       Appointment[]        @relation("AppointmentAttendedBy")
+  role                       Role?                 @relation(fields: [roleId], references: [id])
+  patientsCreated            Patient[]             @relation("PatientCreatedBy")
+  patientPasswordsSet        Patient[]             @relation("PatientPasswordSetByStaff")
+  ordersCreated              ServiceInstance[]     @relation("OrderCreatedBy")
+  ordersConcluded            ServiceInstance[]     @relation("OrderConcludedBy")
+  appointmentsCreated        Appointment[]         @relation("AppointmentCreatedBy")
+  appointmentsAttended       Appointment[]         @relation("AppointmentAttendedBy")
   patientRecords             PatientRecord[]
-  commissions                Commission[]         @relation("SalesPersonCommissions")
-  commissionsApproved        Commission[]         @relation("CommissionApprovals")
-  commissionsPaid            Commission[]         @relation("CommissionPayments")
+  commissions                Commission[]          @relation("SalesPersonCommissions")
+  commissionsApproved        Commission[]          @relation("CommissionApprovals")
+  commissionsPaid            Commission[]          @relation("CommissionPayments")
   invoicesRegistered         RegisteredInvoice[]
-  paymentOrdersCreated       PaymentOrder[]       @relation("PaymentOrderCreatedBy")
-  paymentOrdersCancelled     PaymentOrder[]       @relation("PaymentOrderCancelledBy")
-  paymentsCreated            Payment[]            @relation("PaymentCreatedBy")
-  paymentsVoided             Payment[]            @relation("PaymentVoidedBy")
-  appointmentServicesDeleted Session[] @relation("AppointmentSessionDeletedBy")
-  appointmentNotesCreated    AppointmentNote[]    @relation("AppointmentNoteCreatedBy")
+  paymentOrdersCreated       PaymentOrder[]        @relation("PaymentOrderCreatedBy")
+  paymentOrdersCancelled     PaymentOrder[]        @relation("PaymentOrderCancelledBy")
+  paymentsCreated            Payment[]             @relation("PaymentCreatedBy")
+  paymentsVoided             Payment[]             @relation("PaymentVoidedBy")
+  appointmentServicesDeleted Session[]             @relation("AppointmentSessionDeletedBy")
+  appointmentNotesCreated    AppointmentNote[]     @relation("AppointmentNoteCreatedBy")
   appointmentAttendeesAs     AppointmentAttendee[] @relation("AttendeeUser")
   appointmentAttendeesAdded  AppointmentAttendee[] @relation("AttendeeAddedBy")
-  productsCreated            Product[]            @relation("ProductCreatedBy")
-  inventoryMovements         InventoryMovement[]  @relation("InventoryMovementCreatedBy")
+  productsCreated            Product[]             @relation("ProductCreatedBy")
+  inventoryMovements         InventoryMovement[]   @relation("InventoryMovementCreatedBy")
+  purchasesCreated           Purchase[]            @relation("PurchaseCreatedBy")
+  supplierReturnsCreated     SupplierReturn[]      @relation("SupplierReturnCreatedBy")
+  stockCountsCreated         StockCount[]          @relation("StockCountCreatedBy")
   passwordResetTokens        PasswordResetToken[]
 
   @@index([roleId], map: "users_role_id_idx")
@@ -148,8 +151,8 @@ model Patient {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  photoUrl             String?   @map("photo_url")
-  accountBalance       Decimal   @default(0.00) @map("account_balance") @db.Decimal(10, 2)
+  photoUrl       String? @map("photo_url")
+  accountBalance Decimal @default(0.00) @map("account_balance") @db.Decimal(10, 2)
 
   // Portal de Pacientes - Campos de Autenticación
   passwordHash         String?   @map("password_hash") // Bcrypt hash (creado por staff)
@@ -159,8 +162,8 @@ model Patient {
   passwordSetAt        DateTime? @map("password_set_at") // Cuándo se creó/cambió la contraseña
 
   // Relations
-  createdBy          User            @relation("PatientCreatedBy", fields: [createdById], references: [id])
-  passwordSetByStaff User?           @relation("PatientPasswordSetByStaff", fields: [passwordSetByStaffId], references: [id])
+  createdBy          User              @relation("PatientCreatedBy", fields: [createdById], references: [id])
+  passwordSetByStaff User?             @relation("PatientPasswordSetByStaff", fields: [passwordSetByStaffId], references: [id])
   orders             ServiceInstance[]
   appointments       Appointment[]
   patientRecords     PatientRecord[]
@@ -184,10 +187,10 @@ model Service {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Commission settings (default; ServicePackage puede sobreescribir)
-  commissionType        String?   @default("percentage") @map("commission_type") // 'percentage' o 'fixed'
-  commissionRate        Decimal?  @map("commission_rate") @db.Decimal(5, 4) // Porcentaje de comisión (ej: 0.1000 = 10%)
-  commissionFixedAmount Decimal?  @map("commission_fixed_amount") @db.Decimal(10, 2) // Monto fijo de comisión
-  commissionNotes       String?   @map("commission_notes") // Notas sobre la comisión de este servicio
+  commissionType        String?  @default("percentage") @map("commission_type") // 'percentage' o 'fixed'
+  commissionRate        Decimal? @map("commission_rate") @db.Decimal(5, 4) // Porcentaje de comisión (ej: 0.1000 = 10%)
+  commissionFixedAmount Decimal? @map("commission_fixed_amount") @db.Decimal(10, 2) // Monto fijo de comisión
+  commissionNotes       String?  @map("commission_notes") // Notas sobre la comisión de este servicio
 
   // Relations
   packages         ServicePackage[]
@@ -236,7 +239,7 @@ model ServiceInstance {
   finalPrice        Decimal   @map("final_price") @db.Decimal(10, 2)
   notes             String?
   paymentOrderId    String?   @map("payment_order_id")
-  concludedAt       DateTime? @map("concluded_at")   // Tratamiento concluido antes de completar todas las sesiones
+  concludedAt       DateTime? @map("concluded_at") // Tratamiento concluido antes de completar todas las sesiones
   concludedById     String?   @map("concluded_by_id")
   concludeReason    String?   @map("conclude_reason")
   createdById       String    @map("created_by_id")
@@ -244,12 +247,12 @@ model ServiceInstance {
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  patient             Patient              @relation(fields: [patientId], references: [id])
-  service             Service              @relation(fields: [serviceId], references: [id])
-  servicePackage      ServicePackage       @relation(fields: [servicePackageId], references: [id])
-  createdBy           User                 @relation("OrderCreatedBy", fields: [createdById], references: [id])
-  concludedBy         User?                @relation("OrderConcludedBy", fields: [concludedById], references: [id])
-  paymentOrder        PaymentOrder?        @relation(fields: [paymentOrderId], references: [id])
+  patient             Patient        @relation(fields: [patientId], references: [id])
+  service             Service        @relation(fields: [serviceId], references: [id])
+  servicePackage      ServicePackage @relation(fields: [servicePackageId], references: [id])
+  createdBy           User           @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  concludedBy         User?          @relation("OrderConcludedBy", fields: [concludedById], references: [id])
+  paymentOrder        PaymentOrder?  @relation(fields: [paymentOrderId], references: [id])
   appointmentServices Session[]
   commissions         Commission[]
 
@@ -263,21 +266,21 @@ model ServiceInstance {
 }
 
 model Appointment {
-  id                    String            @id @default(uuid())
-  patientId             String            @map("patient_id")
-  scheduledDate         DateTime          @map("scheduled_date")
-  durationMinutes       Int               @default(60) @map("duration_minutes")
-  status                AppointmentStatus @default(reserved)
-  createdById           String            @map("created_by_id")
-  attendedById          String?           @map("attended_by_id")
-  attendedAt            DateTime?         @map("attended_at")
-  createdAt             DateTime          @default(now()) @map("created_at")
-  updatedAt             DateTime          @updatedAt @map("updated_at")
+  id              String            @id @default(uuid())
+  patientId       String            @map("patient_id")
+  scheduledDate   DateTime          @map("scheduled_date")
+  durationMinutes Int               @default(60) @map("duration_minutes")
+  status          AppointmentStatus @default(reserved)
+  createdById     String            @map("created_by_id")
+  attendedById    String?           @map("attended_by_id")
+  attendedAt      DateTime?         @map("attended_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
 
   // Relations
-  patient             Patient              @relation(fields: [patientId], references: [id])
-  createdBy           User                 @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
-  attendedBy          User?                @relation("AppointmentAttendedBy", fields: [attendedById], references: [id])
+  patient             Patient               @relation(fields: [patientId], references: [id])
+  createdBy           User                  @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  attendedBy          User?                 @relation("AppointmentAttendedBy", fields: [attendedById], references: [id])
   patientRecords      PatientRecord[]
   commissions         Commission[]
   appointmentServices Session[]
@@ -326,21 +329,21 @@ model AppointmentNote {
 }
 
 model PatientRecord {
-  id                String   @id @default(uuid())
-  patientId         String   @map("patient_id")
-  appointmentId     String   @map("appointment_id")
-  weight            Decimal? @db.Decimal(5, 2)
-  bodyMeasurement   Json?    @map("body_measurement")
-  healthNotes       String?  @map("health_notes")
-  beforePhotoUrls   Json?    @map("before_photo_urls")
-  afterPhotoUrls    Json?    @map("after_photo_urls")
-  createdById       String   @map("created_by_id")
-  createdAt         DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  patientId       String   @map("patient_id")
+  appointmentId   String   @map("appointment_id")
+  weight          Decimal? @db.Decimal(5, 2)
+  bodyMeasurement Json?    @map("body_measurement")
+  healthNotes     String?  @map("health_notes")
+  beforePhotoUrls Json?    @map("before_photo_urls")
+  afterPhotoUrls  Json?    @map("after_photo_urls")
+  createdById     String   @map("created_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
-  patient         Patient     @relation(fields: [patientId], references: [id])
-  appointment     Appointment @relation(fields: [appointmentId], references: [id])
-  createdBy       User        @relation(fields: [createdById], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  createdBy   User        @relation(fields: [createdById], references: [id])
 
   @@index([patientId, createdAt(sort: Desc)], map: "patient_records_patient_created_at_idx")
   @@index([appointmentId], map: "patient_records_appointment_id_idx")
@@ -361,27 +364,27 @@ model Commission {
   status            CommissionStatus @default(pending)
 
   // Aprobación y pago
-  approvedAt       DateTime?        @map("approved_at")
-  approvedById     String?          @map("approved_by_id")
-  paidAt           DateTime?        @map("paid_at")
-  paidById         String?          @map("paid_by_id")
-  paymentMethod    PaymentMethod?   @map("payment_method")
-  paymentReference String?          @map("payment_reference") // Número de transferencia, cheque, etc.
+  approvedAt       DateTime?      @map("approved_at")
+  approvedById     String?        @map("approved_by_id")
+  paidAt           DateTime?      @map("paid_at")
+  paidById         String?        @map("paid_by_id")
+  paymentMethod    PaymentMethod? @map("payment_method")
+  paymentReference String?        @map("payment_reference") // Número de transferencia, cheque, etc.
 
   // Metadata
-  notes            String?          @db.Text
-  rejectionReason  String?          @map("rejection_reason") @db.Text
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  notes           String?  @db.Text
+  rejectionReason String?  @map("rejection_reason") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  salesPerson      User              @relation("SalesPersonCommissions", fields: [salesPersonId], references: [id])
-  appointment      Appointment       @relation(fields: [appointmentId], references: [id])
-  serviceInstance  ServiceInstance?  @relation(fields: [serviceInstanceId], references: [id])
-  service          Service?          @relation(fields: [serviceId], references: [id])
-  servicePackage   ServicePackage?   @relation(fields: [servicePackageId], references: [id])
-  approvedBy       User?             @relation("CommissionApprovals", fields: [approvedById], references: [id])
-  paidBy           User?             @relation("CommissionPayments", fields: [paidById], references: [id])
+  salesPerson     User             @relation("SalesPersonCommissions", fields: [salesPersonId], references: [id])
+  appointment     Appointment      @relation(fields: [appointmentId], references: [id])
+  serviceInstance ServiceInstance? @relation(fields: [serviceInstanceId], references: [id])
+  service         Service?         @relation(fields: [serviceId], references: [id])
+  servicePackage  ServicePackage?  @relation(fields: [servicePackageId], references: [id])
+  approvedBy      User?            @relation("CommissionApprovals", fields: [approvedById], references: [id])
+  paidBy          User?            @relation("CommissionPayments", fields: [paidById], references: [id])
 
   @@index([salesPersonId, status, createdAt(sort: Desc)], map: "commissions_sales_status_created_at_idx")
   @@index([appointmentId], map: "commissions_appointment_id_idx")
@@ -418,46 +421,50 @@ model Session {
 }
 
 model RegisteredInvoice {
-  id                String   @id @default(uuid())
-  revision          Int       @default(0)
-  documentType      String   @map("document_type")
-  series            String?
-  number            String?
-  numberKey         String?  @map("number_key")
-  issuerRuc         String   @map("issuer_ruc")
-  issuerName        String   @map("issuer_name")
-  customerDocument  String?  @map("customer_document")
-  customerName      String?  @map("customer_name")
-  customerAddress   String?  @map("customer_address")
-  issueDate         DateTime @map("issue_date") @db.Date
-  issueTime         String?  @map("issue_time")
-  currency          String
-  taxableSubtotal   Decimal  @map("taxable_subtotal") @db.Decimal(12, 2)
-  discount          Decimal? @db.Decimal(12, 2)
-  tax               Decimal  @db.Decimal(12, 2)
-  total             Decimal  @db.Decimal(12, 2)
-  paymentCondition  String   @map("payment_condition")
-  bankAccount       String?  @map("bank_account")
-  seller            String?
-  items             String?
-  createdById       String   @map("created_by_id")
-  createdAt         DateTime @default(now()) @map("created_at")
+  id               String          @id @default(uuid())
+  revision         Int             @default(0)
+  documentType     String          @map("document_type")
+  series           String?
+  number           String?
+  numberKey        String?         @map("number_key")
+  issuerRuc        String          @map("issuer_ruc")
+  issuerName       String          @map("issuer_name")
+  customerDocument String?         @map("customer_document")
+  customerName     String?         @map("customer_name")
+  customerAddress  String?         @map("customer_address")
+  issueDate        DateTime        @map("issue_date") @db.Date
+  issueTime        String?         @map("issue_time")
+  currency         String
+  taxableSubtotal  Decimal         @map("taxable_subtotal") @db.Decimal(12, 2)
+  discount         Decimal?        @db.Decimal(12, 2)
+  tax              Decimal         @db.Decimal(12, 2)
+  total            Decimal         @db.Decimal(12, 2)
+  paymentCondition String          @map("payment_condition")
+  bankAccount      String?         @map("bank_account")
+  seller           String?
+  items            String?
+  // Tratamientos (insumos de la clínica) o Productos (compras de inventario).
+  category         InvoiceCategory @default(treatments)
+  createdById      String          @map("created_by_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
 
   createdBy   User                          @relation(fields: [createdById], references: [id])
   attachments RegisteredInvoiceAttachment[]
+  purchase    Purchase?
 
   @@unique([issuerRuc, documentType, series, numberKey], map: "registered_invoices_document_key")
   @@index([currency, issueDate])
   @@index([createdAt, id])
   @@index([createdById])
+  @@index([category, createdAt])
   @@map("registered_invoices")
 }
 
 model RegisteredInvoiceAttachment {
-  id        String @id @default(uuid())
-  invoiceId String @map("invoice_id")
-  fileName  String @map("file_name")
-  mimeType  String @map("mime_type")
+  id        String  @id @default(uuid())
+  invoiceId String  @map("invoice_id")
+  fileName  String  @map("file_name")
+  mimeType  String  @map("mime_type")
   content   Bytes?
   objectKey String? @unique @map("object_key")
 
@@ -479,23 +486,23 @@ model InvoiceObjectDeletion {
 }
 
 model PaymentOrder {
-  id            String        @id @default(uuid())
-  patientId     String        @map("patient_id")
-  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  id            String             @id @default(uuid())
+  patientId     String             @map("patient_id")
+  totalAmount   Decimal            @map("total_amount") @db.Decimal(10, 2)
   status        PaymentOrderStatus @default(pending)
-  dueDate       DateTime?     @map("due_date")
-  createdById   String        @map("created_by_id")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-  cancelledAt   DateTime?     @map("cancelled_at")
-  cancelledById String?       @map("cancelled_by_id")
-  cancelReason  String?       @map("cancel_reason")
+  dueDate       DateTime?          @map("due_date")
+  createdById   String             @map("created_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  cancelledAt   DateTime?          @map("cancelled_at")
+  cancelledById String?            @map("cancelled_by_id")
+  cancelReason  String?            @map("cancel_reason")
 
   // Relations
   orders      ServiceInstance[]
-  patient     Patient      @relation(fields: [patientId], references: [id])
-  createdBy   User         @relation("PaymentOrderCreatedBy", fields: [createdById], references: [id])
-  cancelledBy User?        @relation("PaymentOrderCancelledBy", fields: [cancelledById], references: [id])
+  patient     Patient           @relation(fields: [patientId], references: [id])
+  createdBy   User              @relation("PaymentOrderCreatedBy", fields: [createdById], references: [id])
+  cancelledBy User?             @relation("PaymentOrderCancelledBy", fields: [cancelledById], references: [id])
   payments    Payment[]
 
   @@index([patientId, status, createdAt(sort: Desc)], map: "ordenes_de_pago_patient_status_created_at_idx")
@@ -506,22 +513,22 @@ model PaymentOrder {
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  patientId     String        @map("patient_id")
-  paymentOrderId String?      @map("payment_order_id")
-  appointmentId String?       @map("appointment_id")
-  amountPaid    Decimal       @map("amount_paid") @db.Decimal(10, 2)
-  paymentMethod PaymentMethod @map("payment_method")
-  paymentType   PaymentType   @map("payment_type")
-  paymentDate   DateTime      @default(now()) @map("payment_date")
-  receiptUrl    String?       @map("receipt_url")
-  receiptUrls   String[]      @default([]) @map("receipt_urls")
-  notes         String?
-  createdById   String        @map("created_by_id")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  voidedAt      DateTime?     @map("voided_at")
-  voidedById    String?       @map("voided_by_id")
-  voidReason    String?       @map("void_reason")
+  id             String        @id @default(uuid())
+  patientId      String        @map("patient_id")
+  paymentOrderId String?       @map("payment_order_id")
+  appointmentId  String?       @map("appointment_id")
+  amountPaid     Decimal       @map("amount_paid") @db.Decimal(10, 2)
+  paymentMethod  PaymentMethod @map("payment_method")
+  paymentType    PaymentType   @map("payment_type")
+  paymentDate    DateTime      @default(now()) @map("payment_date")
+  receiptUrl     String?       @map("receipt_url")
+  receiptUrls    String[]      @default([]) @map("receipt_urls")
+  notes          String?
+  createdById    String        @map("created_by_id")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  voidedAt       DateTime?     @map("voided_at")
+  voidedById     String?       @map("voided_by_id")
+  voidReason     String?       @map("void_reason")
 
   // Relations
   patient      Patient       @relation(fields: [patientId], references: [id])
@@ -548,23 +555,23 @@ model Payment {
 /// formas son excluyentes. Sin ninguna se usa el SMTP del .env. Los secretos
 /// van cifrados (utils/secretCipher.ts).
 model MailSettings {
-  id                  Int       @id @default(1)
-  smtpHost            String?   @map("smtp_host")
-  smtpPort            Int?      @map("smtp_port")
-  smtpSecurity        String?   @map("smtp_security")
-  smtpUsername        String?   @map("smtp_username")
-  smtpPasswordEnc     String?   @map("smtp_password_enc")
-  fromAddress         String?   @map("from_address")
-  fromName            String?   @map("from_name")
-  oauthProvider       String?   @map("oauth_provider")
-  oauthRefreshEnc     String?   @map("oauth_refresh_token_enc")
-  oauthAccountEmail   String?   @map("oauth_account_email")
-  oauthAccountsServer String?   @map("oauth_accounts_server")
-  oauthAccountId      String?   @map("oauth_account_id")
-  oauthNonce          String?   @map("oauth_nonce")
+  id                   Int      @id @default(1)
+  smtpHost             String?  @map("smtp_host")
+  smtpPort             Int?     @map("smtp_port")
+  smtpSecurity         String?  @map("smtp_security")
+  smtpUsername         String?  @map("smtp_username")
+  smtpPasswordEnc      String?  @map("smtp_password_enc")
+  fromAddress          String?  @map("from_address")
+  fromName             String?  @map("from_name")
+  oauthProvider        String?  @map("oauth_provider")
+  oauthRefreshEnc      String?  @map("oauth_refresh_token_enc")
+  oauthAccountEmail    String?  @map("oauth_account_email")
+  oauthAccountsServer  String?  @map("oauth_accounts_server")
+  oauthAccountId       String?  @map("oauth_account_id")
+  oauthNonce           String?  @map("oauth_nonce")
   oauthPendingProvider String?  @map("oauth_pending_provider")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  updatedById         String?   @map("updated_by_id")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  updatedById          String?  @map("updated_by_id")
 
   @@map("mail_settings")
 }
@@ -597,6 +604,11 @@ enum InventoryMovementType {
   out
 }
 
+enum InvoiceCategory {
+  treatments // Tratamientos
+  products // Productos (compras de inventario)
+}
+
 enum InventoryMovementReason {
   initial // Inventario inicial
   purchase // Compra / reposición
@@ -604,6 +616,16 @@ enum InventoryMovementReason {
   internal_use // Muestra o uso interno
   loss // Merma (dañado / vencido)
   adjustment // Ajuste por conteo físico
+  supplier_return // Devolución al proveedor
+}
+
+// Por qué se devuelve un producto al proveedor.
+enum SupplierReturnReason {
+  expired // Vencido o por vencer
+  damaged // Dañado o en mal estado
+  wrong_item // Error en el pedido (producto o cantidad)
+  defective // Defecto de calidad
+  other // Otro (la nota explica el motivo)
 }
 
 // El stock se guarda en Product.stock y sólo cambia junto con un
@@ -617,7 +639,8 @@ model Product {
   presentation String? // ej. "50 ml", "40 g", "Talla M"
   salePrice    Decimal         @map("sale_price") @db.Decimal(10, 2)
   stock        Int             @default(0)
-  minStock     Int             @default(0) @map("min_stock")
+  minStock     Int             @default(0) @map("min_stock") // alerta: stock <= minStock
+  targetStock  Int?            @map("target_stock") // la lista de compras sugiere reponer hasta aquí
   photoUrl     String?         @map("photo_url")
   barcode      String?         @unique
   isActive     Boolean         @default(true) @map("is_active")
@@ -625,8 +648,11 @@ model Product {
   createdAt    DateTime        @default(now()) @map("created_at")
   updatedAt    DateTime        @updatedAt @map("updated_at")
 
-  createdBy User                @relation("ProductCreatedBy", fields: [createdById], references: [id])
-  movements InventoryMovement[]
+  createdBy           User                 @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  movements           InventoryMovement[]
+  purchaseItems       PurchaseItem[]
+  supplierReturnItems SupplierReturnItem[]
+  stockCountItems     StockCountItem[]
 
   @@index([isActive, name], map: "products_active_name_idx")
   @@index([createdById], map: "products_created_by_id_idx")
@@ -644,12 +670,127 @@ model InventoryMovement {
   createdById String                  @map("created_by_id")
   createdAt   DateTime                @default(now()) @map("created_at")
 
-  product   Product @relation(fields: [productId], references: [id])
-  createdBy User    @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id])
+  // Entrada generada por una compra (reason = purchase).
+  purchaseItemId       String? @map("purchase_item_id")
+  // Salida generada por una devolución al proveedor (reason = supplier_return).
+  supplierReturnItemId String? @map("supplier_return_item_id")
+  // Ajuste generado por un conteo de inventario (reason = adjustment).
+  stockCountItemId     String? @map("stock_count_item_id")
+
+  product            Product             @relation(fields: [productId], references: [id])
+  createdBy          User                @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id])
+  purchaseItem       PurchaseItem?       @relation(fields: [purchaseItemId], references: [id])
+  supplierReturnItem SupplierReturnItem? @relation(fields: [supplierReturnItemId], references: [id])
+  stockCountItem     StockCountItem?     @relation(fields: [stockCountItemId], references: [id])
 
   @@index([productId, createdAt(sort: Desc)], map: "inventory_movements_product_created_at_idx")
   @@index([createdById], map: "inventory_movements_created_by_id_idx")
+  @@index([purchaseItemId])
+  @@index([supplierReturnItemId])
+  @@index([stockCountItemId])
   @@map("inventory_movements")
+}
+
+// Compra de productos a un proveedor. Suma stock; puede llevar su factura
+// (registered_invoices con category = products). No se edita ni se borra:
+// las correcciones se hacen con devoluciones o conteos.
+model Purchase {
+  id           String   @id @default(uuid())
+  purchaseDate DateTime @map("purchase_date") @db.Date
+  invoiceId    String?  @unique @map("invoice_id")
+  note         String?
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  invoice   RegisteredInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  createdBy User               @relation("PurchaseCreatedBy", fields: [createdById], references: [id])
+  items     PurchaseItem[]
+
+  @@index([purchaseDate(sort: Desc), createdAt(sort: Desc)])
+  @@index([createdById])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String @id @default(uuid())
+  purchaseId String @map("purchase_id")
+  productId  String @map("product_id")
+  quantity   Int
+
+  purchase  Purchase            @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product   Product             @relation(fields: [productId], references: [id])
+  movements InventoryMovement[]
+
+  @@unique([purchaseId, productId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
+// Devolución de productos al proveedor. Resta stock y exige un motivo. Como
+// las compras, no se edita ni se borra.
+model SupplierReturn {
+  id           String               @id @default(uuid())
+  returnDate   DateTime             @map("return_date") @db.Date
+  reason       SupplierReturnReason
+  supplierName String?              @map("supplier_name")
+  note         String?
+  createdById  String               @map("created_by_id")
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  createdBy User                 @relation("SupplierReturnCreatedBy", fields: [createdById], references: [id])
+  items     SupplierReturnItem[]
+
+  @@index([returnDate(sort: Desc), createdAt(sort: Desc)])
+  @@index([createdById])
+  @@map("supplier_returns")
+}
+
+model SupplierReturnItem {
+  id        String @id @default(uuid())
+  returnId  String @map("return_id")
+  productId String @map("product_id")
+  quantity  Int
+
+  supplierReturn SupplierReturn      @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  product        Product             @relation(fields: [productId], references: [id])
+  movements      InventoryMovement[]
+
+  @@unique([returnId, productId])
+  @@index([productId])
+  @@map("supplier_return_items")
+}
+
+// Conteo físico de inventario. Por cada producto contado guarda lo que decía
+// el sistema y lo que se contó; si difieren, el stock se ajusta con un
+// movimiento "Ajuste por conteo" ligado a la línea. No se edita ni se borra.
+model StockCount {
+  id          String   @id @default(uuid())
+  note        String?
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User             @relation("StockCountCreatedBy", fields: [createdById], references: [id])
+  items     StockCountItem[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([createdById])
+  @@map("stock_counts")
+}
+
+model StockCountItem {
+  id            String @id @default(uuid())
+  countId       String @map("count_id")
+  productId     String @map("product_id")
+  expectedStock Int    @map("expected_stock") // lo que decía el sistema al contar
+  countedStock  Int    @map("counted_stock") // lo que se contó
+
+  stockCount StockCount          @relation(fields: [countId], references: [id], onDelete: Cascade)
+  product    Product             @relation(fields: [productId], references: [id])
+  movements  InventoryMovement[]
+
+  @@unique([countId, productId])
+  @@index([productId])
+  @@map("stock_count_items")
 }
 
 // ==========================================

@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '.
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { isValidPinFormat, MAX_PIN_ATTEMPTS } from '../utils/pin';
 import { getModuleAccess } from '../services/moduleAccess.service';
+import { getUserNotifications } from '../services/notifications.service';
 import { passwordPolicyError } from '../utils/passwordPolicy';
 import { isTokenRevoked } from '../utils/sessionRevocation';
 import { requestPasswordReset, checkResetToken, resetPassword, INVALID_LINK_MESSAGE } from '../services/passwordReset.service';
@@ -392,6 +393,16 @@ export const myModules = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al obtener los módulos disponibles' });
+  }
+};
+
+/** Notificaciones de la campana del menú (stock bajo, según la configuración de Empleados). */
+export const myNotifications = async (req: Request, res: Response): Promise<void> => {
+  try {
+    res.json(await getUserNotifications(req.user!.id, req.user!.roleName));
+  } catch (error) {
+    logUnexpectedError(req, error);
+    res.status(500).json({ error: 'Error al obtener las notificaciones' });
   }
 };
 

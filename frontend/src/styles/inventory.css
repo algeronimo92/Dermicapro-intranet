@@ -2,30 +2,6 @@
    Inventario
    ========================================== */
 
-.inventory-alert {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  background: var(--color-warning-alpha-10);
-  color: var(--color-warning-dark);
-  font-size: var(--font-size-sm);
-}
-
-.inventory-alert button {
-  background: none;
-  border: none;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -440,7 +416,11 @@
 }
 
 .bulk-table__num { text-align: right; white-space: nowrap; }
+/* `.bulk-table th` alinea a la izquierda y gana por especificidad: los
+   encabezados numéricos se alinean a la derecha, sobre sus valores e inputs. */
+.bulk-table th.bulk-table__num { text-align: right; }
 .bulk-table td.bulk-table__num:not(:has(input)) { padding-right: 10px; }
+.bulk-table td.bulk-table__num .bulk-cell--qty { margin-left: auto; display: block; }
 .bulk-table th.bulk-table__in { color: var(--color-success-dark); }
 .bulk-table th.bulk-table__out { color: var(--color-error-dark); }
 
@@ -484,25 +464,420 @@
 }
 .bulk-table tr.is-conflict td.bulk-table__product { box-shadow: inset 3px 0 0 var(--color-error); }
 
+/* Barra de acciones de las hojas (alertas, conteo, compra, devolución): queda
+   pegada abajo mientras se recorre la lista, con el resumen y los botones. */
 .bulk-footer {
+  position: sticky;
+  bottom: var(--spacing-sm);
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-sm) var(--spacing-md);
   margin-top: var(--spacing-md);
-  padding: var(--spacing-sm) 0;
+  padding: 12px var(--spacing-md);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
   background: var(--color-bg-primary);
+  box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.45);
 }
 
-.bulk-footer__summary { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.bulk-footer__summary {
+  flex: 1 1 320px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.bulk-footer__hint { display: inline-flex; align-items: flex-start; gap: 8px; }
+.bulk-footer__hint svg { flex-shrink: 0; margin-top: 2px; color: var(--color-text-tertiary); }
+.bulk-footer__count { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+/* La ayuda de teclado sólo tiene sentido en PC: en celulares y tablets
+   (pantalla táctil, sin teclado físico) se oculta. */
+@media (pointer: coarse) {
+  .bulk-footer__keys { display: none; }
+}
+.bulk-footer kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--color-border-primary);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  line-height: 18px;
+  text-align: center;
+}
 .bulk-footer__error { color: var(--color-error-dark); }
 .bulk-footer__actions { display: flex; gap: var(--spacing-sm); }
 .bulk-footer__actions .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 640px) {
   .bulk-sheet { max-height: none; }
-  .bulk-table__product { min-width: 150px; }
+  .bulk-table__product { min-width: 130px; }
+  .bulk-cell--qty { width: 58px; }
+  /* En celular la barra fija taparía media pantalla: va al final de la hoja. */
+  .bulk-footer { position: static; box-shadow: none; }
   .bulk-footer__actions { width: 100%; }
   .bulk-footer__actions .action-btn { flex: 1; }
+}
+
+/* ---------- Apartados de inventario ---------- */
+
+.inventory-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  max-width: var(--width-7xl);
+  margin: 0 auto var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-primary);
+  overflow-x: auto;
+}
+
+.inventory-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.inventory-tab:hover { color: var(--color-text-primary); }
+
+/* Siete apartados: en pantallas medianas se ocultan los íconos para que
+   quepan todos sin tener que desplazar la barra. */
+@media (max-width: 1360px) and (min-width: 769px) {
+  .inventory-tab { padding: 10px 11px; }
+  .inventory-tab svg { display: none; }
+}
+
+.inventory-tab.is-active {
+  color: var(--color-primary-text);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ---------- Compras ---------- */
+
+.purchase-form { display: grid; gap: var(--spacing-md); }
+
+.purchase-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-md);
+}
+
+.purchase-card h2 { font-size: var(--font-size-base); margin: 0 0 var(--spacing-sm); }
+
+.purchase-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+.purchase-card__header h2 { margin: 0; }
+.purchase-card__header .action-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary-text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.purchase-form__row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--spacing-sm);
+}
+.purchase-form__row label { display: grid; gap: 4px; }
+
+.purchase-invoice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.purchase-invoice__actions .action-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+.purchase-invoice__hint { font-size: var(--font-size-sm); color: var(--color-text-tertiary); margin: 0; }
+
+.purchase-invoice__selected {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-alpha-10);
+  color: var(--color-text-primary);
+}
+.purchase-invoice__selected > div { display: grid; flex: 1; min-width: 0; }
+.purchase-invoice__selected span { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.purchase-invoice__link { text-decoration: none; }
+.purchase-invoice__link:hover { border-color: var(--color-border-focus); }
+
+.purchase-invoice__remove,
+.icon-btn-plain {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.purchase-invoice__remove:hover,
+.icon-btn-plain:hover { background: var(--color-bg-hover); color: var(--color-error); }
+
+.purchase-invoice__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.purchase-invoice__list button {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.purchase-invoice__list button:hover { border-color: var(--color-border-focus); background: var(--color-bg-hover); }
+.purchase-invoice__list span { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+.purchase-search { position: relative; margin-bottom: var(--spacing-sm); }
+.purchase-search > input { width: 100%; }
+.purchase-search__results {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.purchase-search__results button {
+  width: 100%;
+  display: grid;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.purchase-search__results button:hover { background: var(--color-bg-hover); }
+.purchase-search__name { font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Advertencia de producto en alerta (stock <= mínimo). */
+.low-stock-icon { display: inline-flex; align-items: center; color: var(--color-warning-dark); flex-shrink: 0; }
+.purchase-search__meta { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+
+.purchase-lines__empty { display: flex; align-items: center; justify-content: center; gap: var(--spacing-sm); }
+
+.purchase-product { display: inline-flex; align-items: center; gap: var(--spacing-sm); }
+.purchase-product img { width: 32px; height: 32px; object-fit: cover; border-radius: var(--radius-md); }
+
+.purchase-invoice-cell { display: inline-flex; align-items: center; gap: 4px; }
+.purchase-meta { font-size: var(--font-size-sm); margin: 0; }
+
+.table tr.is-clickable { cursor: pointer; }
+.table tr.is-clickable:hover td { background: var(--color-bg-hover); }
+
+/* ---------- Lista de compras ---------- */
+
+.shopping-table a.bulk-table__name { text-decoration: none; }
+.shopping-table a.bulk-table__name:hover { text-decoration: underline; }
+.shopping-summary { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+/* En PC el mínimo y el objetivo van en sus columnas; en celular, bajo el nombre,
+   para que "A comprar" se vea sin desplazar la tabla. */
+.shopping-table__levels { display: none; }
+
+@media (max-width: 640px) {
+  .shopping-table__extra { display: none; }
+  .shopping-table__levels { display: block; }
+}
+
+/* ---------- Devoluciones al proveedor ---------- */
+
+.return-form__grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-sm);
+}
+.return-form__grid label { display: grid; gap: 4px; }
+.return-form__note { grid-column: 1 / -1; }
+
+.return-reason { font-weight: 500; }
+.return-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+@media (max-width: 640px) {
+  .return-form__grid { grid-template-columns: 1fr; }
+
+  /* Historial en celular: cada devolución es una tarjeta con sus etiquetas. */
+  .returns-table thead { display: none; }
+  .returns-table, .returns-table tbody, .returns-table tr, .returns-table td { display: block; width: 100%; }
+  .returns-table tr {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+  .returns-table td {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: var(--spacing-sm);
+    padding: 4px 0;
+    border: 0;
+  }
+  .returns-table td::before {
+    content: attr(data-label);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding-top: 2px;
+  }
+}
+
+/* ---------- Conteos de inventario ---------- */
+
+.count-diff { font-weight: 600; font-variant-numeric: tabular-nums; }
+.count-diff.is-surplus { color: var(--color-success-dark); }
+.count-diff.is-shortage { color: var(--color-error-dark); }
+
+/* En celular la diferencia va bajo el nombre, para no desplazar la hoja. */
+.count-table__diff-inline { display: none; }
+
+@media (max-width: 640px) {
+  .count-table__diff { display: none; }
+  .count-table__diff-inline { display: block; }
+}
+
+.count-confirm {
+  list-style: none;
+  margin: var(--spacing-sm) 0;
+  padding: 0;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+}
+.count-confirm li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: 6px 10px;
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+.count-confirm li:last-child { border-bottom: 0; }
+.count-confirm li > span:last-child { white-space: nowrap; }
+.count-confirm__note { display: grid; gap: 4px; margin-top: var(--spacing-md); }
+
+/* ---------- Resumen (stock diario) ---------- */
+
+/* Flex con salto de línea: en pantallas medianas las fechas bajan en vez de desbordar. */
+.flow-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+.flow-filters__product { flex: 1 1 260px; min-width: 0; }
+.flow-filters__dates { display: flex; gap: var(--spacing-sm); flex: 0 1 340px; min-width: 0; }
+.flow-filters__date { flex: 1 1 0; }
+.flow-filters__product.purchase-search { margin-bottom: 0; }
+.flow-filters__product .purchase-search__results { max-height: 320px; overflow-y: auto; }
+.flow-search__empty { padding: 8px 10px; font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
+.flow-title { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.flow-chart__now { display: grid; justify-items: end; line-height: 1.1; }
+.flow-chart__now strong { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.flow-chart__now span { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+.flow-chart .chart-card__header { margin-bottom: var(--spacing-sm); }
+.flow-filters__date { display: grid; gap: 4px; min-width: 0; }
+.flow-filters__date input { width: 100%; min-width: 0; }
+.flow-filters__presets { display: flex; gap: 4px; }
+
+.flow-chip {
+  height: var(--control-height, 40px);
+  padding: 0 12px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.flow-chip:hover { border-color: var(--color-border-focus); }
+.flow-chip.is-active { border-color: var(--color-primary); color: var(--color-primary-text); background: var(--color-primary-alpha-10); }
+
+@media (max-width: 760px) {
+  .flow-filters__product, .flow-filters__presets, .flow-filters__dates { flex-basis: 100%; }
+  .flow-chip { flex: 1; }
+}
+
+/* ---------- Alertas de stock ---------- */
+
+.alert-state {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--color-success-alpha-10);
+  color: var(--color-success-dark);
+}
+.alert-state--low { background: var(--color-warning-alpha-10); color: var(--color-warning-dark); }
+.alert-state--error { background: var(--color-error-alpha-10); color: var(--color-error-dark); }
+
+/* En celular el estado va bajo el nombre y "(alerta)" se omite del encabezado,
+   para que mínimo y objetivo se vean sin desplazar la tabla. */
+.alerts-table__state-inline { display: none; }
+
+@media (max-width: 640px) {
+  .alerts-table__state, .alerts-table__long { display: none; }
+  .alerts-table__state-inline {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-warning-dark);
+  }
+  .alerts-table__state-inline.is-error { color: var(--color-error-dark); }
+}
+
+@media (max-width: 640px) {
+  .purchase-form__row { grid-template-columns: 1fr; }
 }

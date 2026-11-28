@@ -25,10 +25,44 @@ export const MODULES = {
   },
   inventory: {
     view: [['products', 'SELECT'], ['inventory_movements', 'SELECT']],
-    // Un producto nuevo con stock inicial registra su movimiento de entrada.
-    create: [['products', 'INSERT'], ['inventory_movements', 'INSERT']],
+    // Crear la ficha del producto (sin stock: el stock entra por compras o conteos).
+    create: [['products', 'INSERT']],
+    // Datos del producto y su alerta de stock (mínimo y objetivo).
     edit: [['products', 'UPDATE']],
-    move: [['products', 'UPDATE'], ['inventory_movements', 'INSERT']],
+    // Ver las compras registradas (y de qué compra salió cada entrada).
+    purchases: [['purchases', 'SELECT'], ['purchase_items', 'SELECT']],
+    // Registrar una compra: suma stock y deja su movimiento ligado a la línea.
+    purchase: [
+      ['purchases', 'SELECT'],
+      ['purchases', 'INSERT'],
+      ['purchase_items', 'SELECT'],
+      ['purchase_items', 'INSERT'],
+      ['products', 'UPDATE'],
+      ['inventory_movements', 'INSERT'],
+    ],
+    // Ver las devoluciones al proveedor registradas.
+    returns: [['supplier_returns', 'SELECT'], ['supplier_return_items', 'SELECT']],
+    // Registrar una devolución: resta stock y deja su salida ligada a la línea.
+    return: [
+      ['supplier_returns', 'SELECT'],
+      ['supplier_returns', 'INSERT'],
+      ['supplier_return_items', 'SELECT'],
+      ['supplier_return_items', 'INSERT'],
+      ['products', 'UPDATE'],
+      ['inventory_movements', 'INSERT'],
+    ],
+    // Ver los conteos de inventario registrados.
+    counts: [['stock_counts', 'SELECT'], ['stock_count_items', 'SELECT']],
+    // Registrar un conteo: fija el stock contado y deja el ajuste ligado a la línea
+    // (SELECT ... FOR UPDATE sobre products también exige UPDATE).
+    count: [
+      ['stock_counts', 'SELECT'],
+      ['stock_counts', 'INSERT'],
+      ['stock_count_items', 'SELECT'],
+      ['stock_count_items', 'INSERT'],
+      ['products', 'UPDATE'],
+      ['inventory_movements', 'INSERT'],
+    ],
   },
 } as const satisfies Record<string, Record<string, readonly TablePrivilege[]>>;
 
