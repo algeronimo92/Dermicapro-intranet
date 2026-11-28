@@ -259,7 +259,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </div>
         </div>
         <p className="product-form__hint">
-          Con stock igual o menor al mínimo aparece en la lista de compras, que sugiere reponer hasta el objetivo.
+          Con stock igual o menor al mínimo aparece en la lista de compras. El objetivo es hasta cuánto conviene reponer (referencia).
         </p>
 
         {isEdit ? (

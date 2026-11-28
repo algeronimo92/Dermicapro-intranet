@@ -666,7 +666,6 @@
 
 /* ---------- Lista de compras ---------- */
 
-.bulk-table td.bulk-table__num.shopping-table__suggested { font-weight: 600; color: var(--color-text-primary); }
 .shopping-table a.bulk-table__name { text-decoration: none; }
 .shopping-table a.bulk-table__name:hover { text-decoration: underline; }
 .shopping-summary { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-sm); color: var(--color-text-secondary); }

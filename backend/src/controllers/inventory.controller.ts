@@ -45,7 +45,7 @@ function nonNegativeInt(value: unknown, field: string): number {
   return n;
 }
 
-/** Stock objetivo: vacío = sin objetivo (la lista de compras no sugiere cantidad). */
+/** Stock objetivo (referencia de hasta cuánto reponer): vacío = sin objetivo. */
 function optionalTarget(value: unknown): number | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === '') return null;
