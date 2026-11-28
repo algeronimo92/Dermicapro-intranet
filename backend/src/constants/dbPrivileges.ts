@@ -33,6 +33,8 @@ export const DB_TABLES: DbTable[] = [
   { name: 'invoice_object_deletions',       label: 'Limpieza de adjuntos',        module: 'Facturas' },
   { name: 'products',                       label: 'Productos',                   module: 'Inventario' },
   { name: 'inventory_movements',            label: 'Movimientos de inventario',   module: 'Inventario' },
+  { name: 'purchases',                      label: 'Compras de productos',        module: 'Inventario' },
+  { name: 'purchase_items',                 label: 'Productos de cada compra',    module: 'Inventario' },
   { name: 'users',                          label: 'Usuarios',                    module: 'Sistema' },
   { name: 'roles',                          label: 'Roles',                       module: 'Sistema' },
   { name: 'system_settings',                label: 'Configuración del sistema',   module: 'Sistema' },

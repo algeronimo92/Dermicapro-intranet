@@ -27,8 +27,19 @@ export const MODULES = {
     view: [['products', 'SELECT'], ['inventory_movements', 'SELECT']],
     // Un producto nuevo con stock inicial registra su movimiento de entrada.
     create: [['products', 'INSERT'], ['inventory_movements', 'INSERT']],
+    // Datos del producto y su alerta de stock (mínimo y objetivo).
     edit: [['products', 'UPDATE']],
-    move: [['products', 'UPDATE'], ['inventory_movements', 'INSERT']],
+    // Ver las compras registradas (y de qué compra salió cada entrada).
+    purchases: [['purchases', 'SELECT'], ['purchase_items', 'SELECT']],
+    // Registrar una compra: suma stock y deja su movimiento ligado a la línea.
+    purchase: [
+      ['purchases', 'SELECT'],
+      ['purchases', 'INSERT'],
+      ['purchase_items', 'SELECT'],
+      ['purchase_items', 'INSERT'],
+      ['products', 'UPDATE'],
+      ['inventory_movements', 'INSERT'],
+    ],
   },
 } as const satisfies Record<string, Record<string, readonly TablePrivilege[]>>;
 
