@@ -5,7 +5,7 @@ import {
   listBrands,
   listMovements,
   listProducts,
-  stockFlow,
+  dailyStock,
   updateProduct,
   updateStockAlerts,
   uploadProductPhoto,
@@ -31,7 +31,7 @@ router.use(authenticate, requireModule('inventory', 'view'));
 // Productos
 router.get('/products', listProducts);
 router.get('/products/brands', listBrands);
-router.get('/flow', stockFlow);
+router.get('/daily-stock', dailyStock);
 router.put('/products/alerts', requireModule('inventory', 'edit'), updateStockAlerts);
 router.get('/products/:id', getProduct);
 router.get('/products/:id/movements', listMovements);

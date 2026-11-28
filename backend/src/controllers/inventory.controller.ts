@@ -3,7 +3,7 @@ import { Prisma, ProductCategory } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { purchaseDbError } from '../services/inventory/purchases.service';
-import { getStockFlow, parseFlowRange } from '../services/inventory/stockFlow.service';
+import { getDailyStock, parseFlowRange } from '../services/inventory/stockFlow.service';
 
 // El inventario es sólo inventario: el stock cambia por compras, devoluciones
 // al proveedor y conteos, nunca a mano ni por ventas.
@@ -318,15 +318,16 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
 };
 
 // ============================================
-// Dashboard: flujo de stock por fechas
+// Resumen: stock diario de un producto
 // ============================================
 
-export const stockFlow = async (req: Request, res: Response): Promise<void> => {
+export const dailyStock = async (req: Request, res: Response): Promise<void> => {
   try {
+    const productId = typeof req.query.productId === 'string' ? req.query.productId : '';
+    if (!productId) throw new AppError('Elige un producto', 400);
     const range = parseFlowRange(req.query.from, req.query.to);
-    const productId = typeof req.query.productId === 'string' && req.query.productId ? req.query.productId : null;
-    res.json({ data: await getStockFlow(range, productId) });
+    res.json({ data: await getDailyStock(range, productId) });
   } catch (error) {
-    handleError(req, res, error, 'Error al obtener el flujo de stock');
+    handleError(req, res, error, 'Error al obtener el stock diario');
   }
 };
