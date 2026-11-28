@@ -11,7 +11,6 @@ import {
   SystemPrivileges,
 } from '../services/dbPrivileges.service';
 import { apiErrorMessage } from '../utils/apiError';
-import { NotificationSettingsCard } from '../components/NotificationSettingsCard';
 import '../styles/db-privileges.css';
 
 const MODIFYING: ObjectPrivilege[] = ['INSERT', 'UPDATE', 'DELETE'];
@@ -124,8 +123,6 @@ export function DbPrivilegesPage() {
     >
       {matrix && (
         <div className="dbp">
-          <NotificationSettingsCard />
-
           <div className="dbp-roles" role="tablist" aria-label="Rol">
             <div className="dbp-role dbp-role--locked" title="El administrador consulta como dueño de la base: tiene todos los privilegios y no se pueden quitar.">
               Administrador <span>todos los privilegios</span>

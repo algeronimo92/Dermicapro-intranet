@@ -4,8 +4,6 @@ import { DB_TABLES, OBJECT_PRIVILEGES } from '../constants/dbPrivileges';
 import { authenticate, authorize } from '../middlewares/auth';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { getRolePrivileges, setRolePrivileges } from '../services/dbPrivileges.service';
-import { accessFromGrants } from '../services/moduleAccess.service';
-import { getNotificationSettings, NOTIFICATION_TYPES, setNotificationSettings } from '../services/notifications.service';
 
 const router = Router();
 
@@ -24,47 +22,6 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     logUnexpectedError(req, error);
     res.status(500).json({ error: 'Error al leer los privilegios de la base de datos' });
-  }
-});
-
-// Notificaciones por rol (Empleados -> Privilegios). Van antes de /:role.
-async function notificationsPayload() {
-  const [settings, roles] = await Promise.all([getNotificationSettings(), getRolePrivileges()]);
-  return {
-    types: Object.entries(NOTIFICATION_TYPES).map(([key, t]) => ({ key, label: t.label, hint: t.hint })),
-    // canViewInventory: sin ver Inventario el rol no recibe el aviso aunque esté marcado.
-    roles: [
-      { role: ROLES.ADMIN, displayName: 'Administrador', canViewInventory: true },
-      ...roles.map(r => ({
-        role: r.appRole,
-        displayName: r.displayName,
-        canViewInventory: accessFromGrants((t, p) => (r.grants[t] ?? []).includes(p as never)).inventory.view,
-      })),
-    ],
-    settings,
-  };
-}
-
-router.get('/notifications', async (req: Request, res: Response) => {
-  try {
-    res.json({ data: await notificationsPayload() });
-  } catch (error) {
-    logUnexpectedError(req, error);
-    res.status(500).json({ error: 'Error al leer la configuración de notificaciones' });
-  }
-});
-
-router.put('/notifications', async (req: Request, res: Response) => {
-  try {
-    await setNotificationSettings(req.body?.settings, req.user!.id);
-    res.json({ data: await notificationsPayload(), message: 'Notificaciones actualizadas' });
-  } catch (error) {
-    if (error instanceof AppError) {
-      res.status(error.statusCode).json({ error: error.message });
-      return;
-    }
-    logUnexpectedError(req, error);
-    res.status(500).json({ error: 'Error al guardar la configuración de notificaciones' });
   }
 });
 

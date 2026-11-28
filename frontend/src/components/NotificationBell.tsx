@@ -18,8 +18,8 @@ interface NotificationBellProps {
 }
 
 /**
- * Campana del menú: avisa de los productos en alerta de stock. Sólo aparece si
- * el rol de la persona recibe alguna notificación (Empleados -> Privilegios).
+ * Campana del menú: avisa de los productos en alerta de stock. Sólo aparece
+ * para admin e inventario (el backend devuelve null al resto).
  */
 export function NotificationBell({ onNavigate }: NotificationBellProps) {
   const navigate = useNavigate();

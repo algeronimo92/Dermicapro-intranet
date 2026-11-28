@@ -11,16 +11,8 @@ export interface LowStockItem {
 }
 
 export interface UserNotifications {
-  /** null: la persona no recibe este tipo (lo decide Empleados -> Privilegios). */
+  /** null: la persona no recibe este tipo (sólo admin e inventario lo reciben). */
   lowStock: { count: number; items: LowStockItem[] } | null;
-}
-
-export type NotificationType = 'lowStock';
-
-export interface NotificationSettingsPayload {
-  types: { key: NotificationType; label: string; hint: string }[];
-  roles: { role: string; displayName: string; canViewInventory: boolean }[];
-  settings: Record<NotificationType, string[]>;
 }
 
 /** Evento para que la campana se actualice al cambiar el stock o las alertas. */
@@ -31,15 +23,5 @@ export const notificationsService = {
   async getMine(): Promise<UserNotifications> {
     const response = await api.get<UserNotifications>('/auth/me/notifications');
     return response.data;
-  },
-
-  async getSettings(): Promise<NotificationSettingsPayload> {
-    const response = await api.get<{ data: NotificationSettingsPayload }>('/db-privileges/notifications');
-    return response.data.data;
-  },
-
-  async saveSettings(settings: Record<NotificationType, string[]>): Promise<NotificationSettingsPayload> {
-    const response = await api.put<{ data: NotificationSettingsPayload }>('/db-privileges/notifications', { settings });
-    return response.data.data;
   },
 };

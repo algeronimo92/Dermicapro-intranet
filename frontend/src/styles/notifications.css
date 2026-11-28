@@ -123,8 +123,3 @@
 }
 .notification-panel__footer a { color: var(--color-text-link); font-weight: 600; text-decoration: none; }
 .notification-panel__footer a:hover { text-decoration: underline; }
-
-/* Configuración por rol (Empleados -> Privilegios) */
-.dbp-notifications td:first-child { min-width: 240px; }
-.dbp-notifications th:not(:first-child),
-.dbp-notifications td:not(:first-child) { text-align: center; white-space: nowrap; }

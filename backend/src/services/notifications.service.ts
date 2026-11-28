@@ -1,75 +1,15 @@
 import prisma from '../config/database';
 import { ROLES, RoleName } from '../constants/roles';
-import { AppError } from '../middlewares/errorHandler';
 import { getModuleAccess } from './moduleAccess.service';
 
 /**
  * Notificaciones del sistema (campana del menú).
  *
- * Qué roles reciben cada tipo lo decide el admin en Empleados -> Privilegios,
- * y se guarda en system_settings. Además, un tipo sólo llega a quien puede ver
- * los datos que muestra (stock bajo: quien ve Inventario).
+ * El aviso de stock bajo lo reciben sólo admin e inventario, y siempre que
+ * puedan ver Inventario (los datos que muestra).
  */
-
-export const NOTIFICATION_TYPES = {
-  lowStock: {
-    label: 'Productos en alerta de stock',
-    hint: 'Stock igual o menor al mínimo. Requiere ver Inventario.',
-    settingKey: 'notifications.low_stock.roles',
-    defaultRoles: [ROLES.ADMIN, ROLES.INVENTORY] as RoleName[],
-  },
-} as const;
-
-export type NotificationType = keyof typeof NOTIFICATION_TYPES;
-const TYPES = Object.keys(NOTIFICATION_TYPES) as NotificationType[];
-const ALL_ROLES = Object.values(ROLES) as RoleName[];
+export const LOW_STOCK_ROLES: readonly RoleName[] = [ROLES.ADMIN, ROLES.INVENTORY];
 export const MAX_LOW_STOCK_ITEMS = 20;
-
-export type NotificationSettings = Record<NotificationType, RoleName[]>;
-
-function parseRoles(raw: string | undefined, fallback: RoleName[]): RoleName[] {
-  if (raw === undefined) return fallback;
-  try {
-    const value = JSON.parse(raw);
-    return Array.isArray(value) ? value.filter((r): r is RoleName => ALL_ROLES.includes(r)) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export async function getNotificationSettings(): Promise<NotificationSettings> {
-  const rows = await prisma.systemSetting.findMany({
-    where: { key: { in: TYPES.map(t => NOTIFICATION_TYPES[t].settingKey) } },
-  });
-  const byKey = new Map(rows.map(r => [r.key, r.value]));
-  return Object.fromEntries(TYPES.map(t => [
-    t,
-    parseRoles(byKey.get(NOTIFICATION_TYPES[t].settingKey), NOTIFICATION_TYPES[t].defaultRoles),
-  ])) as NotificationSettings;
-}
-
-export async function setNotificationSettings(input: unknown, userId: string): Promise<NotificationSettings> {
-  if (!input || typeof input !== 'object') throw new AppError('Configuración de notificaciones inválida', 400);
-  const body = input as Record<string, unknown>;
-  for (const type of TYPES) {
-    if (body[type] === undefined) continue;
-    const roles = body[type];
-    if (!Array.isArray(roles) || roles.some(r => !ALL_ROLES.includes(r as RoleName))) {
-      throw new AppError('Hay un rol no válido en la configuración de notificaciones', 400);
-    }
-    await prisma.systemSetting.upsert({
-      where: { key: NOTIFICATION_TYPES[type].settingKey },
-      create: {
-        key: NOTIFICATION_TYPES[type].settingKey,
-        value: JSON.stringify([...new Set(roles)]),
-        description: `Roles que reciben la notificación: ${NOTIFICATION_TYPES[type].label}`,
-        updatedById: userId,
-      },
-      update: { value: JSON.stringify([...new Set(roles)]), updatedById: userId },
-    });
-  }
-  return getNotificationSettings();
-}
 
 export interface LowStockItem {
   id: string;
@@ -91,9 +31,7 @@ export interface UserNotifications {
  * por eso antes comprueba que su rol pueda ver Inventario.
  */
 export async function getUserNotifications(userId: string, roleName: string | undefined): Promise<UserNotifications> {
-  const settings = await getNotificationSettings();
-  const receivesLowStock = settings.lowStock.includes(roleName as RoleName);
-  if (!receivesLowStock) return { lowStock: null };
+  if (!LOW_STOCK_ROLES.includes(roleName as RoleName)) return { lowStock: null };
 
   const access = await getModuleAccess(userId, roleName);
   if (!access.inventory.view) return { lowStock: null };
@@ -104,7 +42,7 @@ export async function getUserNotifications(userId: string, roleName: string | un
     prisma.product.findMany({
       where,
       select: { id: true, name: true, brand: true, presentation: true, stock: true, minStock: true, targetStock: true },
-      // Primero los agotados y los que más bajo están respecto de su mínimo.
+      // Primero los agotados y los que más bajo están.
       orderBy: [{ stock: 'asc' }, { name: 'asc' }],
       take: MAX_LOW_STOCK_ITEMS,
     }),
