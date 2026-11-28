@@ -9,6 +9,7 @@ import {
 import { NavItem } from '../config/navigation.config';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdleCountdown, formatCountdown } from '../hooks/useIdleTimeout';
+import { NotificationBell } from './NotificationBell';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Users, CalendarDays, Syringe, UserCog,
@@ -314,6 +315,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, navItems, onLogout, onTo
         {/* Pie: acciones rápidas, contador de sesión y usuario */}
         <div className="sidebar-footer">
           <div className="sidebar-footer__actions">
+            <NotificationBell onNavigate={onNavigate} />
             <button
               className="sidebar-icon-btn"
               onClick={onToggleTheme ?? toggleTheme}
