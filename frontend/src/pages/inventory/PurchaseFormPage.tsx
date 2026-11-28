@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProductFormModal } from '../../components/ProductFormModal';
+import { LowStockIcon } from '../../components/inventory/LowStockIcon';
 import { PageDetailLayout } from '../../components/templates';
 import { PurchaseInvoicePicker } from '../../components/inventory/PurchaseInvoicePicker';
 import {
@@ -168,7 +169,7 @@ export function PurchaseFormPage() {
                 {suggestions.map(p => (
                   <li key={p.id}>
                     <button type="button" onClick={() => addProduct(p)}>
-                      <span className="purchase-search__name">{p.name}</span>
+                      <span className="purchase-search__name">{p.name} <LowStockIcon product={p} /></span>
                       <span className="purchase-search__meta">
                         {[p.brand, p.presentation].filter(Boolean).join(' · ')} · Stock {p.stock}
                       </span>
