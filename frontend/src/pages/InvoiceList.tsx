@@ -107,7 +107,7 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
       </header>
       <form className="invoice-panel invoice-filter-form" onSubmit={applyFilters} onReset={() => updateQuery(1, defaultFilters)}>
         <div className="invoice-fields">
-          <label><span>Emisor o RUC</span><input name="search" type="search" maxLength={200} placeholder="Buscar proveedor" /></label>
+          <label className="invoice-filter-search"><span>Emisor o RUC</span><input name="search" type="search" maxLength={200} placeholder="Buscar proveedor" /></label>
           <label><span>Desde</span><input name="dateFrom" type="date" /></label>
           <label><span>Hasta</span><input name="dateTo" type="date" /></label>
           <label>
@@ -127,7 +127,7 @@ export function InvoiceList({ canRegister }: { canRegister: boolean }) {
           </label>
           {categories.length > 1 && (
             <label>
-              <span>Tratamientos o productos</span>
+              <span>Categoría</span>
               <FormSelect
                 name="category"
                 options={[{ value: '', label: 'Ambos' }, ...categories.map(c => ({ value: c, label: INVOICE_CATEGORY_LABELS[c] }))]}
