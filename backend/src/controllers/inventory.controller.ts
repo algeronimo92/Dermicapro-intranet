@@ -3,6 +3,7 @@ import { Prisma, ProductCategory } from '@prisma/client';
 import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { purchaseDbError } from '../services/inventory/purchases.service';
+import { getStockFlow, parseFlowRange } from '../services/inventory/stockFlow.service';
 
 // El inventario es sólo inventario: el stock cambia por compras, devoluciones
 // al proveedor y conteos, nunca a mano ni por ventas.
@@ -313,5 +314,19 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
     res.json({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     handleError(req, res, error, 'Error al obtener los movimientos');
+  }
+};
+
+// ============================================
+// Dashboard: flujo de stock por fechas
+// ============================================
+
+export const stockFlow = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const range = parseFlowRange(req.query.from, req.query.to);
+    const productId = typeof req.query.productId === 'string' && req.query.productId ? req.query.productId : null;
+    res.json({ data: await getStockFlow(range, productId) });
+  } catch (error) {
+    handleError(req, res, error, 'Error al obtener el flujo de stock');
   }
 };
