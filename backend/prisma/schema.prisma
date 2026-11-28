@@ -113,6 +113,7 @@ model User {
   inventoryMovements         InventoryMovement[]   @relation("InventoryMovementCreatedBy")
   purchasesCreated           Purchase[]            @relation("PurchaseCreatedBy")
   supplierReturnsCreated     SupplierReturn[]      @relation("SupplierReturnCreatedBy")
+  stockCountsCreated         StockCount[]          @relation("StockCountCreatedBy")
   passwordResetTokens        PasswordResetToken[]
 
   @@index([roleId], map: "users_role_id_idx")
@@ -651,6 +652,7 @@ model Product {
   movements           InventoryMovement[]
   purchaseItems       PurchaseItem[]
   supplierReturnItems SupplierReturnItem[]
+  stockCountItems     StockCountItem[]
 
   @@index([isActive, name], map: "products_active_name_idx")
   @@index([createdById], map: "products_created_by_id_idx")
@@ -672,16 +674,20 @@ model InventoryMovement {
   purchaseItemId       String? @map("purchase_item_id")
   // Salida generada por una devolución al proveedor (reason = supplier_return).
   supplierReturnItemId String? @map("supplier_return_item_id")
+  // Ajuste generado por un conteo de inventario (reason = adjustment).
+  stockCountItemId     String? @map("stock_count_item_id")
 
   product            Product             @relation(fields: [productId], references: [id])
   createdBy          User                @relation("InventoryMovementCreatedBy", fields: [createdById], references: [id])
   purchaseItem       PurchaseItem?       @relation(fields: [purchaseItemId], references: [id])
   supplierReturnItem SupplierReturnItem? @relation(fields: [supplierReturnItemId], references: [id])
+  stockCountItem     StockCountItem?     @relation(fields: [stockCountItemId], references: [id])
 
   @@index([productId, createdAt(sort: Desc)], map: "inventory_movements_product_created_at_idx")
   @@index([createdById], map: "inventory_movements_created_by_id_idx")
   @@index([purchaseItemId])
   @@index([supplierReturnItemId])
+  @@index([stockCountItemId])
   @@map("inventory_movements")
 }
 
@@ -752,6 +758,39 @@ model SupplierReturnItem {
   @@unique([returnId, productId])
   @@index([productId])
   @@map("supplier_return_items")
+}
+
+// Conteo físico de inventario. Por cada producto contado guarda lo que decía
+// el sistema y lo que se contó; si difieren, el stock se ajusta con un
+// movimiento "Ajuste por conteo" ligado a la línea. No se edita ni se borra.
+model StockCount {
+  id          String   @id @default(uuid())
+  note        String?
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy User             @relation("StockCountCreatedBy", fields: [createdById], references: [id])
+  items     StockCountItem[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([createdById])
+  @@map("stock_counts")
+}
+
+model StockCountItem {
+  id            String @id @default(uuid())
+  countId       String @map("count_id")
+  productId     String @map("product_id")
+  expectedStock Int    @map("expected_stock") // lo que decía el sistema al contar
+  countedStock  Int    @map("counted_stock") // lo que se contó
+
+  stockCount StockCount          @relation(fields: [countId], references: [id], onDelete: Cascade)
+  product    Product             @relation(fields: [productId], references: [id])
+  movements  InventoryMovement[]
+
+  @@unique([countId, productId])
+  @@index([productId])
+  @@map("stock_count_items")
 }
 
 // ==========================================

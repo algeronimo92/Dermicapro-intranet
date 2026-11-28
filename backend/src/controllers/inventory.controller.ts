@@ -4,8 +4,8 @@ import prisma from '../config/database';
 import { AppError, logUnexpectedError } from '../middlewares/errorHandler';
 import { purchaseDbError } from '../services/inventory/purchases.service';
 
-// El inventario es sólo inventario: el stock cambia por compras (y, más
-// adelante, devoluciones y conteos), nunca a mano ni por ventas.
+// El inventario es sólo inventario: el stock cambia por compras, devoluciones
+// al proveedor y conteos, nunca a mano ni por ventas.
 
 const CATEGORIES = Object.values(ProductCategory);
 const MAX_ALERT_ROWS = 500;
@@ -204,7 +204,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     if (req.body?.stock !== undefined) {
-      throw new AppError('El stock no se edita directamente: registra una compra o un conteo', 400);
+      throw new AppError('El stock no se edita directamente: registra una compra, una devolución o un conteo', 400);
     }
     const existing = await prisma.product.findUnique({
       where: { id: req.params.id }, select: { id: true, minStock: true, targetStock: true },
@@ -292,6 +292,7 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
     // (si no, la consulta a purchase_items fallaría por privilegios).
     const withPurchase = Boolean(req.moduleAccess?.inventory.purchases);
     const withReturn = Boolean(req.moduleAccess?.inventory.returns);
+    const withCount = Boolean(req.moduleAccess?.inventory.counts);
 
     const [data, total] = await Promise.all([
       prisma.inventoryMovement.findMany({
@@ -300,6 +301,7 @@ export const listMovements = async (req: Request, res: Response): Promise<void> 
           createdBy: userSummary,
           ...(withPurchase && { purchaseItem: { select: { purchaseId: true } } }),
           ...(withReturn && { supplierReturnItem: { select: { supplierReturn: { select: { reason: true } } } } }),
+          ...(withCount && { stockCountItem: { select: { countId: true } } }),
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,

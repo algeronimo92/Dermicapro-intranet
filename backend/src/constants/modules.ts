@@ -51,6 +51,18 @@ export const MODULES = {
       ['products', 'UPDATE'],
       ['inventory_movements', 'INSERT'],
     ],
+    // Ver los conteos de inventario registrados.
+    counts: [['stock_counts', 'SELECT'], ['stock_count_items', 'SELECT']],
+    // Registrar un conteo: fija el stock contado y deja el ajuste ligado a la línea
+    // (SELECT ... FOR UPDATE sobre products también exige UPDATE).
+    count: [
+      ['stock_counts', 'SELECT'],
+      ['stock_counts', 'INSERT'],
+      ['stock_count_items', 'SELECT'],
+      ['stock_count_items', 'INSERT'],
+      ['products', 'UPDATE'],
+      ['inventory_movements', 'INSERT'],
+    ],
   },
 } as const satisfies Record<string, Record<string, readonly TablePrivilege[]>>;
 
