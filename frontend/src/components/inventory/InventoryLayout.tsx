@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Bell, ClipboardCheck, ClipboardList, Package, ShoppingBag, Undo2 } from 'lucide-react';
+import { BarChart3, Bell, ClipboardCheck, ClipboardList, Package, ShoppingBag, Undo2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/inventory.css';
 
@@ -12,6 +12,7 @@ export function InventoryLayout() {
   const { modules } = useAuth();
   const { pathname } = useLocation();
   const tabs = [
+    { to: '/inventory/summary', label: 'Resumen', icon: BarChart3, show: true },
     { to: '/inventory/purchases', label: 'Compras', icon: ShoppingBag, show: modules.inventory.purchases },
     { to: '/inventory/returns', label: 'Devoluciones', icon: Undo2, show: modules.inventory.returns },
     { to: '/inventory/counts', label: 'Conteos', icon: ClipboardCheck, show: modules.inventory.counts },

@@ -37,6 +37,7 @@ import { SupplierReturnFormPage } from './pages/inventory/SupplierReturnFormPage
 import { StockCountsPage } from './pages/inventory/StockCountsPage';
 import { StockCountFormPage } from './pages/inventory/StockCountFormPage';
 import { StockCountDetailPage } from './pages/inventory/StockCountDetailPage';
+import { StockFlowPage } from './pages/inventory/StockFlowPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { DbPrivilegesPage } from './pages/DbPrivilegesPage';
 import SettingsPage from './pages/SettingsPage';
@@ -204,6 +205,7 @@ function DashboardLayout() {
                 <Route path="purchases/new" element={modules.inventory.purchase ? <PurchaseFormPage /> : <Navigate to="/inventory" replace />} />
                 <Route path="purchases/:id" element={modules.inventory.purchases ? <PurchaseDetailPage /> : <Navigate to="/inventory" replace />} />
                 <Route path="alerts" element={<StockAlertsPage />} />
+                <Route path="summary" element={<StockFlowPage />} />
                 <Route path="shopping-list" element={<ShoppingListPage />} />
                 <Route path="returns" element={modules.inventory.returns ? <SupplierReturnsPage /> : <Navigate to="/inventory" replace />} />
                 <Route path="returns/new" element={modules.inventory.return ? <SupplierReturnFormPage /> : <Navigate to="/inventory" replace />} />

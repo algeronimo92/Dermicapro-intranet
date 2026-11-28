@@ -101,6 +101,19 @@ export interface StockCountFormData {
   items: { productId: string; expectedStock: number; countedStock: number }[];
 }
 
+export interface StockFlow {
+  from: string;
+  to: string;
+  productId: string | null;
+  startStock: number;
+  endStock: number;
+  totalIn: number;
+  totalOut: number;
+  days: { date: string; in: number; out: number; stock: number }[];
+  byReason: { reason: MovementReason; type: MovementType; quantity: number }[];
+  topProducts: { productId: string; name: string; in: number; out: number }[];
+}
+
 /** El stock cambió mientras se contaba (409 al guardar el conteo). */
 export interface StockCountConflict {
   productId: string;
@@ -297,6 +310,11 @@ export const inventoryService = {
 
   async createSupplierReturn(data: SupplierReturnFormData): Promise<{ id: string }> {
     const response = await api.post<{ data: { id: string } }>('/inventory/returns', data);
+    return response.data.data;
+  },
+
+  async getStockFlow(params: { from: string; to: string; productId?: string }): Promise<StockFlow> {
+    const response = await api.get<{ data: StockFlow }>('/inventory/flow', { params });
     return response.data.data;
   },
 

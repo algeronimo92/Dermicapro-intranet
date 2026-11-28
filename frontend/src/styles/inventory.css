@@ -750,6 +750,85 @@
 .count-confirm li > span:last-child { white-space: nowrap; }
 .count-confirm__note { display: grid; gap: 4px; margin-top: var(--spacing-md); }
 
+/* ---------- Resumen (flujo de stock) ---------- */
+
+.flow-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) auto minmax(140px, 0.6fr) minmax(140px, 0.6fr);
+  align-items: end;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+.flow-filters .ds-select.input-group { margin-bottom: 0; }
+.flow-filters__date { display: grid; gap: 4px; }
+.flow-filters__date input { width: 100%; min-width: 0; }
+.flow-filters__presets { display: flex; gap: 4px; }
+
+.flow-chip {
+  height: var(--control-height, 40px);
+  padding: 0 12px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.flow-chip:hover { border-color: var(--color-border-focus); }
+.flow-chip.is-active { border-color: var(--color-primary); color: var(--color-primary-text); background: var(--color-primary-alpha-10); }
+
+.flow-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+.flow-stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+}
+.flow-stat__label { font-size: var(--font-size-xs); color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.03em; }
+.flow-stat__value { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.flow-stat__hint { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+
+.flow-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.flow-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+.flow-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.flow-list li { display: flex; justify-content: space-between; gap: var(--spacing-md); font-size: var(--font-size-sm); }
+.flow-list strong, .flow-list__io { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flow-list__io { color: var(--color-text-secondary); }
+.flow-details a { color: var(--color-primary-text); font-size: var(--font-size-sm); }
+
+.flow-table summary { cursor: pointer; color: var(--color-primary-text); font-size: var(--font-size-sm); margin-bottom: var(--spacing-sm); }
+
+@media (max-width: 1100px) {
+  .flow-charts { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .flow-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .flow-filters__product, .flow-filters__presets { grid-column: 1 / -1; }
+  .flow-chip { flex: 1; }
+  .flow-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* ---------- Alertas de stock ---------- */
 
 .alert-state {
