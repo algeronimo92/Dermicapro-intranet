@@ -755,18 +755,26 @@
 
 /* ---------- Resumen (stock diario) ---------- */
 
+/* Flex con salto de línea: en pantallas medianas las fechas bajan en vez de desbordar. */
 .flow-filters {
-  display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) auto minmax(140px, 0.6fr) minmax(140px, 0.6fr);
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
+.flow-filters__product { flex: 1 1 260px; min-width: 0; }
+.flow-filters__dates { display: flex; gap: var(--spacing-sm); flex: 0 1 340px; min-width: 0; }
+.flow-filters__date { flex: 1 1 0; }
 .flow-filters__product.purchase-search { margin-bottom: 0; }
 .flow-filters__product .purchase-search__results { max-height: 320px; overflow-y: auto; }
 .flow-search__empty { padding: 8px 10px; font-size: var(--font-size-sm); color: var(--color-text-tertiary); }
 .flow-title { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.flow-filters__date { display: grid; gap: 4px; }
+.flow-chart__now { display: grid; justify-items: end; line-height: 1.1; }
+.flow-chart__now strong { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.flow-chart__now span { font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
+.flow-chart .chart-card__header { margin-bottom: var(--spacing-sm); }
+.flow-filters__date { display: grid; gap: 4px; min-width: 0; }
 .flow-filters__date input { width: 100%; min-width: 0; }
 .flow-filters__presets { display: flex; gap: 4px; }
 
@@ -786,8 +794,7 @@
 .flow-chip.is-active { border-color: var(--color-primary); color: var(--color-primary-text); background: var(--color-primary-alpha-10); }
 
 @media (max-width: 760px) {
-  .flow-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .flow-filters__product, .flow-filters__presets { grid-column: 1 / -1; }
+  .flow-filters__product, .flow-filters__presets, .flow-filters__dates { flex-basis: 100%; }
   .flow-chip { flex: 1; }
 }
 
