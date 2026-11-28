@@ -101,17 +101,12 @@ export interface StockCountFormData {
   items: { productId: string; expectedStock: number; countedStock: number }[];
 }
 
-export interface StockFlow {
+/** Stock de un producto al cierre de cada día (pestaña Resumen). */
+export interface DailyStock {
+  productId: string;
   from: string;
   to: string;
-  productId: string | null;
-  startStock: number;
-  endStock: number;
-  totalIn: number;
-  totalOut: number;
-  days: { date: string; in: number; out: number; stock: number }[];
-  byReason: { reason: MovementReason; type: MovementType; quantity: number }[];
-  topProducts: { productId: string; name: string; in: number; out: number }[];
+  days: { date: string; stock: number }[];
 }
 
 /** El stock cambió mientras se contaba (409 al guardar el conteo). */
@@ -313,8 +308,8 @@ export const inventoryService = {
     return response.data.data;
   },
 
-  async getStockFlow(params: { from: string; to: string; productId?: string }): Promise<StockFlow> {
-    const response = await api.get<{ data: StockFlow }>('/inventory/flow', { params });
+  async getDailyStock(params: { productId: string; from: string; to: string }): Promise<DailyStock> {
+    const response = await api.get<{ data: DailyStock }>('/inventory/daily-stock', { params });
     return response.data.data;
   },
 
